@@ -1,0 +1,10 @@
+{
+  "extends": "@goldilocks/typescript-config/react-library.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {"@/*": ["src/*"]},
+    "allowImportingTsExtensions": true,
+    "noUncheckedSideEffectImports": true,
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,1 @@
+export type { SpotPrice, TaskStatus } from '@goldilocks/shared-types';

@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  /// @description Unique numeric user identifier
+  /// @example 123
+  id          String    @id @default(uuid())
+  /// @description the username
+  email       String    @unique
+  firstName   String
+  lastName    String
+  /// @description the hashed password of the user\'s account
+  password    String
+  role        UserRole
+  /// @description Indicates if the user is allowed to use the application
+  isActive    Boolean   @default(true)
+  /// @description Indicates if the user is an admin or not
+  admin       Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  lastLoginAt DateTime?
+
+  @@map("users")
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  sku         String    @unique
+  name        String
+  metalType   MetalType
+  /// Weight in grams
+  weight      Decimal   @db.Decimal(10, 4)
+  /// Dealer spread applied to spot price
+  spreadBuy   Decimal   @db.Decimal(5, 4)
+  spreadSell  Decimal   @db.Decimal(5, 4)
+  /// VAT rate (0.00 or 0.23)
+  vatRate     Decimal   @db.Decimal(4, 2)
+  stock       Int       @default(0)
+  description String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([metalType])
+  @@index([metalType, stock])
+  @@index([sku])
+  @@map("products")
+}
+
+model MetalSpotPrice {
+  id        BigInt    @id @default(autoincrement())
+  metalType MetalType
+  priceEur  Decimal   @db.Decimal(18, 6)
+  priceGbp  Decimal   @db.Decimal(18, 6)
+  // previousPrice Decimal   @db.Decimal(18, 6)
+
+  /// API provider name (metalsapi, goldapi, etc)
+  source    String
+  /// timestamp of the market price
+  timestamp DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  /// Unique compound key to allow upsert on metalType + timestamp
+  @@unique([metalType, timestamp])
+  /// Indexes for query performance
+  @@index([metalType])
+  @@index([timestamp])
+  @@map("metal_spot_prices")
+}
+
+model HistoricSpotPrice {
+  id         BigInt    @id @default(autoincrement())
+  metalType  MetalType
+  priceEur   Decimal   @db.Decimal(18, 6)
+  priceGbp   Decimal   @db.Decimal(18, 6)
+  recordedAt DateTime  @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+
+  /// Indexes for query performance
+  @@index([metalType])
+  @@index([recordedAt])
+  @@map("historic_spot_prices")
+}
+
+model Branch {
+  id       Int      @id @default(autoincrement())
+  name     String
+  currency Currency @default(EUR)
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  SALES
+  ACCOUNTING
+  AUDITOR
+}
+
+enum MetalType {
+  GOLD
+  SILVER
+  PLATINUM
+  PALLADIUM
+}
+
+enum Currency {
+  EUR
+  USD
+  GBP
+}

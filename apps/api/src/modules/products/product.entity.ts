@@ -1,0 +1,1 @@
+export type { Product } from '@goldilocks/shared-types';
