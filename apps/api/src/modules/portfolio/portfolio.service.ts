@@ -89,12 +89,14 @@ export class PortfolioService {
     }
 
     async buildPortfolio(request: PortfolioBuildRequest): Promise<PortfolioBuildResponse> {
-        const spot = await this.metalsProvider.getLatest(request.metalType);
+        const [spot, rawProducts] = await Promise.all([
+            this.metalsProvider.getLatest(request.metalType),
+            this.productsProvider.getAll(),
+        ]);
         if (!spot) {
             throw new NotFoundException(`No spot price available for ${request.metalType}.`);
         }
 
-        const rawProducts = await this.productsProvider.getAll();
         const spotMap = { ...ZERO_SPOT_MAP, [request.metalType]: spot.priceEur };
 
         const priorityProduct = request.priorityProductId
