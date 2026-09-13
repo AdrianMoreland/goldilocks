@@ -30,4 +30,11 @@ export default defineConfig({
             },
         },
     },
+    preview: {
+        host: true,
+        // Vite 5+ rejects unrecognized Host headers by default — needed so
+        // `vite preview` behind Railway's *.up.railway.app proxy (or a future
+        // custom domain) actually serves requests instead of 403ing them.
+        allowedHosts: true,
+    },
 })

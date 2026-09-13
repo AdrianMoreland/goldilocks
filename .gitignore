@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
-build/
+# Build output — NOT dist/ or build/: Railway's build step (Railpack) uses
+# this file to decide what to carry from the build stage into the final
+# runtime image, so gitignoring the compiled output here hid apps/api/dist
+# and apps/web/dist from the deployed container (Cannot find module
+# 'dist/main'). Keeping these out of git is a smaller win than a working
+# deploy, so they're tracked-but-empty by convention instead.
 .turbo/
 *.tsbuildinfo
 
