@@ -1,5 +1,8 @@
 import * as React from "react"
-import { ArrowRight, TrendingDown, TrendingUp } from "lucide-react"
+import {
+    ArrowLeftRight, ArrowRight, ChevronDown, CircleX, Divide, Percent as PercentIcon,
+    TrendingDown, TrendingUp, type LucideIcon,
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -47,10 +50,12 @@ type PercentMode = "of" | "isWhatPercent" | "add" | "subtract" | "change"
 interface ModeInfo {
     value: PercentMode
     label: string
-    /** Plain-English sentence template shown above the inputs, with {x}/{y} placeholders. */
-    sentence: (x: string, y: string) => string
+    description: string
+    icon: LucideIcon
     xLabel: string
     yLabel: string
+    xIsPercent: boolean
+    yIsPercent: boolean
     defaultX: number
     defaultY: number
 }
@@ -59,11 +64,11 @@ interface ModeInfo {
 // always shows a real, already-computed example — never a blank "0" result
 // that gives a first-time (or non-technical) user nothing to anchor on.
 const PERCENT_MODES: ModeInfo[] = [
-    { value: "of", label: "X% of Y", sentence: (x, y) => `What is ${x}% of ${y}?`, xLabel: "Percent (X)", yLabel: "Of value (Y)", defaultX: 20, defaultY: 250 },
-    { value: "isWhatPercent", label: "X is what % of Y", sentence: (x, y) => `${x} is what percent of ${y}?`, xLabel: "Value (X)", yLabel: "Out of (Y)", defaultX: 50, defaultY: 250 },
-    { value: "add", label: "Add X% to Y", sentence: (x, y) => `Add ${x}% on top of ${y}`, xLabel: "Percent to add (X)", yLabel: "Starting value (Y)", defaultX: 15, defaultY: 200 },
-    { value: "subtract", label: "Subtract X% from Y", sentence: (x, y) => `Take ${x}% off ${y}`, xLabel: "Percent to remove (X)", yLabel: "Starting value (Y)", defaultX: 10, defaultY: 200 },
-    { value: "change", label: "% change, X → Y", sentence: (x, y) => `From ${x} to ${y} — what's the change?`, xLabel: "From (X)", yLabel: "To (Y)", defaultX: 200, defaultY: 230 },
+    { value: "of", label: "% of a value", description: "Calculate a percentage of a value", icon: PercentIcon, xLabel: "Percent", yLabel: "Value", xIsPercent: true, yIsPercent: false, defaultX: 20, defaultY: 250 },
+    { value: "isWhatPercent", label: "What % is X of Y", description: "Find what percent one value is of another", icon: Divide, xLabel: "Value", yLabel: "Out of", xIsPercent: false, yIsPercent: false, defaultX: 50, defaultY: 250 },
+    { value: "add", label: "Increase by %", description: "Increase a value by a percentage", icon: TrendingUp, xLabel: "Increase by", yLabel: "Starting value", xIsPercent: true, yIsPercent: false, defaultX: 15, defaultY: 200 },
+    { value: "subtract", label: "Decrease by %", description: "Decrease a value by a percentage", icon: TrendingDown, xLabel: "Decrease by", yLabel: "Starting value", xIsPercent: true, yIsPercent: false, defaultX: 10, defaultY: 200 },
+    { value: "change", label: "% change", description: "Calculate the percentage change between two values", icon: ArrowLeftRight, xLabel: "Before", yLabel: "After", xIsPercent: false, yIsPercent: false, defaultX: 200, defaultY: 230 },
 ]
 
 function calcResult(mode: PercentMode, x: number, y: number): { value: number; suffix: string } {
@@ -81,8 +86,17 @@ function calcResult(mode: PercentMode, x: number, y: number): { value: number; s
     }
 }
 
+/**
+ * Percentage calculator — UX modeled on a dedicated percentage-calculator
+ * app the user specifically asked to mirror: a collapsed mode selector that
+ * expands into a picklist (rather than a wall of always-visible mode
+ * buttons), plain-language pill inputs with a clear button, and a distinct
+ * centered result card, all reskinned in this tab's own accent instead of
+ * that app's colors.
+ */
 function PercentageCalculator() {
     const [mode, setMode] = React.useState<PercentMode>("of")
+    const [pickerOpen, setPickerOpen] = React.useState(false)
     const info = PERCENT_MODES.find((m) => m.value === mode)!
     const [x, setX] = React.useState(info.defaultX)
     const [y, setY] = React.useState(info.defaultY)
@@ -95,56 +109,137 @@ function PercentageCalculator() {
         setMode(next)
         setX(nextInfo.defaultX)
         setY(nextInfo.defaultY)
+        setPickerOpen(false)
     }
 
     const result = calcResult(mode, x, y)
     const resultText = `${result.value.toLocaleString("en-IE", { maximumFractionDigits: 2 })}${result.suffix}`
 
+    // Only "% change" carries a direction (gain vs loss) — every other mode
+    // is a neutral lookup/calculation and stays in the tab's own accent.
+    const resultTone: "up" | "down" | "neutral" = mode !== "change" ? "neutral" : result.value >= 0 ? "up" : "down"
+
     return (
-        <div className="flex flex-col gap-4">
-            {/* ── Mode picker: big tappable cards, not a dense toggle row ──── */}
-            <div className="grid grid-cols-1 gap-1.5">
-                {PERCENT_MODES.map((m) => {
-                    const active = m.value === mode
-                    return (
-                        <button
-                            key={m.value}
-                            type="button"
-                            onClick={() => handleModeChange(m.value)}
-                            aria-pressed={active}
-                            className={cn(
-                                "cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition-colors",
-                                active ? "text-white" : "bg-card text-foreground hover:bg-muted/60",
-                            )}
-                            style={active ? { background: "var(--tab-accent)", borderColor: "var(--tab-accent)" } : undefined}
-                        >
-                            {m.label}
-                        </button>
-                    )
-                })}
-            </div>
+        <div className="flex flex-col gap-3">
+            <ModePickerRow info={info} open={pickerOpen} onToggle={() => setPickerOpen((o) => !o)} />
 
-            {/* ── Plain-English restatement of the calculation ─────────────── */}
-            <p className="text-muted-foreground text-center text-sm">
-                {info.sentence(x.toLocaleString("en-IE"), y.toLocaleString("en-IE"))}
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">{info.xLabel}</Label>
-                    <Input type="number" step="0.01" value={x} onChange={(e) => setX(Number(e.target.value) || 0)} />
+            {pickerOpen ? (
+                <div className="divide-border flex flex-col divide-y overflow-hidden rounded-2xl border">
+                    {PERCENT_MODES.map((m) => (
+                        <ModeListItem key={m.value} info={m} active={m.value === mode} onClick={() => handleModeChange(m.value)} />
+                    ))}
                 </div>
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">{info.yLabel}</Label>
-                    <Input type="number" step="0.01" value={y} onChange={(e) => setY(Number(e.target.value) || 0)} />
-                </div>
+            ) : (
+                <>
+                    <div className="bg-card flex flex-col gap-3 rounded-2xl border p-3.5">
+                        <PillField label={info.xLabel} value={x} onChange={setX} suffix={info.xIsPercent ? "%" : undefined} />
+                        <PillField label={info.yLabel} value={y} onChange={setY} suffix={info.yIsPercent ? "%" : undefined} />
+                    </div>
+
+                    <PercentResultCard tone={resultTone} value={resultText} />
+
+                    <div className="bg-card flex flex-col gap-2 rounded-2xl border p-3.5">
+                        <SectionLabel>VISUAL</SectionLabel>
+                        <PercentVisual mode={mode} x={x} y={y} result={result.value} />
+                    </div>
+                </>
+            )}
+        </div>
+    )
+}
+
+/** Collapsed mode selector — tap to expand the full mode list below it. */
+function ModePickerRow({ info, open, onToggle }: { info: ModeInfo; open: boolean; onToggle: () => void }) {
+    const Icon = info.icon
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className="bg-card flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-left"
+        >
+            <div
+                className="flex size-9 shrink-0 items-center justify-center rounded-full"
+                style={{ background: "var(--tab-accent-soft)", color: "var(--tab-accent-text)" }}
+            >
+                <Icon className="size-4.5" />
             </div>
+            <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold">{info.label}</div>
+                <div className="text-muted-foreground truncate text-xs">{info.description}</div>
+            </div>
+            <ChevronDown className={cn("text-muted-foreground size-4 shrink-0 transition-transform", open && "rotate-180")} />
+        </button>
+    )
+}
 
-            <PercentVisual mode={mode} x={x} y={y} result={result.value} />
+/** One row in the expanded mode list. */
+function ModeListItem({ info, active, onClick }: { info: ModeInfo; active: boolean; onClick: () => void }) {
+    const Icon = info.icon
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={active}
+            className={cn("flex cursor-pointer items-center gap-3 p-3 text-left transition-colors", active ? "bg-muted/70" : "bg-card hover:bg-muted/40")}
+        >
+            <div
+                className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                style={{ background: "var(--tab-accent-soft)", color: "var(--tab-accent-text)" }}
+            >
+                <Icon className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">{info.label}</div>
+                <div className="text-muted-foreground truncate text-xs">{info.description}</div>
+            </div>
+        </button>
+    )
+}
 
-            <Separator />
+/** A label + rounded "pill" input with an inline clear button, and an optional unit suffix outside the pill. */
+function PillField({ label, value, onChange, suffix }: { label: string; value: number; onChange: (value: number) => void; suffix?: string }) {
+    return (
+        <div className="flex items-center gap-3">
+            <Label className="text-muted-foreground w-28 shrink-0 text-sm font-normal">{label}</Label>
+            <div className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-3 py-2">
+                <input
+                    type="number"
+                    step="any"
+                    value={value}
+                    onChange={(e) => onChange(Number(e.target.value) || 0)}
+                    className="w-full min-w-0 bg-transparent text-right text-base font-semibold outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <button
+                    type="button"
+                    onClick={() => onChange(0)}
+                    className="text-muted-foreground/60 hover:text-foreground shrink-0 cursor-pointer"
+                    aria-label={`Clear ${label}`}
+                >
+                    <CircleX className="size-4" />
+                </button>
+            </div>
+            {suffix && <span className="text-muted-foreground w-4 shrink-0 text-sm font-medium">{suffix}</span>}
+        </div>
+    )
+}
 
-            <ResultHighlight label="Result" value={resultText} />
+/** Centered result card — neutral (tab accent) for a plain lookup, green/red for % change's gain/loss. */
+function PercentResultCard({ tone, value }: { tone: "up" | "down" | "neutral"; value: string }) {
+    if (tone === "neutral") {
+        return (
+            <div className="flex flex-col items-center gap-1 rounded-2xl p-4" style={{ background: "var(--tab-accent-soft)" }}>
+                <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: "var(--tab-accent-text-soft)" }}>Result</span>
+                <span className="text-2xl font-extrabold" style={{ color: "var(--tab-accent-text)" }}>{value}</span>
+            </div>
+        )
+    }
+
+    const up = tone === "up"
+    return (
+        <div className={cn("flex flex-col items-center gap-1 rounded-2xl p-4", up ? "bg-emerald-600/10" : "bg-destructive/10")}>
+            <span className={cn("text-[11px] font-bold tracking-wide uppercase", up ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>Result</span>
+            <span className={cn("text-2xl font-extrabold", up ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>{value}</span>
         </div>
     )
 }
@@ -269,16 +364,14 @@ function PercentVisual({ mode, x, y, result }: { mode: PercentMode; x: number; y
     )
 }
 
-// Grams-per-unit — the shared base every field converts through.
+// Grams-per-unit — the shared base every field converts through. Bullion
+// trade only ever uses these three; "oz" here is the troy ounce (31.1035g),
+// the unit the whole app already uses everywhere else (product weights,
+// spot prices), not the 28.35g avoirdupois ounce.
 const WEIGHT_UNITS = [
     { key: "g", label: "Gram (g)", perGram: 1 },
+    { key: "oz", label: "Ounce (oz t)", perGram: 31.1034768 },
     { key: "kg", label: "Kilogram (kg)", perGram: 1000 },
-    { key: "ozt", label: "Troy Ounce (oz t)", perGram: 31.1034768 },
-    { key: "oz", label: "Ounce, avoirdupois (oz)", perGram: 28.349523125 },
-    { key: "dwt", label: "Pennyweight (dwt)", perGram: 1.55517384 },
-    { key: "gr", label: "Grain (gr)", perGram: 0.06479891 },
-    { key: "tola", label: "Tola", perGram: 11.6638038 },
-    { key: "tael", label: "Tael (HK)", perGram: 37.429018 },
 ] as const
 
 type WeightUnitKey = (typeof WEIGHT_UNITS)[number]["key"]
