@@ -1,7 +1,7 @@
 import * as React from "react"
 import type { MetalType, Product } from "@/lib/types"
 
-export type PricingToolTab = "product" | "trade" | "portfolio" | "tax" | "calculators" | "settings"
+export type PricingToolTab = "product" | "trade" | "portfolio" | "calculators" | "settings"
 
 interface PricingToolsContextValue {
     open: boolean
