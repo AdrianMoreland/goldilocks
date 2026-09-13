@@ -45,13 +45,14 @@ export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
  * colored by mixing the *actual* Merrion Gold theme tokens — secondary
  * (green) and accent (teal-blue) — with the current foreground via
  * color-mix(), rather than stock Tailwind emerald/slate that happened to be
- * close but weren't actually drawn from this theme. Mixing toward
- * foreground both keeps each tone legible in light and dark mode (the same
- * formula self-adjusts as --foreground flips) and, for green specifically,
- * is what makes it read as "paler" than the saturated raw secondary color.
+ * close but weren't actually drawn from this theme. Both stay close to the
+ * pure token (barely diluted) so they read as essentially the same green/
+ * teal-blue used elsewhere in the theme (Trade's Buy pill, the Calculators
+ * accent) — the small foreground mix is only there so each stays legible if
+ * a future theme's secondary/accent were ever too dark for the background.
  */
 const PRICE_TONE_COLOR = {
-    sell: "color-mix(in srgb, var(--secondary) 55%, var(--foreground) 45%)",
+    sell: "color-mix(in srgb, var(--secondary) 88%, var(--foreground) 12%)",
     buy: "color-mix(in srgb, var(--accent) 90%, var(--foreground) 10%)",
 } as const
 
