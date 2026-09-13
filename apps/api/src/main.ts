@@ -1,13 +1,38 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {ConfigService} from "@nestjs/config";
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {ZodValidationPipe} from "nestjs-zod";
 
+const logger = new Logger('Bootstrap');
+
+// Fails fast with a clear message instead of an obscure error deep inside
+// whichever service first touches the missing variable (e.g. Prisma's own
+// "Environment variable not found" a few layers down the stack).
+const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'DIRECT_URL',
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_KEY',
+  'METALPRICE_API_KEY',
+  'REDIS_URL',
+] as const;
+
+function validateEnv(config: ConfigService): void {
+  const missing = REQUIRED_ENV_VARS.filter((key) => !config.get<string>(key));
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variable(s): ${missing.join(', ')}`);
+  }
+}
+
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  validateEnv(config);
 
   // Enable global validation with Zod
   app.useGlobalPipes(new ZodValidationPipe());
@@ -37,17 +62,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  console.log('✅ Metals cached in Redis');
-
   const port = config.get<number>('PORT', 4000);
   await app.listen(port);
 
-  console.log(`🚀 Goldilocks API running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs at http://localhost:${port}/docs`);
-  console.log(`🔍 OpenAPI JSON: http://localhost:${port}/docs-json`);
+  logger.log(`🚀 Goldilocks API running on http://localhost:${port}`);
+  logger.log(`📚 Swagger docs at http://localhost:${port}/docs`);
+  logger.log(`🔍 OpenAPI JSON: http://localhost:${port}/docs-json`);
 
 }
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start server:', error);
+  logger.error('❌ Failed to start server:', error instanceof Error ? error.stack : error);
   process.exit(1);
 });
