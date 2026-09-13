@@ -9,6 +9,12 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* The pricing-tools panel's cards/inputs use rounded-2xl/rounded-3xl
+     heavily — without these, Tailwind falls back to its fixed 1rem/1.5rem
+     defaults, so most of that panel silently ignored the theme editor's
+     radius slider while shadcn's own components (sm/md/lg/xl) tracked it. */
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
