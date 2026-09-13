@@ -1,336 +1,182 @@
-import { RefreshCw } from 'lucide-react';
-import { DataTable } from './components/data-table.tsx';
-import { BaseLayout } from '@/components/layouts/base-layout';
-import { SectionCards } from './components/section-cards.tsx';
-import { ChartAreaInteractive } from './components/chart-area-interactive.tsx';
-import { Button } from '@/components/ui/button';
-import { METALS, usePricingWorkbook } from '@/hooks/use-pricing-workbook.hook.ts';
+import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {RefreshCw, Paintbrush, PanelRight, LineChart, ShieldCheck, LogOut} from 'lucide-react';
+import {DataTable} from './components/table/data-table2.tsx';
+import {BaseLayout} from '@/components/layouts/base-layout';
+import {SectionCards} from './components/section-cards.tsx';
+import {ChartAreaInteractive} from './components/chart-area-interactive.tsx';
+import {Button} from '@/components/ui/button';
+import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
+import {useAuth} from '@/contexts/auth-context';
+import {PricingToolsProvider, usePricingTools} from './context/pricing-tools-context';
+import {PricingSettingsProvider} from './context/pricing-settings-context';
+import {PricingToolsPanel} from './components/pricing-tools/pricing-tools-panel';
 
 export default function Page() {
+    return (
+        <PricingSettingsProvider>
+            <PricingToolsProvider>
+                <div className="flex h-svh min-h-0 items-stretch gap-4 overflow-hidden">
+                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                        <PricingWorkbookPage/>
+                    </div>
+                    <PricingToolsPanel/>
+                </div>
+            </PricingToolsProvider>
+        </PricingSettingsProvider>
+    );
+}
+
+function PricingWorkbookPage() {
     const {
         products,
-        // loading,
-        // error,
-        displayPrices,
-        spotStatusLabel,
+        historicSpot,
+        metalCards,
+        lastUpdatedRelative,
         refresh,
         refreshing,
         selectedMetal,
         toggleSelectedMetal,
         handleSpotOverride,
+        clearSpotOverride,
     } = usePricingWorkbook();
+    const { open: toolsOpen, toggleOpen: toggleTools, adminMode, toggleAdminMode } = usePricingTools();
+    const { isAdmin, logout } = useAuth();
+    const navigate = useNavigate();
+    const [graphVisible, setGraphVisible] = useState(true);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/auth/sign-in', { replace: true });
+    };
 
     const productsArr = Array.isArray(products) ? products : [];
 
     return (
         <BaseLayout
+            fillViewport
             title="Pricing Workbook"
-            description="Prices are updated automatically, but you can pause, enter a custom spot price and more."
+            headerActions={({ openThemeCustomizer }) => (
+                <>
+                    <div className="text-muted-foreground hidden flex-col leading-tight md:flex">
+                        <span className="text-[11px] whitespace-nowrap">Last Updated:</span>
+                        <span className="text-[11px] whitespace-nowrap">{lastUpdatedRelative}</span>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => refresh()}
+                        disabled={refreshing}
+                        className="cursor-pointer"
+                        title="Refresh spot prices"
+                        aria-label="Refresh spot prices"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}/>
+                    </Button>
+                    <Button
+                        variant={graphVisible ? "default" : "outline"}
+                        size="icon"
+                        className="cursor-pointer"
+                        title="Toggle price chart"
+                        aria-label="Toggle price chart"
+                        onClick={() => setGraphVisible((v) => !v)}
+                    >
+                        <LineChart className="h-4 w-4"/>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="cursor-pointer"
+                        title="Theme editor"
+                        aria-label="Theme editor"
+                        onClick={openThemeCustomizer}
+                    >
+                        <Paintbrush className="h-4 w-4"/>
+                    </Button>
+                    <Button
+                        variant={toolsOpen ? "default" : "outline"}
+                        size="icon"
+                        className="cursor-pointer"
+                        title="Toggle pricing tools panel"
+                        aria-label="Toggle pricing tools panel"
+                        onClick={toggleTools}
+                    >
+                        <PanelRight className="h-4 w-4"/>
+                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant={adminMode ? "default" : "outline"}
+                            size="icon"
+                            className="cursor-pointer"
+                            title="Toggle admin mode (edit product pricing)"
+                            aria-label="Toggle admin mode"
+                            onClick={toggleAdminMode}
+                        >
+                            <ShieldCheck className="h-4 w-4"/>
+                        </Button>
+                    )}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="cursor-pointer"
+                        title="Sign out"
+                        aria-label="Sign out"
+                        onClick={handleLogout}
+                    >
+                        <LogOut className="h-4 w-4"/>
+                    </Button>
+                </>
+            )}
         >
-            {/* ── Header ──────────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-4 lg:px-6 pb-2">
-                <p className="text-sm text-muted-foreground">{spotStatusLabel}</p>
+            {/* ── Cards + chart — fixed in place, never scroll. ───────────── */}
+            <div className="bg-background shrink-0 pt-4 pb-4">
+                <div className="px-4 lg:px-6">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {metalCards.map((card) => (
+                            <SectionCards
+                                key={card.metal}
+                                data={card}
+                                active={selectedMetal === card.metal}
+                                onClick={() =>
+                                    toggleSelectedMetal(card.metal)
+                                }
+                                onValueChange={(value) =>
+                                    handleSpotOverride(
+                                        card.metal,
+                                        value
+                                    )
+                                }
+                                onClearOverride={() => {
+                                    clearSpotOverride(card.metal);
+                                }}
+                            />
+                        ))}
+                    </div>
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refresh()}
-                    disabled={refreshing}
-                    className="gap-2 cursor-pointer"
-                >
-                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                    {refreshing ? 'Refreshing…' : 'Refresh Spot Prices'}
-                </Button>
-            </div>
-
-            {/* ── Metal cards ─────────────────────────────────────────────── */}
-            <div className="@container/main px-4 lg:px-6 space-y-6">
-                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                    {METALS.map((metal) => (
-                        <SectionCards
-                            key={metal}
-                            title={metal}
-                            price={displayPrices[metal]}
-                            description={spotStatusLabel}
-                            active={selectedMetal === metal}
-                            onClick={() => toggleSelectedMetal(metal)}
-                            onValueChange={(value) => handleSpotOverride(metal, value)}
-                        />
-                    ))}
+                    {graphVisible && (
+                        <div className="mt-4 h-[clamp(140px,26vh,320px)]">
+                            {historicSpot.length > 0 ? (
+                                <ChartAreaInteractive
+                                    data={historicSpot}
+                                    selectedMetal={selectedMetal}
+                                />
+                            ) : (
+                                <p className="text-muted-foreground text-sm">
+                                    No historic market data available
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
-
-                {productsArr.length > 0 ? (
-                    <ChartAreaInteractive />
-                ) : (
-                    <p className="text-muted-foreground text-sm">No products to display chart</p>
-                )}
             </div>
 
-            {/* ── Table ───────────────────────────────────────────────────── */}
-            <div className="@container/main">
-                <DataTable data={productsArr} />
+            {/* ── Table — the only thing that scrolls; its own column
+                header stays pinned to the top of that scroll area. A min
+                height keeps it from being fully crushed by the cards/chart
+                block above on a very short window. ────────────────────── */}
+            <div className="@container/main flex min-h-[180px] flex-1 flex-col overflow-hidden">
+                <DataTable data={productsArr} activeMetal={selectedMetal}/>
             </div>
         </BaseLayout>
     );
 }
-
-
-/*
-import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { DataTable } from './components/data-table.tsx';
-import { BaseLayout } from '@/components/layouts/base-layout';
-import { SectionCards } from './components/section-cards.tsx';
-import { ChartAreaInteractive } from './components/chart-area-interactive.tsx';
-import { Button } from '@/components/ui/button';
-import { useProducts } from '@/hooks/use-products.hook.ts';
-import { useMetalSpotPrices } from '@/hooks/use-metal-spot-prices.hook.ts';
-import type {MetalType} from "@/api/api.ts";
-
-const METALS = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'] as const;
-
-function countByMetal(products: { metalType: string }[]) {
-    return Object.fromEntries(
-        METALS.map((metal) => [metal, products.filter((p) => p.metalType === metal).length]),
-    ) as Record<(typeof METALS)[number], number>;
-}
-
-function spotStatusLabel(
-    loading: boolean,
-    error: unknown,
-    lastUpdated: string | undefined,
-) {
-    if (loading) return 'Loading spot prices…';
-    if (error) return 'Could not load spot prices';
-    return `Live spot prices${lastUpdated ? ` · updated ${lastUpdated}` : ''}`;
-}
-
-export default function Page() {
-    const [selectedMetal, setSelectedMetal] = useState<MetalType | null>(null);
-    const [spotOverrides, setSpotOverrides] = useState<Partial<Record<MetalType, number>>>({});
-
-    const {
-        products = [],
-        loading: productsLoading,
-        error: productsError,
-    } = useProducts({ spotOverrides });
-
-    const { prices, loadingSpot, errorSpot, refreshPrices, isRefreshing } = useMetalSpotPrices();
-
-    const {
-        prices,
-        loadingSpot,
-        errorSpot,
-        refreshPrices,
-        isRefreshing,
-    } = useMetalSpotPrices();
-
-    const {
-        products,
-        prices,
-        loadingSpot,
-        errorSpot,
-        refreshPrices,
-        isRefreshing,
-        selectedMetal,
-        setSelectedMetal,
-        handleSpotOverride,
-        productsDescription,
-    } = usePricingWorkbook();
-    /!**
-     * Handles recalculation of product prices based on spot price overrides.
-     * @param {Partial<Record<MetalType, number>>} overrides - The overridden spot prices.
-     *!/
-    const handleRecalc = (overrides: Partial<Record<MetalType, number>>) => {
-        recalc(overrides);
-    };
-
-
-    /!**
-     * Updates the spot price override for a specific metal.
-     * @param {MetalType} metal - The metal type to override.
-     * @param {number} value - The new spot price value.
-     *!/
-    const handleSpotOverride = (metal: MetalType, value: number) => {
-        setSpotOverrides((prev) => ({ ...prev, [metal]: value }));
-    };
-
-    useEffect(() => {
-        if (Object.keys(spotOverrides).length === 0) return;
-        console.log("spotOverrides changed:", spotOverrides);
-
-        const timeout = setTimeout(() => {
-            console.log("CALLING RECALC:", spotOverrides);
-            recalc(spotOverrides);
-        }, 300);
-
-        return () => clearTimeout(timeout);
-    }, [spotOverrides, recalc]);
-
-
-    return (
-        <BaseLayout
-            title="Pricing Workbook"
-            description="Prices are updated automatically, but you can pause, enter a custom spot price and more."
-        >
-            {/!* ── Header row: title area + refresh button ───────────────────── *!/}
-            <div className="flex items-center justify-between px-4 lg:px-6 pb-2">
-                <p className="text-sm text-muted-foreground">
-                    {loadingSpot
-                        ? 'Loading spot prices…'
-                        : errorSpot
-                            ? 'Could not load spot prices'
-                            : `Showing live spot prices for ${METALS.length} metals`}
-                </p>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refreshPrices()}
-                    disabled={isRefreshing}
-                    className="gap-2 cursor-pointer"
-                >
-                    <RefreshCw
-                        className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                    />
-                    {isRefreshing ? 'Refreshing…' : 'Refresh Spot Prices'}
-                </Button>
-            </div>
-
-            {/!* ── Metal cards ───────────────────────────────────────────────── *!/}
-            <div className="@container/main px-4 lg:px-6 space-y-6">
-                <MetalCards
-                    metals={METALS}
-                    prices={prices}
-                    selectedMetal={selectedMetal}
-                    productsDescription={
-                        productsDescription
-                    }
-                    onSelectMetal={
-                        setSelectedMetal
-                    }
-                    onSpotOverrideChange={
-                        handleSpotOverride
-                    }
-                />
-
-             {/!*   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                    {METALS.map((metal) => (
-                        <SectionCards
-                            key={metal}
-                            title={metal}
-                            price={prices.find((p) => p.metalType === metal)?.currentPrice ?? 0}
-                            description={
-                                loading
-                                    ? 'Loading…'
-                                    : error
-                                        ? 'Failed to load products'
-                                        : `Products: ${}`
-                            }
-                            active={selectedMetal === metal}
-                            onClick={() => setSelectedMetal(metal)}
-                            onValueChange={(value) => {
-                                setSpotOverrides(prev => ({
-                                    ...prev,
-                                    [metal]: value,
-                                }));
-                            }}
-                        />
-                    ))}
-                </div>*!/}
-
-                {products.length > 0 ? (
-                    <ChartAreaInteractive />
-                ) : (
-                    <p className="text-muted-foreground text-sm">No products to display chart</p>
-                )}
-            </div>
-
-            {/!* ── Products table ────────────────────────────────────────────── *!/}
-            <div className="@container/main">
-                <DataTable data={products} />
-            </div>
-        </BaseLayout>
-    );
-}*/
-
-
-/*
-import {useEffect, useState} from "react";
-import { DataTable } from "./components/data-table.tsx"
-import { BaseLayout } from "@/components/layouts/base-layout"
-import { PauseIcon } from "lucide-react"
-import { SectionCards } from "./components/section-cards.tsx"
-import { ChartAreaInteractive } from "./components/chart-area-interactive.tsx"
-// import pastPerformanceData from "./data/past-performance-data.json"
-// import keyPersonnelData from "./data/key-personnel-data.json"
-// import focusDocumentsData from "./data/focus-documents-data.json"
-
-import { useProducts } from "@/hooks/use-products.hook.ts";
-import {useMetalSpotPrices} from "@/hooks/use-metal-spot-prices.hook.ts";
-
-const METALS = ["GOLD", "SILVER", "PLATINUM", "PALLADIUM"];
-
-
-export default function Page() {
-    const [selectedMetal, setSelectedMetal] = useState<string | null>(null);
-
-    const { products = [], loading, error } = useProducts();
-    const { prices = [], loadingSpot, errorSpot } = useMetalSpotPrices();
-
-    // Log fetched products
-    useEffect(() => {
-        console.log("Fetched products:", products);
-    }, [products]);
-
-    // Log errors if fetching fails
-    useEffect(() => {
-        if (error) {
-            console.warn("Failed to fetch products:", error);
-        }
-    }, [error]);
-
-
-    // Count products per metal safely
-    const counts: Record<string, number> = {};
-    for (const metal of METALS) {
-        counts[metal] = products?.filter((p) => p.metalType === metal)?.length ?? 0;
-    }
-
-    return (
-    <BaseLayout title="Pricing Workbook" description="Prices are updated automatically, but you can pause, enter a custom spot price and more.">
-        <div className="@container/main px-4 lg:px-6 space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                {METALS.map((metal) => (
-                    <SectionCards
-                        key={metal}
-                        title={metal}
-                        price={
-                            prices.find(p => p.metalType === metal)?.currentPrice ?? 0
-                        }
-                        description={
-                            loading
-                                ? "Loading..."
-                                : error
-                                    ? "Failed to load products"
-                                    : `Products: ${counts[metal]}`
-                        }
-                        active={selectedMetal === metal}
-                        onClick={() => setSelectedMetal(metal)}
-                    />
-                ))}
-            </div>
-
-            {products.length > 0 ? <ChartAreaInteractive /> : <p>No products to display chart</p>}
-
-        </div>
-        <div className="@container/main">
-            {/!* DataTable with fallback for missing data *!/}
-            <DataTable
-                data={products ?? []}
-            />
-        </div>
-    </BaseLayout>
-    )
-}
-*/

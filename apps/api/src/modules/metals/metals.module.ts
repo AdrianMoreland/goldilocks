@@ -1,12 +1,12 @@
 import {Module} from '@nestjs/common';
 import {MetalsController} from './metals.controller';
 import {MetalsProvider} from './metals.provider';
-import {MetalPriceApiClient} from '../../infrastructure/metal-price-api/metal-price-api.client';
 import {MetalsCron} from './metals.cron';
 import {AuthModule} from '../auth/auth.module';
 import {RedisModule} from '../../redis/redis.module';
 import {PrismaModule} from '../../infrastructure/prisma/prisma.module';
 import {MetalPriceApiModule} from '../../infrastructure/metal-price-api/metal-price-api.module';
+import {SpotPriceCacheStore} from "./spot-price-cache.store";
 
 @Module({
     imports: [
@@ -19,6 +19,7 @@ import {MetalPriceApiModule} from '../../infrastructure/metal-price-api/metal-pr
     providers: [
         MetalsProvider,
         MetalsCron,
+        SpotPriceCacheStore
     ],
     exports: [
         MetalsProvider, // MarketDataModule needs this — MetalsService no longer exists

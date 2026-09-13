@@ -1,11 +1,9 @@
 import {createZodDto} from 'nestjs-zod';
 import {
-    AuthResponseSchema,
-    ChangePasswordSchema,
-    LoginSchema,
-    MessageResponseSchema,
-    RegisterSchema,
-    UserProfileSchema,
+    MessageResponseSchema, RawSpotPriceSchema,
+    LoginRequestSchema,
+    LoginResponseSchema,
+    SessionUserSchema,
 } from '@goldilocks/shared-types';
 import {
     ApiSuccessResponseSchema, MarketDataResponseSchema,
@@ -14,7 +12,16 @@ import {
     HealthCheckSchema,
     ProductSchema,
     SpotPriceSchema,
-    UpdateProductFullDtoSchema
+    UpdateProductFullDtoSchema,
+    TradeBootstrapResponseSchema,
+    TradeCartRequestSchema,
+    TradeCartResponseSchema,
+    MeltCalculatorRequestSchema,
+    MeltCalculatorResponseSchema,
+    ProfitAnalysisRequestSchema,
+    ProfitAnalysisResponseSchema,
+    PortfolioBuildRequestSchema,
+    PortfolioBuildResponseSchema,
 } from "@goldilocks/shared-types";
 import {createDto} from "./dto-generator";
 
@@ -22,24 +29,11 @@ import {createDto} from "./dto-generator";
 // AUTHENTICATION DTOs
 // ============================================================================
 
-/** Login request DTO - validates email, password, and platform */
-export class LoginDto extends createZodDto(LoginSchema) {}
+export class LoginRequestDto extends createDto(LoginRequestSchema, 'LoginRequestDto') {}
 
-/** Registration request DTO - validates user registration data */
-export class RegisterDto extends createZodDto(RegisterSchema) {}
+export class LoginResponseDto extends createDto(LoginResponseSchema, 'LoginResponseDto') {}
 
-/** Change password request DTO - validates password change */
-export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}
-
-/** Authentication response DTO - contains tokens and user info */
-export class AuthResponseDto extends createZodDto(
-    ApiSuccessResponseSchema(AuthResponseSchema)
-) {}
-
-/** User profile response DTO - contains user profile information */
-export class UserProfileDto extends createZodDto(
-    ApiSuccessResponseSchema(UserProfileSchema)
-) {}
+export class SessionUserDto extends createDto(SessionUserSchema, 'SessionUserDto') {}
 
 /** Message response DTO - contains success/info messages */
 export class MessageResponseDto extends createZodDto(
@@ -57,6 +51,8 @@ export class HealthCheckDto extends createZodDto(HealthCheckSchema) {}
 // SPOT PRICE DTOs
 // ============================================================================
 
+export class RawSpotPriceResponseDto extends createDto(RawSpotPriceSchema, 'RawSpotPriceResponseDto') {}
+
 export class SpotPriceResponseDto extends createDto(SpotPriceSchema, 'SpotPriceResponseDto') {}
 
 export class CreateSpotPriceDto extends createDto(CreateSpotPriceDtoSchema, 'CreateSpotPriceDto') {}
@@ -72,3 +68,29 @@ export class ProductResponseDto extends createDto(ProductSchema, 'ProductRespons
 export class UpdateProductDto extends createDto(UpdateProductFullDtoSchema, 'UpdateProductDto') {}
 
 export class MarketDataResponseDto extends createDto(MarketDataResponseSchema, 'MarketDataResponseDto') {}
+
+// ============================================================================
+// TRADE DTOs
+// ============================================================================
+
+export class TradeBootstrapResponseDto extends createDto(TradeBootstrapResponseSchema, 'TradeBootstrapResponseDto') {}
+
+export class TradeCartRequestDto extends createDto(TradeCartRequestSchema, 'TradeCartRequestDto') {}
+
+export class TradeCartResponseDto extends createDto(TradeCartResponseSchema, 'TradeCartResponseDto') {}
+
+export class MeltCalculatorRequestDto extends createDto(MeltCalculatorRequestSchema, 'MeltCalculatorRequestDto') {}
+
+export class MeltCalculatorResponseDto extends createDto(MeltCalculatorResponseSchema, 'MeltCalculatorResponseDto') {}
+
+// ============================================================================
+// PORTFOLIO DTOs
+// ============================================================================
+
+export class ProfitAnalysisRequestDto extends createDto(ProfitAnalysisRequestSchema, 'ProfitAnalysisRequestDto') {}
+
+export class ProfitAnalysisResponseDto extends createDto(ProfitAnalysisResponseSchema, 'ProfitAnalysisResponseDto') {}
+
+export class PortfolioBuildRequestDto extends createDto(PortfolioBuildRequestSchema, 'PortfolioBuildRequestDto') {}
+
+export class PortfolioBuildResponseDto extends createDto(PortfolioBuildResponseSchema, 'PortfolioBuildResponseDto') {}

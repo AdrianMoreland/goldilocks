@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {Body, Controller, Get, Post, Query} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MarketDataService } from './market-data.service';
 import { MarketDataResponseDto, ProductResponseDto } from '../../common/dto/dtos';
 import {MetalType} from "@goldilocks/shared-types";
+import {getYesterday} from "../../common/utils/date.utils";
 
 @ApiTags('MarketData')
 @Controller('market-data')
@@ -57,5 +58,35 @@ export class MarketDataController {
     @Post('refresh')
     async refresh(): Promise<MarketDataResponseDto> {
         return this.marketDataService.refresh();
+    }
+
+    @Get('historic-close/debug')
+    async debugHistoricClose(
+        @Query('date') date?: string,
+    ) {
+        const targetDate = date ?? getYesterday();
+
+        await this.marketDataService.fetchHistoricClose(
+            targetDate
+        );
+
+        return {
+            success: true,
+            date: targetDate,
+        };
+    }
+
+    @Post('seed-history')
+    @ApiOperation({
+        summary: 'Seed historic metal prices',
+        description:
+            'Fetches the last year of historic metal prices from MetalPriceAPI and stores them in the database.',
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'Historic prices seeded successfully',
+    })
+    async seedHistory(): Promise<void> {
+        await this.marketDataService.seedHistoricPrices();
     }
 }

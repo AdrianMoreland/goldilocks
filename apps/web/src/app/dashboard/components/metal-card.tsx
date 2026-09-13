@@ -1,3 +1,4 @@
+/*
 import { SectionCards } from './section-cards';
 import type { MetalType } from '../../../lib/types.ts';
 
@@ -13,7 +14,7 @@ type Props = {
     ) => void;
 };
 
-export function MetalCards({
+export function MetalCard({
                                metals,
                                prices,
                                selectedMetal,
@@ -26,7 +27,7 @@ export function MetalCards({
             {metals.map(metal => (
                 <SectionCards
                     key={metal}
-                    title={metal}
+                    data={metal}
                     price={
                         prices.find(
                             p => p.metalType === metal,
@@ -45,4 +46,4 @@ export function MetalCards({
             ))}
         </div>
     );
-}
+}*/

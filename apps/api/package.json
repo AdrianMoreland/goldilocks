@@ -11,6 +11,12 @@
     "prisma:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
     "seed": "tsx prisma/seed.ts",
+    "seed:pricing-update": "tsx prisma/seed-pricing-update.ts",
+    "provision:users": "tsx prisma/provision-users.ts",
+    "docs": "compodoc -p tsconfig.json -s --theme material",
+    "docs:dev": "compodoc -p tsconfig.json -s -w --disableSourceCode",
+
+
     "dev": "nest start --watch",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -57,6 +63,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@compodoc/compodoc": "^2.0.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@goldilocks/typescript-config": "workspace:*",
