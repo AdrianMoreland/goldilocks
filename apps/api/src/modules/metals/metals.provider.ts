@@ -309,6 +309,7 @@ export class MetalsProvider {
         return this.prisma.historicSpotPrice.findMany({
             where: { metalType: { in: ALL_METALS }, recordedAt: { gte: since } },
             orderBy: { recordedAt: 'asc' },
+            select: { metalType: true, priceEur: true, priceGbp: true, recordedAt: true },
         });
     }
 
