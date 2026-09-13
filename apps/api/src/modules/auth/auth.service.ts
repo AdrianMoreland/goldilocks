@@ -4,6 +4,24 @@ import { AUTH_PROVIDER, type AuthIdentity, type AuthProviderPort } from './auth-
 import type { LoginResponse, SessionUser } from '@goldilocks/shared-types';
 import type { User } from '../../../prisma/generated/client';
 
+// Never select the password hash for anything that ends up on request.user —
+// it has no business leaving the DB query, let alone sitting in memory on
+// every authenticated request. See CLAUDE.md §6 "Secrets".
+const SAFE_USER_SELECT = {
+    id: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    role: true,
+    isActive: true,
+    admin: true,
+    createdAt: true,
+    updatedAt: true,
+    lastLoginAt: true,
+} as const;
+
+export type AuthenticatedUser = Omit<User, 'password'>;
+
 /**
  * AuthService — the app's only entry point for "who is this and are they
  * allowed in". Everything identity-provider-specific lives behind
@@ -32,29 +50,29 @@ export class AuthService {
         };
     }
 
-    /** Used by JwtAuthGuard — the returned User (full Prisma row) is attached to request.user. */
-    async validateToken(token: string): Promise<User> {
+    /** Used by JwtAuthGuard — the returned row is attached to request.user (password hash excluded at the query level, never fetched). */
+    async validateToken(token: string): Promise<AuthenticatedUser> {
         const identity = await this.authProvider.verifyToken(token);
         return this.loadActiveUser(identity);
     }
 
     async me(userId: string): Promise<SessionUser> {
-        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: SAFE_USER_SELECT });
         if (!user || !user.isActive) {
             throw new UnauthorizedException('Account not found or inactive.');
         }
         return this.toSessionUser(user);
     }
 
-    private async loadActiveUser(identity: AuthIdentity): Promise<User> {
-        const user = await this.prisma.user.findUnique({ where: { id: identity.id } });
+    private async loadActiveUser(identity: AuthIdentity): Promise<AuthenticatedUser> {
+        const user = await this.prisma.user.findUnique({ where: { id: identity.id }, select: SAFE_USER_SELECT });
         if (!user || !user.isActive) {
             throw new UnauthorizedException('This account is not set up for this application.');
         }
         return user;
     }
 
-    private toSessionUser(user: User): SessionUser {
+    private toSessionUser(user: AuthenticatedUser): SessionUser {
         return {
             id: user.id,
             email: user.email,
