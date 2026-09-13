@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {RefreshCw, Paintbrush, PanelRight, LineChart, ShieldCheck, LogOut} from 'lucide-react';
 import {DataTable} from './components/table/data-table2.tsx';
 import {BaseLayout} from '@/components/layouts/base-layout';
+import {ModeToggle} from '@/components/mode-toggle';
 import {SectionCards} from './components/section-cards.tsx';
 import {ChartAreaInteractive} from './components/chart-area-interactive.tsx';
 import {Button} from '@/components/ui/button';
@@ -56,12 +57,14 @@ function PricingWorkbookPage() {
         <BaseLayout
             fillViewport
             title="Pricing Workbook"
+            manualModeToggle
             headerActions={({ openThemeCustomizer }) => (
                 <>
                     <div className="text-muted-foreground hidden flex-col leading-tight md:flex">
                         <span className="text-[11px] whitespace-nowrap">Last Updated:</span>
                         <span className="text-[11px] whitespace-nowrap">{lastUpdatedRelative}</span>
                     </div>
+                    {/* Order: Update, Graph, (admin: Theme editor), Day/Night, Sidebar open, (admin: Admin mode), Logout. */}
                     <Button
                         variant="outline"
                         size="icon"
@@ -95,6 +98,7 @@ function PricingWorkbookPage() {
                             <Paintbrush className="h-4 w-4"/>
                         </Button>
                     )}
+                    <ModeToggle />
                     <Button
                         variant={toolsOpen ? "default" : "outline"}
                         size="icon"
