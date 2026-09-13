@@ -83,12 +83,16 @@ export class TradeService {
         const spot = customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / GRAMS_PER_TROY_OUNCE;
 
+        // Each item's product lookup is independent of the others — fetch
+        // them all in parallel instead of one round-trip per cart line.
+        const products = await Promise.all(items.map((item) => this.productsProvider.getById(item.productId)));
+
         let totalWeight = 0;
         let totalPrice = 0;
         const lines: TradeCartLine[] = [];
 
-        for (const item of items) {
-            const product = await this.productsProvider.getById(item.productId);
+        items.forEach((item, index) => {
+            const product = products[index];
 
             if (!product) {
                 throw new NotFoundException(`Product ${item.productId} not found.`);
@@ -118,7 +122,7 @@ export class TradeService {
                 unitPrice,
                 lineTotal,
             });
-        }
+        });
 
         return {
             metalType,
