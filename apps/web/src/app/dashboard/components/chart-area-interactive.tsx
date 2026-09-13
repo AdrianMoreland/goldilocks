@@ -26,22 +26,26 @@ import {Button} from "@/components/ui/button"
 
 import type {HistoricSpot, MetalType,} from "@/lib/types"
 
+// Gold and Silver keep the universally intuitive yellow/orange and grey —
+// Platinum and Palladium are tuned to echo the site's own accent (teal-blue)
+// and Sell (dusty rose) hues instead of an arbitrary steel-blue/violet pair,
+// so the chart reads as part of the same Merrion Gold palette.
 const chartConfig = {
     gold: {
         label: "Gold",
-        color: "hsl(45 90% 55%)", // yellow
+        color: "hsl(40 78% 52%)", // warm amber-gold
     },
     silver: {
         label: "Silver",
-        color: "hsl(0 0% 80%)", // light grey
+        color: "hsl(0 0% 65%)", // grey
     },
     platinum: {
         label: "Platinum",
-        color: "hsl(210 20% 65%)", // greyish blue
+        color: "hsl(196 30% 58%)", // muted teal-blue, matches the site accent
     },
     palladium: {
         label: "Palladium",
-        color: "hsl(270 15% 65%)", // greyish purple
+        color: "hsl(340 25% 62%)", // muted dusty rose, matches the site's Sell accent
     },
 } satisfies ChartConfig;
 
