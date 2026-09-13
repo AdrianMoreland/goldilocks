@@ -3,7 +3,7 @@ import { ArrowRight, Package, TrendingDown, TrendingUp } from "lucide-react"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { useMarketData } from "@/hooks/use-market-data.hook"
 import { formatEuro, formatPercent } from "./formatters"
-import { metalThemeStyle } from "./tab-theme"
+import { tabThemeStyle } from "./tab-theme"
 
 function formatDate(value: string | undefined) {
     if (!value) return "—"
@@ -37,7 +37,7 @@ export function ProductTab() {
     const marketPct = Math.max(0, Math.min(100, ((product.marketValue - product.priceBuy) / spreadSpan) * 100))
 
     return (
-        <div className="flex flex-col gap-4 px-4 text-sm" style={metalThemeStyle(product.metalType)}>
+        <div className="flex flex-col gap-4 px-4 text-sm" style={tabThemeStyle("invest")}>
             {/* ── Header ──────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-3">
                 <div>

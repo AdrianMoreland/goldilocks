@@ -76,7 +76,9 @@ function useDebouncedRecalc(
 // ── Public hook ───────────────────────────────────────────────────────────────
 
 export function usePricingWorkbook() {
-    const [selectedMetal, setSelectedMetal] = useState<MetalType | null>(null);
+    // Gold selected by default on launch, matching the chart's default
+    // "selected metal only" view — see ChartAreaInteractive's chartMode.
+    const [selectedMetal, setSelectedMetal] = useState<MetalType | null>('GOLD');
     const [spotOverrides, setSpotOverrides] = useState<Partial<Record<MetalType, number>>>({});
 
     const {

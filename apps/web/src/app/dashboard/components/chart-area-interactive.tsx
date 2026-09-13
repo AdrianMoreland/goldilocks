@@ -77,7 +77,9 @@ export function ChartAreaInteractive({
                                      }: ChartAreaInteractiveProps) {
     const isMobile = useIsMobile()
     const [timeRange, setTimeRange] = React.useState<TimeRange>("90d");
-    const [chartMode, setChartMode] = React.useState<ChartMode>("all");
+    // Defaults to showing just the selected metal (Gold, on launch) rather
+    // than all four curves at once — see usePricingWorkbook's selectedMetal.
+    const [chartMode, setChartMode] = React.useState<ChartMode>("selected");
     const [displayMode, setDisplayMode] = React.useState<DisplayMode>("absolute");
 
     React.useEffect(() => {

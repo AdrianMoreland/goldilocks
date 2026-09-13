@@ -6,6 +6,7 @@ import React, {type SVGProps, useEffect, useState} from "react";
 import {Input} from "@/components/ui/input.tsx";
 import {PauseIcon, PlayIcon, ArrowUp, ArrowDown} from "lucide-react";
 import {MetalCardData} from "../schemas/card-data.schema";
+import {metalAccentStyle} from "./pricing-tools/tab-theme";
 
 
 interface SectionCardProps {
@@ -84,20 +85,24 @@ export function SectionCards({
 
     return (<Card
             onClick={onClick}
-            className={`cursor-pointer group hover:shadow-lg transition-all duration-200 aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5 ${active ? "border-2 border-primary" : ""}`}
+            style={metalAccentStyle(data.metal)}
+            className={`cursor-pointer group hover:shadow-lg transition-all duration-200 aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5 border-2 ${
+                active ? "border-[var(--tab-accent)]" : "border-transparent"
+            }`}
         >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0">
-            <CardTitle className="text-sm font-bold text-muted-foreground">
+            <CardTitle className="text-sm font-bold text-[var(--tab-accent-text)]">
                 {data.metal}
             </CardTitle>
             <div
-                className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                style={{ background: "var(--tab-accent-soft)" }}
                 onClick={handleFreezeToggle}
             >
                 {isFrozen ? (
-                    <PlayIcon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors"/>
+                    <PlayIcon className="h-3.5 w-3.5 text-[var(--tab-accent-text)] transition-colors"/>
                 ) : (
-                    <PauseIcon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors"/>
+                    <PauseIcon className="h-3.5 w-3.5 text-[var(--tab-accent-text)] transition-colors"/>
                 )}
             </div>
         </CardHeader>

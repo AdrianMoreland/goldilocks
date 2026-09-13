@@ -44,32 +44,23 @@ export function tabThemeStyle(theme: TabThemeName): CSSProperties {
 }
 
 /**
- * Per-metal accent palette (not from the Apps Script tool — it has no
- * equivalent) used only by the Product tab, whose subject is "which metal /
- * which item" rather than a workflow direction like Buy/Sell. Colors evoke
- * the metal itself: warm gold, cool silver, blue-steel platinum, slate-violet
- * palladium.
+ * Per-metal accent (not from the Apps Script tool — it has no equivalent) —
+ * used by the metal spot-price cards, whose subject is "which metal" rather
+ * than a workflow direction like Buy/Sell. Colors evoke the metal itself:
+ * warm gold, cool silver, blue-steel platinum, slate-violet palladium. Run
+ * through the same color-mix() derivation as the tab accents so the soft
+ * tint/text strengths stay legible in both light and dark mode instead of
+ * being fixed pastels tuned for one mode only.
  */
-interface MetalPalette {
-    accent: string
-    accentSoft: string
-    accentText: string
-    accentTextSoft: string
+export type MetalAccentName = "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM"
+
+const METAL_ACCENT: Record<MetalAccentName, string> = {
+    GOLD: "#D4A017",
+    SILVER: "#8B95A1",
+    PLATINUM: "#4C8EA3",
+    PALLADIUM: "#8073B8",
 }
 
-const METAL_PALETTES: Record<"GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM", MetalPalette> = {
-    GOLD: { accent: "#D4A017", accentSoft: "#FBF3DA", accentText: "#7A5B0B", accentTextSoft: "#A9800F" },
-    SILVER: { accent: "#8B95A1", accentSoft: "#F1F3F5", accentText: "#454C54", accentTextSoft: "#69727C" },
-    PLATINUM: { accent: "#4C8EA3", accentSoft: "#E6F2F6", accentText: "#204552", accentTextSoft: "#336E80" },
-    PALLADIUM: { accent: "#8073B8", accentSoft: "#F0EDF9", accentText: "#3E3670", accentTextSoft: "#5F5390" },
-}
-
-export function metalThemeStyle(metal: keyof typeof METAL_PALETTES): CSSProperties {
-    const palette = METAL_PALETTES[metal]
-    return {
-        "--tab-accent": palette.accent,
-        "--tab-accent-soft": palette.accentSoft,
-        "--tab-accent-text": palette.accentText,
-        "--tab-accent-text-soft": palette.accentTextSoft,
-    } as CSSProperties
+export function metalAccentStyle(metal: MetalAccentName): CSSProperties {
+    return accentStyleFrom(METAL_ACCENT[metal])
 }
