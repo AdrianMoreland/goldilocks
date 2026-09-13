@@ -2784,11 +2784,11 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
         "chart-1": "#a6845e",
         "chart-2": "#3f886c",
         "chart-3": "#3f8fa3",
-        // Dusty rose (Trade → Sell) and burnt copper (Buyback/Discount) —
+        // Dusty rose (Trade → Sell) and a blueish gray (Buyback/Discount) —
         // fill out a 5-hue palette that reads as one cohesive earthy/jewel-tone
         // family instead of the old arbitrary steel-blue/green mix.
         "chart-4": "#b5637e",
-        "chart-5": "#b8722f",
+        "chart-5": "#475569",
         radius: "0.5rem",
         sidebar: "#f9f9fa",
         "sidebar-foreground": "#333333",
@@ -2828,7 +2828,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
         "chart-2": "#3f886c",
         "chart-3": "#5aa8ba",
         "chart-4": "#d68aa0",
-        "chart-5": "#d99a5c",
+        "chart-5": "#94a3b8",
         radius: "0.5rem",
         sidebar: "#1a1d23",
         "sidebar-foreground": "#e5e5e5",
