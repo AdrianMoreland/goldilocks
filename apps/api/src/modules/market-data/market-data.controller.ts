@@ -60,6 +60,11 @@ export class MarketDataController {
         return this.marketDataService.refresh();
     }
 
+    @ApiOperation({
+        summary: 'Debug: fetch one day\'s historic close',
+        description: 'Fetches and stores the historic close for a single date (defaults to yesterday). For manual/debug use, not the regular seeding flow.',
+    })
+    @ApiResponse({status: 200, description: 'Historic close fetched successfully'})
     @Get('historic-close/debug')
     async debugHistoricClose(
         @Query('date') date?: string,

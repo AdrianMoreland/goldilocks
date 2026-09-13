@@ -6,10 +6,8 @@ import {
     Param,
     Body,
     UseGuards,
-    NotFoundException,
     Delete,
     ParseIntPipe,
-    InternalServerErrorException
 } from '@nestjs/common';
 import {ApiTags, ApiOperation, ApiBearerAuth, ApiResponse} from '@nestjs/swagger';
 import {ProductsService} from './products.service';
@@ -54,6 +52,8 @@ export class ProductsController {
         return this.service.getRawProducts();
     }
 
+    @ApiOperation({summary: 'Get a product by id'})
+    @ApiResponse({status: 200, description: 'Product retrieved successfully', type: ProductResponseDto})
     @Get(':id')
     async getById(@Param('id', ParseIntPipe) id: number, @Param('metal') metal: any): Promise<ProductResponseDto> {
         return this.service.getById(id, metal);
@@ -93,22 +93,18 @@ export class ProductsController {
     }
 
     // 🗑️ DELETE /products/:id
+    @ApiOperation({summary: 'Delete a product (admin)'})
     @Delete(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
     async delete(@Param('id', ParseIntPipe) id: number) {
-        try {
-            const deleted = await this.service.delete(id);
-
-            if (!deleted) {
-                throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-            }
-
-            return {message: `✅ Producto ${id} eliminado correctamente`};
-        } catch (error) {
-            console.error('❌ Error al eliminar producto:', error);
-            throw new InternalServerErrorException('Error al eliminar el producto');
-        }
+        // service.delete() already throws NotFoundException for a missing
+        // product, and the global PrismaExceptionFilter handles any raw
+        // Prisma error (e.g. a P2025 race) — nothing left for this handler
+        // to catch and re-wrap, so any failure here is genuinely unexpected
+        // and correctly surfaces as a 500.
+        await this.service.delete(id);
+        return {message: `✅ Producto ${id} eliminado correctamente`};
     }
 
     /*
