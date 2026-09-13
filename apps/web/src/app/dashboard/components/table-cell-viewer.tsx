@@ -13,7 +13,7 @@ export function TableCellViewer({ item }: { item: Product }) {
     return (
         <Button
             variant="link"
-            className="text-foreground w-fit px-0 h-auto py-0 text-base font-medium text-center cursor-pointer"
+            className="text-foreground w-fit px-0 h-auto py-0 text-base font-medium text-left cursor-pointer"
             onClick={() => openWithProduct(item)}
         >
             {item.name}

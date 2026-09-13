@@ -50,10 +50,16 @@ function findCoinMergeLabel(weightGrams: number): string | null {
     return match?.label ?? null
 }
 
-/** "1oz Gold Bar" -> "1oz Bar", "500G Gold Bar" -> "500G Bar". */
+/** "1 oz Gold Bar" -> "1oz Bar", "500 g Gold Bar" -> "500g Bar" — drops the
+ * metal word and tightens the number/unit spacing to match the coin naming
+ * convention ("1oz Britannia") for a more compact, readable table. */
 function stripMetalWord(name: string, metalType: MetalType): string {
     const word = METAL_WORDS[metalType]
-    return name.replace(new RegExp(word, "i"), "").replace(/\s+/g, " ").trim()
+    return name
+        .replace(new RegExp(word, "i"), "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/(\d+(?:\.\d+)?)\s+(g|kg|oz)\b/gi, "$1$2")
 }
 
 function average(values: number[]): number {
