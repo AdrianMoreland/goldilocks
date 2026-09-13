@@ -6,7 +6,7 @@ import { MetalsProvider } from './metals.provider';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { SpotPriceResponseDto } from '../../common/dto/dtos';
+import {RawSpotPriceResponseDto, SpotPriceResponseDto} from '../../common/dto/dtos';
 
 /**
  * Ops-only controller. The frontend gets spot prices via GET /market-data —
@@ -28,8 +28,8 @@ export class MetalsController {
         description:
             'Bypasses the cron schedule and fetches fresh prices from the external API immediately.',
     })
-    @ApiResponse({ status: 200, type: [SpotPriceResponseDto] })
-    async refresh(): Promise<SpotPriceResponseDto[]> {
+    @ApiResponse({ status: 200, type: [RawSpotPriceResponseDto] })
+    async refresh(): Promise<RawSpotPriceResponseDto[]> {
         await this.metalsProvider.fetchAndStore();
         return this.metalsProvider.getAllLatest();
     }

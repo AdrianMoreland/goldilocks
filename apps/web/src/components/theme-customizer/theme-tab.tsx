@@ -1,9 +1,10 @@
 "use client"
 
-import { Palette, Dices, Upload, ExternalLink, Sun, Moon } from 'lucide-react'
+import { Palette, Dices, Upload, ExternalLink, Sun, Moon, RotateCcw, Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { useThemeManager } from '@/hooks/use-theme-manager'
@@ -11,11 +12,13 @@ import { useCircularTransition } from '@/hooks/use-circular-transition'
 import { colorThemes, tweakcnThemes } from '@/config/theme-data'
 import { radiusOptions, baseColors } from '@/config/theme-customizer-constants'
 import { ColorPicker } from '@/components/color-picker'
+import { cn } from '@/lib/utils'
 import type { ImportedTheme } from '@/types/theme-customizer'
 import React from 'react'
 import "./circular-transition.css"
 
 interface ThemeTabProps {
+  onResetToDefaultTheme: () => void
   selectedTheme: string
   setSelectedTheme: (theme: string) => void
   selectedTweakcnTheme: string
@@ -27,6 +30,7 @@ interface ThemeTabProps {
 }
 
 export function ThemeTab({
+  onResetToDefaultTheme,
   selectedTheme,
   setSelectedTheme,
   selectedTweakcnTheme,
@@ -47,6 +51,22 @@ export function ThemeTab({
   } = useThemeManager()
 
   const { toggleTheme } = useCircularTransition()
+  const [tweakcnPopoverOpen, setTweakcnPopoverOpen] = React.useState(false)
+
+  const selectedTweakcnPreset = tweakcnThemes.find((t) => t.value === selectedTweakcnTheme)
+
+  const handleSelectTweakcn = (value: string) => {
+    setSelectedTweakcnTheme(value)
+    setSelectedTheme("") // Clear shadcn selection
+    setBrandColorsValues({}) // Clear brand colors state
+    setImportedTheme(null) // Clear imported theme
+    const selectedPreset = tweakcnThemes.find(t => t.value === value)?.preset
+    if (selectedPreset) {
+      applyTweakcnTheme(selectedPreset, isDarkMode)
+    }
+    // Deliberately does not close the popover — picking a theme is meant to
+    // be a quick back-and-forth preview; it only closes on an outside click.
+  }
 
   const handleRandomShadcn = () => {
     // Apply a random shadcn theme
@@ -86,6 +106,16 @@ export function ThemeTab({
   return (
     <div className="p-4 space-y-6">
 
+      {/* Reset to the app's default theme */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onResetToDefaultTheme}
+        className="w-full cursor-pointer"
+      >
+        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+        Reset to Merrion Gold theme
+      </Button>
 
       {/* Shadcn UI Theme Presets */}
       <div className="space-y-3">
@@ -151,49 +181,62 @@ export function ThemeTab({
           </Button>
         </div>
 
-        <Select value={selectedTweakcnTheme} onValueChange={(value) => {
-          setSelectedTweakcnTheme(value)
-          setSelectedTheme("") // Clear shadcn selection
-          setBrandColorsValues({}) // Clear brand colors state
-          setImportedTheme(null) // Clear imported theme
-          const selectedPreset = tweakcnThemes.find(t => t.value === value)?.preset
-          if (selectedPreset) {
-            applyTweakcnTheme(selectedPreset, isDarkMode)
-          }
-        }}>
-          <SelectTrigger className="w-full cursor-pointer">
-            <SelectValue placeholder="Choose Tweakcn Theme" />
-          </SelectTrigger>
-          <SelectContent className="max-h-60">
-            <div className="p-2">
-              {tweakcnThemes.map((theme) => (
-                <SelectItem key={theme.value} value={theme.value} className="cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.primary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.secondary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.accent }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.muted }}
-                      />
-                    </div>
-                    <span>{theme.name}</span>
+        {/*
+          A Popover, not a Select: Radix's Select always closes on item
+          click, which made trying several themes in a row tedious. This
+          stays open — closing only on an outside click, Escape, or the
+          trigger being clicked again — so multiple presets can be previewed
+          back-to-back.
+        */}
+        <Popover open={tweakcnPopoverOpen} onOpenChange={setTweakcnPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={tweakcnPopoverOpen}
+              className="w-full cursor-pointer justify-between font-normal"
+            >
+              {selectedTweakcnPreset ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: selectedTweakcnPreset.preset.styles.light.primary }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: selectedTweakcnPreset.preset.styles.light.secondary }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: selectedTweakcnPreset.preset.styles.light.accent }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: selectedTweakcnPreset.preset.styles.light.muted }} />
                   </div>
-                </SelectItem>
+                  <span>{selectedTweakcnPreset.name}</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">Choose Tweakcn Theme</span>
+              )}
+              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-(--radix-popover-trigger-width) max-h-60 overflow-y-auto p-2" align="start">
+            <div className="flex flex-col gap-0.5">
+              {tweakcnThemes.map((theme) => (
+                <button
+                  key={theme.value}
+                  type="button"
+                  onClick={() => handleSelectTweakcn(theme.value)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground text-left",
+                    theme.value === selectedTweakcnTheme && "bg-accent/50",
+                  )}
+                >
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: theme.preset.styles.light.primary }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: theme.preset.styles.light.secondary }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: theme.preset.styles.light.accent }} />
+                    <div className="w-3 h-3 rounded-full border border-border/20" style={{ backgroundColor: theme.preset.styles.light.muted }} />
+                  </div>
+                  <span className="flex-1">{theme.name}</span>
+                  {theme.value === selectedTweakcnTheme && <Check className="h-4 w-4 shrink-0" />}
+                </button>
               ))}
             </div>
-          </SelectContent>
-        </Select>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <Separator />

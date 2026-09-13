@@ -5,15 +5,15 @@ import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.ap
 import { queryKeys } from '@/lib/query-keys';
 import type { MarketDataResponse } from '../lib/types.ts';
 
-function getMinutesAgoLabel(fetchedAt?: string | null) {
+function getMinutesAgoText(fetchedAt?: string | null) {
     if (!fetchedAt) return null;
 
     const diffMs = Date.now() - new Date(fetchedAt).getTime();
     const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return 'Last Updated: less than 1 minute ago';
+    if (diffMins < 1) return 'less than 1 minute ago';
 
-    return `Last Updated: ${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
 }
 
 /**
@@ -34,12 +34,14 @@ export function useMarketData() {
 
     const { data, isLoading, isFetching, error } = query;
 
-    const lastUpdatedLabel = useMemo(() => {
-        if (isLoading) return 'Loading spot prices…';
-        if (error) return 'Could not load spot prices';
+    const lastUpdatedRelative = useMemo(() => {
+        if (isLoading) return 'Loading…';
+        if (error) return 'unavailable';
 
-        return getMinutesAgoLabel(data?.fetchedAt) ?? 'Last Updated: unknown';
+        return getMinutesAgoText(data?.fetchedAt) ?? 'unknown';
     }, [isLoading, error, data?.fetchedAt]);
+
+    const lastUpdatedLabel = `Last Updated: ${lastUpdatedRelative}`;
 
     // ── Manual recalculation (UI spot overrides) ───────────────────────────
     const recalcMutation = useMutation({
@@ -57,11 +59,8 @@ export function useMarketData() {
 
     // ── Manual refresh (fetch latest spot + products snapshot) ───────────────
     const refreshMutation = useMutation({
-
         mutationFn: refreshMarketData,
-
         onSuccess: (marketData) => {
-
             queryClient.setQueryData<MarketDataResponse>(
                 queryKeys.marketData.all,
                 marketData,
@@ -82,6 +81,7 @@ export function useMarketData() {
         loading: isLoading || isFetching,
         error,
         lastUpdatedLabel,
+        lastUpdatedRelative,
 
         recalc: recalcMutation.mutate,
 

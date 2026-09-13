@@ -7,7 +7,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useThemeManager } from '@/hooks/use-theme-manager'
 import { useSidebarConfig } from '@/contexts/sidebar-context'
+import { useAuth } from '@/contexts/auth-context'
 import { tweakcnThemes } from '@/config/theme-data'
+import { DEFAULT_THEME_PREFERENCE, loadThemePreference, saveThemePreference } from '@/lib/theme-preference'
 import { ThemeTab } from './theme-tab.tsx'
 import { LayoutTab } from './layout-tab.tsx'
 import { ImportModal } from './import-modal.tsx'
@@ -22,13 +24,36 @@ interface ThemeCustomizerProps {
 export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
   const { applyImportedTheme, isDarkMode, resetTheme, applyRadius, setBrandColorsValues, applyTheme, applyTweakcnTheme } = useThemeManager()
   const { config: sidebarConfig, updateConfig: updateSidebarConfig } = useSidebarConfig()
+  const { user } = useAuth()
+
+  // Hydrate from this user's saved pick (localStorage, keyed by user id) or
+  // fall back to the app default theme — see lib/theme-preference.ts.
+  const initialPreference = React.useMemo(
+    () => (user ? loadThemePreference(user.id) ?? DEFAULT_THEME_PREFERENCE : DEFAULT_THEME_PREFERENCE),
+    // Only ever needs to run once per mount — a mid-session user switch isn't
+    // a real scenario in this app (login always remounts the tree).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   const [activeTab, setActiveTab] = React.useState("theme")
-  const [selectedTheme, setSelectedTheme] = React.useState("default")
-  const [selectedTweakcnTheme, setSelectedTweakcnTheme] = React.useState("")
-  const [selectedRadius, setSelectedRadius] = React.useState("0.5rem")
+  const [selectedTheme, setSelectedTheme] = React.useState(initialPreference.kind === "shadcn" ? initialPreference.value : "")
+  const [selectedTweakcnTheme, setSelectedTweakcnTheme] = React.useState(initialPreference.kind === "tweakcn" ? initialPreference.value : "")
+  const [selectedRadius, setSelectedRadius] = React.useState(initialPreference.radius)
   const [importModalOpen, setImportModalOpen] = React.useState(false)
   const [importedTheme, setImportedTheme] = React.useState<ImportedTheme | null>(null)
+
+  // Remember this user's pick whenever it changes (imported/custom themes
+  // aren't persisted — they're a one-off preview, not a saved preference).
+  React.useEffect(() => {
+    if (!user) return
+    if (importedTheme) return
+    if (selectedTheme) {
+      saveThemePreference(user.id, { kind: "shadcn", value: selectedTheme, radius: selectedRadius })
+    } else if (selectedTweakcnTheme) {
+      saveThemePreference(user.id, { kind: "tweakcn", value: selectedTweakcnTheme, radius: selectedRadius })
+    }
+  }, [user, selectedTheme, selectedTweakcnTheme, selectedRadius, importedTheme])
 
   const handleReset = () => {
     // Complete reset to application defaults
@@ -48,6 +73,17 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
 
     // 4. Reset sidebar to defaults
     updateSidebarConfig({ variant: "inset", collapsible: "offcanvas", side: "left" })
+  }
+
+  const handleResetToDefaultTheme = () => {
+    setSelectedTheme("")
+    setImportedTheme(null)
+    setBrandColorsValues({})
+    setSelectedRadius(DEFAULT_THEME_PREFERENCE.radius)
+    setSelectedTweakcnTheme(DEFAULT_THEME_PREFERENCE.value)
+    applyRadius(DEFAULT_THEME_PREFERENCE.radius)
+    const preset = tweakcnThemes.find((t) => t.value === DEFAULT_THEME_PREFERENCE.value)?.preset
+    if (preset) applyTweakcnTheme(preset, isDarkMode)
   }
 
   const handleImport = (themeData: ImportedTheme) => {
@@ -126,6 +162,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
 
               <TabsContent value="theme" className="flex-1 mt-0">
                 <ThemeTab
+                  onResetToDefaultTheme={handleResetToDefaultTheme}
                   selectedTheme={selectedTheme}
                   setSelectedTheme={setSelectedTheme}
                   selectedTweakcnTheme={selectedTweakcnTheme}

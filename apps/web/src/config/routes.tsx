@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
+import { RequireAuth } from '@/components/auth/require-auth'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -62,7 +63,7 @@ export const routes: RouteConfig[] = [
   // Dashboard Routes
   {
     path: "/dashboard",
-    element: <Dashboard />
+    element: <RequireAuth><Dashboard /></RequireAuth>
   },
   {
     path: "/dashboard-2",

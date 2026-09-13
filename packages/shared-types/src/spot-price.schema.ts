@@ -24,9 +24,22 @@ export const SpotPriceSchema = z.object({
   metalType: MetalTypeEnum,
   priceEur: z.number(),
   priceGbp: z.number(),
+  previousClose: z.number(),
+  change: z.number(),
+  changePercent: z.number(),
   source: z.string(),
   timestamp: z.iso.datetime(),
   createdAt: z.iso.datetime()
+});
+
+export const RawSpotPriceSchema = z.object({
+  id: z.string(),
+  metalType: MetalTypeEnum,
+  priceEur: z.number(),
+  priceGbp: z.number(),
+  source: z.string(),
+  timestamp: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
 });
 
 export const HistoricSpotSchema = z.object({
@@ -65,4 +78,4 @@ export type SpotPrice = z.infer<typeof SpotPriceSchema>;
 export type HistoricSpot = z.infer<typeof HistoricSpotSchema>;
 export type CreateSpotPriceDto = z.infer<typeof CreateSpotPriceDtoSchema>;
 export type SpotPriceMapDTO = z.infer<typeof SpotPriceMapSchema>;
-
+export type RawSpotPrice = z.infer<typeof RawSpotPriceSchema>;
