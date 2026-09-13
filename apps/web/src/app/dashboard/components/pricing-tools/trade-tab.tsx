@@ -10,7 +10,7 @@ import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-wi
 import { cn } from "@/lib/utils"
 
 export function TradeTab() {
-    const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
+    const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct, adminMode } = usePricingTools()
     const trade = useTradeTools(activeMetal, selectedProductIds, pendingTradeProductId, clearPendingTradeProduct)
 
     const showMeltButton = trade.transactionType === "selling"
@@ -57,22 +57,24 @@ export function TradeTab() {
                     </button>
                 )}
 
-                <button
-                    type="button"
-                    title="Freeze spot price (won't follow live updates)"
-                    aria-label="Freeze spot price"
-                    aria-pressed={trade.freeze}
-                    onClick={trade.toggleFreeze}
-                    className={cn(
-                        "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
-                        trade.freeze
-                            ? "border-[var(--tab-accent)] text-[var(--tab-accent-text)]"
-                            : "border-border bg-card text-muted-foreground",
-                    )}
-                    style={trade.freeze ? { background: "var(--tab-accent-soft)" } : undefined}
-                >
-                    <Snowflake className="size-4.5" />
-                </button>
+                {adminMode && (
+                    <button
+                        type="button"
+                        title="Freeze spot price (won't follow live updates)"
+                        aria-label="Freeze spot price"
+                        aria-pressed={trade.freeze}
+                        onClick={trade.toggleFreeze}
+                        className={cn(
+                            "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
+                            trade.freeze
+                                ? "border-[var(--tab-accent)] text-[var(--tab-accent-text)]"
+                                : "border-border bg-card text-muted-foreground",
+                        )}
+                        style={trade.freeze ? { background: "var(--tab-accent-soft)" } : undefined}
+                    >
+                        <Snowflake className="size-4.5" />
+                    </button>
+                )}
             </div>
 
             {showingMelt ? (

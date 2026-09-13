@@ -83,16 +83,18 @@ function PricingWorkbookPage() {
                     >
                         <LineChart className="h-4 w-4"/>
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="cursor-pointer"
-                        title="Theme editor"
-                        aria-label="Theme editor"
-                        onClick={openThemeCustomizer}
-                    >
-                        <Paintbrush className="h-4 w-4"/>
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="cursor-pointer"
+                            title="Theme editor"
+                            aria-label="Theme editor"
+                            onClick={openThemeCustomizer}
+                        >
+                            <Paintbrush className="h-4 w-4"/>
+                        </Button>
+                    )}
                     <Button
                         variant={toolsOpen ? "default" : "outline"}
                         size="icon"
