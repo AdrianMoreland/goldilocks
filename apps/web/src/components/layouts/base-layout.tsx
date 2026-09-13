@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ThemeCustomizer } from "@/components/theme-customizer"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
+import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 import {
   SidebarInset,
@@ -34,6 +35,7 @@ interface BaseLayoutProps {
 export function BaseLayout({ children, title, description, headerActions, fillViewport }: BaseLayoutProps) {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false)
   const { config } = useSidebarConfig()
+  const { isAdmin } = useAuth()
   const helpers: BaseLayoutHelpers = { openThemeCustomizer: () => setThemeCustomizerOpen(true) }
 
   const content = fillViewport ? (
@@ -67,13 +69,15 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
     >
       {config.side === "left" ? (
         <>
-          <AppSidebar
-            variant={config.variant}
-            collapsible={config.collapsible}
-            side={config.side}
-          />
+          {isAdmin && (
+            <AppSidebar
+              variant={config.variant}
+              collapsible={config.collapsible}
+              side={config.side}
+            />
+          )}
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} actions={headerActions?.(helpers)} />
+            <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
@@ -81,15 +85,17 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
       ) : (
           <>
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} actions={headerActions?.(helpers)} />
+              <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>
-          <AppSidebar
-            variant={config.variant}
-            collapsible={config.collapsible}
-            side={config.side}
-          />
+          {isAdmin && (
+            <AppSidebar
+              variant={config.variant}
+              collapsible={config.collapsible}
+              side={config.side}
+            />
+          )}
         </>
       )}
 
