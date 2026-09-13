@@ -4,7 +4,7 @@ import * as React from "react"
 import {
     type ColumnDef, type Row, flexRender,
 } from "@tanstack/react-table"
-import { CircleCheckBig, EllipsisVertical, Loader } from "lucide-react"
+import { EllipsisVertical } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -52,20 +52,28 @@ function PriceCell({ value, className }: { value: number; className: string }) {
 
 function NameCell({ item }: { item: DisplayProduct }) {
     return (
-        <div className="flex w-full justify-center">
+        <div className="flex w-full justify-start">
             <TableCellViewer item={item} />
         </div>
     )
 }
 
-function SpreadBadge({ value, className = "" }: { value: number; className?: string }) {
+/**
+ * Premium (sell-side markup) and Discount (buy-side markdown) badges — no
+ * icon (a prior version showed a spinning Loader on every non-7% value,
+ * which read as "still loading" for a perfectly static number). Each tone
+ * mirrors the color of its matching price column so the sell pair (MG Price
+ * + Premium) and buy pair (Buyback + Discount) are visually grouped by
+ * transaction direction at a glance.
+ */
+function SpreadBadge({ value, tone }: { value: number; tone: "sell" | "buy" }) {
+    const toneClass =
+        tone === "sell"
+            ? "border-emerald-600/25 bg-emerald-600/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-400"
+            : "border-[#b8722f]/25 bg-[#b8722f]/10 text-[#b8722f] dark:border-[#d99a5c]/25 dark:bg-[#d99a5c]/10 dark:text-[#d99a5c]"
+
     return (
-        <Badge variant="outline" className={`px-1.5 py-0 text-xs ${className}`}>
-            {value === 7 ? (
-                <CircleCheckBig className="size-3 text-green-500 dark:text-green-400" />
-            ) : (
-                <Loader className="size-3" />
-            )}
+        <Badge variant="outline" className={`px-2 py-0 text-xs font-semibold tabular-nums ${toneClass}`}>
             {formatPercent(value)}
         </Badge>
     )
@@ -113,9 +121,9 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
  */
 export const productColumnLabels: Record<string, string> = {
     spreadBuy: "Discount",
-    priceBuy: "Buy Price",
+    priceBuy: "Buyback",
     marketValue: "Market Price",
-    priceSell: "Sell Price",
+    priceSell: "MG Price",
     priceSellVatExcl: "VAT Excl.",
     spreadSell: "Premium",
     metalType: "Metal",
@@ -152,7 +160,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     {
         id: "name",
         accessorKey: "name",
-        header: () => <div className="w-full text-center">Product</div>,
+        header: () => <div className="w-full text-left">Product</div>,
         cell: ({ row }) => <NameCell item={row.original} />,
         enableHiding: false,
     },
@@ -163,27 +171,27 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     },
     {
         accessorKey: "priceSell",
-        header: "Sell Price",
-        cell: ({ row }) => <PriceCell value={row.original.priceSell} className="text-[var(--chart-1)]" />,
+        header: "MG Price",
+        cell: ({ row }) => <PriceCell value={row.original.priceSell} className="text-emerald-600 dark:text-emerald-400" />,
     },
     {
         accessorKey: "spreadSell",
         header: "Premium",
         cell: ({ row }) => (
             <div className="w-24">
-                <SpreadBadge value={row.original.spreadSell} className="text-foreground font-bold px-3" />
+                <SpreadBadge value={row.original.spreadSell} tone="sell" />
             </div>
         ),
     },
     {
         accessorKey: "priceBuy",
-        header: "Buy Price",
-        cell: ({ row }) => <PriceCell value={row.original.priceBuy} className="text-[var(--chart-2)]" />,
+        header: "Buyback",
+        cell: ({ row }) => <PriceCell value={row.original.priceBuy} className="text-[#b8722f] dark:text-[#d99a5c]" />,
     },
     {
         accessorKey: "spreadBuy",
         header: "Discount",
-        cell: ({ row }) => <SpreadBadge value={row.original.spreadBuy} className="text-muted-foreground" />,
+        cell: ({ row }) => <SpreadBadge value={row.original.spreadBuy} tone="buy" />,
     },
     {
         accessorKey: "priceSellVatExcl",
