@@ -40,10 +40,36 @@ export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
     )
 }
 
-function PriceCell({ value, className }: { value: number; className: string }) {
+/**
+ * The sell pair (MG Price + Premium) and buy pair (Buyback + Discount) are
+ * colored by mixing the *actual* Merrion Gold theme tokens — secondary
+ * (green) and accent (teal-blue) — with the current foreground via
+ * color-mix(), rather than stock Tailwind emerald/slate that happened to be
+ * close but weren't actually drawn from this theme. Mixing toward
+ * foreground both keeps each tone legible in light and dark mode (the same
+ * formula self-adjusts as --foreground flips) and, for green specifically,
+ * is what makes it read as "paler" than the saturated raw secondary color.
+ */
+const PRICE_TONE_COLOR = {
+    sell: "color-mix(in srgb, var(--secondary) 55%, var(--foreground) 45%)",
+    buy: "color-mix(in srgb, var(--accent) 90%, var(--foreground) 10%)",
+} as const
+
+function PriceCell({
+    value,
+    className,
+    tone,
+}: {
+    value: number
+    className?: string
+    tone?: keyof typeof PRICE_TONE_COLOR
+}) {
     return (
         <div className="w-16">
-            <div className={`text-sm font-semibold tabular-nums ${className}`}>
+            <div
+                className={`text-sm font-semibold tabular-nums ${className ?? ""}`}
+                style={tone ? { color: PRICE_TONE_COLOR[tone] } : undefined}
+            >
                 {formatEuro(value)}
             </div>
         </div>
@@ -67,13 +93,18 @@ function NameCell({ item }: { item: DisplayProduct }) {
  * transaction direction at a glance.
  */
 function SpreadBadge({ value, tone }: { value: number; tone: "sell" | "buy" }) {
-    const toneClass =
-        tone === "sell"
-            ? "border-emerald-600/25 bg-emerald-600/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-400"
-            : "border-slate-600/25 bg-slate-600/10 text-slate-600 dark:border-slate-400/25 dark:bg-slate-400/10 dark:text-slate-400"
+    const color = PRICE_TONE_COLOR[tone]
 
     return (
-        <Badge variant="outline" className={`px-2 py-0 text-xs font-semibold tabular-nums ${toneClass}`}>
+        <Badge
+            variant="outline"
+            className="px-2 py-0 text-xs font-semibold tabular-nums"
+            style={{
+                color,
+                borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
+                background: `color-mix(in srgb, ${color} 12%, transparent)`,
+            }}
+        >
             {formatPercent(value)}
         </Badge>
     )
@@ -172,7 +203,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     {
         accessorKey: "priceSell",
         header: "MG Price",
-        cell: ({ row }) => <PriceCell value={row.original.priceSell} className="text-emerald-600 dark:text-emerald-400" />,
+        cell: ({ row }) => <PriceCell value={row.original.priceSell} tone="sell" />,
     },
     {
         accessorKey: "spreadSell",
@@ -186,7 +217,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     {
         accessorKey: "priceBuy",
         header: "Buyback",
-        cell: ({ row }) => <PriceCell value={row.original.priceBuy} className="text-slate-600 dark:text-slate-400" />,
+        cell: ({ row }) => <PriceCell value={row.original.priceBuy} tone="buy" />,
     },
     {
         accessorKey: "spreadBuy",
