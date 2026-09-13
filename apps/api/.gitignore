@@ -1,5 +1,7 @@
-# compiled output
-/dist
+# compiled output — NOT /dist: Railway's Railpack builder uses gitignore
+# rules to decide what makes it from the build stage into the runtime
+# image, so ignoring this hid the actual `nest build` output from the
+# deployed container ("Cannot find module '.../dist/main.js'").
 /node_modules
 /build
 
