@@ -12,6 +12,7 @@ import {MarketDataModule} from "./modules/market-data/market-data.module";
 import {MetalPriceApiModule} from "./infrastructure/metal-price-api/metal-price-api.module";
 import {TradeModule} from "./modules/trade/trade.module";
 import {PortfolioModule} from "./modules/portfolio/portfolio.module";
+import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import {PortfolioModule} from "./modules/portfolio/portfolio.module";
         AppService,
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
+        { provide: APP_FILTER, useClass: PrismaExceptionFilter },
     ],
 })
 export class AppModule {
