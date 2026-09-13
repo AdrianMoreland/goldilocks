@@ -30,9 +30,11 @@ interface BaseLayoutProps {
    * column, not a naturally-growing one.
    */
   fillViewport?: boolean
+  /** Set true when `headerActions` places <ModeToggle /> itself at a specific spot, instead of relying on SiteHeader's default trailing placement. */
+  manualModeToggle?: boolean
 }
 
-export function BaseLayout({ children, title, description, headerActions, fillViewport }: BaseLayoutProps) {
+export function BaseLayout({ children, title, description, headerActions, fillViewport, manualModeToggle }: BaseLayoutProps) {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false)
   const { config } = useSidebarConfig()
   const { isAdmin } = useAuth()
@@ -77,7 +79,7 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
             />
           )}
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} />
+            <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
@@ -85,7 +87,7 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
       ) : (
           <>
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} />
+              <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>

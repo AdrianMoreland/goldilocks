@@ -11,12 +11,18 @@ interface SiteHeaderProps {
   actions?: React.ReactNode
   /** The sidebar (and its toggle) are admin-only — see BaseLayout. */
   showSidebarTrigger?: boolean
+  /** The command-search bar (and its ⌘K shortcut) are admin-only — see BaseLayout. */
+  showSearch?: boolean
+  /** Set false when the caller positions <ModeToggle /> itself within `actions` instead of relying on the default trailing spot. */
+  showModeToggle?: boolean
 }
 
-export function SiteHeader({ title, actions, showSidebarTrigger = true }: SiteHeaderProps) {
+export function SiteHeader({ title, actions, showSidebarTrigger = true, showSearch = true, showModeToggle = true }: SiteHeaderProps) {
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
+    if (!showSearch) return
+
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
@@ -26,7 +32,7 @@ export function SiteHeader({ title, actions, showSidebarTrigger = true }: SiteHe
 
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
-  }, [])
+  }, [showSearch])
 
   return (
     <>
@@ -50,16 +56,18 @@ export function SiteHeader({ title, actions, showSidebarTrigger = true }: SiteHe
               />
             </>
           )}
-          <div className="min-w-0 max-w-sm flex-1">
-            <SearchTrigger onClick={() => setSearchOpen(true)} />
-          </div>
+          {showSearch && (
+            <div className="min-w-0 max-w-sm flex-1">
+              <SearchTrigger onClick={() => setSearchOpen(true)} />
+            </div>
+          )}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             {actions}
-            <ModeToggle />
+            {showModeToggle && <ModeToggle />}
           </div>
         </div>
       </header>
-      <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      {showSearch && <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />}
     </>
   )
 }
