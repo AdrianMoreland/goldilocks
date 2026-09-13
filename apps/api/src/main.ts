@@ -12,11 +12,12 @@ async function bootstrap() {
   // Enable global validation with Zod
   app.useGlobalPipes(new ZodValidationPipe());
 
-  // main.ts in NestJS
+  // Railway hosts the API and the web app on different origins, so the
+  // allowed origin has to come from an env var rather than being hardcoded
+  // to the local dev server — see CLAUDE.md §13.
+  const frontendUrl = config.get<string>('FRONTEND_URL', 'http://localhost:5173');
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-    ],
+    origin: frontendUrl.split(',').map((origin) => origin.trim()),
     credentials: true,
   });
 
