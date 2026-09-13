@@ -1,4 +1,4 @@
-import { ChevronDown, Columns2, Plus } from "lucide-react"
+import { ChevronDown, Columns2 } from "lucide-react"
 import type { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -66,11 +66,6 @@ export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange }: Me
                             ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
-
-                <Button variant="outline" size="sm" className="cursor-pointer">
-                    <Plus />
-                    <span className="hidden lg:inline">Add Section</span>
-                </Button>
             </div>
         </div>
     )
