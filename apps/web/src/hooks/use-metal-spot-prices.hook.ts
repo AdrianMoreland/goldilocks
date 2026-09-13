@@ -57,14 +57,14 @@ export function useMetalSpotPrices() {
 
         for (const item of data) {
             if (
-                new Date(item.updatedAt).getTime() >
-                new Date(latest.updatedAt).getTime()
+                new Date(item.timestamp).getTime() >
+                new Date(latest.timestamp).getTime()
             ) {
                 latest = item;
             }
         }
 
-        return latest.updatedAt;
+        return latest.timestamp;
     }, [data]);
 
     const lastUpdatedLabel = useMemo(() => {

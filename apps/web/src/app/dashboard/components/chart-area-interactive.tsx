@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import {Area, AreaChart, CartesianGrid, XAxis} from "recharts"
+import {Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis} from "recharts"
 
 import {useIsMobile} from "@/hooks/use-mobile"
 import {
     Card,
     CardAction,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
@@ -19,130 +18,63 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {
     ToggleGroup,
     ToggleGroupItem,
 } from "@/components/ui/toggle-group"
+import {Button} from "@/components/ui/button"
 
-export const description = "An interactive area chart"
 
-const chartData = [
-    {date: "2024-04-01", silver: 222, gold: 150},
-    {date: "2024-04-02", silver: 97, gold: 180},
-    {date: "2024-04-03", silver: 167, gold: 120},
-    {date: "2024-04-04", silver: 242, gold: 260},
-    {date: "2024-04-05", silver: 373, gold: 290},
-    {date: "2024-04-06", silver: 301, gold: 340},
-    {date: "2024-04-07", silver: 245, gold: 180},
-    {date: "2024-04-08", silver: 409, gold: 320},
-    {date: "2024-04-09", silver: 59, gold: 110},
-    {date: "2024-04-10", silver: 261, gold: 190},
-    {date: "2024-04-11", silver: 327, gold: 350},
-    {date: "2024-04-12", silver: 292, gold: 210},
-    {date: "2024-04-13", silver: 342, gold: 380},
-    {date: "2024-04-14", silver: 137, gold: 220},
-    {date: "2024-04-15", silver: 120, gold: 170},
-    {date: "2024-04-16", silver: 138, gold: 190},
-    {date: "2024-04-17", silver: 446, gold: 360},
-    {date: "2024-04-18", silver: 364, gold: 410},
-    {date: "2024-04-19", silver: 243, gold: 180},
-    {date: "2024-04-20", silver: 89, gold: 150},
-    {date: "2024-04-21", silver: 137, gold: 200},
-    {date: "2024-04-22", silver: 224, gold: 170},
-    {date: "2024-04-23", silver: 138, gold: 230},
-    {date: "2024-04-24", silver: 387, gold: 290},
-    {date: "2024-04-25", silver: 215, gold: 250},
-    {date: "2024-04-26", silver: 75, gold: 130},
-    {date: "2024-04-27", silver: 383, gold: 420},
-    {date: "2024-04-28", silver: 122, gold: 180},
-    {date: "2024-04-29", silver: 315, gold: 240},
-    {date: "2024-04-30", silver: 454, gold: 380},
-    {date: "2024-05-01", silver: 165, gold: 220},
-    {date: "2024-05-02", silver: 293, gold: 310},
-    {date: "2024-05-03", silver: 247, gold: 190},
-    {date: "2024-05-04", silver: 385, gold: 420},
-    {date: "2024-05-05", silver: 481, gold: 390},
-    {date: "2024-05-06", silver: 498, gold: 520},
-    {date: "2024-05-07", silver: 388, gold: 300},
-    {date: "2024-05-08", silver: 149, gold: 210},
-    {date: "2024-05-09", silver: 227, gold: 180},
-    {date: "2024-05-10", silver: 293, gold: 330},
-    {date: "2024-05-11", silver: 335, gold: 270},
-    {date: "2024-05-12", silver: 197, gold: 240},
-    {date: "2024-05-13", silver: 197, gold: 160},
-    {date: "2024-05-14", silver: 448, gold: 490},
-    {date: "2024-05-15", silver: 473, gold: 380},
-    {date: "2024-05-16", silver: 338, gold: 400},
-    {date: "2024-05-17", silver: 499, gold: 420},
-    {date: "2024-05-18", silver: 315, gold: 350},
-    {date: "2024-05-19", silver: 235, gold: 180},
-    {date: "2024-05-20", silver: 177, gold: 230},
-    {date: "2024-05-21", silver: 82, gold: 140},
-    {date: "2024-05-22", silver: 81, gold: 120},
-    {date: "2024-05-23", silver: 252, gold: 290},
-    {date: "2024-05-24", silver: 294, gold: 220},
-    {date: "2024-05-25", silver: 201, gold: 250},
-    {date: "2024-05-26", silver: 213, gold: 170},
-    {date: "2024-05-27", silver: 420, gold: 460},
-    {date: "2024-05-28", silver: 233, gold: 190},
-    {date: "2024-05-29", silver: 78, gold: 130},
-    {date: "2024-05-30", silver: 340, gold: 280},
-    {date: "2024-05-31", silver: 178, gold: 230},
-    {date: "2024-06-01", silver: 178, gold: 200},
-    {date: "2024-06-02", silver: 470, gold: 410},
-    {date: "2024-06-03", silver: 103, gold: 160},
-    {date: "2024-06-04", silver: 439, gold: 380},
-    {date: "2024-06-05", silver: 88, gold: 140},
-    {date: "2024-06-06", silver: 294, gold: 250},
-    {date: "2024-06-07", silver: 323, gold: 370},
-    {date: "2024-06-08", silver: 385, gold: 320},
-    {date: "2024-06-09", silver: 438, gold: 480},
-    {date: "2024-06-10", silver: 155, gold: 200},
-    {date: "2024-06-11", silver: 92, gold: 150},
-    {date: "2024-06-12", silver: 492, gold: 420},
-    {date: "2024-06-13", silver: 81, gold: 130},
-    {date: "2024-06-14", silver: 426, gold: 380},
-    {date: "2024-06-15", silver: 307, gold: 350},
-    {date: "2024-06-16", silver: 371, gold: 310},
-    {date: "2024-06-17", silver: 475, gold: 520},
-    {date: "2024-06-18", silver: 107, gold: 170},
-    {date: "2024-06-19", silver: 341, gold: 290},
-    {date: "2024-06-20", silver: 408, gold: 450},
-    {date: "2024-06-21", silver: 169, gold: 210},
-    {date: "2024-06-22", silver: 317, gold: 270},
-    {date: "2024-06-23", silver: 69.32, gold: 3979},
-    {date: "2024-06-24", silver: 69.69, gold: 3982},
-    {date: "2024-06-25", silver: 71.22, gold: 4002},
-    {date: "2024-06-26", silver: 63.33, gold: 4009},
-    {date: "2024-06-27", silver: 72.21, gold: 4007},
-    {date: "2024-06-28", silver: 76.32, gold: 3999},
-    {date: "2024-06-29", silver: 74.33, gold: 3996},
-    {date: "2024-06-30", silver: 75.55, gold: 4005},
-]
+import type {HistoricSpot, MetalType,} from "@/lib/types"
 
 const chartConfig = {
-    spot: {
-        label: "Spot",
+    gold: {
+        label: "Gold",
+        color: "hsl(45 90% 55%)", // yellow
     },
     silver: {
         label: "Silver",
-        color: "var(--primary)",
+        color: "hsl(0 0% 80%)", // light grey
     },
-    gold: {
-        label: "Gold",
-        color: "var(--primary)",
+    platinum: {
+        label: "Platinum",
+        color: "hsl(210 20% 65%)", // greyish blue
     },
-} satisfies ChartConfig
+    palladium: {
+        label: "Palladium",
+        color: "hsl(270 15% 65%)", // greyish purple
+    },
+} satisfies ChartConfig;
 
-export function ChartAreaInteractive() {
+
+type ChartMetalKey = | "gold" | "silver" | "platinum" | "palladium";
+
+
+const chartMetalKeys: ChartMetalKey[] = [
+    "gold",
+    "silver",
+    "platinum",
+    "palladium",
+];
+
+
+type ChartRow = { date: string; } & Partial<Record<ChartMetalKey, number>>;
+type ChartMode = | "all" | "selected";
+type DisplayMode = | "absolute" | "performance";
+type TimeRange = | "7d" | "30d" | "90d" | "180d" | "365d";
+
+interface ChartAreaInteractiveProps {
+    data: HistoricSpot[];
+    selectedMetal: MetalType | null;
+}
+
+export function ChartAreaInteractive({
+                                         data,
+                                         selectedMetal
+                                     }: ChartAreaInteractiveProps) {
     const isMobile = useIsMobile()
-    const [timeRange, setTimeRange] = React.useState("90d")
+    const [timeRange, setTimeRange] = React.useState<TimeRange>("90d");
+    const [chartMode, setChartMode] = React.useState<ChartMode>("all");
+    const [displayMode, setDisplayMode] = React.useState<DisplayMode>("absolute");
 
     React.useEffect(() => {
         if (isMobile) {
@@ -150,72 +82,240 @@ export function ChartAreaInteractive() {
         }
     }, [isMobile])
 
-    const filteredData = chartData.filter((item) => {
-        const date = new Date(item.date)
-        const referenceDate = new Date("2024-06-30")
-        let daysToSubtract = 90
-        if (timeRange === "30d") {
-            daysToSubtract = 30
-        } else if (timeRange === "7d") {
-            daysToSubtract = 7
+    const chartData = React.useMemo(() => {
+
+        const grouped = new Map<string, ChartRow>();
+
+        data.forEach((item) => {
+
+            const date = item.timestamp.split("T")[0];
+
+            if (!grouped.has(date)) {
+                grouped.set(date, {date});
+            }
+
+            const row = grouped.get(date)!;
+
+            const key = item.metalType.toLowerCase() as ChartMetalKey;
+
+            row[key] = item.priceEur;
+        });
+
+
+        return Array.from(grouped.values())
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+
+    }, [data]);
+
+    const filteredData = React.useMemo(() => {
+
+        let rows = chartData.filter((item) => {
+
+            const date = new Date(item.date);
+            const start = new Date();
+
+            const daysLookup: Record<TimeRange, number> = {
+                "7d": 7,
+                "30d": 30,
+                "90d": 90,
+                "180d": 180,
+                "365d": 365,
+            };
+
+            const days = daysLookup[timeRange];
+
+            start.setDate(start.getDate() - days);
+
+            return date >= start;
+
+        });
+
+
+        if (displayMode === "performance") {
+
+            const first = rows[0];
+
+
+            rows = rows.map(row => {
+
+                const result: ChartRow = {
+                    date: row.date,
+                };
+
+
+                chartMetalKeys.forEach((metal) => {
+
+                    const startValue = first[metal];
+                    const currentValue = row[metal];
+
+
+                    if (
+                        startValue !== undefined &&
+                        currentValue !== undefined
+                    ) {
+                        result[metal] =
+                            ((currentValue / startValue) - 1) * 100;
+                    }
+
+                });
+
+
+                return result;
+
+            });
+
         }
-        const startDate = new Date(referenceDate)
-        startDate.setDate(startDate.getDate() - daysToSubtract)
-        return date >= startDate
-    })
+
+
+        return rows;
+
+
+    }, [
+        chartData,
+        timeRange,
+        displayMode
+    ]);
+
+    // Scale the Y axis to the range actually on screen (padded a little)
+    // instead of recharts' default of always starting at 0 — a metal
+    // hovering around €1,550 barely moves on a 0–1,550 axis.
+    const yDomain = React.useMemo<[number, number]>(() => {
+        const visibleKeys =
+            chartMode === "selected" && selectedMetal
+                ? [selectedMetal.toLowerCase() as ChartMetalKey]
+                : chartMetalKeys;
+
+        let min = Infinity;
+        let max = -Infinity;
+
+        filteredData.forEach((row) => {
+            visibleKeys.forEach((key) => {
+                const value = row[key];
+                if (typeof value === "number" && isFinite(value)) {
+                    if (value < min) min = value;
+                    if (value > max) max = value;
+                }
+            });
+        });
+
+        if (!isFinite(min) || !isFinite(max)) return [0, 1];
+        if (min === max) return [min - 1, max + 1];
+
+        const padding = (max - min) * 0.1;
+        return [min - padding, max + padding];
+    }, [filteredData, chartMode, selectedMetal]);
+
+    const toggleItemClass =
+        "data-[state=on]:bg-accent data-[state=on]:text-accent-foreground data-[state=on]:font-medium";
 
     return (
-        <Card className="@container/card">
-            <CardHeader>
+        <Card className="@container/card flex h-full min-h-0 flex-col gap-2 py-3">
+            <CardHeader className="px-4">
                 <CardTitle>Metals Market Price Chart</CardTitle>
-                <CardDescription>
-          <span className="hidden @[540px]/card:block">
-            Total for the last 3 months
-          </span>
-                    <span className="@[540px]/card:hidden">Last 3 months</span>
-                </CardDescription>
-                <CardAction>
+                <CardAction className="flex items-center gap-2">
+
+                    {/* All Metals / Selected toggle */}
+                    <Button
+                        size="sm"
+                        variant={chartMode === "selected" ? "default" : "secondary"}
+                        disabled={!selectedMetal && chartMode === "all"}
+                        onClick={() =>
+                            setChartMode(chartMode === "all" ? "selected" : "all")
+                        }
+                    >
+                        {chartMode === "all" ? "All Metals" : "Selected"}
+                    </Button>
+
+
+                    {/* Absolute / Performance toggle */}
+                    <Button
+                        size="sm"
+                        variant={
+                            displayMode === "absolute"
+                                ? "default"
+                                : "secondary"
+                        }
+                        onClick={() =>
+                            setDisplayMode(
+                                displayMode === "absolute"
+                                    ? "performance"
+                                    : "absolute"
+                            )
+                        }
+                    >
+                        {displayMode === "absolute"
+                            ? "Absolute €"
+                            : "Performance %"}
+                    </Button>
+
+
+
+                    {/* Date range */}
                     <ToggleGroup
                         type="single"
                         value={timeRange}
-                        onValueChange={setTimeRange}
+                        onValueChange={(value) => {
+                            if (value) {
+                                setTimeRange(
+                                    value as TimeRange
+                                );
+                            }
+                        }}
                         variant="outline"
-                        className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
+                        className="
+        [&_[data-state=on]]:bg-primary
+        [&_[data-state=on]]:text-primary-foreground
+        [&_[data-state=on]]:border-primary
+    "
                     >
-                        <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
-                        <ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
-                        <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
-                    </ToggleGroup>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger
-                            className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
-                            size="sm"
-                            aria-label="Select a value"
+                        <ToggleGroupItem
+                            value="7d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
                         >
-                            <SelectValue placeholder="Last 3 months"/>
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="90d" className="rounded-lg">
-                                Last 3 months
-                            </SelectItem>
-                            <SelectItem value="30d" className="rounded-lg">
-                                Last 30 days
-                            </SelectItem>
-                            <SelectItem value="7d" className="rounded-lg">
-                                Last 7 days
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                            1W
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="30d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+                        >
+                            1M
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="90d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+                        >
+                            3M
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="180d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+                        >
+                            6M
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="365d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+                        >
+                            1Y
+                        </ToggleGroupItem>
+                    </ToggleGroup>
                 </CardAction>
             </CardHeader>
-            <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+            <CardContent className="min-h-0 flex-1 px-2 pb-2 sm:px-4">
                 <ChartContainer
                     config={chartConfig}
-                    className="aspect-auto h-[250px] w-full"
+                    className="aspect-auto h-full w-full"
                 >
-                    <AreaChart data={filteredData}>
+                    <AreaChart
+                        data={filteredData}
+                    >
                         <defs>
-                            <linearGradient id="fillSilver" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="fill-gold" x1="0" y1="0" x2="0" y2="1">
                                 <stop
                                     offset="5%"
                                     stopColor="var(--color-gold)"
@@ -223,14 +323,14 @@ export function ChartAreaInteractive() {
                                 />
                                 <stop
                                     offset="95%"
-                                    stopColor="var(--color-silver)"
+                                    stopColor="var(--color-gold)"
                                     stopOpacity={0.1}
                                 />
                             </linearGradient>
-                            <linearGradient id="fillSilver" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="fill-silver" x1="0" y1="0" x2="0" y2="1">
                                 <stop
                                     offset="5%"
-                                    stopColor="var(--color-gold)"
+                                    stopColor="var(--color-silver)"
                                     stopOpacity={0.8}
                                 />
                                 <stop
@@ -239,8 +339,51 @@ export function ChartAreaInteractive() {
                                     stopOpacity={0.1}
                                 />
                             </linearGradient>
+                            <linearGradient id="fill-platinum" x1="0" y1="0" x2="0" y2="1">
+                                <stop
+                                    offset="5%"
+                                    stopColor="var(--color-platinum)"
+                                    stopOpacity={0.8}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="var(--color-platinum)"
+                                    stopOpacity={0.1}
+                                />
+                            </linearGradient>
+                            <linearGradient id="fill-palladium" x1="0" y1="0" x2="0" y2="1">
+                                <stop
+                                    offset="5%"
+                                    stopColor="var(--color-palladium)"
+                                    stopOpacity={0.8}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="var(--color-palladium)"
+                                    stopOpacity={0.1}
+                                />
+                            </linearGradient>
                         </defs>
                         <CartesianGrid vertical={false}/>
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            domain={yDomain}
+                            tickFormatter={(value) => {
+
+                                if (displayMode === "performance") {
+                                    return `${value.toFixed(0)}%`;
+                                }
+
+                                return `€${Intl.NumberFormat(
+                                    "en",
+                                    {
+                                        notation: "compact",
+                                        maximumFractionDigits: 1
+                                    }
+                                ).format(value)}`;
+                            }}
+                        />
                         <XAxis
                             dataKey="date"
                             tickLine={false}
@@ -255,34 +398,69 @@ export function ChartAreaInteractive() {
                                 })
                             }}
                         />
+                        {displayMode === "performance" && (
+                            <ReferenceLine y={0}/>
+                        )}
                         <ChartTooltip
                             cursor={false}
+                            itemSorter={(item) =>
+                                chartMetalKeys.indexOf(String(item.dataKey) as ChartMetalKey)
+                            }
                             content={
                                 <ChartTooltipContent
                                     labelFormatter={(value) => {
-                                        return new Date(value as string | number | Date).toLocaleDateString("en-US", {
-                                            month: "short",
-                                            day: "numeric",
-                                        })
+                                        return new Date(value as string | number | Date).toLocaleDateString(
+                                            "en-US",
+                                            {
+                                                month: "short",
+                                                day: "numeric",
+                                            }
+                                        )
+                                    }}
+                                    formatter={(value, name) => {
+                                        const labels = {
+                                            gold: "Gold: ",
+                                            silver: "Silver: ",
+                                            platinum: "Platinum: ",
+                                            palladium: "Palladium: ",
+                                        };
+                                        const numericValue = Number(value);
+
+                                        const change = numericValue;
+
+                                        const formattedValue =
+                                            displayMode === "performance"
+                                                ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`
+                                                : `€${numericValue.toFixed(2)}`;
+
+                                        return [
+                                            labels[name as ChartMetalKey],
+                                            formattedValue,
+                                        ];
                                     }}
                                     indicator="dot"
                                 />
                             }
                         />
-                        <Area
-                            dataKey="silver"
-                            type="natural"
-                            fill="url(#fillSilver)"
-                            stroke="var(--color-silver)"
-                            stackId="a"
-                        />
-                        <Area
-                            dataKey="gold"
-                            type="natural"
-                            fill="url(#fillGold)"
-                            stroke="var(--color-gold)"
-                            stackId="a"
-                        />
+                        {
+                            chartMetalKeys.map((metal) => {
+
+                                if (chartMode === "selected" && selectedMetal?.toLowerCase() !== metal) {
+                                    return null;
+                                }
+
+                                return (
+                                    <Area
+                                        key={metal}
+                                        dataKey={metal}
+                                        type="natural"
+                                        stroke={chartConfig[metal].color}
+                                        fill={`url(#fill-${metal})`}
+                                        connectNulls
+                                    />
+                                );
+
+                            })}
                     </AreaChart>
                 </ChartContainer>
             </CardContent>

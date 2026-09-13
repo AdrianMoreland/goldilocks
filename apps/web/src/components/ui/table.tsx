@@ -8,7 +8,15 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      // `overflow-y-clip`, not `-visible`: setting only overflow-x leaves
+      // overflow-y at its default `visible`, and the CSS spec then forces
+      // the *visible* axis to compute as `auto` too (pairing with any
+      // non-visible axis) — silently turning this div into its own vertical
+      // scroll container. That breaks `position: sticky` on a header inside
+      // it, since sticky resolves against the NEAREST scrolling ancestor,
+      // not the real outer one. `clip` isn't `visible`, so it sidesteps that
+      // coercion rule without opting this div into vertical scrolling.
+      className="relative w-full overflow-x-auto overflow-y-clip"
     >
       <table
         data-slot="table"

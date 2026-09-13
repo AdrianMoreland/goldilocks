@@ -1,12 +1,18 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from '../../modules/auth/auth.service';
+import type { User } from '../../../prisma/generated/client';
+
+export interface RequestWithUser extends Request {
+    user: User;
+}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-    constructor(private authService: AuthService) { }
+    constructor(private authService: AuthService) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const request = context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest<RequestWithUser>();
         const authHeader = request.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,8 +20,7 @@ export class JwtAuthGuard implements CanActivate {
         }
 
         const token = authHeader.split(' ')[1];
-        const user = await this.authService.validateToken(token);
-        request.user = user;
+        request.user = await this.authService.validateToken(token);
         return true;
     }
 }

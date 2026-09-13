@@ -81,6 +81,7 @@ model HistoricSpotPrice {
   recordedAt DateTime  @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
 
+  @@unique([metalType, recordedAt])
   /// Indexes for query performance
   @@index([metalType])
   @@index([recordedAt])

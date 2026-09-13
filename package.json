@@ -1,0 +1,31 @@
+{
+	"name": "goldilocks",
+	"private": true,
+	"scripts": {
+		"build": "turbo run build",
+		"build:web": "turbo run build --filter=web",
+		"build:api": "turbo run build --filter=api",
+		"build:shared": "turbo run build --filter=@goldilocks/shared-types",
+		"clean:all": "rimraf node_modules **/node_modules **/dist **/.turbo",
+
+		"prisma:generate": "pnpm --filter api prisma:generate",
+
+		"prisma:migrate": "pnpm --filter api prisma:migrate",
+
+		"prisma:studio": "pnpm --filter api prisma studio",
+
+		"dev": "turbo run dev",
+		"lint": "turbo run lint",
+		"check-types": "turbo run check-types",
+		"test": "turbo run test"
+	},
+	"devDependencies": {
+		"prettier": "^3.8.3",
+		"turbo": "^2.9.16",
+		"typescript": "~5.9.3"
+	},
+	"packageManager": "pnpm@10.30.3",
+	"engines": {
+		"node": ">=18"
+	}
+}

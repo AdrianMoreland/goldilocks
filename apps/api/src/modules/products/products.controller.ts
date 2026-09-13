@@ -4,13 +4,11 @@ import {
     Post,
     Patch,
     Param,
-    Query,
     Body,
     UseGuards,
     NotFoundException,
     Delete,
     ParseIntPipe,
-    ForbiddenException,
     InternalServerErrorException
 } from '@nestjs/common';
 import {ApiTags, ApiOperation, ApiBearerAuth, ApiResponse} from '@nestjs/swagger';
@@ -18,7 +16,6 @@ import {ProductsService} from './products.service';
 import {JwtAuthGuard} from '../../common/guards/jwt-auth.guard';
 import {RolesGuard} from "../../common/guards/roles.guard";
 import {Roles} from "../../common/decorators/roles.decorator";
-import {MetalType} from "../../../prisma/generated/enums";
 import {CreateProductDto, ProductResponseDto, UpdateProductDto} from "../../common/dto/dtos";
 import {RawProduct} from "@goldilocks/shared-types";
 
@@ -82,7 +79,7 @@ export class ProductsController {
     @ApiBearerAuth()
     @ApiOperation({summary: 'Update a product (admin)'})
     async updateProduct(
-        @Param('id') id: number,
+        @Param('id', ParseIntPipe) id: number,
         @Body() body: UpdateProductDto) {
         return this.service.update(id, body);
     }
@@ -91,7 +88,7 @@ export class ProductsController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @ApiOperation({summary: 'Update product stock (admin)'})
-    async updateStock(@Param('id') id: number, @Body() body: { stock_quantity: number }) {
+    async updateStock(@Param('id', ParseIntPipe) id: number, @Body() body: { stock_quantity: number }) {
         return this.service.updateStock(id, body.stock_quantity);
     }
 

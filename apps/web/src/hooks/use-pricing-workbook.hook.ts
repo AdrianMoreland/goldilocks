@@ -1,11 +1,53 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { useMarketData } from '@/hooks/use-market-data.hook';
-import type { MetalType } from '../lib/types.ts';
+import type { MetalType } from '@/lib/types';
+import {MetalCardData} from "@/app/dashboard/schemas/card-data.schema.ts";
 
 export const METALS = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'] as const;
 export type Metal = (typeof METALS)[number];
 
 const DEBOUNCE_MS = 300;
+
+
+
+export function createMetalCard({
+                                    metal,
+                                    price,
+                                    marketPrice,
+                                    change,
+                                    changePercent,
+                                    isCustomPrice,
+                                }: {
+    metal: MetalType;
+    price: number;
+    marketPrice?: number;
+    change?: number;
+    changePercent?: number;
+    isCustomPrice: boolean;
+}): MetalCardData {
+
+    return {
+        metal,
+        price,
+        isCustomPrice,
+        marketPrice,
+        showChange: !isCustomPrice,
+        change: isCustomPrice ? undefined : change,
+        changePercent: isCustomPrice ? undefined : changePercent,
+        direction: isCustomPrice ? undefined : getDirection(change ?? 0),
+    };
+}
+
+
+function getDirection(
+    change: number,
+): "up" | "down" | "neutral" {
+
+    if (change > 0) return "up";
+    if (change < 0) return "down";
+
+    return "neutral";
+}
 
 // ── Internal: debounced recalc ────────────────────────────────────────────────
 function useDebouncedRecalc(
@@ -15,16 +57,18 @@ function useDebouncedRecalc(
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        if (Object.keys(spotOverrides).length === 0) return;
-
-        if (timerRef.current) clearTimeout(timerRef.current);
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+        }
 
         timerRef.current = setTimeout(() => {
             recalc(spotOverrides);
         }, DEBOUNCE_MS);
 
         return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
         };
     }, [spotOverrides, recalc]);
 }
@@ -32,21 +76,21 @@ function useDebouncedRecalc(
 // ── Public hook ───────────────────────────────────────────────────────────────
 
 export function usePricingWorkbook() {
-    const [selectedMetal, setSelectedMetal] = useState<Metal | null>(null);
+    const [selectedMetal, setSelectedMetal] = useState<MetalType | null>(null);
     const [spotOverrides, setSpotOverrides] = useState<Partial<Record<MetalType, number>>>({});
 
     const {
         products,
         spotPrices,
+        historicSpot,
         loading,
         error,
         lastUpdatedLabel,
+        lastUpdatedRelative,
         recalc,
         refresh,
         refreshing
     } = useMarketData();
-
-
 
     useDebouncedRecalc(spotOverrides, recalc);
 
@@ -58,7 +102,7 @@ export function usePricingWorkbook() {
                     const livePrice = spotPrices.find((p) => p.metalType === metal)?.priceEur ?? 0;
                     return [metal, spotOverrides[metal] ?? livePrice];
                 }),
-            ) as Record<Metal, number>,
+            ) as Record<MetalType, number>,
         [spotPrices, spotOverrides],
     );
 
@@ -70,13 +114,47 @@ export function usePricingWorkbook() {
         }));
     }, []);
 
-    const toggleSelectedMetal = useCallback((metal: Metal) => {
+    const clearSpotOverride = useCallback((metal: MetalType) => {
+        setSpotOverrides(prev => {
+            const next = {...prev};
+            delete next[metal];
+            return next;
+        });
+    }, []);
+
+    const metalCards = useMemo(
+        () =>
+            METALS.map((metal) => {
+                const spot = spotPrices.find(
+                    (item) => item.metalType === metal
+                );
+
+                return createMetalCard({
+                    metal,
+                    price: displayPrices[metal],
+                    marketPrice: spot?.priceEur,
+                    change: spot?.change,
+                    changePercent: spot?.changePercent,
+                    isCustomPrice: spotOverrides[metal] !== undefined,
+                });
+            }),
+        [
+            spotPrices,
+            displayPrices,
+            spotOverrides,
+        ]
+    );
+
+    const toggleSelectedMetal = useCallback((metal: MetalType) => {
         setSelectedMetal((prev) => (prev === metal ? null : metal));
     }, []);
 
     return {
+        metalCards,
         // products (already priced, from the combined snapshot)
         products,
+        // historic chart data
+        historicSpot,
         loading,
         error,
 
@@ -91,10 +169,12 @@ export function usePricingWorkbook() {
         refreshing,
 
         spotStatusLabel: lastUpdatedLabel,
+        lastUpdatedRelative,
 
         // selection & overrides
         selectedMetal,
         toggleSelectedMetal,
         handleSpotOverride,
+        clearSpotOverride,
     };
 }

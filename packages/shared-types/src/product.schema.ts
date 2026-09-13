@@ -27,6 +27,12 @@ export const ProductSchema = z.object({
   description: z.string(),
 
   // Calculated fields
+  // Raw market value of this product's own weight at the current spot price
+  // (spot / troy oz * weight) — no premium/discount/VAT applied. Distinct
+  // from `spotPrice`, which is the flat per-ounce metal price and is the
+  // same for every product of a metal; this is what the product table's
+  // "Market Price" column shows per row.
+  marketValue: z.number(),
   priceSell: z.number(),
   priceSellVatExcl: z.number(),
   priceBuy: z.number(),

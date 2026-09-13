@@ -52,18 +52,18 @@ import {
 import {Area, AreaChart, CartesianGrid, XAxis} from "recharts"
 import {toast} from "sonner"
 
-import type {Product} from "../../../lib/types.ts"
+import type {Product} from "../../../../lib/types.ts"
 
-import {useIsMobile} from "@/hooks/use-mobile"
-import {Badge} from "@/components/ui/badge"
-import {Button} from "@/components/ui/button"
+import {useIsMobile} from "@/hooks/use-mobile.ts"
+import {Badge} from "@/components/ui/badge.tsx"
+import {Button} from "@/components/ui/button.tsx"
 import {
     type ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
-} from "@/components/ui/chart"
-import {Checkbox} from "@/components/ui/checkbox"
+} from "@/components/ui/chart.tsx"
+import {Checkbox} from "@/components/ui/checkbox.tsx"
 import {
     Drawer,
     DrawerClose,
@@ -73,7 +73,7 @@ import {
     DrawerHeader,
     DrawerTitle,
     DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer.tsx"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -81,17 +81,17 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {Input} from "@/components/ui/input"
-import {Label} from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu.tsx"
+import {Input} from "@/components/ui/input.tsx"
+import {Label} from "@/components/ui/label.tsx"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"
-import {Separator} from "@/components/ui/separator"
+} from "@/components/ui/select.tsx"
+import {Separator} from "@/components/ui/separator.tsx"
 import {
     Table,
     TableBody,
@@ -99,14 +99,14 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table.tsx"
 import {
     Tabs,
     TabsContent,
     TabsList,
     TabsTrigger,
-} from "@/components/ui/tabs"
-import { TableCellViewer } from "./table-cell-viewer";
+} from "@/components/ui/tabs.tsx"
+import { TableCellViewer } from "../table-cell-viewer.tsx";
 
 
 const formatEuro = (value: number) =>
@@ -327,12 +327,6 @@ export function DataTable({
         useSensor(TouchSensor, {}),
         useSensor(KeyboardSensor, {})
     )
-
-    const dataIds = React.useMemo<UniqueIdentifier[]>(
-        () => data?.map(({id}) => id) || [],
-        [data]
-    )
-
     const filteredData = React.useMemo(() => {
         switch (selectedMetal) {
             case "gold":
@@ -352,6 +346,10 @@ export function DataTable({
         }
     }, [data, selectedMetal])
 
+    const dataIds = React.useMemo<UniqueIdentifier[]>(
+        () => filteredData?.map(({id}) => id) || [],
+        [filteredData]
+    )
 
     const table = useReactTable({
         data: filteredData,
@@ -398,12 +396,8 @@ export function DataTable({
                 <Label htmlFor="view-selector" className="sr-only">
                     View
                 </Label>
-                <Select defaultValue="gold">
-                    <SelectTrigger
-                        className="flex w-fit sm:hidden cursor-pointer"
-                        size="sm"
-                        id="view-selector"
-                    >
+                <Select value={selectedMetal} onValueChange={setSelectedMetal}>
+                    <SelectTrigger className="flex w-fit sm:hidden cursor-pointer" size="sm" id="view-selector">
                         <SelectValue placeholder="Select a view"/>
                     </SelectTrigger>
                     <SelectContent>
@@ -417,10 +411,12 @@ export function DataTable({
                     className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 sm:flex">
                     <TabsTrigger value="gold" className="cursor-pointer">Gold</TabsTrigger>
                     <TabsTrigger value="silver" className="cursor-pointer">
-                        Silver <Badge variant="secondary">3</Badge>
+                        Silver
+                        {/*<Badge variant="secondary">3</Badge>*/}
                     </TabsTrigger>
                     <TabsTrigger value="platinum" className="cursor-pointer">
-                        Platinum <Badge variant="secondary">2</Badge>
+                        Platinum
+                        {/*<Badge variant="secondary">2</Badge>*/}
                     </TabsTrigger>
                     <TabsTrigger value="palladium" className="cursor-pointer">Palladium</TabsTrigger>
                 </TabsList>
@@ -465,7 +461,7 @@ export function DataTable({
                 </div>
             </div>
             <TabsContent
-                value="gold"
+                value={selectedMetal}
                 className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
             >
                 <div className="overflow-hidden rounded-lg border">
@@ -535,9 +531,9 @@ export function DataTable({
     )
 }
 
-
-
 /*
+
+
   // -----------------------------
 // 1. CREATE COLUMN FACTORIES
 // -----------------------------
@@ -719,7 +715,8 @@ export function DataTable({
     )
 
 
-    /* // Create separate table instances for each tab
+
+    // Create separate table instances for each tab
     const pastPerformanceIds = React.useMemo<UniqueIdentifier[]>(
       () => pastPerformance?.map(({ id }) => id) || [],
       [pastPerformance]
@@ -985,5 +982,5 @@ export function DataTable({
         </div>
       </>
     )
+*/
 
- */

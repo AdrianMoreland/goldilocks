@@ -1,133 +1,67 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { jwtVerify } from 'jose';
-import {SupabaseService} from "../../supabase/supabase.service";
-import {PrismaService} from "../../infrastructure/prisma/prisma.service";
-import {UserRole} from "../../../prisma/generated/enums";
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { AUTH_PROVIDER, type AuthIdentity, type AuthProviderPort } from './auth-provider.port';
+import type { LoginResponse, SessionUser } from '@goldilocks/shared-types';
+import type { User } from '../../../prisma/generated/client';
 
+/**
+ * AuthService — the app's only entry point for "who is this and are they
+ * allowed in". Everything identity-provider-specific lives behind
+ * AuthProviderPort (see auth-provider.port.ts); this class only knows about
+ * that interface plus this app's own User table.
+ *
+ * Deliberately closed: this is a small internal tool with a handful of
+ * known staff accounts, provisioned via prisma/provision-users.ts — there's
+ * no public self-registration, so a valid provider token with no matching
+ * User row is treated as unauthorized rather than auto-provisioned.
+ */
 @Injectable()
 export class AuthService {
-    private supabase: SupabaseClient;
-
     constructor(
-        private config: ConfigService,
-        private readonly supabaseService: SupabaseService,
+        @Inject(AUTH_PROVIDER) private readonly authProvider: AuthProviderPort,
         private readonly prisma: PrismaService,
-    ) {
-        this.supabase = createClient(
-            this.config.getOrThrow<string>('SUPABASE_URL'),
-            this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
-        );
-    }
+    ) {}
 
-    /**
-     * Verify Supabase JWT token
-     */
-    async verifyAccessToken(token: string) {
-        try {
-            const secret = new TextEncoder().encode(
-                process.env.SUPABASE_JWT_SECRET!,
-            );
+    async login(email: string, password: string): Promise<LoginResponse> {
+        const session = await this.authProvider.signInWithPassword(email, password);
+        const user = await this.loadActiveUser(session.identity);
 
-            const { payload } = await jwtVerify(token, secret, {
-                algorithms: ['HS256'],
-            });
-
-            return {
-                id: payload.sub as string,
-                email: payload.email as string,
-                role: payload.role as string, // optional: Supabase role
-            };
-        } catch (err) {
-            throw new UnauthorizedException('Invalid or expired token');
-        }
-    }
-
-    /**
-     * Ensure user exists in your app database
-     */
-    async ensureUserExists(userId: string, email: string) {
-        return this.prisma.user.upsert({
-            where: { id: userId },
-            update: {}, // nothing to update for now
-            create: {
-                id: userId,
-                email: email,                 // use the parameter
-                firstName: email.split('@')[0], // default firstName from email
-                lastName: '',                    // default empty lastName
-                password: '',                    // blank because Supabase handles auth
-                isActive: true,
-                admin: false,                    // default role
-                role: UserRole.ADMIN,
-            },
-        });
-    }
-
-    async register(data: { email: string; password: string; full_name: string; phone?: string }) {
-        const { data: authData, error } = await this.supabase.auth.admin.createUser({
-            email: data.email,
-            password: data.password,
-            user_metadata: { full_name: data.full_name, role: 'customer' },
-            email_confirm: true,
-        });
-
-        if (error) throw new UnauthorizedException(error.message);
-        return { success: true, data: { user_id: authData.user.id } };
-    }
-
-    async login(
-        data: {
-            email: string;
-            password: string
-        }
-    ) {
-        const {
-            data: authData,
-            error
-        } = await this.supabase.auth.signInWithPassword({
-            email: data.email,
-            password: data.password,
-        });
-
-        if (error) throw new UnauthorizedException(error.message);
         return {
-            success: true,
-            data: {
-                access_token: authData.session?.access_token,
-                refresh_token: authData.session?.refresh_token,
-                user: authData.user,
-            },
+            accessToken: session.accessToken,
+            user: this.toSessionUser(user),
         };
     }
 
-    async sendOtp(phone: string) {
-        const { error } = await this.supabase.auth.signInWithOtp({ phone });
-        if (error) throw new UnauthorizedException(error.message);
-        return { success: true, message: 'OTP sent' };
+    /** Used by JwtAuthGuard — the returned User (full Prisma row) is attached to request.user. */
+    async validateToken(token: string): Promise<User> {
+        const identity = await this.authProvider.verifyToken(token);
+        return this.loadActiveUser(identity);
     }
 
-    async verifyOtp(phone: string, token: string) {
-        const { data: authData, error } = await this.supabase.auth.verifyOtp({
-            phone,
-            token,
-            type: 'sms',
-        });
+    async me(userId: string): Promise<SessionUser> {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user || !user.isActive) {
+            throw new UnauthorizedException('Account not found or inactive.');
+        }
+        return this.toSessionUser(user);
+    }
 
-        if (error) throw new UnauthorizedException(error.message);
+    private async loadActiveUser(identity: AuthIdentity): Promise<User> {
+        const user = await this.prisma.user.findUnique({ where: { id: identity.id } });
+        if (!user || !user.isActive) {
+            throw new UnauthorizedException('This account is not set up for this application.');
+        }
+        return user;
+    }
+
+    private toSessionUser(user: User): SessionUser {
         return {
-            success: true,
-            data: {
-                access_token: authData.session?.access_token,
-                refresh_token: authData.session?.refresh_token,
-                user: authData.user,
-            },
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            admin: user.admin,
         };
-    }
-
-    async validateToken(token: string) {
-        const { data, error } = await this.supabase.auth.getUser(token);
-        if (error) throw new UnauthorizedException('Invalid token');
-        return data.user;
     }
 }
