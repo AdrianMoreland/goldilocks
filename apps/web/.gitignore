@@ -8,8 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
+# NOT dist/dist-ssr: Railway's Railpack builder uses gitignore rules to
+# decide what makes it from the build stage into the runtime image, so
+# ignoring this hid the actual `vite build` output from the deployed
+# container.
 *.local
 
 # Editor directories and files
