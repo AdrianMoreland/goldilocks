@@ -1,10 +1,351 @@
+
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { RawSpotPrice, HistoricSpot, MetalType } from '@goldilocks/shared-types';
+import { MetalPriceApiClient } from '../../infrastructure/metal-price-api/metal-price-api.client';
+import { SpotPriceCacheStore } from './spot-price-cache.store';
+import {
+    ALL_METALS,
+    EMPTY_METAL_RATES, HISTORIC_LOOKBACK_DAYS, HistoricSpotRecord,
+    SYMBOL_MAP,
+    toNumber,
+    toRawMetalSpotPrice
+} from "../../common/utils/pricing.util";
+
+
+/**
+ * MetalsProvider — "give me metal data from the best available source."
+ *
+ * The single-metal cache→DB read waterfall now lives in SpotPriceCacheStore
+ * (a CacheAsideStore subclass). This class owns everything that store
+ * doesn't: external API calls, historic spot data, and the write path
+ * (fetchAndStore / fetchAndStoreHistoricClose / seedHistoricPrices), all of
+ * which still write through to the store's cache after persisting to DB —
+ * exactly as before.
+ *
+ * No pricing, no products — this module knows nothing about either.
+ */
+@Injectable()
+export class MetalsProvider {
+    private readonly logger = new Logger(MetalsProvider.name);
+
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly metalPriceApi: MetalPriceApiClient,
+        private readonly spotCache: SpotPriceCacheStore,
+    ) {}
+
+    // ── Orchestration — Reads ───────────────────────────────────────────
+
+    async getLatest(metal: MetalType): Promise<RawSpotPrice | null> {
+        return this.spotCache.get(metal);
+    }
+
+    async getAllLatest(): Promise<RawSpotPrice[]> {
+        const results = await Promise.all(ALL_METALS.map((m) => this.getLatest(m)));
+        return results.filter((r): r is RawSpotPrice => r !== null);
+    }
+
+    /**
+     * Historic spot prices for charting (last ~year).
+     */
+    async getHistoricSpots(): Promise<HistoricSpot[]> {
+        const rows = await this.readHistoricFromDb();
+
+        if (rows.length === 0) {
+            this.logger.warn('No historic spot data found — has the cron run yet?');
+        }
+
+        return rows.map((row) => ({
+            metalType: row.metalType as MetalType,
+            priceEur: toNumber(row.priceEur),
+            priceGbp: toNumber(row.priceGbp),
+            timestamp: row.recordedAt.toISOString(),
+        }));
+    }
+
+    // ── Orchestration — Writes (cron only) ──────────────────────────────
+
+    /**
+     * Scheduled refresh (called by MetalsCron).
+     * 1. Fetch fresh prices from the external API
+     * 2. Persist new rows (keeps full history)
+     * 3. Write through to the cache store so the next getLatest() is instant
+     */
+    async fetchAndStore(): Promise<void> {
+        try {
+            this.logger.log('🔄 Starting scheduled metal price refresh…');
+
+            const liveRates = await this.fetchFromExternalApi();
+            if (!Object.keys(liveRates).length) {
+                this.logger.warn('No prices returned from external API — aborting refresh');
+                return;
+            }
+
+            const timestamp = new Date();
+            const records = Object.entries(liveRates).map(([metalType, prices]) => ({
+                metalType: metalType as MetalType,
+                priceEur: prices.eur,
+                priceGbp: prices.gbp,
+                source: 'metalpriceapi',
+                timestamp,
+            }));
+
+            await this.storeInDb(records);
+
+            const dtos: RawSpotPrice[] = records.map((record) => ({
+                id: '',
+                metalType: record.metalType,
+                priceEur: record.priceEur,
+                priceGbp: record.priceGbp,
+                source: record.source,
+                createdAt: new Date().toISOString(),
+                timestamp: record.timestamp.toISOString(),
+            }));
+
+
+            await Promise.all(
+                dtos.map((dto) =>
+                    this.spotCache.set(dto.metalType, dto)
+                )
+            );
+
+            this.logger.log('✅ Metal prices refreshed and cached');
+        } catch (err) {
+            this.logger.error('fetchAndStore failed', err instanceof Error ? err.stack : String(err));
+        }
+    }
+
+    // ── External API ─────────────────────────────────────────────────────
+
+    private async fetchFromExternalApi(): Promise<
+        Record<MetalType, { eur: number; gbp: number }>
+    > {
+        try {
+            const response = await this.metalPriceApi.livePrices();
+
+            this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
+            this.logger.debug(`XAU=${response.rates.XAU}`);
+            this.logger.debug(`Computed EUR/XAU=${1 / response.rates.XAU}`);
+
+            if (!response.success) {
+                this.logger.error(`MetalPriceAPI returned success=false: ${JSON.stringify(response)}`);
+                return EMPTY_METAL_RATES;
+            }
+
+            const rates: Record<MetalType, { eur: number; gbp: number }> = {
+                GOLD: { eur: 0, gbp: 0 },
+                SILVER: { eur: 0, gbp: 0 },
+                PLATINUM: { eur: 0, gbp: 0 },
+                PALLADIUM: { eur: 0, gbp: 0 },
+            };
+
+            for (const [metalType, symbol] of Object.entries(SYMBOL_MAP) as [MetalType, string][]) {
+                const eurPerOunce = response.rates[symbol] ? 1 / response.rates[symbol] : 0;
+                const gbpRate = response.rates.GBP ?? 0;
+
+                rates[metalType] = {
+                    eur: eurPerOunce,
+                    gbp: eurPerOunce * gbpRate,
+                };
+            }
+
+            this.logger.log('✅ External API fetch succeeded: ' + JSON.stringify(rates));
+            return rates;
+        } catch (error) {
+            if (error instanceof Error) {
+                this.logger.error('External API fetch failed', error.stack);
+            } else {
+                this.logger.error('External API fetch failed', JSON.stringify(error));
+            }
+            return EMPTY_METAL_RATES;
+        }
+    }
+
+    private async fetchHistoricFromExternalApi(startDate: string, endDate: string): Promise<HistoricSpotRecord[]> {
+        const [eurResponse, gbpResponse] = await Promise.all([
+            this.metalPriceApi.timeframePrices(startDate, endDate, 'EUR'),
+            this.metalPriceApi.timeframePrices(startDate, endDate, 'GBP'),
+        ]);
+
+        if (!eurResponse.success) {
+            this.logger.error(`EUR historic failed: ${JSON.stringify(eurResponse)}`);
+            return [];
+        }
+
+        if (!gbpResponse.success) {
+            this.logger.error(`GBP historic failed: ${JSON.stringify(gbpResponse)}`);
+            return [];
+        }
+
+        const records: HistoricSpotRecord[] = [];
+
+        for (const [date, eurRates] of Object.entries(eurResponse.rates)) {
+            const gbpRates = gbpResponse.rates[date];
+            if (!gbpRates) continue;
+
+            for (const [metalType, symbol] of Object.entries(SYMBOL_MAP) as [MetalType, string][]) {
+                const eurRate = eurRates[symbol];
+                const gbpRate = gbpRates[symbol];
+                if (eurRate == null || gbpRate == null) continue;
+
+                records.push({
+                    metalType,
+                    priceEur: 1 / Number(eurRate),
+                    priceGbp: 1 / Number(gbpRate),
+                    recordedAt: new Date(date),
+                });
+            }
+        }
+
+        return records;
+    }
+
+    async fetchAndStoreHistoricClose(date: string): Promise<void> {
+        this.logger.log(`Fetching OHLC historic close for ${date}`);
+        const recordedAt = new Date(`${date}T00:00:00.000Z`);
+        const startOfDay = new Date(`${date}T00:00:00.000Z`);
+        const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+        const existingCount = await this.prisma.historicSpotPrice.count({
+            where: { recordedAt: { gte: startOfDay, lte: endOfDay } },
+        });
+
+        if (existingCount === ALL_METALS.length) {
+            this.logger.log(`Historic OHLC already exists for ${recordedAt}`);
+            return;
+        }
+
+        const records = await Promise.all(
+            Object.entries(SYMBOL_MAP).map(async ([metalType, symbol]) => {
+                const [eurResponse, gbpResponse] = await Promise.all([
+                    this.metalPriceApi.ohlcPrices(date, 'EUR', symbol),
+                    this.metalPriceApi.ohlcPrices(date, 'GBP', symbol),
+                ]);
+
+                if (!eurResponse.success || !gbpResponse.success) {
+                    return null;
+                }
+
+                this.logger.debug(`EUR=${eurResponse.rate.close}, GBP=${gbpResponse.rate.close}`);
+                this.logger.debug(
+                    `${metalType} EUR close raw=${eurResponse.rate.close} inverted=${1 / Number(eurResponse.rate.close)}`,
+                );
+
+                return {
+                    metalType: metalType as MetalType,
+                    priceEur: 1 / Number(eurResponse.rate.close),
+                    priceGbp: 1 / Number(gbpResponse.rate.close),
+                    recordedAt,
+                };
+            }),
+        );
+
+        const validRecords = records.filter((r): r is HistoricSpotRecord => r !== null);
+
+        if (validRecords.length === 0) {
+            this.logger.warn('No OHLC records generated');
+            return;
+        }
+
+        await this.prisma.historicSpotPrice.createMany({
+            data: validRecords,
+            skipDuplicates: true,
+        });
+
+        this.logger.log(`Inserted ${validRecords.length} historic close prices for ${date}`);
+    }
+
+    async seedHistoricPrices(): Promise<void> {
+        this.logger.log('Starting historic price seed...');
+
+        const end = new Date();
+        const start = new Date(end);
+        start.setDate(start.getDate() - 364); // 365 days max for free plan
+
+        const startDate = start.toISOString().slice(0, 10);
+        const endDate = end.toISOString().slice(0, 10);
+
+        const records = await this.fetchHistoricFromExternalApi(startDate, endDate);
+
+        if (!records.length) {
+            this.logger.warn('No historic records returned');
+            return;
+        }
+
+        await this.prisma.historicSpotPrice.createMany({
+            data: records.map((record) => ({
+                metalType: record.metalType,
+                priceEur: record.priceEur,
+                priceGbp: record.priceGbp,
+                recordedAt: record.recordedAt,
+            })),
+            skipDuplicates: true,
+        });
+
+        this.logger.log(`Inserted ${records.length} historic spot prices`);
+    }
+
+    // ── Database (historic only — single-metal reads now live in SpotPriceCacheStore) ──
+
+    /**
+     * Most recent date we have a historic close for, across all metals.
+     * Used by MetalsCron on startup to detect a stale gap (e.g. the app
+     * wasn't running when the daily cron would have fired) and backfill it.
+     */
+    async getLatestHistoricDate(): Promise<Date | null> {
+        const latest = await this.prisma.historicSpotPrice.findFirst({
+            orderBy: { recordedAt: 'desc' },
+            select: { recordedAt: true },
+        });
+        return latest?.recordedAt ?? null;
+    }
+
+    private async readHistoricFromDb() {
+        const since = new Date();
+        since.setDate(since.getDate() - HISTORIC_LOOKBACK_DAYS);
+
+        this.logger.debug(`Reading historic spot prices since ${since.toISOString()} from DB…`);
+        return this.prisma.historicSpotPrice.findMany({
+            where: { metalType: { in: ALL_METALS }, recordedAt: { gte: since } },
+            orderBy: { recordedAt: 'asc' },
+        });
+    }
+
+    private async storeInDb(
+        records: {
+            metalType: MetalType;
+            priceEur: number;
+            priceGbp: number;
+            source: string;
+            timestamp: Date;
+        }[]
+    ): Promise<void> {
+
+        this.logger.debug(
+            `Storing ${records.length} metal record(s) in DB…`
+        );
+
+        await this.prisma.metalSpotPrice.createMany({
+            data: records,
+        });
+
+        this.logger.log(
+            `💾 Saved ${records.length} metal record(s) to DB`
+        );
+    }
+}
+
+
+/*
 import {Injectable, Logger} from '@nestjs/common';
 import {PrismaService} from '../../infrastructure/prisma/prisma.service';
 import {RedisService} from '../../redis/redis.service';
-import {SpotPrice, HistoricSpot, MetalType} from '@goldilocks/shared-types';
+import {SpotPrice, RawSpotPrice, HistoricSpot, MetalType} from '@goldilocks/shared-types';
 import {MetalPriceApiClient} from '../../infrastructure/metal-price-api/metal-price-api.client';
 import {Decimal} from "../../../prisma/generated/internal/prismaNamespace";
 import {MetalSpotPrice} from "../../../prisma/generated/client";
+import {SpotPriceCacheStore} from "./spot-price-cache.store";
 
 interface RawMetalRecord {
     metalType: MetalType;
@@ -23,6 +364,13 @@ const SYMBOL_MAP: Record<MetalType, string> = {
     PALLADIUM: 'XPD',
 };
 
+interface HistoricSpotRecord {
+    metalType: MetalType;
+    priceEur: number;
+    priceGbp: number;
+    recordedAt: Date;
+}
+
 const CACHE_TTL_SECONDS = 3600;
 const HISTORIC_LOOKBACK_DAYS = 365;
 
@@ -32,7 +380,7 @@ function toNumber(value: Decimal | number | undefined | null): number {
     return value;
 }
 
-/**
+/!**
  * MetalsProvider — "give me metal data from the best available source."
  *
  * Strategy for a single metal's latest price:
@@ -49,7 +397,7 @@ function toNumber(value: Decimal | number | undefined | null): number {
  * into Prisma/Redis/the API client directly themselves.
  *
  * No pricing, no products — this module knows nothing about either.
- */
+ *!/
 @Injectable()
 export class MetalsProvider {
     private readonly logger = new Logger(MetalsProvider.name);
@@ -58,6 +406,7 @@ export class MetalsProvider {
         private readonly prisma: PrismaService,
         private readonly redis: RedisService,
         private readonly metalPriceApi: MetalPriceApiClient,
+        private readonly spotCache: SpotPriceCacheStore,
     ) {
     }
 
@@ -65,7 +414,7 @@ export class MetalsProvider {
 
     // ── Orchestration — Reads ───────────────────────────────────────────
 
-    async getLatest(metal: MetalType): Promise<SpotPrice | null> {
+    async getLatest(metal: MetalType): Promise<RawSpotPrice | null> {
         const cached = await this.readFromCache(metal);
         if (cached) {
             this.logger.debug(`⚡ Cache hit for ${metal}, last updated at ${cached.timestamp}`);
@@ -85,19 +434,19 @@ export class MetalsProvider {
         return dto;
     }
 
-    async getAllLatest(): Promise<SpotPrice[]> {
+    async getAllLatest(): Promise<RawSpotPrice[]> {
         const results = await Promise.all(ALL_METALS.map((m) => this.getLatest(m)));
-        return results.filter((r): r is SpotPrice => r !== null);
+        return results.filter((r): r is RawSpotPrice => r !== null);
     }
 
-    /**
+    /!**
      * Historic spot prices for charting (last ~year).
      *
      * NOTE: HistoricSpotSchema expects { metalType, priceEur, priceGbp, timestamp }.
      * Confirm the historicSpotPrice table has matching priceEUR/priceGBP columns
      * before relying on this in production — if the migration isn't in yet,
      * this will throw rather than silently default.
-     */
+     *!/
     async getHistoricSpots(): Promise<HistoricSpot[]> {
         const rows = await this.readHistoricFromDb();
 
@@ -116,13 +465,13 @@ export class MetalsProvider {
 
     // ── Orchestration — Writes (cron only) ──────────────────────────────
 
-    /**
+    /!**
      * Scheduled refresh (called by MetalsCron).
      * 1. Fetch fresh prices from the external API
      * 2. Diff against the latest DB row per metal for previousPrice
      * 3. Persist new rows (keeps full history)
      * 4. Overwrite Redis so the next getLatest() is instant
-     */
+     *!/
     async fetchAndStore(): Promise<void> {
         try {
             this.logger.log('🔄 Starting scheduled metal price refresh…');
@@ -132,10 +481,6 @@ export class MetalsProvider {
                 this.logger.warn('No prices returned from external API — aborting refresh');
                 return;
             }
-
-            const previousMap = await this.readPreviousPricesFromDb(
-                Object.keys(liveRates) as MetalType[],
-            );
 
             const timestamp = new Date();
             const records: RawMetalRecord[] =
@@ -221,6 +566,183 @@ export class MetalsProvider {
         }
     }
 
+    private async fetchHistoricFromExternalApi(
+        startDate: string,
+        endDate: string,
+    ): Promise<HistoricSpotRecord[]> {
+        const [
+            eurResponse,
+            gbpResponse,
+        ] = await Promise.all([
+            this.metalPriceApi.timeframePrices(startDate, endDate, 'EUR',),
+            this.metalPriceApi.timeframePrices(startDate, endDate, 'GBP',),
+        ]);
+
+        if (!eurResponse.success) {
+            this.logger.error(`EUR historic failed: ${JSON.stringify(eurResponse)}`);
+            return [];
+        }
+
+        if (!gbpResponse.success) {
+            this.logger.error(`GBP historic failed: ${JSON.stringify(gbpResponse)}`);
+            return [];
+        }
+
+        const records: HistoricSpotRecord[] = [];
+
+        for (const [date, eurRates] of Object.entries(
+            eurResponse.rates
+        )) {
+            const gbpRates = gbpResponse.rates[date];
+
+            if (!gbpRates) {
+                continue;
+            }
+
+            for (const [metalType, symbol] of Object.entries(
+                SYMBOL_MAP
+            ) as [MetalType, string][]) {
+                const eurRate = eurRates[symbol];
+                const gbpRate = gbpRates[symbol];
+
+                if (eurRate == null || gbpRate == null) {
+                    continue;
+                }
+
+                records.push({
+                    metalType,
+                    priceEur: 1 / Number(eurRate),
+                    priceGbp: 1 / Number(gbpRate),
+                    recordedAt: new Date(date),
+                });
+            }
+        }
+
+
+
+        return records;
+    }
+
+    async fetchAndStoreHistoricClose(
+        date: string
+    ): Promise<void> {
+
+        this.logger.log(`Fetching OHLC historic close for ${date}`);
+        const recordedAt = new Date(`${date}T00:00:00.000Z`);
+        const startOfDay = new Date(`${date}T00:00:00.000Z`);
+        const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+
+        const existingCount =
+            await this.prisma.historicSpotPrice.count({
+                where:{
+                    recordedAt:{
+                        gte:startOfDay,
+                        lte:endOfDay,
+                    }
+                }
+            });
+
+
+        if(existingCount === ALL_METALS.length){
+            this.logger.log(`Historic OHLC already exists for ${recordedAt}`);
+            return;
+        }
+
+        const records = await Promise.all(
+            Object.entries(SYMBOL_MAP).map(
+                async ([metalType, symbol]) => {
+
+                    const [
+                        eurResponse,
+                        gbpResponse,
+                    ] = await Promise.all([
+                        this.metalPriceApi.ohlcPrices(
+                            date,
+                            "EUR",
+                            symbol
+                        ),
+
+                        this.metalPriceApi.ohlcPrices(
+                            date,
+                            "GBP",
+                            symbol
+                        ),
+                    ]);
+
+                    if(!eurResponse.success || !gbpResponse.success){
+                        return null;
+                    }
+
+                    this.logger.debug(`EUR=${eurResponse.rate.close}, GBP=${gbpResponse.rate.close}`)
+                    this.logger.debug(
+                        `${metalType} EUR close raw=${eurResponse.rate.close} inverted=${1 / Number(eurResponse.rate.close)}`
+                    );
+                    return {
+                        metalType: metalType as MetalType,
+                        priceEur: 1 / Number(eurResponse.rate.close),
+                        priceGbp: 1 / Number(gbpResponse.rate.close),
+                        recordedAt,
+                    };
+                }
+            )
+        );
+
+        const validRecords =
+            records.filter(
+                (r): r is HistoricSpotRecord => r !== null
+            );
+
+        if(validRecords.length === 0){
+            this.logger.warn("No OHLC records generated");
+            return;
+        }
+
+        await this.prisma.historicSpotPrice.createMany({
+            data: validRecords,
+            skipDuplicates:true,
+        });
+
+        this.logger.log(`Inserted ${validRecords.length} historic close prices for ${date}`);
+    }
+
+    async seedHistoricPrices(): Promise<void> {
+        this.logger.log('Starting historic price seed...');
+
+        const end = new Date();
+        const start = new Date(end);
+
+        // 365 days max for free plan
+        start.setDate(start.getDate() - 364);
+
+        const startDate = start.toISOString().slice(0, 10);
+        const endDate = end.toISOString().slice(0, 10);
+
+        const records =
+            await this.fetchHistoricFromExternalApi(
+                startDate,
+                endDate,
+            );
+
+
+        if (!records.length) {
+            this.logger.warn('No historic records returned');
+            return;
+        }
+
+        await this.prisma.historicSpotPrice.createMany({
+            data:
+                records.map(record => ({
+                    metalType: record.metalType,
+                    priceEur: record.priceEur,
+                    priceGbp: record.priceGbp,
+                    recordedAt: record.recordedAt,
+                })),
+            skipDuplicates: true,
+        });
+
+        this.logger.log(`Inserted ${records.length} historic spot prices`);
+    }
 
     // ── Database ─────────────────────────────────────────────────────────
 
@@ -261,12 +783,12 @@ export class MetalsProvider {
     }
 
     // ── CACHE ─────────────────────────────────────────────────────
-    private async readFromCache(metal: MetalType): Promise<SpotPrice | null> {
+    private async readFromCache(metal: MetalType): Promise<RawSpotPrice | null> {
         this.logger.log(`Reading latest ${metal} price from Redis cache…`);
         return this.redis.get<SpotPrice>(this.cacheKey(metal));
     }
 
-    private async saveToCache(dto: SpotPrice): Promise<void> {
+    private async saveToCache(dto: RawSpotPrice): Promise<void> {
         this.logger.log(`Saving ${dto.metalType} price to Redis cache…`);
         await this.redis.set(this.cacheKey(dto.metalType), dto, CACHE_TTL_SECONDS);
         this.logger.log('✅ Metal price saved to Redis cache');
@@ -274,7 +796,9 @@ export class MetalsProvider {
 
     // ── Mapping ──────────────────────────────────────────────────────────
 
-    private toDto(record: MetalSpotPrice | RawMetalRecord): SpotPrice {
+    private toDto(
+        record: MetalSpotPrice | RawMetalRecord
+    ): RawSpotPrice {
 
         return {
             id: (record as MetalSpotPrice).id?.toString() ?? '',
@@ -292,4 +816,4 @@ export class MetalsProvider {
     private cacheKey(metal: MetalType): string {
         return `metal:${metal}`;
     }
-}
+}*/

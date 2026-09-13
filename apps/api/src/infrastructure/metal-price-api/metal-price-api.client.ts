@@ -13,6 +13,14 @@ export class MetalPriceApiClient {
         'XPD'
     ];
 
+    private readonly timeframeCurrencies = [
+        'GBP',
+        'XAU',
+        'XAG',
+        'XPT',
+        'XPD',
+    ];
+
     constructor() {
 
         const apiKey = process.env.METALPRICE_API_KEY;
@@ -23,16 +31,6 @@ export class MetalPriceApiClient {
         // FIX: was reading a different, unset env var (METAL_API_KEY) here.
         // Use the key that was actually validated above.
         this.api = new metalpriceapi(apiKey);
-    }
-
-
-    /**
-     * Get available symbols
-     */
-    async symbols(): Promise<SymbolsResponse> {
-        const { data } = await this.api.fetchSymbols();
-
-        return data;
     }
 
 
@@ -48,6 +46,44 @@ export class MetalPriceApiClient {
         return data;
     }
 
+
+    /**
+     * Get prices between two dates
+     */
+    async timeframePrices(
+        startDate: string,
+        endDate: string,
+        currency: string = 'EUR',
+    ): Promise<TimeframeResponse> {
+
+        const { data } = await this.api.timeframe(
+            startDate,
+            endDate,
+            currency,
+            this.metals,
+            'troy_oz'
+        );
+
+        return data;
+    }
+
+    /**
+     * Get OHLC (Open High Low Close)
+     */
+    async ohlcPrices(
+        date: string,
+        currency: string = 'EUR',
+        metal: string = 'XAU'
+    ): Promise<OHLCResponse> {
+        const { data } = await this.api.ohlc(
+            currency,
+            metal,
+            date,
+            'troy_oz'
+        );
+
+        return data;
+    }
 
     /**
      * Get historical metal prices for a specific date
@@ -66,6 +102,16 @@ export class MetalPriceApiClient {
         return data;
     }
 
+
+
+    /**
+     * Get available symbols
+     */
+    async symbols(): Promise<SymbolsResponse> {
+        const { data } = await this.api.fetchSymbols();
+
+        return data;
+    }
 
     /**
      * Get hourly metal prices
@@ -88,23 +134,7 @@ export class MetalPriceApiClient {
     }
 
 
-    /**
-     * Get OHLC (Open High Low Close)
-     */
-    async ohlcPrices(
-        date: string,
-        currency: string = 'EUR',
-        metal: string = 'XAU'
-    ): Promise<OHLCResponse> {
-        const { data } = await this.api.ohlc(
-            currency,
-            metal,
-            date,
-            'troy_oz'
-        );
 
-        return data;
-    }
 
 
     /**
@@ -128,20 +158,26 @@ export class MetalPriceApiClient {
     }
 
 
+
     /**
-     * Get prices between two dates
+     * Get historical prices for ONE metal and ONE currency.
+     *
+     * Free plan limitation:
+     * timeframe only supports one symbol at a time.
      */
-    async timeframePrices(
+    async timeframePrice(
         startDate: string,
         endDate: string,
-        currency: string = 'EUR'
+        currency: string,
+        metal: string,
     ): Promise<TimeframeResponse> {
+
         const { data } = await this.api.timeframe(
             startDate,
             endDate,
             currency,
-            this.metals,
-            'troy_oz'
+            [metal],
+            'troy_oz',
         );
 
         return data;

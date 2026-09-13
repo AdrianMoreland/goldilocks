@@ -1068,6 +1068,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "kodama-grove": {
     label: "Kodama Grove",
     styles: {
@@ -2419,6 +2420,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "ocean-breeze": {
     label: "Ocean Breeze",
     styles: {
@@ -2503,6 +2505,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "retro-arcade": {
     label: "Retro Arcade",
     styles: {
@@ -2671,6 +2674,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   candyland: {
     label: "Candyland",
     styles: {
@@ -2748,6 +2752,89 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
+  // The app's own default theme — a copy of "Northern Lights" for now (see
+  // use-theme-default.ts), kept as its own named entry so it shows up in the
+  // Tweakcn preset list and survives edits made directly to Northern Lights.
+  "merrion-gold": {
+    label: "Merrion Gold",
+    styles: {
+      light: {
+        background: "#f9f9fa",
+        foreground: "#333333",
+        card: "#ffffff",
+        "card-foreground": "#333333",
+        popover: "#ffffff",
+        "popover-foreground": "#333333",
+        primary: "#34a85a",
+        "primary-foreground": "#ffffff",
+        secondary: "#6495ed",
+        "secondary-foreground": "#ffffff",
+        muted: "#ddd9c4",
+        "muted-foreground": "#6e6e6e",
+        accent: "#66d9ef",
+        "accent-foreground": "#333333",
+        destructive: "#ef4444",
+        "destructive-foreground": "#ffffff",
+        border: "#d4d4d4",
+        input: "#d4d4d4",
+        ring: "#34a85a",
+        "chart-1": "#34a85a",
+        "chart-2": "#6495ed",
+        "chart-3": "#66d9ef",
+        "chart-4": "#4682b4",
+        "chart-5": "#1a9641",
+        radius: "0.5rem",
+        sidebar: "#f9f9fa",
+        "sidebar-foreground": "#333333",
+        "sidebar-primary": "#34a85a",
+        "sidebar-primary-foreground": "#ffffff",
+        "sidebar-accent": "#66d9ef",
+        "sidebar-accent-foreground": "#333333",
+        "sidebar-border": "#d4d4d4",
+        "sidebar-ring": "#34a85a",
+        "font-sans": "Plus Jakarta Sans, sans-serif",
+        "font-serif": "Source Serif 4, serif",
+        "font-mono": "JetBrains Mono, monospace",
+      },
+      dark: {
+        background: "#1a1d23",
+        foreground: "#e5e5e5",
+        card: "#2f3436",
+        "card-foreground": "#e5e5e5",
+        popover: "#2f3436",
+        "popover-foreground": "#e5e5e5",
+        primary: "#34a85a",
+        "primary-foreground": "#ffffff",
+        secondary: "#4682b4",
+        "secondary-foreground": "#e5e5e5",
+        muted: "#444444",
+        "muted-foreground": "#a3a3a3",
+        accent: "#6495ed",
+        "accent-foreground": "#e5e5e5",
+        destructive: "#ef4444",
+        "destructive-foreground": "#ffffff",
+        border: "#444444",
+        input: "#444444",
+        ring: "#34a85a",
+        "chart-1": "#34a85a",
+        "chart-2": "#4682b4",
+        "chart-3": "#6495ed",
+        "chart-4": "#66d9ef",
+        "chart-5": "#1a9641",
+        radius: "0.5rem",
+        sidebar: "#1a1d23",
+        "sidebar-foreground": "#e5e5e5",
+        "sidebar-primary": "#34a85a",
+        "sidebar-primary-foreground": "#ffffff",
+        "sidebar-accent": "#6495ed",
+        "sidebar-accent-foreground": "#e5e5e5",
+        "sidebar-border": "#444444",
+        "sidebar-ring": "#34a85a",
+      },
+    },
+  },
+
   "northern-lights": {
     label: "Northern Lights",
     styles: {
@@ -2826,6 +2913,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "vintage-paper": {
     label: "Vintage Paper",
     styles: {
@@ -2910,6 +2998,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "sunset-horizon": {
     label: "Sunset Horizon",
     styles: {
@@ -3321,6 +3410,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
     },
   },
+
   "soft-pop": {
     label: "Soft Pop",
     createdAt: "2025-07-08",

@@ -1,6 +1,6 @@
 // src/api/market-data.api.ts
 import { useApiClient } from '@/api/api-client';
-import { MarketDataResponseSchema, ProductArraySchema } from '@Goldilocks/shared-types';
+import { MarketDataResponseSchema, ProductArraySchema } from '@goldilocks/shared-types';
 import type { MetalType } from '../lib/types.ts';
 
 export type SpotOverrideRequest = Partial<Record<MetalType, number>>;

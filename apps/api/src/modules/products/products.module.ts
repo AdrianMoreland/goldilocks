@@ -5,6 +5,7 @@ import { ProductsProvider } from './products.provider';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { RedisModule } from '../../redis/redis.module';
+import {ProductCacheStore} from "./product-cache.store";
 
 @Module({
     imports: [
@@ -15,7 +16,7 @@ import { RedisModule } from '../../redis/redis.module';
         // Products must never depend on Metals.
     ],
     controllers: [ProductsController],
-    providers: [ProductsService, ProductsProvider],
+    providers: [ProductsService, ProductsProvider, ProductCacheStore],
     exports: [
         ProductsService,  // for anything needing product CRUD/business logic
         ProductsProvider, // MarketDataModule needs the raw data layer directly

@@ -38,3 +38,9 @@ export type {
     RefreshResponse,
 } from './market-data.schema';
 // All DTOs
+
+export * from './trade.schema';
+export * from './portfolio.schema';
+export * from './pricing-math';
+export * from './portfolio-builder-math';
+export * from './session.schema';
