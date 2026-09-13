@@ -5,7 +5,6 @@ import { usePricingTools, type PricingToolTab } from "../../context/pricing-tool
 import { ProductTab } from "./product-tab"
 import { TradeTab } from "./trade-tab"
 import { PortfolioTab } from "./portfolio-tab"
-import { TaxTab } from "./tax-tab"
 import { SettingsTab } from "./settings-tab"
 import { CalculatorsTab } from "./calculators-tab"
 import { cn } from "@/lib/utils"
@@ -22,7 +21,6 @@ const TABS: { value: PricingToolTab; label: string }[] = [
     { value: "product", label: "Product" },
     { value: "trade", label: "Trade" },
     { value: "portfolio", label: "Portfolio" },
-    { value: "tax", label: "Tax" },
     { value: "calculators", label: "Calculators" },
 ]
 
@@ -83,9 +81,6 @@ export function PricingToolsPanel() {
                         </TabsContent>
                         <TabsContent value="portfolio" className="pt-4">
                             <PortfolioTab />
-                        </TabsContent>
-                        <TabsContent value="tax" className="pt-4">
-                            <TaxTab />
                         </TabsContent>
                         <TabsContent value="calculators" className="pt-4">
                             <CalculatorsTab />
