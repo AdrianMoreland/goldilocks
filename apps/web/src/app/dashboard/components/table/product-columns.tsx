@@ -70,7 +70,7 @@ function SpreadBadge({ value, tone }: { value: number; tone: "sell" | "buy" }) {
     const toneClass =
         tone === "sell"
             ? "border-emerald-600/25 bg-emerald-600/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-400"
-            : "border-[#b8722f]/25 bg-[#b8722f]/10 text-[#b8722f] dark:border-[#d99a5c]/25 dark:bg-[#d99a5c]/10 dark:text-[#d99a5c]"
+            : "border-slate-600/25 bg-slate-600/10 text-slate-600 dark:border-slate-400/25 dark:bg-slate-400/10 dark:text-slate-400"
 
     return (
         <Badge variant="outline" className={`px-2 py-0 text-xs font-semibold tabular-nums ${toneClass}`}>
@@ -186,7 +186,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     {
         accessorKey: "priceBuy",
         header: "Buyback",
-        cell: ({ row }) => <PriceCell value={row.original.priceBuy} className="text-[#b8722f] dark:text-[#d99a5c]" />,
+        cell: ({ row }) => <PriceCell value={row.original.priceBuy} className="text-slate-600 dark:text-slate-400" />,
     },
     {
         accessorKey: "spreadBuy",
