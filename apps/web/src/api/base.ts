@@ -15,8 +15,8 @@ function withAuth(init: RequestInit = {}): RequestInit {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const headers = new Headers(init.headers as HeadersInit | undefined);
     if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
-    // Adjunta token CSRF si el backend lo requiere (doble-submit cookie),
-    // buscando nombres comunes: XSRF-TOKEN/csrfToken/csrf-token
+    // Attach a CSRF token if the backend requires one (double-submit cookie),
+    // checking the common cookie names: XSRF-TOKEN/csrfToken/csrf-token
     const method = (init.method || "GET").toString().toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
         const csrf =
