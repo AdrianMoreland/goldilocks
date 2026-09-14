@@ -5,7 +5,11 @@ import { ConfigService } from '@nestjs/config'
 export class AppService {
   constructor(private configService: ConfigService) {}
 
-  getPort(): string {
-    return this.configService.get<string>('PORT') || '3001';
+  getStatus() {
+    return {
+      name: 'Merrion Gold API',
+      status: 'ok',
+      port: this.configService.get<number>('PORT', 4000),
+    };
   }
 }
