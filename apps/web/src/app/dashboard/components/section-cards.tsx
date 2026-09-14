@@ -35,16 +35,6 @@ export function SectionCards({
             ? overridePrice
             : data.price;
 
-    console.log({
-        metal: data.metal,
-        dataPrice: data.price,
-        localValue,
-        isEditingValue,
-        overridePrice,
-        isFrozen,
-        displayedPrice
-    });
-
     const handleEditStart = (e: React.MouseEvent) => {
         e.stopPropagation();
         setLocalValue(displayedPrice);
@@ -70,7 +60,6 @@ export function SectionCards({
 
     const handleFreezeToggle = (e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        console.log("freeze clicked");
         setIsFrozen(prev => {
             const next = !prev;
             if (!next) {
