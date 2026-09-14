@@ -48,15 +48,16 @@ async function bootstrap() {
 
   // Swagger
   const swaggerConfig = new DocumentBuilder()
-      .setTitle('Goldilocks API')
-      .setDescription('Internal tool for Gold Trading company')
+      .setTitle('Merrion Gold API')
+      .setDescription('Internal pricing and trading API for Merrion Gold\'s bullion desk')
       .setVersion('1.0')
       .addBearerAuth()
-      .addTag('auth', 'Authentication & user management')
-      .addTag('products', 'Product catalog & categories')
-      .addTag('orders', 'Order placement & management')
-      .addTag('delivery', 'Delivery dispatch & tracking')
-      .addTag('messaging', 'WhatsApp & Telegram webhooks')
+      .addTag('auth', 'Authentication & session management')
+      .addTag('products', 'Product catalog & per-item pricing')
+      .addTag('trade', 'Trade cart calculations & melt value')
+      .addTag('portfolio', 'Portfolio P/L, scenario, and builder tools')
+      .addTag('metals', 'Live and historic metal spot prices')
+      .addTag('market-data', 'Market data snapshots for the dashboard')
       .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

@@ -5,7 +5,7 @@ import { MarketDataResponseDto, ProductResponseDto } from '../../common/dto/dtos
 import {MetalType} from "@goldilocks/shared-types";
 import {getYesterday} from "../../common/utils/date.utils";
 
-@ApiTags('MarketData')
+@ApiTags('market-data')
 @Controller('market-data')
 export class MarketDataController {
     constructor(private readonly marketDataService: MarketDataService) {}
