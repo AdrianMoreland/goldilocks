@@ -40,9 +40,18 @@ export function useProductTable(
         [displayProducts, selectedTab],
     )
 
+    // Gold is VAT-exempt as investment metal (see the Calculators tab's VAT
+    // panel), so "VAT Excl." would just repeat the MG Price for every gold
+    // row — the column is dropped entirely for gold rather than merely
+    // hidden, so it also can't be re-enabled via "Customize Columns".
+    const columns = React.useMemo(
+        () => (selectedTab === "gold" ? productColumns.filter((c) => c.id !== "priceSellVatExcl") : productColumns),
+        [selectedTab],
+    )
+
     const table = useReactTable({
         data: filteredData,
-        columns: productColumns,
+        columns,
         state: { sorting, columnVisibility, rowSelection, columnFilters },
         getRowId: (row) => row.id.toString(),
         enableRowSelection: true,

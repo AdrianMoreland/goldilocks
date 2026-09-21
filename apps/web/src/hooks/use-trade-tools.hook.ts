@@ -4,10 +4,10 @@ import { useTradeApi } from '@/api/trade.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MetalType } from '@/lib/types';
 import { usePricingSettings } from '@/app/dashboard/context/pricing-settings-context';
+import { useMeltCalculator } from './use-melt-calculator.hook';
 import {
     GRAMS_PER_TROY_OUNCE,
     MeltCategoryKeyEnum,
-    type MeltCategoryKey,
     type TradeCartRequest,
     type TradeProduct,
     type TradeTransactionType,
@@ -114,8 +114,7 @@ export function useTradeTools(
     );
 
     const [subTab, setSubTab] = useState<'products' | 'melt'>('products');
-    const [meltCategory, setMeltCategory] = useState<MeltCategoryKey>('24ct');
-    const [meltWeight, setMeltWeight] = useState(31.1);
+    const melt = useMeltCalculator(subTab === 'melt');
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -315,28 +314,9 @@ export function useTradeTools(
     }, [metal, transactionType, spot, items]);
 
     const cartQuery = useQuery({
-        queryKey: ['trade', 'cart', cartPayload] as const,
+        queryKey: queryKeys.trade.cart(cartPayload),
         queryFn: () => api.calculateCart(cartPayload as TradeCartRequest),
         enabled: cartPayload !== null,
-        placeholderData: (prev) => prev,
-    });
-
-    // ── Melt calculation (debounced) ────────────────────────────────────────
-    const [meltPayload, setMeltPayload] = useState<{ category: MeltCategoryKey; weight: number } | null>(null);
-
-    useEffect(() => {
-        if (subTab !== 'melt' || !meltWeight || meltWeight <= 0) {
-            setMeltPayload(null);
-            return;
-        }
-        const handle = setTimeout(() => setMeltPayload({ category: meltCategory, weight: meltWeight }), DEBOUNCE_MS);
-        return () => clearTimeout(handle);
-    }, [subTab, meltCategory, meltWeight]);
-
-    const meltQuery = useQuery({
-        queryKey: ['trade', 'melt', meltPayload] as const,
-        queryFn: () => api.calculateMelt(meltPayload as { category: MeltCategoryKey; weight: number }),
-        enabled: meltPayload !== null,
         placeholderData: (prev) => prev,
     });
 
@@ -367,17 +347,11 @@ export function useTradeTools(
 
         subTab,
         setSubTab,
-        meltCategory,
-        setMeltCategory,
-        meltWeight,
-        setMeltWeight,
 
         cartResult: cartQuery.data,
         cartLoading: cartQuery.isFetching,
         cartError: cartQuery.error as Error | null,
 
-        meltResult: meltQuery.data,
-        meltLoading: meltQuery.isFetching,
-        meltError: meltQuery.error as Error | null,
+        ...melt,
     };
 }

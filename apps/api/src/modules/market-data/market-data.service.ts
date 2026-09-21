@@ -30,42 +30,16 @@ export class MarketDataService {
 
     /**
      * Fetches and combines the latest market data, including spot prices,
-     * historic spot prices, and product prices.
-     * @returns A promise resolving to the combined market data response.
+     * historic spot prices, and product prices. Spot prices are resolved
+     * via the launch cascade (cache → DB → live API last resort, see
+     * MetalsProvider.getAllLatestForLaunch) — this is the initial page load
+     * and its periodic refetch, where any recent-enough non-zero price is
+     * fine, so cache/DB are preferred over always paying for a live call.
      */
     async getMarketData(): Promise<MarketDataResponse> {
         this.logger.log('Loading market data');
-
-        const [spotPrices, historicSpot, rawProducts] = await Promise.all([
-            this.metalsProvider.getAllLatest(),
-            this.metalsProvider.getHistoricSpots(),
-            this.productsProvider.getAll(),
-        ]);
-
-        const latestHistoric = new Map<MetalType, HistoricSpot>();
-
-        for (const h of historicSpot) {
-            const current = latestHistoric.get(h.metalType);
-
-            if (!current || new Date(h.timestamp) > new Date(current.timestamp)) {
-                latestHistoric.set(h.metalType, h);
-            }
-        }
-
-        const enrichedSpotPrices = enrichSpotPrices(
-            spotPrices,
-            latestHistoric
-        );
-
-        const spotMap = this.toSpotMap(enrichedSpotPrices);
-        const products = rawProducts.map((p) => calculateProductPrice(p, spotMap));
-
-        return {
-            spotPrices: enrichedSpotPrices,
-            historicSpot,
-            products,
-            fetchedAt: new Date().toISOString(),
-        };
+        const { prices, degradedMetals } = await this.metalsProvider.getAllLatestForLaunch();
+        return this.composeMarketData(prices, degradedMetals);
     }
 
     /**
@@ -100,13 +74,57 @@ export class MarketDataService {
     }
 
     /**
-     * Refreshes the market data by fetching and storing the latest data
-     * from the metals provider, then retrieves the updated market data.
-     * @returns A promise resolving to the refreshed market data response.
+     * The Refresh button: always tries the live API first (that's the whole
+     * point of clicking it) via MetalsProvider.refreshAll, falling back to
+     * the last stored DB price per metal only where the API didn't return
+     * one. Composes its own response rather than delegating to
+     * getMarketData() — that would re-run the cache/DB-first launch cascade
+     * (including its own live-API-last-resort) right after refreshAll
+     * already tried the API for everything, doubling up the external call
+     * for no benefit.
      */
     async refresh(): Promise<MarketDataResponse> {
-        await this.metalsProvider.fetchAndStore();
-        return this.getMarketData();
+        const { prices, degradedMetals } = await this.metalsProvider.refreshAll();
+        return this.composeMarketData(prices, degradedMetals);
+    }
+
+    /**
+     * Shared tail end of getMarketData/refresh: pulls in historic spot +
+     * products, prices the products against the resolved spot prices, and
+     * turns any degraded metals into a human-readable warning the frontend
+     * shows as a toast instead of silently rendering €0.00.
+     */
+    private async composeMarketData(spotPrices: RawSpotPrice[], degradedMetals: MetalType[]): Promise<MarketDataResponse> {
+        const [historicSpot, rawProducts] = await Promise.all([
+            this.metalsProvider.getHistoricSpots(),
+            this.productsProvider.getAll(),
+        ]);
+
+        const latestHistoric = new Map<MetalType, HistoricSpot>();
+
+        for (const h of historicSpot) {
+            const current = latestHistoric.get(h.metalType);
+
+            if (!current || new Date(h.timestamp) > new Date(current.timestamp)) {
+                latestHistoric.set(h.metalType, h);
+            }
+        }
+
+        const enrichedSpotPrices = enrichSpotPrices(spotPrices, latestHistoric);
+
+        const spotMap = this.toSpotMap(enrichedSpotPrices);
+        const products = rawProducts.map((p) => calculateProductPrice(p, spotMap));
+
+        return {
+            spotPrices: enrichedSpotPrices,
+            historicSpot,
+            products,
+            fetchedAt: new Date().toISOString(),
+            priceWarning:
+                degradedMetals.length > 0
+                    ? `Live price unavailable for ${degradedMetals.join(', ')} — showing €0.00 until the price feed recovers.`
+                    : null,
+        };
     }
 
     /**

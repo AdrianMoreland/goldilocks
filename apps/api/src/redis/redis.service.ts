@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import Redis from 'ioredis'
 
 @Injectable()
@@ -8,8 +9,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     private client: Redis | null = null
     private isConnected = false
 
+    constructor(private readonly config: ConfigService) {}
+
     async onModuleInit() {
-        const url = process.env.REDIS_URL
+        const url = this.config.get<string>('REDIS_URL')
 
         if (!url) {
             this.logger.warn('REDIS_URL not set → running without Redis')
@@ -63,6 +66,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
             await this.client.set(key, JSON.stringify(value), 'EX', ttl)
         } catch (err) {
             this.logger.warn(`Redis SET failed: ${key}`)
+        }
+    }
+
+    async del(...keys: string[]): Promise<void> {
+        if (!this.client || !this.isConnected || keys.length === 0) return
+
+        try {
+            await this.client.del(...keys)
+        } catch (err) {
+            this.logger.warn(`Redis DEL failed: ${keys.join(', ')}`)
         }
     }
 

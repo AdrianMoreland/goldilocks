@@ -94,6 +94,7 @@ export function toRawProduct(
         vatRate: toNumber(product.vatRate),
 
         stock: product.stock,
+        isActive: product.isActive,
 
         description: product.description,
 
@@ -141,7 +142,7 @@ export function calculateProductPrice(
         priceBuy: round2(priceBuy),
 
         stock: product.stock,
-        isActive: true,
+        isActive: product.isActive,
 
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
@@ -182,17 +183,6 @@ export const ZERO_SPOT_MAP: Record<MetalType, number> = {
     SILVER: 0,
     PLATINUM: 0,
     PALLADIUM: 0,
-};
-
-/**
- * Empty metal rates with EUR and GBP values defaulted to 0.
- * Used as a fallback for metal rates.
- */
-export const EMPTY_METAL_RATES: Record<MetalType, { eur: number; gbp: number }> = {
-    GOLD: { eur: 0, gbp: 0 },
-    SILVER: { eur: 0, gbp: 0 },
-    PLATINUM: { eur: 0, gbp: 0 },
-    PALLADIUM: { eur: 0, gbp: 0 },
 };
 
 export const ALL_METALS: MetalType[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];

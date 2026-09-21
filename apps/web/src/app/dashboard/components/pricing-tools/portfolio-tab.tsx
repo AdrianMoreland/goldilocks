@@ -11,7 +11,7 @@ import type { MetalType } from "@/lib/types"
 import type { PortfolioProductTypeFilter, PriorityStrength, PortfolioStrategyResultDto } from "@goldilocks/shared-types"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { usePortfolioPL, usePortfolioScenario, usePortfolioBuilder } from "@/hooks/use-portfolio-tools.hook"
-import { formatEuro, formatGrams, formatPercent } from "./formatters"
+import { formatEuro, formatGrams, formatPercent } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { SectionLabel, ResultHighlight, ErrorBanner, SubtabRow } from "./tab-widgets"
 

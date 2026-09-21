@@ -1,9 +1,11 @@
-import {createZodDto} from 'nestjs-zod';
 import {
     MessageResponseSchema, RawSpotPriceSchema,
     LoginRequestSchema,
     LoginResponseSchema,
     SessionUserSchema,
+    CreateUserRequestSchema,
+    BranchSchema,
+    CreateBranchRequestSchema,
 } from '@goldilocks/shared-types';
 import {
     ApiSuccessResponseSchema, MarketDataResponseSchema,
@@ -35,17 +37,17 @@ export class LoginResponseDto extends createDto(LoginResponseSchema, 'LoginRespo
 
 export class SessionUserDto extends createDto(SessionUserSchema, 'SessionUserDto') {}
 
+export class CreateUserRequestDto extends createDto(CreateUserRequestSchema, 'CreateUserRequestDto') {}
+
 /** Message response DTO - contains success/info messages */
-export class MessageResponseDto extends createZodDto(
-    ApiSuccessResponseSchema(MessageResponseSchema)
-) {}
+export class MessageResponseDto extends createDto(ApiSuccessResponseSchema(MessageResponseSchema), 'MessageResponseDto') {}
 
 // ============================================================================
 // HEALTH DTOs
 // ============================================================================
 
 /** Health check response DTO */
-export class HealthCheckDto extends createZodDto(HealthCheckSchema) {}
+export class HealthCheckDto extends createDto(HealthCheckSchema, 'HealthCheckDto') {}
 
 // ============================================================================
 // SPOT PRICE DTOs
@@ -94,3 +96,11 @@ export class ProfitAnalysisResponseDto extends createDto(ProfitAnalysisResponseS
 export class PortfolioBuildRequestDto extends createDto(PortfolioBuildRequestSchema, 'PortfolioBuildRequestDto') {}
 
 export class PortfolioBuildResponseDto extends createDto(PortfolioBuildResponseSchema, 'PortfolioBuildResponseDto') {}
+
+// ============================================================================
+// BRANCH DTOs
+// ============================================================================
+
+export class BranchResponseDto extends createDto(BranchSchema, 'BranchResponseDto') {}
+
+export class CreateBranchRequestDto extends createDto(CreateBranchRequestSchema, 'CreateBranchRequestDto') {}

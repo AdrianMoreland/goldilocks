@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { ArrowRight, Package, TrendingDown, TrendingUp } from "lucide-react"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { useMarketData } from "@/hooks/use-market-data.hook"
-import { formatEuro, formatPercent } from "./formatters"
+import { formatEuro, formatPercent } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 
 function formatDate(value: string | undefined) {

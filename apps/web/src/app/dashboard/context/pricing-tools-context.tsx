@@ -12,8 +12,15 @@ interface PricingToolsContextValue {
     rowSelection: Record<string, boolean>
     /** Ids of the currently-selected rows, derived from `rowSelection` — the Trade tab uses this to build its cart. */
     selectedProductIds: number[]
-    /** Whether the per-row "…" pricing-edit menu is shown — only meaningful for admins; see the header's admin-mode button. */
-    adminMode: boolean
+    /**
+     * Whether the metal spot-price cards are shown. There are two ways to
+     * pick which metal's table is showing — the cards, and the small
+     * per-metal buttons above the table — and only one is ever meant to be
+     * visible at a time so they can't drift out of sync with each other.
+     * Cards are the default; the small buttons only appear once the cards
+     * are hidden (see the header's "Toggle metal cards" button).
+     */
+    cardsVisible: boolean
 
     toggleOpen: () => void
     setActiveTab: (tab: PricingToolTab) => void
@@ -21,7 +28,7 @@ interface PricingToolsContextValue {
     setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
     /** Unchecks one product's row-selection checkbox — used when a cart item tied to a selected row is removed from the Trade tab. */
     deselectProductId: (id: number) => void
-    toggleAdminMode: () => void
+    toggleCardsVisible: () => void
 
     /** Switches the panel to the Product tab for a specific product row, opening it if closed. */
     openWithProduct: (product: Product) => void
@@ -42,7 +49,7 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     const [activeMetal, setActiveMetal] = React.useState<MetalType>("GOLD")
     const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
     const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
-    const [adminMode, setAdminMode] = React.useState(false)
+    const [cardsVisible, setCardsVisible] = React.useState(true)
 
     const selectedProductIds = React.useMemo(
         () => Object.keys(rowSelection).filter((id) => rowSelection[id]).map(Number),
@@ -60,7 +67,7 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     }, [])
 
     const toggleOpen = React.useCallback(() => setOpen((o) => !o), [])
-    const toggleAdminMode = React.useCallback(() => setAdminMode((v) => !v), [])
+    const toggleCardsVisible = React.useCallback(() => setCardsVisible((v) => !v), [])
 
     const openWithProduct = React.useCallback((product: Product) => {
         setSelectedProduct(product)
@@ -88,21 +95,21 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
             selectedProduct,
             rowSelection,
             selectedProductIds,
-            adminMode,
+            cardsVisible,
             toggleOpen,
             setActiveTab,
             setActiveMetal,
             setRowSelection,
             deselectProductId,
-            toggleAdminMode,
+            toggleCardsVisible,
             openWithProduct,
             pendingTradeProductId,
             openInTrade,
             clearPendingTradeProduct,
         }),
         [
-            open, activeTab, activeMetal, selectedProduct, rowSelection, selectedProductIds, adminMode,
-            toggleOpen, deselectProductId, toggleAdminMode, openWithProduct,
+            open, activeTab, activeMetal, selectedProduct, rowSelection, selectedProductIds, cardsVisible,
+            toggleOpen, deselectProductId, toggleCardsVisible, openWithProduct,
             pendingTradeProductId, openInTrade, clearPendingTradeProduct,
         ],
     )

@@ -1,4 +1,5 @@
-import { ChevronDown, Columns2 } from "lucide-react"
+import * as React from "react"
+import { ChevronDown, Columns2, Plus } from "lucide-react"
 import type { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -7,6 +8,8 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/contexts/auth-context"
+import { AddProductDialog } from "./add-product-dialog"
 import type { DisplayProduct } from "./product-grouping"
 import { productColumnLabels } from "./product-columns"
 import {METAL_TABS, MetalTabValue} from "./metal-tabs"
@@ -15,33 +18,57 @@ interface MetalTabsToolbarProps {
     table: Table<DisplayProduct>
     selectedTab: MetalTabValue
     onSelectedTabChange: (tab: MetalTabValue) => void
+    /**
+     * The metal spot-price cards and this toolbar's own metal-select
+     * controls are two ways to pick the same thing — only one is ever shown
+     * so they can't drift out of sync. This is the fallback, shown only
+     * once the cards are hidden (see the header's "Toggle metal cards"
+     * button).
+     */
+    showMetalSelect: boolean
 }
 
-export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange }: MetalTabsToolbarProps) {
+export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange, showMetalSelect }: MetalTabsToolbarProps) {
+    const { isAdmin } = useAuth()
+    const [addProductOpen, setAddProductOpen] = React.useState(false)
+
     return (
         <div className="flex items-center justify-between px-4 lg:px-6 flex-wrap gap-3">
-            <Label htmlFor="view-selector" className="sr-only">View</Label>
+            {showMetalSelect && (
+                <>
+                    <Label htmlFor="view-selector" className="sr-only">View</Label>
 
-            <Select value={selectedTab} onValueChange={(v) => onSelectedTabChange(v as MetalTabValue)}>
-                <SelectTrigger className="flex w-fit sm:hidden cursor-pointer" size="sm" id="view-selector">
-                    <SelectValue placeholder="Select a view" />
-                </SelectTrigger>
-                <SelectContent>
-                    {METAL_TABS.map(({ value, label }) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                    <Select value={selectedTab} onValueChange={(v) => onSelectedTabChange(v as MetalTabValue)}>
+                        <SelectTrigger className="flex w-fit sm:hidden cursor-pointer" size="sm" id="view-selector">
+                            <SelectValue placeholder="Select a view" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {METAL_TABS.map(({ value, label }) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
-            <TabsList className="hidden sm:flex">
-                {METAL_TABS.map(({ value, label }) => (
-                    <TabsTrigger key={value} value={value} className="cursor-pointer">
-                        {label}
-                    </TabsTrigger>
-                ))}
-            </TabsList>
+                    <TabsList className="hidden sm:flex">
+                        {METAL_TABS.map(({ value, label }) => (
+                            <TabsTrigger key={value} value={value} className="cursor-pointer">
+                                {label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </>
+            )}
 
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
+                {isAdmin && (
+                    <>
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAddProductOpen(true)}>
+                            <Plus />
+                            <span className="hidden lg:inline">Add product</span>
+                        </Button>
+                        <AddProductDialog open={addProductOpen} onOpenChange={setAddProductOpen} />
+                    </>
+                )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="cursor-pointer">

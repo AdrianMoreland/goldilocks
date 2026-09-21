@@ -3,14 +3,16 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePricingTools } from "../../context/pricing-tools-context"
+import { useAuth } from "@/contexts/auth-context"
 import { MELT_CATEGORY_OPTIONS, useTradeTools } from "@/hooks/use-trade-tools.hook"
-import { formatEuro, formatGrams } from "./formatters"
+import { formatEuro, formatGrams } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
 
 export function TradeTab() {
-    const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct, adminMode } = usePricingTools()
+    const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
+    const { isAdmin } = useAuth()
     const trade = useTradeTools(activeMetal, selectedProductIds, pendingTradeProductId, clearPendingTradeProduct)
 
     const showMeltButton = trade.transactionType === "selling"
@@ -57,7 +59,7 @@ export function TradeTab() {
                     </button>
                 )}
 
-                {adminMode && (
+                {isAdmin && (
                     <button
                         type="button"
                         title="Freeze spot price (won't follow live updates)"
