@@ -48,7 +48,7 @@ async function run() {
         });
 
         // Call your existing fetch-and-cache logic
-        await metalsProvider.fetchAndStore(); // caches metals in Redis
+        await metalsProvider.refreshAll(); // caches metals in Redis
 
         console.log('✅ Metals initialized and cached in Redis');
     } catch (err) {

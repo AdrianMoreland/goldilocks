@@ -9,6 +9,7 @@ import {ConfigService} from "@nestjs/config";
 @Injectable()
 export class SupabaseService {
     private supabase: SupabaseClient;
+    private supabaseAdmin: SupabaseClient | null = null;
 
     constructor(private configService: ConfigService) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
@@ -23,6 +24,35 @@ export class SupabaseService {
 
     get client() {
         return this.supabase;
+    }
+
+    // Lazily created — the service-role key is only ever needed for the
+    // admin "create user" action, so it's never touched on the hot path of
+    // a normal login/session request.
+    private get admin(): SupabaseClient {
+        if (!this.supabaseAdmin) {
+            const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+            const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+
+            if (!supabaseUrl || !serviceRoleKey) {
+                throw new InternalServerErrorException('SUPABASE_SERVICE_ROLE_KEY not set');
+            }
+
+            this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+        }
+
+        return this.supabaseAdmin;
+    }
+
+    /** Admin-only: provisions a new Supabase Auth identity. Callers create the matching Prisma `User` row themselves (see AuthService.createUser). */
+    async adminCreateUser(email: string, password: string): Promise<User> {
+        const { data, error } = await this.admin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+        });
+        if (error) throw new InternalServerErrorException(error.message);
+        return data.user;
     }
 
     // Auth methods

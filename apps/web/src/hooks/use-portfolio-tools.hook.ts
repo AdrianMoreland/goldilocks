@@ -104,7 +104,7 @@ export function usePortfolioPL(metal: MetalType) {
     }, [metal, productId, purchaseSpot, purchasePremium, purchasePrice, missingField, currentSpot, currentDiscount, targetProfit]);
 
     const analysisQuery = useQuery({
-        queryKey: ['portfolio', 'profit-analysis', payload] as const,
+        queryKey: queryKeys.portfolio.profitAnalysis(payload),
         queryFn: () => portfolioApi.calculateProfitAnalysis(payload as ProfitAnalysisRequest),
         enabled: payload !== null,
         placeholderData: (prev) => prev,

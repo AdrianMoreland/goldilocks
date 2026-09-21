@@ -14,19 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
 import {TableCellViewer} from "@/app/dashboard/components/table-cell-viewer.tsx";
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { usePricingTools } from "../../context/pricing-tools-context"
+import { useProductsApi } from "@/api/products.api"
+import { queryKeys } from "@/lib/query-keys"
 import { EditProductDialog } from "./edit-product-dialog"
 import type { DisplayProduct } from "./product-grouping"
-
-const formatEuro = (value: number) =>
-    new Intl.NumberFormat("en-IE", {
-        style: "currency",
-        currency: "EUR",
-    }).format(value)
-
-const formatPercent = (value: number) =>
-    `${(value * 100).toFixed(2)}%`
+import { formatEuro, formatPercent } from "../../utils/formatters"
 
 export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
     return (
@@ -52,7 +47,7 @@ export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
  * a future theme's secondary/accent were ever too dark for the background.
  */
 const PRICE_TONE_COLOR = {
-    sell: "color-mix(in srgb, var(--secondary) 88%, var(--foreground) 12%)",
+    sell: "color-mix(in srgb, var(--secondary) 95%, var(--foreground) 5%)",
     buy: "color-mix(in srgb, var(--accent) 90%, var(--foreground) 10%)",
 } as const
 
@@ -92,6 +87,10 @@ function NameCell({ item }: { item: DisplayProduct }) {
  * mirrors the color of its matching price column so the sell pair (MG Price
  * + Premium) and buy pair (Buyback + Discount) are visually grouped by
  * transaction direction at a glance.
+ *
+ * `value` here is a raw fraction (spreadSell/spreadBuy, e.g. 0.34) —
+ * formatPercent expects an already-scaled percentage, so it's multiplied by
+ * 100 at this one call site rather than inside the shared formatter.
  */
 function SpreadBadge({ value, tone }: { value: number; tone: "sell" | "buy" }) {
     const color = PRICE_TONE_COLOR[tone]
@@ -106,22 +105,34 @@ function SpreadBadge({ value, tone }: { value: number; tone: "sell" | "buy" }) {
                 background: `color-mix(in srgb, ${color} 12%, transparent)`,
             }}
         >
-            {formatPercent(value)}
+            {formatPercent(value * 100)}
         </Badge>
     )
 }
 
 /**
- * Per-row "…" menu — only rendered for admins with admin mode switched on
- * (see the header's shield-icon button). Everyone else gets no menu at all,
- * not just a disabled one, so pricing edits aren't discoverable by non-admins.
+ * Per-row "…" menu — only rendered for admins (see CLAUDE.md §6: this is a
+ * discoverability convenience, not the security boundary — the server-side
+ * RolesGuard is). Everyone else gets no menu at all, not just a disabled
+ * one, so pricing edits aren't discoverable by non-admins.
  */
 function RowActionsMenu({ product }: { product: DisplayProduct }) {
     const { isAdmin } = useAuth()
-    const { adminMode } = usePricingTools()
+    const api = useProductsApi()
+    const queryClient = useQueryClient()
     const [editOpen, setEditOpen] = React.useState(false)
 
-    if (!isAdmin || !adminMode) return null
+    if (!isAdmin) return null
+
+    const toggleActive = async () => {
+        try {
+            await api.updateProduct(product.id, { isActive: !product.isActive })
+            await queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all })
+            toast.success(`${product.name} marked ${product.isActive ? "inactive" : "active"}`)
+        } catch {
+            // useApi already shows an error toast on failure
+        }
+    }
 
     return (
         <>
@@ -138,6 +149,9 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuItem onClick={() => setEditOpen(true)}>Edit pricing</DropdownMenuItem>
+                    <DropdownMenuItem onClick={toggleActive}>
+                        {product.isActive ? "Mark inactive" : "Mark active"}
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             <EditProductDialog product={product} open={editOpen} onOpenChange={setEditOpen} />
@@ -226,6 +240,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
         cell: ({ row }) => <SpreadBadge value={row.original.spreadBuy} tone="buy" />,
     },
     {
+        id: "priceSellVatExcl",
         accessorKey: "priceSellVatExcl",
         header: "VAT Excl.",
         cell: ({ row }) => <PriceCell value={row.original.priceSellVatExcl} className="text-muted-foreground" />,

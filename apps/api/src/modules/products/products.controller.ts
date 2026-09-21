@@ -24,20 +24,6 @@ export class ProductsController {
     }
 
     // --- Public endpoints ---
-   /* //  GET /products
-    @Get('product')
-    async getProducts(@Query('spotPrices') spotPrices: Record<MetalType, number>) {
-        // ProductsService uses spotPrices to calculate prices
-        return this.service.getProductsWithSpot(spotPrices);
-    }
-
-    @Post('recalculate')
-    recalculateProducts(
-        @Body() overrides: Record<MetalType, number>
-    ): Promise<ProductResponseDto[]> {
-        return this.service.recalculate(overrides);
-    }*/
-
     @ApiOperation({
         summary: 'Get All Products',
         description: 'Get a list of all products.',
@@ -58,10 +44,6 @@ export class ProductsController {
     async getById(@Param('id', ParseIntPipe) id: number, @Param('metal') metal: any): Promise<ProductResponseDto> {
         return this.service.getById(id, metal);
     }
-
-
-
-
 
     // --- Admin endpoints ---
     @Post('admin/products')

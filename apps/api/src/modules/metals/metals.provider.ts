@@ -6,22 +6,48 @@ import { MetalPriceApiClient } from '../../infrastructure/metal-price-api/metal-
 import { SpotPriceCacheStore } from './spot-price-cache.store';
 import {
     ALL_METALS,
-    EMPTY_METAL_RATES, HISTORIC_LOOKBACK_DAYS, HistoricSpotRecord,
+    HISTORIC_LOOKBACK_DAYS, HistoricSpotRecord,
     SYMBOL_MAP,
     toNumber,
     toRawMetalSpotPrice
 } from "../../common/utils/pricing.util";
 
+// How old a DB-sourced price is allowed to be before the launch-read
+// cascade (getAllLatestForLaunch) stops trusting it and falls through to a
+// live API call instead. The cron refreshes every 10 minutes, so anything
+// past this points to the cron having been down/failing, not just a normal
+// gap between cycles.
+const DB_STALE_MS = 30 * 60 * 1000;
+
+function isFresh(timestampIso: string, maxAgeMs: number): boolean {
+    return Date.now() - new Date(timestampIso).getTime() < maxAgeMs;
+}
+
+function isUsablePrice(price: RawSpotPrice | null): price is RawSpotPrice {
+    return price !== null && price.priceEur > 0;
+}
+
+export interface MetalsRefreshResult {
+    prices: RawSpotPrice[];
+    /** Metals that had no usable price anywhere (live API, cache, or DB) — still 0.00, but callers can surface why. */
+    degradedMetals: MetalType[];
+}
 
 /**
  * MetalsProvider — "give me metal data from the best available source."
  *
- * The single-metal cache→DB read waterfall now lives in SpotPriceCacheStore
- * (a CacheAsideStore subclass). This class owns everything that store
- * doesn't: external API calls, historic spot data, and the write path
- * (fetchAndStore / fetchAndStoreHistoricClose / seedHistoricPrices), all of
- * which still write through to the store's cache after persisting to DB —
- * exactly as before.
+ * Two read strategies live here, each suited to why it's being called:
+ *   - getLatest/getAllLatest: plain cache→DB, no external call — used by
+ *     Trade/Portfolio bootstraps that just need *a* price quickly. A
+ *     poisoned (0.00) cache entry is skipped rather than trusted, but
+ *     there's no further fallback beyond the DB.
+ *   - getAllLatestForLaunch: cache→DB→live API, with a staleness check on
+ *     the DB tier — used by the market-data page load, where "any value
+ *     that isn't zero or ancient" is fine, but it's worth one live call
+ *     before giving up.
+ *   - refreshAll: live API first (that's the whole point of hitting
+ *     Refresh), falling back to the last stored DB price per metal only if
+ *     the API didn't return it — used by the cron and the Refresh button.
  *
  * No pricing, no products — this module knows nothing about either.
  */
@@ -35,10 +61,15 @@ export class MetalsProvider {
         private readonly spotCache: SpotPriceCacheStore,
     ) {}
 
-    // ── Orchestration — Reads ───────────────────────────────────────────
+    // ── Orchestration — Reads (cache → DB only, no external call) ───────
 
     async getLatest(metal: MetalType): Promise<RawSpotPrice | null> {
         return this.spotCache.get(metal);
+    }
+
+    /** Admin "Clear price cache" action from the Admin panel. */
+    async clearCache(): Promise<void> {
+        await this.spotCache.clearAll(ALL_METALS);
     }
 
     async getAllLatest(): Promise<RawSpotPrice[]> {
@@ -64,84 +95,178 @@ export class MetalsProvider {
         }));
     }
 
-    // ── Orchestration — Writes (cron only) ──────────────────────────────
+    // ── Orchestration — Launch read (cache → DB → live API last resort) ──
 
     /**
-     * Scheduled refresh (called by MetalsCron).
-     * 1. Fetch fresh prices from the external API
-     * 2. Persist new rows (keeps full history)
-     * 3. Write through to the cache store so the next getLatest() is instant
+     * Used for the initial market-data load (and its periodic refetch) —
+     * "any value that isn't zero or ancient" is acceptable, so cache and DB
+     * are tried first and the live API is only a last resort per metal,
+     * rather than always paying for a network call like refreshAll does.
      */
-    async fetchAndStore(): Promise<void> {
-        try {
-            this.logger.log('🔄 Starting scheduled metal price refresh…');
+    async getAllLatestForLaunch(): Promise<MetalsRefreshResult> {
+        const prices: RawSpotPrice[] = [];
+        const needsLiveFetch: MetalType[] = [];
 
-            const liveRates = await this.fetchFromExternalApi();
-            if (!Object.keys(liveRates).length) {
-                this.logger.warn('No prices returned from external API — aborting refresh');
-                return;
+        for (const metal of ALL_METALS) {
+            const cached = await this.spotCache.getCachedOnly(metal);
+            if (isUsablePrice(cached)) {
+                prices.push(cached);
+                continue;
             }
 
-            const timestamp = new Date();
-            const records = Object.entries(liveRates).map(([metalType, prices]) => ({
-                metalType: metalType as MetalType,
-                priceEur: prices.eur,
-                priceGbp: prices.gbp,
+            const dbRow = await this.spotCache.getFromDbOnly(metal);
+            if (isUsablePrice(dbRow) && isFresh(dbRow.timestamp, DB_STALE_MS)) {
+                await this.spotCache.set(metal, dbRow);
+                prices.push(dbRow);
+                continue;
+            }
+
+            needsLiveFetch.push(metal);
+        }
+
+        if (needsLiveFetch.length === 0) {
+            return { prices, degradedMetals: [] };
+        }
+
+        this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} — trying the live API as a last resort`);
+        const liveRates = await this.fetchFromExternalApi();
+        const timestamp = new Date();
+        const degradedMetals: MetalType[] = [];
+
+        for (const metal of needsLiveFetch) {
+            const rate = liveRates[metal];
+
+            if (rate && rate.eur > 0) {
+                const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp };
+                await this.storeInDb([record]);
+                const dto = this.toDto(record);
+                await this.spotCache.set(metal, dto);
+                prices.push(dto);
+                continue;
+            }
+
+            degradedMetals.push(metal);
+            // Nothing usable anywhere for this metal — surface whatever the
+            // DB had (even if 0/stale) so the UI has *something* to render;
+            // the caller (MarketDataService) turns degradedMetals into a
+            // toast explaining why it might read 0.00.
+            const lastResort = await this.spotCache.getFromDbOnly(metal);
+            if (lastResort) prices.push(lastResort);
+        }
+
+        return { prices, degradedMetals };
+    }
+
+    // ── Orchestration — Writes (cron + manual Refresh) ──────────────────
+
+    /**
+     * Refresh: always tries the live API first (that's the point of
+     * clicking Refresh), and only falls back to the last stored DB price
+     * per metal that the API didn't return a usable rate for. Called by
+     * both MetalsCron (background, return value ignored) and the
+     * market-data Refresh endpoint (which surfaces degradedMetals as a
+     * toast).
+     */
+    async refreshAll(): Promise<MetalsRefreshResult> {
+        const liveRates = await this.fetchFromExternalApi();
+        const timestamp = new Date();
+        const prices: RawSpotPrice[] = [];
+
+        const liveMetals = (Object.keys(liveRates) as MetalType[]).filter((m) => (liveRates[m]?.eur ?? 0) > 0);
+
+        if (liveMetals.length > 0) {
+            const records = liveMetals.map((metal) => ({
+                metalType: metal,
+                priceEur: liveRates[metal]!.eur,
+                priceGbp: liveRates[metal]!.gbp,
                 source: 'metalpriceapi',
                 timestamp,
             }));
 
             await this.storeInDb(records);
 
-            const dtos: RawSpotPrice[] = records.map((record) => ({
-                id: '',
-                metalType: record.metalType,
-                priceEur: record.priceEur,
-                priceGbp: record.priceGbp,
-                source: record.source,
-                createdAt: new Date().toISOString(),
-                timestamp: record.timestamp.toISOString(),
-            }));
+            const dtos = records.map((record) => this.toDto(record));
+            await Promise.all(dtos.map((dto) => this.spotCache.set(dto.metalType, dto)));
+            prices.push(...dtos);
 
-
-            await Promise.all(
-                dtos.map((dto) =>
-                    this.spotCache.set(dto.metalType, dto)
-                )
-            );
-
-            this.logger.log('✅ Metal prices refreshed and cached');
-        } catch (err) {
-            this.logger.error('fetchAndStore failed', err instanceof Error ? err.stack : String(err));
+            this.logger.log(`✅ Refreshed ${liveMetals.join(', ')} from the live API`);
         }
+
+        const failedMetals = ALL_METALS.filter((m) => !liveMetals.includes(m));
+        const degradedMetals: MetalType[] = [];
+
+        for (const metal of failedMetals) {
+            this.logger.warn(`${metal}: live API didn't return a usable rate — falling back to the last stored price`);
+            const dbRow = await this.spotCache.getFromDbOnly(metal);
+
+            if (isUsablePrice(dbRow)) {
+                await this.spotCache.set(metal, dbRow);
+                prices.push(dbRow);
+            } else {
+                degradedMetals.push(metal);
+                if (dbRow) prices.push(dbRow); // last resort — even a 0/unusable row, so the UI has *something*
+            }
+        }
+
+        return { prices, degradedMetals };
+    }
+
+    private toDto(record: { metalType: MetalType; priceEur: number; priceGbp: number; source: string; timestamp: Date }): RawSpotPrice {
+        return {
+            id: '',
+            metalType: record.metalType,
+            priceEur: record.priceEur,
+            priceGbp: record.priceGbp,
+            source: record.source,
+            createdAt: new Date().toISOString(),
+            timestamp: record.timestamp.toISOString(),
+        };
     }
 
     // ── External API ─────────────────────────────────────────────────────
 
+    /**
+     * Returns only the metals the external API actually gave us a usable
+     * rate for — never a full zero-filled map. A quota-exceeded response
+     * (success=false) or a thrown error (rate limit, network) used to fall
+     * back to EMPTY_METAL_RATES, a fully-populated {eur:0,gbp:0} map, which
+     * fetchAndStore's "did we get anything?" check (Object.keys(...).length)
+     * saw as 4 non-empty entries and happily persisted — overwriting the
+     * last known good price in both the DB and the Redis cache with zero.
+     * Returning {} (or omitting just the metals with no rate) lets that same
+     * check correctly abort instead, leaving whatever's already cached/
+     * stored alone until the API is healthy again.
+     */
     private async fetchFromExternalApi(): Promise<
-        Record<MetalType, { eur: number; gbp: number }>
+        Partial<Record<MetalType, { eur: number; gbp: number }>>
     > {
         try {
             const response = await this.metalPriceApi.livePrices();
+
+            // A quota-exceeded/error response has no `rates` object at all —
+            // logging response.rates.XAU before this check used to throw and
+            // get caught below as a generic "fetch failed", masking the real,
+            // more useful "success=false" message this check produces.
+            if (!response.success) {
+                this.logger.error(`MetalPriceAPI returned success=false: ${JSON.stringify(response)}`);
+                return {};
+            }
 
             this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
             this.logger.debug(`XAU=${response.rates.XAU}`);
             this.logger.debug(`Computed EUR/XAU=${1 / response.rates.XAU}`);
 
-            if (!response.success) {
-                this.logger.error(`MetalPriceAPI returned success=false: ${JSON.stringify(response)}`);
-                return EMPTY_METAL_RATES;
-            }
-
-            const rates: Record<MetalType, { eur: number; gbp: number }> = {
-                GOLD: { eur: 0, gbp: 0 },
-                SILVER: { eur: 0, gbp: 0 },
-                PLATINUM: { eur: 0, gbp: 0 },
-                PALLADIUM: { eur: 0, gbp: 0 },
-            };
+            const rates: Partial<Record<MetalType, { eur: number; gbp: number }>> = {};
 
             for (const [metalType, symbol] of Object.entries(SYMBOL_MAP) as [MetalType, string][]) {
-                const eurPerOunce = response.rates[symbol] ? 1 / response.rates[symbol] : 0;
+                const rawRate = response.rates[symbol];
+
+                if (!rawRate) {
+                    this.logger.warn(`No rate returned for ${metalType} (${symbol}) — keeping last known price`);
+                    continue;
+                }
+
+                const eurPerOunce = 1 / rawRate;
                 const gbpRate = response.rates.GBP ?? 0;
 
                 rates[metalType] = {
@@ -158,7 +283,7 @@ export class MetalsProvider {
             } else {
                 this.logger.error('External API fetch failed', JSON.stringify(error));
             }
-            return EMPTY_METAL_RATES;
+            return {};
         }
     }
 

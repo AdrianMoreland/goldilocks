@@ -42,6 +42,8 @@ model Product {
   /// VAT rate (0.00 or 0.23)
   vatRate     Decimal   @db.Decimal(4, 2)
   stock       Int       @default(0)
+  /// Whether this product is shown/sellable — admin-toggleable, doesn't delete the row.
+  isActive    Boolean   @default(true)
   description String?
   createdAt   DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
@@ -89,9 +91,13 @@ model HistoricSpotPrice {
 }
 
 model Branch {
-  id       Int      @id @default(autoincrement())
-  name     String
-  currency Currency @default(EUR)
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  currency  Currency @default(EUR)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("branches")
 }
 
 enum UserRole {

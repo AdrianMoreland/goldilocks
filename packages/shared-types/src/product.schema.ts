@@ -58,6 +58,7 @@ export const RawProductSchema = z.object({
   spreadSell: z.number(),
   vatRate: z.number(),
   stock: z.number(),
+  isActive: z.boolean(),
   description: z.string().nullable().optional(),
   createdAt: isoDateString,
   updatedAt: isoDateString,

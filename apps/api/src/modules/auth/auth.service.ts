@@ -1,7 +1,8 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { SupabaseService } from '../../supabase/supabase.service';
 import { AUTH_PROVIDER, type AuthIdentity, type AuthProviderPort } from './auth-provider.port';
-import type { LoginResponse, SessionUser } from '@goldilocks/shared-types';
+import type { CreateUserRequest, LoginResponse, SessionUser } from '@goldilocks/shared-types';
 import type { User } from '../../../prisma/generated/client';
 
 // Never select the password hash for anything that ends up on request.user —
@@ -38,6 +39,7 @@ export class AuthService {
     constructor(
         @Inject(AUTH_PROVIDER) private readonly authProvider: AuthProviderPort,
         private readonly prisma: PrismaService,
+        private readonly supabase: SupabaseService,
     ) {}
 
     async login(email: string, password: string): Promise<LoginResponse> {
@@ -54,6 +56,27 @@ export class AuthService {
     async validateToken(token: string): Promise<AuthenticatedUser> {
         const identity = await this.authProvider.verifyToken(token);
         return this.loadActiveUser(identity);
+    }
+
+    /** Admin-only: provisions a new staff account (Supabase Auth identity + matching Prisma User row, same id — see prisma/provision-users.ts for the reference pattern). */
+    async createUser(dto: CreateUserRequest): Promise<SessionUser> {
+        const authUser = await this.supabase.adminCreateUser(dto.email, dto.password);
+
+        const user = await this.prisma.user.create({
+            data: {
+                id: authUser.id,
+                email: dto.email,
+                firstName: dto.firstName,
+                lastName: dto.lastName,
+                password: '', // Supabase Auth owns the real credential
+                role: dto.role,
+                admin: dto.admin,
+                isActive: true,
+            },
+            select: SAFE_USER_SELECT,
+        });
+
+        return this.toSessionUser(user);
     }
 
     async me(userId: string): Promise<SessionUser> {

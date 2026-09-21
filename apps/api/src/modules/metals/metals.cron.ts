@@ -1,9 +1,12 @@
 import {Injectable, Logger, OnModuleInit} from '@nestjs/common'
-import { Cron, CronExpression } from '@nestjs/schedule'
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule'
 import {MetalsProvider} from "./metals.provider";
 import {getYesterday} from "../../common/utils/date.utils";
 
 const STALE_THRESHOLD_DAYS = 1;
+
+/** Name registered with SchedulerRegistry — lets the admin panel actually start/stop the underlying cron-job timer, not just a flag the job checks. */
+const PRICE_REFRESH_JOB = 'updateMetals';
 
 @Injectable()
 export class MetalsCron implements OnModuleInit {
@@ -12,7 +15,25 @@ export class MetalsCron implements OnModuleInit {
 
     constructor(
         private metalsProvider: MetalsProvider,
+        private readonly schedulerRegistry: SchedulerRegistry,
     ) {}
+
+    /** Whether the 10-minute price-refresh cron is currently running. Resets to running on every restart/redeploy — this is a manual runtime pause, not a persisted setting. */
+    isPriceCronRunning(): boolean {
+        return this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB).isActive;
+    }
+
+    setPriceCronEnabled(enabled: boolean): boolean {
+        const job = this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB);
+        if (enabled) {
+            job.start();
+            this.logger.log('▶️ Price-refresh cron resumed by admin');
+        } else {
+            job.stop();
+            this.logger.warn('⏸️ Price-refresh cron paused by admin');
+        }
+        return this.isPriceCronRunning();
+    }
 
     /**
      * The daily historic-close cron only ever fires while this process is
@@ -41,9 +62,12 @@ export class MetalsCron implements OnModuleInit {
         await this.metalsProvider.seedHistoricPrices();
     }
 
-    @Cron(CronExpression.EVERY_10_MINUTES)
+    @Cron(CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB })
     async updateMetals() {
-        await this.metalsProvider.fetchAndStore()
+        const { degradedMetals } = await this.metalsProvider.refreshAll();
+        if (degradedMetals.length > 0) {
+            this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
+        }
     }
 
     @Cron('0 6 * * *', {

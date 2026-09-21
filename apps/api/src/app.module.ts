@@ -12,6 +12,7 @@ import {MarketDataModule} from "./modules/market-data/market-data.module";
 import {MetalPriceApiModule} from "./infrastructure/metal-price-api/metal-price-api.module";
 import {TradeModule} from "./modules/trade/trade.module";
 import {PortfolioModule} from "./modules/portfolio/portfolio.module";
+import {BranchesModule} from "./modules/branches/branches.module";
 import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
 
 @Module({
@@ -28,6 +29,7 @@ import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
         MarketDataModule,
         TradeModule,
         PortfolioModule,
+        BranchesModule,
     ],
     controllers: [AppController],
     providers: [

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {RefreshCw, Paintbrush, PanelRight, LineChart, ShieldCheck, LogOut} from 'lucide-react';
+import {RefreshCw, PanelRight, LineChart, LayoutGrid, ShieldCheck, LogOut} from 'lucide-react';
 import {DataTable} from './components/table/data-table2.tsx';
 import {BaseLayout} from '@/components/layouts/base-layout';
 import {ModeToggle} from '@/components/mode-toggle';
@@ -12,6 +12,7 @@ import {useAuth} from '@/contexts/auth-context';
 import {PricingToolsProvider, usePricingTools} from './context/pricing-tools-context';
 import {PricingSettingsProvider} from './context/pricing-settings-context';
 import {PricingToolsPanel} from './components/pricing-tools/pricing-tools-panel';
+import {AdminPanelDialog} from './components/admin/admin-panel-dialog';
 
 export default function Page() {
     return (
@@ -37,14 +38,16 @@ function PricingWorkbookPage() {
         refresh,
         refreshing,
         selectedMetal,
+        setSelectedMetal,
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,
     } = usePricingWorkbook();
-    const { open: toolsOpen, toggleOpen: toggleTools, adminMode, toggleAdminMode } = usePricingTools();
+    const { open: toolsOpen, toggleOpen: toggleTools, cardsVisible, toggleCardsVisible } = usePricingTools();
     const { isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const [graphVisible, setGraphVisible] = useState(true);
+    const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -64,7 +67,7 @@ function PricingWorkbookPage() {
                         <span className="text-[11px] whitespace-nowrap">Last Updated:</span>
                         <span className="text-[11px] whitespace-nowrap">{lastUpdatedRelative}</span>
                     </div>
-                    {/* Order: Update, Graph, (admin: Theme editor), Day/Night, Sidebar open, (admin: Admin mode), Logout. */}
+                    {/* Order: Update, Graph, Cards, (admin: Theme editor), Day/Night, Sidebar open, (admin: Admin mode), Logout. */}
                     <Button
                         variant="outline"
                         size="icon"
@@ -86,18 +89,16 @@ function PricingWorkbookPage() {
                     >
                         <LineChart className="h-4 w-4"/>
                     </Button>
-                    {isAdmin && (
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="cursor-pointer"
-                            title="Theme editor"
-                            aria-label="Theme editor"
-                            onClick={openThemeCustomizer}
-                        >
-                            <Paintbrush className="h-4 w-4"/>
-                        </Button>
-                    )}
+                    <Button
+                        variant={cardsVisible ? "default" : "outline"}
+                        size="icon"
+                        className="cursor-pointer"
+                        title="Toggle metal cards"
+                        aria-label="Toggle metal cards"
+                        onClick={toggleCardsVisible}
+                    >
+                        <LayoutGrid className="h-4 w-4"/>
+                    </Button>
                     <ModeToggle />
                     <Button
                         variant={toolsOpen ? "default" : "outline"}
@@ -111,15 +112,22 @@ function PricingWorkbookPage() {
                     </Button>
                     {isAdmin && (
                         <Button
-                            variant={adminMode ? "default" : "outline"}
+                            variant="outline"
                             size="icon"
                             className="cursor-pointer"
-                            title="Toggle admin mode (edit product pricing)"
-                            aria-label="Toggle admin mode"
-                            onClick={toggleAdminMode}
+                            title="Admin panel"
+                            aria-label="Admin panel"
+                            onClick={() => setAdminPanelOpen(true)}
                         >
                             <ShieldCheck className="h-4 w-4"/>
                         </Button>
+                    )}
+                    {isAdmin && (
+                        <AdminPanelDialog
+                            open={adminPanelOpen}
+                            onOpenChange={setAdminPanelOpen}
+                            onOpenThemeCustomizer={openThemeCustomizer}
+                        />
                     )}
                     <Button
                         variant="outline"
@@ -137,27 +145,29 @@ function PricingWorkbookPage() {
             {/* ── Cards + chart — fixed in place, never scroll. ───────────── */}
             <div className="bg-background shrink-0 pt-4 pb-4">
                 <div className="px-4 lg:px-6">
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                        {metalCards.map((card) => (
-                            <SectionCards
-                                key={card.metal}
-                                data={card}
-                                active={selectedMetal === card.metal}
-                                onClick={() =>
-                                    toggleSelectedMetal(card.metal)
-                                }
-                                onValueChange={(value) =>
-                                    handleSpotOverride(
-                                        card.metal,
-                                        value
-                                    )
-                                }
-                                onClearOverride={() => {
-                                    clearSpotOverride(card.metal);
-                                }}
-                            />
-                        ))}
-                    </div>
+                    {cardsVisible && (
+                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                            {metalCards.map((card) => (
+                                <SectionCards
+                                    key={card.metal}
+                                    data={card}
+                                    active={selectedMetal === card.metal}
+                                    onClick={() =>
+                                        toggleSelectedMetal(card.metal)
+                                    }
+                                    onValueChange={(value) =>
+                                        handleSpotOverride(
+                                            card.metal,
+                                            value
+                                        )
+                                    }
+                                    onClearOverride={() => {
+                                        clearSpotOverride(card.metal);
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
 
                     {graphVisible && (
                         <div className="mt-4 h-[clamp(140px,26vh,320px)]">
@@ -181,7 +191,7 @@ function PricingWorkbookPage() {
                 height keeps it from being fully crushed by the cards/chart
                 block above on a very short window. ────────────────────── */}
             <div className="@container/main flex min-h-[180px] flex-1 flex-col overflow-hidden">
-                <DataTable data={productsArr} activeMetal={selectedMetal}/>
+                <DataTable data={productsArr} activeMetal={selectedMetal} onActiveMetalChange={setSelectedMetal}/>
             </div>
         </BaseLayout>
     );

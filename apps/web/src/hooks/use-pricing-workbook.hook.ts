@@ -175,6 +175,7 @@ export function usePricingWorkbook() {
 
         // selection & overrides
         selectedMetal,
+        setSelectedMetal,
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,

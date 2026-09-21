@@ -6,7 +6,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { formatEuro, formatPercent } from "./formatters"
+import { formatEuro, formatPercent } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { ResultHighlight, SectionLabel, SubtabRow } from "./tab-widgets"
 import { cn } from "@/lib/utils"

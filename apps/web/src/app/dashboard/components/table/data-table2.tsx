@@ -10,8 +10,21 @@ import { productColumns } from "./product-columns"
 import { METAL_TABS } from "./metal-tabs"
 import { usePricingTools } from "../../context/pricing-tools-context"
 
-export function DataTable({ data, activeMetal }: { data: Product[]; activeMetal?: MetalType | null }) {
-    const { setActiveMetal, rowSelection, setRowSelection } = usePricingTools()
+interface DataTableProps {
+    data: Product[]
+    activeMetal?: MetalType | null
+    /**
+     * Fires whenever the table's own metal tab changes for any reason —
+     * including the small per-metal buttons that only show while the spot
+     * cards are hidden. Lets the page mirror that back into the cards'
+     * `selectedMetal` (and the chart's), so the two stay in lockstep even
+     * though the cards themselves are the ones hidden right now.
+     */
+    onActiveMetalChange?: (metal: MetalType) => void
+}
+
+export function DataTable({ data, activeMetal, onActiveMetalChange }: DataTableProps) {
+    const { setActiveMetal, rowSelection, setRowSelection, cardsVisible } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
@@ -26,11 +39,16 @@ export function DataTable({ data, activeMetal }: { data: Product[]; activeMetal?
     }, [activeMetal, setSelectedTab])
 
     // Whatever metal tab the product table is currently showing is also the
-    // metal mode the pricing tools drawer/floating button should open in.
+    // metal mode the pricing tools drawer/floating button should open in —
+    // and (via onActiveMetalChange) what the cards/chart consider selected,
+    // so switching metals via the small buttons while cards are hidden
+    // doesn't leave the cards/chart pointed at a stale metal underneath.
     React.useEffect(() => {
         const metalType = METAL_TABS.find((t) => t.value === selectedTab)?.metalType
-        if (metalType) setActiveMetal(metalType)
-    }, [selectedTab, setActiveMetal])
+        if (!metalType) return
+        setActiveMetal(metalType)
+        onActiveMetalChange?.(metalType)
+    }, [selectedTab, setActiveMetal, onActiveMetalChange])
 
     return (
         <Tabs
@@ -39,7 +57,12 @@ export function DataTable({ data, activeMetal }: { data: Product[]; activeMetal?
             className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
             <div className="shrink-0">
-                <MetalTabsToolbar table={table} selectedTab={selectedTab} onSelectedTabChange={setSelectedTab} />
+                <MetalTabsToolbar
+                    table={table}
+                    selectedTab={selectedTab}
+                    onSelectedTabChange={setSelectedTab}
+                    showMetalSelect={!cardsVisible}
+                />
             </div>
 
             <TabsContent
