@@ -119,12 +119,25 @@ export class MarketDataService {
             spotPrices: enrichedSpotPrices,
             historicSpot,
             products,
-            fetchedAt: new Date().toISOString(),
+            // The actual snapshot time, not "now" — the oldest timestamp
+            // across spotPrices, so a cache/DB hit correctly shows as
+            // however old it really is rather than as freshly fetched.
+            fetchedAt: this.getSnapshotTimestamp(enrichedSpotPrices),
             priceWarning:
                 degradedMetals.length > 0
                     ? `Live price unavailable for ${degradedMetals.join(', ')} — showing €0.00 until the price feed recovers.`
                     : null,
+            degradedMetals,
         };
+    }
+
+    private getSnapshotTimestamp(spotPrices: RawSpotPrice[]): string {
+        if (spotPrices.length === 0) return new Date().toISOString();
+
+        return spotPrices.reduce(
+            (oldest, spot) => (spot.timestamp < oldest ? spot.timestamp : oldest),
+            spotPrices[0].timestamp,
+        );
     }
 
     /**

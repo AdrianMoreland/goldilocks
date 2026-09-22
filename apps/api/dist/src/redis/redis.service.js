@@ -87,6 +87,9 @@ let RedisService = RedisService_1 = class RedisService {
             this.logger.warn(`Redis DEL failed: ${keys.join(', ')}`);
         }
     }
+    isHealthy() {
+        return this.isConnected;
+    }
 };
 exports.RedisService = RedisService;
 exports.RedisService = RedisService = RedisService_1 = __decorate([

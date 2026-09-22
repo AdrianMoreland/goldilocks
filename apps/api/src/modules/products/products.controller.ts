@@ -88,33 +88,4 @@ export class ProductsController {
         await this.service.delete(id);
         return {message: `✅ Producto ${id} eliminado correctamente`};
     }
-
-    /*
-
-        // GET /products/exists
-    @Get('exists')
-    async existsBySku(@Query('sku') sku?: string) {
-        const n = (sku || '').trim();
-        if (!n) return {exists: false};
-        const existing = await this.service.existsBySku(n);
-        if (!existing) return {exists: false};
-        const inList = existing.id === 1 ? 2 : 3;
-        return {exists: true, in: inList};
-    }
-
-        @Get('dashboard/products-with-spot')
-    async getProductsWithSpot() {
-        return this.service.getProductsWithSpotPackage();
-    }
-
-    @Get('products/:id')
-    @ApiOperation({summary: 'Get product details'})
-    async getProduct(@Param('id') id: number, @Param('metal') metal: any) {
-        const product = await this.service.getById(id, metal);
-        if (!product) {
-            throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-        }
-        return product;
-    }
-*/
 }

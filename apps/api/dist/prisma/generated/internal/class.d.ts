@@ -45,6 +45,9 @@ export interface PrismaClient<in LogOpts extends Prisma.LogLevel = never, in out
     get branch(): Prisma.BranchDelegate<ExtArgs, {
         omit: OmitOpts;
     }>;
+    get fetchAttempt(): Prisma.FetchAttemptDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
 }
 export declare function getPrismaClientClass(): PrismaClientConstructor;
 //# sourceMappingURL=class.d.ts.map

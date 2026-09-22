@@ -1,3 +1,10 @@
+export declare const FetchTrigger: {
+    readonly CRON: "CRON";
+    readonly REFRESH: "REFRESH";
+    readonly RETRY: "RETRY";
+    readonly LAUNCH_FALLBACK: "LAUNCH_FALLBACK";
+};
+export type FetchTrigger = (typeof FetchTrigger)[keyof typeof FetchTrigger];
 export declare const UserRole: {
     readonly ADMIN: "ADMIN";
     readonly MANAGER: "MANAGER";

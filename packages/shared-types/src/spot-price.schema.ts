@@ -13,6 +13,9 @@ export const MetalTypeEnum = z.enum(['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'])
 
 export const MetalSymbolSchema = z.enum(['XAU', 'XAG', 'XPT', 'XPD']);
 
+/** Which tier actually satisfied this read — Redis cache, Postgres, or a fresh call to the live vendor API. Optional: only the two "how did we get this price" cascades (getAllLatestForLaunch/refreshAll) bother tagging it. */
+export const FetchSourceEnum = z.enum(['cache', 'db', 'live']);
+
 
 // ============================================================================
 // CORE SCHEMAS
@@ -29,7 +32,10 @@ export const SpotPriceSchema = z.object({
   changePercent: z.number(),
   source: z.string(),
   timestamp: z.iso.datetime(),
-  createdAt: z.iso.datetime()
+  createdAt: z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  /** True when a live fetch was actually attempted for this metal and failed, and this price is the last-known-good value served instead — distinct from a cache/DB hit that's just the normal cascade preference. */
+  isFallback: z.boolean().optional(),
 });
 
 export const RawSpotPriceSchema = z.object({
@@ -40,6 +46,8 @@ export const RawSpotPriceSchema = z.object({
   source: z.string(),
   timestamp: z.iso.datetime(),
   createdAt: z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  isFallback: z.boolean().optional(),
 });
 
 export const HistoricSpotSchema = z.object({
@@ -74,6 +82,7 @@ export type TaskQueryParams = z.infer<typeof TaskQueryParamsSchema>;
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type MetalType = z.infer<typeof MetalTypeEnum>;
 export type MetalSymbol = z.infer<typeof MetalSymbolSchema>;
+export type FetchSource = z.infer<typeof FetchSourceEnum>;
 export type SpotPrice = z.infer<typeof SpotPriceSchema>;
 export type HistoricSpot = z.infer<typeof HistoricSpotSchema>;
 export type CreateSpotPriceDto = z.infer<typeof CreateSpotPriceDtoSchema>;

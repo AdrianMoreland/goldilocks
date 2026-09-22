@@ -79,4 +79,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    /** For GET /health — true once the client has connected, never set back by a missing REDIS_URL (there's simply no client to report on). */
+    isHealthy(): boolean {
+        return this.isConnected
+    }
+
 }

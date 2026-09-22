@@ -19,5 +19,7 @@ export const queryKeys = {
     admin: {
         cronStatus: ['admin', 'cron-status'] as const,
         branches: ['admin', 'branches'] as const,
+        fetchMetrics: ['admin', 'fetch-metrics'] as const,
+        fetchLog: ['admin', 'fetch-log'] as const,
     },
 };

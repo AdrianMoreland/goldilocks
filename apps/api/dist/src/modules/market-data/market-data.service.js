@@ -60,11 +60,17 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
             spotPrices: enrichedSpotPrices,
             historicSpot,
             products,
-            fetchedAt: new Date().toISOString(),
+            fetchedAt: this.getSnapshotTimestamp(enrichedSpotPrices),
             priceWarning: degradedMetals.length > 0
                 ? `Live price unavailable for ${degradedMetals.join(', ')} — showing €0.00 until the price feed recovers.`
                 : null,
+            degradedMetals,
         };
+    }
+    getSnapshotTimestamp(spotPrices) {
+        if (spotPrices.length === 0)
+            return new Date().toISOString();
+        return spotPrices.reduce((oldest, spot) => (spot.timestamp < oldest ? spot.timestamp : oldest), spotPrices[0].timestamp);
     }
     toSpotMap(spotPrices) {
         const map = { ...pricing_util_1.ZERO_SPOT_MAP };

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { flexRender, type Table as TanstackTable } from "@tanstack/react-table"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useRowNavigation } from "@/hooks/use-row-navigation.hook"
 import { ProductRow } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
 
@@ -13,10 +14,19 @@ const GROUP_LABELS = { bar: "Bars", coin: "Coins", bonded: "Bonded" } as const
 
 export function ProductTableBody({ table, columnCount }: ProductTableBodyProps) {
     const rows = table.getRowModel().rows
+    const { focusedRowId } = useRowNavigation(rows)
     let lastGroup: DisplayProduct["productType"] | null = null
 
     return (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
+            {/* flex-1 (not h-full) — this sits below the new ProductFilterBar
+                row now, so it needs to shrink to make room for that sibling
+                rather than claiming 100% of TabsContent's height regardless.
+                That's also what was silently breaking the header's
+                position:sticky: with h-full, this div (and its inner
+                overflow-y-auto child) never actually got a bounded height
+                once a sibling existed above it, so nothing here truly
+                scrolled — sticky had no real scroll container to lock to. */}
             <div className="min-h-0 flex-1 overflow-y-auto">
                 <Table>
                     <TableHeader className="bg-muted">
@@ -58,7 +68,7 @@ export function ProductTableBody({ table, columnCount }: ProductTableBodyProps) 
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                        <ProductRow row={row} />
+                                        <ProductRow row={row} isFocused={row.id === focusedRowId} />
                                     </React.Fragment>
                                 )
                             })

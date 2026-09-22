@@ -5,6 +5,8 @@ import {
     getFilteredRowModel, getSortedRowModel, useReactTable,
 } from "@tanstack/react-table"
 import type { Product } from "@/lib/types"
+import { useAuth } from "@/contexts/auth-context"
+import { useLocalStorageState } from "@/hooks/use-local-storage-state.hook"
 import { METAL_TABS, MetalTabValue } from "@/app/dashboard/components/table/metal-tabs"
 import { buildDisplayProducts, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
 import {productColumns} from "@/app/dashboard/components/table/product-columns.tsx";
@@ -14,17 +16,34 @@ function filterByMetalTab(data: DisplayProduct[], tab: MetalTabValue): DisplayPr
     return metalType ? data.filter((p) => p.metalType === metalType) : data
 }
 
+/** Global search — matches name or SKU, independent of which columns are currently visible. */
+function filterBySearch(data: DisplayProduct[], search: string): DisplayProduct[] {
+    const term = search.trim().toLowerCase()
+    if (!term) return data
+    return data.filter((p) => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
+}
+
 export function useProductTable(
     initialData: Product[],
     rowSelection: Record<string, boolean>,
     setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
 ) {
+    const { user } = useAuth()
+    // Sort/filter/search state is persisted per user, not per session — a
+    // "budget only" filter or a "Premium" sort should still be there
+    // tomorrow. Keyed by user id so switching accounts on the same browser
+    // doesn't leak one user's filters into another's.
+    const storagePrefix = `product-table:${user?.id ?? "anon"}`
+
     const [data, setData] = React.useState<Product[]>(initialData)
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         metalType: false,
+        productType: false,
+        priceBucket: false,
     })
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [sorting, setSorting] = React.useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useLocalStorageState<ColumnFiltersState>(`${storagePrefix}:filters`, [])
+    const [sorting, setSorting] = useLocalStorageState<SortingState>(`${storagePrefix}:sorting`, [])
+    const [search, setSearch] = useLocalStorageState<string>(`${storagePrefix}:search`, "")
     const [selectedTab, setSelectedTab] = React.useState<MetalTabValue>("gold")
 
     React.useEffect(() => {
@@ -36,8 +55,8 @@ export function useProductTable(
     const displayProducts = React.useMemo(() => buildDisplayProducts(data), [data])
 
     const filteredData = React.useMemo(
-        () => filterByMetalTab(displayProducts, selectedTab),
-        [displayProducts, selectedTab],
+        () => filterBySearch(filterByMetalTab(displayProducts, selectedTab), search),
+        [displayProducts, selectedTab, search],
     )
 
     // Gold is VAT-exempt as investment metal (see the Calculators tab's VAT
@@ -66,13 +85,21 @@ export function useProductTable(
         getFacetedUniqueValues: getFacetedUniqueValues(),
     })
 
-    // The rows currently checked via the per-row toggle, in table order —
-    // exposed separately (rather than making callers dig through TanStack's
-    // row model) so the Trade tab can build its cart from them.
+    // The rows currently checked via the per-row toggle, in current sort/
+    // filter order — exposed separately (rather than making callers dig
+    // through TanStack's row model) so the Trade tab and the "Copy" button
+    // can both use them directly.
     const selectedProducts = React.useMemo(
-        () => filteredData.filter((row) => rowSelection[row.id.toString()]),
-        [filteredData, rowSelection],
+        () => table.getFilteredSelectedRowModel().rows.map((row) => row.original),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [table, rowSelection, sorting, columnFilters, filteredData],
     )
 
-    return { table, selectedTab, setSelectedTab, selectedProducts }
+    const isFiltered = columnFilters.length > 0 || search.trim().length > 0
+    const resetFilters = React.useCallback(() => {
+        setColumnFilters([])
+        setSearch("")
+    }, [setColumnFilters, setSearch])
+
+    return { table, selectedTab, setSelectedTab, selectedProducts, search, setSearch, isFiltered, resetFilters }
 }

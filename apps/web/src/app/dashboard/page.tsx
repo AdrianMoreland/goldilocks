@@ -8,33 +8,55 @@ import {SectionCards} from './components/section-cards.tsx';
 import {ChartAreaInteractive} from './components/chart-area-interactive.tsx';
 import {Button} from '@/components/ui/button';
 import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
+import {useGlobalShortcuts} from '@/hooks/use-global-shortcuts.hook';
 import {useAuth} from '@/contexts/auth-context';
 import {PricingToolsProvider, usePricingTools} from './context/pricing-tools-context';
 import {PricingSettingsProvider} from './context/pricing-settings-context';
 import {PricingToolsPanel} from './components/pricing-tools/pricing-tools-panel';
-import {AdminPanelDialog} from './components/admin/admin-panel-dialog';
+import {AdminSidePanel} from './components/admin/admin-side-panel';
+import {KeyboardShortcutsHint} from './components/keyboard-shortcuts-hint';
+import {DataFreshnessIndicator} from './components/data-freshness-indicator';
+import {StalePricesBanner} from './components/stale-prices-banner';
+import {summarizeFetchSource} from './utils/fetch-source';
 
 export default function Page() {
     return (
         <PricingSettingsProvider>
             <PricingToolsProvider>
-                <div className="flex h-svh min-h-0 items-stretch gap-4 overflow-hidden">
-                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                        <PricingWorkbookPage/>
-                    </div>
-                    <PricingToolsPanel/>
-                </div>
+                <DashboardShell/>
             </PricingToolsProvider>
         </PricingSettingsProvider>
     );
 }
 
-function PricingWorkbookPage() {
+/**
+ * Owns the one usePricingWorkbook() call and the top-level flex row — main
+ * content, then whichever right-hand panel is showing. Both side panels
+ * (Pricing Tools and Admin) sit as flex siblings here, at the exact same
+ * width/height, rather than one being nested only inside the other's tree —
+ * that's what lets the Admin panel occupy that shared slot at all.
+ */
+function DashboardShell() {
+    const workbook = usePricingWorkbook();
+
+    return (
+        <div className="flex h-svh min-h-0 items-stretch gap-4 overflow-hidden">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <PricingWorkbookPage workbook={workbook}/>
+            </div>
+            <PricingToolsPanel/>
+            <AdminSidePanel metalCards={workbook.metalCards}/>
+        </div>
+    );
+}
+
+function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricingWorkbook> }) {
     const {
         products,
         historicSpot,
         metalCards,
         lastUpdatedRelative,
+        isStale,
         refresh,
         refreshing,
         selectedMetal,
@@ -42,12 +64,17 @@ function PricingWorkbookPage() {
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,
-    } = usePricingWorkbook();
-    const { open: toolsOpen, toggleOpen: toggleTools, cardsVisible, toggleCardsVisible } = usePricingTools();
+    } = workbook;
+    const { open: toolsOpen, toggleOpen: toggleTools, toggleAdminPanel, cardsVisible, toggleCardsVisible } = usePricingTools();
     const { isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const [graphVisible, setGraphVisible] = useState(true);
-    const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+
+    useGlobalShortcuts({
+        onToggleTools: toggleTools,
+        onToggleChart: () => setGraphVisible((v) => !v),
+        onToggleAdminPanel: isAdmin ? toggleAdminPanel : undefined,
+    });
 
     const handleLogout = () => {
         logout();
@@ -61,13 +88,14 @@ function PricingWorkbookPage() {
             fillViewport
             title="Pricing Workbook"
             manualModeToggle
-            headerActions={({ openThemeCustomizer }) => (
+            headerActions={() => (
                 <>
-                    <div className="text-muted-foreground hidden flex-col leading-tight md:flex">
-                        <span className="text-[11px] whitespace-nowrap">Last Updated:</span>
-                        <span className="text-[11px] whitespace-nowrap">{lastUpdatedRelative}</span>
-                    </div>
-                    {/* Order: Update, Graph, Cards, (admin: Theme editor), Day/Night, Sidebar open, (admin: Admin mode), Logout. */}
+                    <DataFreshnessIndicator
+                        lastUpdatedRelative={lastUpdatedRelative}
+                        fetchSource={summarizeFetchSource(metalCards)}
+                        isStale={isStale}
+                    />
+                    {/* Order: Update, Graph, Cards, Day/Night, Sidebar open, (admin: Admin panel), Logout. */}
                     <Button
                         variant="outline"
                         size="icon"
@@ -83,7 +111,7 @@ function PricingWorkbookPage() {
                         variant={graphVisible ? "default" : "outline"}
                         size="icon"
                         className="cursor-pointer"
-                        title="Toggle price chart"
+                        title="Toggle price chart (g)"
                         aria-label="Toggle price chart"
                         onClick={() => setGraphVisible((v) => !v)}
                     >
@@ -104,7 +132,7 @@ function PricingWorkbookPage() {
                         variant={toolsOpen ? "default" : "outline"}
                         size="icon"
                         className="cursor-pointer"
-                        title="Toggle pricing tools panel"
+                        title="Toggle pricing tools panel (t)"
                         aria-label="Toggle pricing tools panel"
                         onClick={toggleTools}
                     >
@@ -115,19 +143,12 @@ function PricingWorkbookPage() {
                             variant="outline"
                             size="icon"
                             className="cursor-pointer"
-                            title="Admin panel"
+                            title="Admin panel (a)"
                             aria-label="Admin panel"
-                            onClick={() => setAdminPanelOpen(true)}
+                            onClick={toggleAdminPanel}
                         >
                             <ShieldCheck className="h-4 w-4"/>
                         </Button>
-                    )}
-                    {isAdmin && (
-                        <AdminPanelDialog
-                            open={adminPanelOpen}
-                            onOpenChange={setAdminPanelOpen}
-                            onOpenThemeCustomizer={openThemeCustomizer}
-                        />
                     )}
                     <Button
                         variant="outline"
@@ -145,6 +166,12 @@ function PricingWorkbookPage() {
             {/* ── Cards + chart — fixed in place, never scroll. ───────────── */}
             <div className="bg-background shrink-0 pt-4 pb-4">
                 <div className="px-4 lg:px-6">
+                    {isStale && (
+                        <div className="mb-3">
+                            <StalePricesBanner lastUpdatedRelative={lastUpdatedRelative} />
+                        </div>
+                    )}
+
                     {cardsVisible && (
                         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                             {metalCards.map((card) => (
@@ -193,6 +220,8 @@ function PricingWorkbookPage() {
             <div className="@container/main flex min-h-[180px] flex-1 flex-col overflow-hidden">
                 <DataTable data={productsArr} activeMetal={selectedMetal} onActiveMetalChange={setSelectedMetal}/>
             </div>
+
+            <KeyboardShortcutsHint isAdmin={isAdmin}/>
         </BaseLayout>
     );
 }

@@ -11,31 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrismaService = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 const client_1 = require("../../../prisma/generated/client");
-const globalForPrisma = globalThis;
-const adapter = new adapter_pg_1.PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-});
-function createPrismaClient() {
-    return new client_1.PrismaClient({
-        adapter,
-        log: process.env.NODE_ENV === 'development'
-            ? ['query', 'warn', 'error']
-            : ['error'],
-    });
-}
-const prismaInstance = globalForPrisma.prisma ?? createPrismaClient();
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prismaInstance;
-}
 let PrismaService = class PrismaService extends client_1.PrismaClient {
-    constructor() {
+    constructor(config) {
         super({
             adapter: new adapter_pg_1.PrismaPg({
-                connectionString: process.env.DATABASE_URL,
+                connectionString: config.get('DATABASE_URL'),
             }),
-            log: process.env.NODE_ENV === 'development'
+            log: config.get('NODE_ENV') === 'development'
                 ? ['query', 'error', 'warn']
                 : ['error'],
         });
@@ -50,6 +35,6 @@ let PrismaService = class PrismaService extends client_1.PrismaClient {
 exports.PrismaService = PrismaService;
 exports.PrismaService = PrismaService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], PrismaService);
 //# sourceMappingURL=prisma.service.js.map

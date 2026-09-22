@@ -54,7 +54,7 @@ let MetalsCron = MetalsCron_1 = class MetalsCron {
         await this.metalsProvider.seedHistoricPrices();
     }
     async updateMetals() {
-        const { degradedMetals } = await this.metalsProvider.refreshAll();
+        const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
         if (degradedMetals.length > 0) {
             this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
         }

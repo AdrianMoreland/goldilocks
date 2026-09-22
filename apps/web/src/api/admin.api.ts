@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
-import { BranchSchema } from '@goldilocks/shared-types';
-import type { Branch, CreateBranchRequest, CreateUserRequest } from '@goldilocks/shared-types';
+import { BranchSchema, FetchAttemptSchema, FetchMetricsSchema, RawSpotPriceSchema } from '@goldilocks/shared-types';
+import type { Branch, CreateBranchRequest, CreateUserRequest, MetalType } from '@goldilocks/shared-types';
 
 const CronStatusResponseSchema = z.object({ running: z.boolean() });
 const MessageResponseSchema = z.object({ message: z.string() });
@@ -20,5 +20,9 @@ export function useAdminApi() {
         createBranch: (body: CreateBranchRequest): Promise<Branch> => client.post('/branches', body, BranchSchema),
 
         createUser: (body: CreateUserRequest) => client.post('/auth/admin/users', body, SessionUserResponseSchema),
+
+        getFetchLog: (limit = 5) => client.get(`/metals/fetch-log?limit=${limit}`, z.array(FetchAttemptSchema)),
+        getFetchMetrics: () => client.get('/metals/fetch-metrics', FetchMetricsSchema),
+        retryMetal: (metal: MetalType) => client.post(`/metals/${metal}/retry`, {}, RawSpotPriceSchema),
     };
 }

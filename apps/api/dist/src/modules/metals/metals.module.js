@@ -16,6 +16,8 @@ const redis_module_1 = require("../../redis/redis.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
 const metal_price_api_module_1 = require("../../infrastructure/metal-price-api/metal-price-api.module");
 const spot_price_cache_store_1 = require("./spot-price-cache.store");
+const cascade_metrics_service_1 = require("./cascade-metrics.service");
+const fetch_attempt_service_1 = require("./fetch-attempt.service");
 let MetalsModule = class MetalsModule {
 };
 exports.MetalsModule = MetalsModule;
@@ -31,10 +33,13 @@ exports.MetalsModule = MetalsModule = __decorate([
         providers: [
             metals_provider_1.MetalsProvider,
             metals_cron_1.MetalsCron,
-            spot_price_cache_store_1.SpotPriceCacheStore
+            spot_price_cache_store_1.SpotPriceCacheStore,
+            cascade_metrics_service_1.CascadeMetricsService,
+            fetch_attempt_service_1.FetchAttemptService,
         ],
         exports: [
             metals_provider_1.MetalsProvider,
+            fetch_attempt_service_1.FetchAttemptService,
         ],
     })
 ], MetalsModule);

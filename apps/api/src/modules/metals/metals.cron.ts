@@ -64,7 +64,7 @@ export class MetalsCron implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB })
     async updateMetals() {
-        const { degradedMetals } = await this.metalsProvider.refreshAll();
+        const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
         if (degradedMetals.length > 0) {
             this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
         }

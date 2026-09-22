@@ -22,6 +22,8 @@ const metal_price_api_module_1 = require("./infrastructure/metal-price-api/metal
 const trade_module_1 = require("./modules/trade/trade.module");
 const portfolio_module_1 = require("./modules/portfolio/portfolio.module");
 const branches_module_1 = require("./modules/branches/branches.module");
+const prisma_module_1 = require("./infrastructure/prisma/prisma.module");
+const redis_module_1 = require("./redis/redis.module");
 const prisma_exception_filter_1 = require("./common/filters/prisma-exception.filter");
 let AppModule = class AppModule {
 };
@@ -42,6 +44,8 @@ exports.AppModule = AppModule = __decorate([
             trade_module_1.TradeModule,
             portfolio_module_1.PortfolioModule,
             branches_module_1.BranchesModule,
+            prisma_module_1.PrismaModule,
+            redis_module_1.RedisModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

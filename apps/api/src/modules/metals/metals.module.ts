@@ -7,6 +7,8 @@ import {RedisModule} from '../../redis/redis.module';
 import {PrismaModule} from '../../infrastructure/prisma/prisma.module';
 import {MetalPriceApiModule} from '../../infrastructure/metal-price-api/metal-price-api.module';
 import {SpotPriceCacheStore} from "./spot-price-cache.store";
+import {CascadeMetricsService} from "./cascade-metrics.service";
+import {FetchAttemptService} from "./fetch-attempt.service";
 
 @Module({
     imports: [
@@ -19,10 +21,13 @@ import {SpotPriceCacheStore} from "./spot-price-cache.store";
     providers: [
         MetalsProvider,
         MetalsCron,
-        SpotPriceCacheStore
+        SpotPriceCacheStore,
+        CascadeMetricsService,
+        FetchAttemptService,
     ],
     exports: [
         MetalsProvider, // MarketDataModule needs this — MetalsService no longer exists
+        FetchAttemptService, // AppModule's /health endpoint needs "last successful API call"
     ],
 })
 export class MetalsModule {

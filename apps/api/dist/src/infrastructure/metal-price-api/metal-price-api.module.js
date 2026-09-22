@@ -9,13 +9,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetalPriceApiModule = void 0;
 const common_1 = require("@nestjs/common");
 const metal_price_api_client_1 = require("./metal-price-api.client");
+const metal_price_api_port_1 = require("./metal-price-api.port");
 let MetalPriceApiModule = class MetalPriceApiModule {
 };
 exports.MetalPriceApiModule = MetalPriceApiModule;
 exports.MetalPriceApiModule = MetalPriceApiModule = __decorate([
     (0, common_1.Module)({
-        providers: [metal_price_api_client_1.MetalPriceApiClient],
-        exports: [metal_price_api_client_1.MetalPriceApiClient],
+        providers: [
+            metal_price_api_client_1.MetalPriceApiClient,
+            { provide: metal_price_api_port_1.METAL_PRICE_API, useClass: metal_price_api_client_1.MetalPriceApiClient },
+        ],
+        exports: [metal_price_api_port_1.METAL_PRICE_API],
     })
 ], MetalPriceApiModule);
 //# sourceMappingURL=metal-price-api.module.js.map

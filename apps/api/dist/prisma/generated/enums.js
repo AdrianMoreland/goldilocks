@@ -1,6 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Currency = exports.MetalType = exports.UserRole = void 0;
+exports.Currency = exports.MetalType = exports.UserRole = exports.FetchTrigger = void 0;
+exports.FetchTrigger = {
+    CRON: 'CRON',
+    REFRESH: 'REFRESH',
+    RETRY: 'RETRY',
+    LAUNCH_FALLBACK: 'LAUNCH_FALLBACK'
+};
 exports.UserRole = {
     ADMIN: 'ADMIN',
     MANAGER: 'MANAGER',
