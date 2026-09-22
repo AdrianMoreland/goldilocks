@@ -6,6 +6,8 @@ import {
     CreateUserRequestSchema,
     BranchSchema,
     CreateBranchRequestSchema,
+    FetchAttemptSchema,
+    FetchMetricsSchema,
 } from '@goldilocks/shared-types';
 import {
     ApiSuccessResponseSchema, MarketDataResponseSchema,
@@ -104,3 +106,11 @@ export class PortfolioBuildResponseDto extends createDto(PortfolioBuildResponseS
 export class BranchResponseDto extends createDto(BranchSchema, 'BranchResponseDto') {}
 
 export class CreateBranchRequestDto extends createDto(CreateBranchRequestSchema, 'CreateBranchRequestDto') {}
+
+// ============================================================================
+// FETCH ATTEMPT / SYSTEM STATUS DTOs
+// ============================================================================
+
+export class FetchAttemptResponseDto extends createDto(FetchAttemptSchema, 'FetchAttemptResponseDto') {}
+
+export class FetchMetricsResponseDto extends createDto(FetchMetricsSchema, 'FetchMetricsResponseDto') {}

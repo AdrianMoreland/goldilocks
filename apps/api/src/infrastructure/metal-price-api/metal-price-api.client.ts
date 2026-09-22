@@ -1,5 +1,6 @@
 import metalpriceapi from 'metalpriceapi-ts';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MetalPriceApiClient {
@@ -21,16 +22,10 @@ export class MetalPriceApiClient {
         'XPD',
     ];
 
-    constructor() {
-
-        const apiKey = process.env.METALPRICE_API_KEY;
-        if (!apiKey) {
-            throw new Error('METALPRICE_API_KEY is not defined in environment variables');
-        }
-
-        // FIX: was reading a different, unset env var (METAL_API_KEY) here.
-        // Use the key that was actually validated above.
-        this.api = new metalpriceapi(apiKey);
+    constructor(config: ConfigService) {
+        // main.ts's validateEnv() already fails fast at boot if this is
+        // missing, so no need to re-check it here.
+        this.api = new metalpriceapi(config.get<string>('METALPRICE_API_KEY')!);
     }
 
 

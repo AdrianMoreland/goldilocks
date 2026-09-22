@@ -4,18 +4,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.api';
 import { queryKeys } from '@/lib/query-keys';
+import { formatMinutesAgo } from '@/app/dashboard/utils/formatters';
 import type { MarketDataResponse } from '../lib/types.ts';
 
-function getMinutesAgoText(fetchedAt?: string | null) {
-    if (!fetchedAt) return null;
-
-    const diffMs = Date.now() - new Date(fetchedAt).getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'less than 1 minute ago';
-
-    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-}
+/** How old a snapshot can be before we tell the user prices might be wrong — the cron refreshes every 10 minutes, so this gives one missed cycle of slack before crying wolf. */
+export const STALE_THRESHOLD_MS = 15 * 60 * 1000;
 
 /** To-the-second timestamp for the "prices fetched at" toast — deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
 function formatFetchedAtTime(fetchedAt?: string | null): string | null {
@@ -46,6 +39,20 @@ export function useMarketData() {
 
     const { data, isLoading, isFetching, error } = query;
 
+    // Fetch FAILURE (the request itself errored) is a different kind of
+    // problem than stale-but-successful data (see isStale below) — surfaced
+    // as its own toast so "the feed is down" doesn't get lost inside "the
+    // feed is just old". Only fires on the transition into an error, not on
+    // every re-render while it stays errored.
+    const hasShownErrorToast = useRef(false);
+    useEffect(() => {
+        if (error && !hasShownErrorToast.current) {
+            hasShownErrorToast.current = true;
+            toast.error('Could not fetch spot prices — check your connection or try refreshing.');
+        }
+        if (!error) hasShownErrorToast.current = false;
+    }, [error]);
+
     // The backend sets this when a metal fell all the way through
     // cache → DB → the live API without finding a usable price (still
     // 0.00 on screen) — surfaced once per distinct message, not on every
@@ -75,10 +82,15 @@ export function useMarketData() {
         if (isLoading) return 'Loading…';
         if (error) return 'unavailable';
 
-        return getMinutesAgoText(data?.fetchedAt) ?? 'unknown';
+        return formatMinutesAgo(data?.fetchedAt);
     }, [isLoading, error, data?.fetchedAt]);
 
     const lastUpdatedLabel = `Last Updated: ${lastUpdatedRelative}`;
+
+    const isStale = useMemo(() => {
+        if (!data?.fetchedAt) return false;
+        return Date.now() - new Date(data.fetchedAt).getTime() > STALE_THRESHOLD_MS;
+    }, [data?.fetchedAt]);
 
     // ── Manual recalculation (UI spot overrides) ───────────────────────────
     const recalcMutation = useMutation({
@@ -103,19 +115,31 @@ export function useMarketData() {
                 marketData,
             );
 
-            const time = formatFetchedAtTime(marketData.fetchedAt);
-            if (time) toast(`Prices fetched at ${time}`);
+            // The HTTP call succeeding just means the backend responded —
+            // it can still mean "the live fetch failed and this is the
+            // last-known-good DB price" (isFallback) or "no usable price
+            // anywhere" (priceWarning). Neither of those is "updated", so
+            // don't say so — and skip the "fetched at" toast too, since
+            // touting a specific fetch time makes a failure read as a
+            // success. See CardFreshnessEnum's 'fallback' state for the
+            // matching per-card indicator.
+            const anyFallback = marketData.spotPrices.some((spot) => spot.isFallback);
 
             if (marketData.priceWarning) {
                 toast.warning(marketData.priceWarning);
                 lastWarningShown.current = marketData.priceWarning;
+            } else if (anyFallback) {
+                toast.error('Live price fetch failed — showing the last known prices from the database.');
             } else {
+                const time = formatFetchedAtTime(marketData.fetchedAt);
+                if (time) toast(`Prices fetched at ${time}`);
                 toast.success('Spot prices updated');
             }
         },
 
         onError: (error) => {
             console.error('Failed to refresh market data', error);
+            toast.error('Price refresh failed — showing the last known prices.');
         },
     });
 
@@ -124,11 +148,13 @@ export function useMarketData() {
         historicSpot: data?.historicSpot ?? [],
         products: data?.products ?? [],
         fetchedAt: data?.fetchedAt,
+        degradedMetals: data?.degradedMetals ?? [],
 
         loading: isLoading || isFetching,
         error,
         lastUpdatedLabel,
         lastUpdatedRelative,
+        isStale,
 
         recalc: recalcMutation.mutate,
 

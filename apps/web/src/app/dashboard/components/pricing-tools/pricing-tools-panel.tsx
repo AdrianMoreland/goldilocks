@@ -1,18 +1,13 @@
 import { Settings } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { usePricingTools, type PricingToolTab } from "../../context/pricing-tools-context"
+import { usePricingTools, type PricingToolTab, SIDE_PANEL_WIDTH as PANEL_WIDTH } from "../../context/pricing-tools-context"
 import { ProductTab } from "./product-tab"
 import { TradeTab } from "./trade-tab"
 import { PortfolioTab } from "./portfolio-tab"
 import { SettingsTab } from "./settings-tab"
 import { CalculatorsTab } from "./calculators-tab"
 import { cn } from "@/lib/utils"
-
-// Scales with the viewport instead of staying pinned at 384px regardless of
-// width: 384px on wide screens, shrinking down to a 260px floor so it never
-// ends up hogging most of the window on a narrower one.
-const PANEL_WIDTH = "clamp(260px, 32vw, 384px)"
 
 // Settings isn't one of the row's tabs — it's a distinct "configure this
 // panel" action rather than a workflow tab, so it gets its own icon button
@@ -32,12 +27,12 @@ const TABS: { value: PricingToolTab; label: string }[] = [
  * overflow-hidden) does.
  */
 export function PricingToolsPanel() {
-    const { open, activeTab, setActiveTab, activeMetal, selectedProduct } = usePricingTools()
+    const { open, adminPanelOpen, activeTab, setActiveTab, activeMetal, selectedProduct } = usePricingTools()
 
     return (
         <div
             className="h-full shrink-0 overflow-hidden border-l bg-card transition-[width] duration-200 ease-in-out"
-            style={{ width: open ? PANEL_WIDTH : 0 }}
+            style={{ width: open && !adminPanelOpen ? PANEL_WIDTH : 0 }}
         >
             <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH }}>
                 <div className="flex items-start justify-between gap-2 border-b p-4">

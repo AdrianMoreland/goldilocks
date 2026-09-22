@@ -244,6 +244,21 @@ export type EnumCurrencyWithAggregatesFilter<$PrismaModel = never> = {
     _min?: Prisma.NestedEnumCurrencyFilter<$PrismaModel>;
     _max?: Prisma.NestedEnumCurrencyFilter<$PrismaModel>;
 };
+export type EnumFetchTriggerFilter<$PrismaModel = never> = {
+    equals?: $Enums.FetchTrigger | Prisma.EnumFetchTriggerFieldRefInput<$PrismaModel>;
+    in?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    notIn?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    not?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel> | $Enums.FetchTrigger;
+};
+export type EnumFetchTriggerWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FetchTrigger | Prisma.EnumFetchTriggerFieldRefInput<$PrismaModel>;
+    in?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    notIn?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    not?: Prisma.NestedEnumFetchTriggerWithAggregatesFilter<$PrismaModel> | $Enums.FetchTrigger;
+    _count?: Prisma.NestedIntFilter<$PrismaModel>;
+    _min?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel>;
+    _max?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel>;
+};
 export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | Prisma.StringFieldRefInput<$PrismaModel>;
     in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>;
@@ -498,5 +513,20 @@ export type NestedEnumCurrencyWithAggregatesFilter<$PrismaModel = never> = {
     _count?: Prisma.NestedIntFilter<$PrismaModel>;
     _min?: Prisma.NestedEnumCurrencyFilter<$PrismaModel>;
     _max?: Prisma.NestedEnumCurrencyFilter<$PrismaModel>;
+};
+export type NestedEnumFetchTriggerFilter<$PrismaModel = never> = {
+    equals?: $Enums.FetchTrigger | Prisma.EnumFetchTriggerFieldRefInput<$PrismaModel>;
+    in?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    notIn?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    not?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel> | $Enums.FetchTrigger;
+};
+export type NestedEnumFetchTriggerWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FetchTrigger | Prisma.EnumFetchTriggerFieldRefInput<$PrismaModel>;
+    in?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    notIn?: $Enums.FetchTrigger[] | Prisma.ListEnumFetchTriggerFieldRefInput<$PrismaModel>;
+    not?: Prisma.NestedEnumFetchTriggerWithAggregatesFilter<$PrismaModel> | $Enums.FetchTrigger;
+    _count?: Prisma.NestedIntFilter<$PrismaModel>;
+    _min?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel>;
+    _max?: Prisma.NestedEnumFetchTriggerFilter<$PrismaModel>;
 };
 //# sourceMappingURL=commonInputTypes.d.ts.map

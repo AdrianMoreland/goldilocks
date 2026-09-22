@@ -5,8 +5,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import type { MetalType, Product } from "@/lib/types"
 import { useProductTable } from "@/hooks/use-product-table"
 import { MetalTabsToolbar } from "./metal-tabs-toolbar"
+import { ProductFilterBar } from "./product-filter-bar"
 import { ProductTableBody } from "./product-table-body"
-import { productColumns } from "./product-columns"
 import { METAL_TABS } from "./metal-tabs"
 import { usePricingTools } from "../../context/pricing-tools-context"
 
@@ -28,7 +28,8 @@ export function DataTable({ data, activeMetal, onActiveMetalChange }: DataTableP
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
-    const { table, selectedTab, setSelectedTab } = useProductTable(data, rowSelection, setRowSelection)
+    const { table, selectedTab, setSelectedTab, selectedProducts, search, setSearch, isFiltered, resetFilters } =
+        useProductTable(data, rowSelection, setRowSelection)
 
     // Clicking a spot-price card selects that metal — mirror the selection
     // into the product table's own tab so the cards drive what's displayed.
@@ -69,9 +70,18 @@ export function DataTable({ data, activeMetal, onActiveMetalChange }: DataTableP
                 value={selectedTab}
                 className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"
             >
+                <ProductFilterBar
+                    table={table}
+                    selectedProducts={selectedProducts}
+                    search={search}
+                    onSearchChange={setSearch}
+                    isFiltered={isFiltered}
+                    onResetFilters={resetFilters}
+                />
+
                 <ProductTableBody
                     table={table}
-                    columnCount={productColumns.length}
+                    columnCount={table.getVisibleLeafColumns().length}
                 />
 
                 <div className="flex shrink-0 items-center justify-between px-4">

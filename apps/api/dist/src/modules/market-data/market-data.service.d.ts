@@ -10,6 +10,7 @@ export declare class MarketDataService {
     recalculate(overrides: Partial<Record<MetalType, number>>): Promise<Product[]>;
     refresh(): Promise<MarketDataResponse>;
     private composeMarketData;
+    private getSnapshotTimestamp;
     private toSpotMap;
     fetchHistoricClose(date: string): Promise<void>;
     seedHistoricPrices(): Promise<void>;

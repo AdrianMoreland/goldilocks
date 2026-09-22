@@ -11,4 +11,5 @@ export type Product = Prisma.ProductModel;
 export type MetalSpotPrice = Prisma.MetalSpotPriceModel;
 export type HistoricSpotPrice = Prisma.HistoricSpotPriceModel;
 export type Branch = Prisma.BranchModel;
+export type FetchAttempt = Prisma.FetchAttemptModel;
 //# sourceMappingURL=client.d.ts.map

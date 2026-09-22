@@ -20,12 +20,24 @@ import { useAuth } from "@/contexts/auth-context"
 import { useProductsApi } from "@/api/products.api"
 import { queryKeys } from "@/lib/query-keys"
 import { EditProductDialog } from "./edit-product-dialog"
-import type { DisplayProduct } from "./product-grouping"
+import { DataTableColumnHeader } from "./data-table-column-header"
+import type { DisplayProduct, ProductGroup } from "./product-grouping"
 import { formatEuro, formatPercent } from "../../utils/formatters"
 
-export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
+/** `isFocused` reflects arrow-key row navigation (see use-row-navigation.hook.ts) — a keyboard-only affordance, distinct from `getIsSelected()`'s checkbox state. */
+export function ProductRow({ row, isFocused }: { row: Row<DisplayProduct>; isFocused?: boolean }) {
+    const rowRef = React.useRef<HTMLTableRowElement>(null)
+
+    React.useEffect(() => {
+        if (isFocused) rowRef.current?.scrollIntoView({ block: "nearest" })
+    }, [isFocused])
+
     return (
-        <TableRow data-state={row.getIsSelected() && "selected"}>
+        <TableRow
+            ref={rowRef}
+            data-state={row.getIsSelected() && "selected"}
+            className={isFocused ? "outline outline-2 -outline-offset-2 outline-primary" : undefined}
+        >
             {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id} className="px-3 py-2">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -37,18 +49,17 @@ export function ProductRow({ row }: { row: Row<DisplayProduct> }) {
 
 /**
  * The sell pair (MG Price + Premium) and buy pair (Buyback + Discount) are
- * colored by mixing the *actual* Merrion Gold theme tokens — secondary
- * (green) and accent (teal-blue) — with the current foreground via
- * color-mix(), rather than stock Tailwind emerald/slate that happened to be
- * close but weren't actually drawn from this theme. Both stay close to the
- * pure token (barely diluted) so they read as essentially the same green/
- * teal-blue used elsewhere in the theme (Trade's Buy pill, the Calculators
- * accent) — the small foreground mix is only there so each stays legible if
- * a future theme's secondary/accent were ever too dark for the background.
+ * colored by mixing the *actual* theme tokens — primary and secondary —
+ * with the current foreground via color-mix(), rather than a fixed color
+ * that would drift out of sync whenever the active theme changes. Both stay
+ * close to the pure token (barely diluted) so they read as essentially the
+ * same primary/secondary used elsewhere in the theme — the small foreground
+ * mix is only there so each stays legible if a future theme's primary/
+ * secondary were ever too dark for the background.
  */
 const PRICE_TONE_COLOR = {
-    sell: "color-mix(in srgb, var(--secondary) 95%, var(--foreground) 5%)",
-    buy: "color-mix(in srgb, var(--accent) 90%, var(--foreground) 10%)",
+    sell: "color-mix(in srgb, var(--primary) 95%, var(--foreground) 5%)",
+    buy: "color-mix(in srgb, var(--secondary) 90%, var(--foreground) 10%)",
 } as const
 
 function PriceCell({
@@ -166,6 +177,7 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
  * id gave "Marketvalue" instead of "Market Price". Keyed by column id.
  */
 export const productColumnLabels: Record<string, string> = {
+    name: "Product",
     spreadBuy: "Discount",
     priceBuy: "Buyback",
     marketValue: "Market Price",
@@ -174,6 +186,30 @@ export const productColumnLabels: Record<string, string> = {
     spreadSell: "Premium",
     metalType: "Metal",
     weight: "Weight",
+}
+
+/** Filter-only dimension for the "Type" faceted filter — bar vs coin vs bonded. */
+export const PRODUCT_TYPE_OPTIONS: { label: string; value: ProductGroup }[] = [
+    { label: "Bar", value: "bar" },
+    { label: "Coin", value: "coin" },
+    { label: "Bonded", value: "bonded" },
+]
+
+export type PriceBucket = "budget" | "mid" | "high" | "premium"
+
+/** Filter-only dimension for the "Price" faceted filter — bucketed off MG Price (priceSell), the column shoppers actually pay. */
+export const PRICE_BUCKET_OPTIONS: { label: string; value: PriceBucket }[] = [
+    { label: "Under €500", value: "budget" },
+    { label: "€500 – €2,000", value: "mid" },
+    { label: "€2,000 – €10,000", value: "high" },
+    { label: "Over €10,000", value: "premium" },
+]
+
+export function getPriceBucket(priceSell: number): PriceBucket {
+    if (priceSell < 500) return "budget"
+    if (priceSell < 2000) return "mid"
+    if (priceSell < 10000) return "high"
+    return "premium"
 }
 
 export const productColumns: ColumnDef<DisplayProduct>[] = [
@@ -206,23 +242,23 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     {
         id: "name",
         accessorKey: "name",
-        header: () => <div className="w-full text-left">Product</div>,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Product" />,
         cell: ({ row }) => <NameCell item={row.original} />,
         enableHiding: false,
     },
     {
         accessorKey: "marketValue",
-        header: "Market Price",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Market Price" />,
         cell: ({ row }) => <PriceCell value={row.original.marketValue} className="text-muted-foreground" />,
     },
     {
         accessorKey: "priceSell",
-        header: "MG Price",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="MG Price" />,
         cell: ({ row }) => <PriceCell value={row.original.priceSell} tone="sell" />,
     },
     {
         accessorKey: "spreadSell",
-        header: "Premium",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Premium" />,
         cell: ({ row }) => (
             <div className="w-24">
                 <SpreadBadge value={row.original.spreadSell} tone="sell" />
@@ -231,27 +267,46 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
     },
     {
         accessorKey: "priceBuy",
-        header: "Buyback",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Buyback" />,
         cell: ({ row }) => <PriceCell value={row.original.priceBuy} tone="buy" />,
     },
     {
         accessorKey: "spreadBuy",
-        header: "Discount",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Discount" />,
         cell: ({ row }) => <SpreadBadge value={row.original.spreadBuy} tone="buy" />,
     },
     {
         id: "priceSellVatExcl",
         accessorKey: "priceSellVatExcl",
-        header: "VAT Excl.",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="VAT Excl." />,
         cell: ({ row }) => <PriceCell value={row.original.priceSellVatExcl} className="text-muted-foreground" />,
     },
     {
         accessorKey: "weight",
-        header: "Weight",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Weight" />,
         cell: ({ row }) => (
             <div className="w-16 text-sm font-medium text-foreground">{row.original.weight.toFixed(2)}g</div>
         ),
     },
     { accessorKey: "metalType", header: "Metal", cell: ({ row }) => row.original.metalType },
+    {
+        // Filter-only — never rendered as a visible column (see initial
+        // columnVisibility in use-product-table.ts) and excluded from the
+        // "Customize Columns" list via enableHiding:false, so it exists
+        // purely to give the "Type" faceted filter a real Column to attach
+        // getFilterValue/getFacetedUniqueValues to.
+        id: "productType",
+        accessorFn: (row) => row.productType,
+        header: "Type",
+        enableHiding: false,
+        filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
+    },
+    {
+        id: "priceBucket",
+        accessorFn: (row) => getPriceBucket(row.priceSell),
+        header: "Price",
+        enableHiding: false,
+        filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
+    },
     { id: "actions", cell: ({ row }) => <RowActionsMenu product={row.original} /> },
 ]

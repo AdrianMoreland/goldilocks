@@ -6,6 +6,7 @@ import { z } from "zod";
 var TaskStatusSchema = z.enum(["todo", "in-progress", "done"]);
 var MetalTypeEnum = z.enum(["GOLD", "SILVER", "PLATINUM", "PALLADIUM"]);
 var MetalSymbolSchema = z.enum(["XAU", "XAG", "XPT", "XPD"]);
+var FetchSourceEnum = z.enum(["cache", "db", "live"]);
 var SpotPriceSchema = z.object({
   id: z.string(),
   metalType: MetalTypeEnum,
@@ -16,7 +17,10 @@ var SpotPriceSchema = z.object({
   changePercent: z.number(),
   source: z.string(),
   timestamp: z.iso.datetime(),
-  createdAt: z.iso.datetime()
+  createdAt: z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  /** True when a live fetch was actually attempted for this metal and failed, and this price is the last-known-good value served instead — distinct from a cache/DB hit that's just the normal cascade preference. */
+  isFallback: z.boolean().optional()
 });
 var RawSpotPriceSchema = z.object({
   id: z.string(),
@@ -25,7 +29,9 @@ var RawSpotPriceSchema = z.object({
   priceGbp: z.number(),
   source: z.string(),
   timestamp: z.iso.datetime(),
-  createdAt: z.iso.datetime()
+  createdAt: z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  isFallback: z.boolean().optional()
 });
 var HistoricSpotSchema = z.object({
   metalType: MetalTypeEnum,
@@ -201,6 +207,7 @@ var MarketDataResponseSchema = z5.object({
   spotPrices: z5.array(SpotPriceSchema),
   historicSpot: z5.array(HistoricSpotSchema),
   products: z5.array(ProductSchema),
+  /** The actual timestamp of the spot-price snapshot being shown — the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
   fetchedAt: z5.iso.datetime(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
@@ -209,7 +216,9 @@ var MarketDataResponseSchema = z5.object({
    * real price. The frontend surfaces this as a toast rather than silently
    * showing zero with no explanation.
    */
-  priceWarning: z5.string().nullable()
+  priceWarning: z5.string().nullable(),
+  /** Same information as priceWarning, structured — lets the UI mark individual metal cards as failed rather than only showing one combined text warning. */
+  degradedMetals: z5.array(MetalTypeEnum)
 });
 var RefreshResponseSchema = z5.object({
   spot: SpotPriceSchema,
@@ -880,6 +889,28 @@ var CreateBranchRequestSchema = z9.object({
   address: z9.string().optional(),
   currency: CurrencyEnum.default("EUR")
 });
+
+// src/fetch-attempt.schema.ts
+import { z as z10 } from "zod";
+var FetchTriggerEnum = z10.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
+var FetchAttemptSchema = z10.object({
+  id: z10.string(),
+  attemptedAt: z10.iso.datetime(),
+  durationMs: z10.number(),
+  success: z10.boolean(),
+  errorMessage: z10.string().nullable(),
+  metalsResolved: z10.array(MetalTypeEnum),
+  triggeredBy: FetchTriggerEnum
+});
+var FetchMetricsSchema = z10.object({
+  /** Fraction (0-1) of external API calls in the last 24h that succeeded. 1 when there were none to judge. */
+  successRate24h: z10.number(),
+  totalAttempts24h: z10.number(),
+  failureCount24h: z10.number(),
+  avgLatencyMs: z10.number(),
+  /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
+  cacheHitRatio: z10.number()
+});
 export {
   ApiErrorResponseSchema,
   ApiSuccessResponseSchema,
@@ -891,6 +922,10 @@ export {
   CreateSpotPriceDtoSchema,
   CreateUserRequestSchema,
   CurrencyEnum,
+  FetchAttemptSchema,
+  FetchMetricsSchema,
+  FetchSourceEnum,
+  FetchTriggerEnum,
   GRAMS_PER_TROY_OUNCE,
   HealthCheckSchema,
   HistoricSpotSchema,

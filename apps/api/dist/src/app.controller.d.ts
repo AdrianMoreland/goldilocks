@@ -7,5 +7,11 @@ export declare class AppController {
         status: string;
         port: number;
     };
+    getHealth(): Promise<{
+        status: string;
+        db: string;
+        redis: string;
+        lastSuccessfulMetalsApiCall: string | null;
+    }>;
 }
 //# sourceMappingURL=app.controller.d.ts.map

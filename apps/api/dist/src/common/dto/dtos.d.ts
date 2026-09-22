@@ -85,6 +85,12 @@ declare const RawSpotPriceResponseDto_base: import("nestjs-zod").ZodDto<import("
     source: import("zod").ZodString;
     timestamp: import("zod").ZodISODateTime;
     createdAt: import("zod").ZodISODateTime;
+    fetchSource: import("zod").ZodOptional<import("zod").ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: import("zod").ZodOptional<import("zod").ZodBoolean>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class RawSpotPriceResponseDto extends RawSpotPriceResponseDto_base {
 }
@@ -104,6 +110,12 @@ declare const SpotPriceResponseDto_base: import("nestjs-zod").ZodDto<import("zod
     source: import("zod").ZodString;
     timestamp: import("zod").ZodISODateTime;
     createdAt: import("zod").ZodISODateTime;
+    fetchSource: import("zod").ZodOptional<import("zod").ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: import("zod").ZodOptional<import("zod").ZodBoolean>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class SpotPriceResponseDto extends SpotPriceResponseDto_base {
 }
@@ -199,6 +211,12 @@ declare const MarketDataResponseDto_base: import("nestjs-zod").ZodDto<import("zo
         source: import("zod").ZodString;
         timestamp: import("zod").ZodISODateTime;
         createdAt: import("zod").ZodISODateTime;
+        fetchSource: import("zod").ZodOptional<import("zod").ZodEnum<{
+            cache: "cache";
+            db: "db";
+            live: "live";
+        }>>;
+        isFallback: import("zod").ZodOptional<import("zod").ZodBoolean>;
     }, import("zod/v4/core").$strip>>;
     historicSpot: import("zod").ZodArray<import("zod").ZodObject<{
         metalType: import("zod").ZodEnum<{
@@ -238,6 +256,12 @@ declare const MarketDataResponseDto_base: import("nestjs-zod").ZodDto<import("zo
     }, import("zod/v4/core").$strip>>;
     fetchedAt: import("zod").ZodISODateTime;
     priceWarning: import("zod").ZodNullable<import("zod").ZodString>;
+    degradedMetals: import("zod").ZodArray<import("zod").ZodEnum<{
+        GOLD: "GOLD";
+        SILVER: "SILVER";
+        PLATINUM: "PLATINUM";
+        PALLADIUM: "PALLADIUM";
+    }>>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class MarketDataResponseDto extends MarketDataResponseDto_base {
 }
@@ -494,6 +518,36 @@ declare const CreateBranchRequestDto_base: import("nestjs-zod").ZodDto<import("z
     }>>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class CreateBranchRequestDto extends CreateBranchRequestDto_base {
+}
+declare const FetchAttemptResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    id: import("zod").ZodString;
+    attemptedAt: import("zod").ZodISODateTime;
+    durationMs: import("zod").ZodNumber;
+    success: import("zod").ZodBoolean;
+    errorMessage: import("zod").ZodNullable<import("zod").ZodString>;
+    metalsResolved: import("zod").ZodArray<import("zod").ZodEnum<{
+        GOLD: "GOLD";
+        SILVER: "SILVER";
+        PLATINUM: "PLATINUM";
+        PALLADIUM: "PALLADIUM";
+    }>>;
+    triggeredBy: import("zod").ZodEnum<{
+        CRON: "CRON";
+        REFRESH: "REFRESH";
+        RETRY: "RETRY";
+        LAUNCH_FALLBACK: "LAUNCH_FALLBACK";
+    }>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class FetchAttemptResponseDto extends FetchAttemptResponseDto_base {
+}
+declare const FetchMetricsResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    successRate24h: import("zod").ZodNumber;
+    totalAttempts24h: import("zod").ZodNumber;
+    failureCount24h: import("zod").ZodNumber;
+    avgLatencyMs: import("zod").ZodNumber;
+    cacheHitRatio: import("zod").ZodNumber;
+}, import("zod/v4/core").$strip>, false>;
+export declare class FetchMetricsResponseDto extends FetchMetricsResponseDto_base {
 }
 export {};
 //# sourceMappingURL=dtos.d.ts.map

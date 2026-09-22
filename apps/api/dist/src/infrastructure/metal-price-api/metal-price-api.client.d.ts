@@ -1,8 +1,9 @@
+import { ConfigService } from '@nestjs/config';
 export declare class MetalPriceApiClient {
     private readonly api;
     private readonly metals;
     private readonly timeframeCurrencies;
-    constructor();
+    constructor(config: ConfigService);
     livePrices(): Promise<LiveResponse>;
     timeframePrices(startDate: string, endDate: string, currency?: string): Promise<TimeframeResponse>;
     ohlcPrices(date: string, currency?: string, metal?: string): Promise<OHLCResponse>;

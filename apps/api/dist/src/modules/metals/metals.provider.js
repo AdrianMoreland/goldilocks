@@ -8,13 +8,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var MetalsProvider_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetalsProvider = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const metal_price_api_client_1 = require("../../infrastructure/metal-price-api/metal-price-api.client");
+const metal_price_api_port_1 = require("../../infrastructure/metal-price-api/metal-price-api.port");
 const spot_price_cache_store_1 = require("./spot-price-cache.store");
+const cascade_metrics_service_1 = require("./cascade-metrics.service");
+const fetch_attempt_service_1 = require("./fetch-attempt.service");
 const pricing_util_1 = require("../../common/utils/pricing.util");
 const DB_STALE_MS = 30 * 60 * 1000;
 function isFresh(timestampIso, maxAgeMs) {
@@ -23,15 +28,22 @@ function isFresh(timestampIso, maxAgeMs) {
 function isUsablePrice(price) {
     return price !== null && price.priceEur > 0;
 }
+function withFetchSource(price, fetchSource, isFallback = false) {
+    return { ...price, fetchSource, isFallback };
+}
 let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
     prisma;
     metalPriceApi;
     spotCache;
+    cascadeMetrics;
+    fetchAttempts;
     logger = new common_1.Logger(MetalsProvider_1.name);
-    constructor(prisma, metalPriceApi, spotCache) {
+    constructor(prisma, metalPriceApi, spotCache, cascadeMetrics, fetchAttempts) {
         this.prisma = prisma;
         this.metalPriceApi = metalPriceApi;
         this.spotCache = spotCache;
+        this.cascadeMetrics = cascadeMetrics;
+        this.fetchAttempts = fetchAttempts;
     }
     async getLatest(metal) {
         return this.spotCache.get(metal);
@@ -61,13 +73,15 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         for (const metal of pricing_util_1.ALL_METALS) {
             const cached = await this.spotCache.getCachedOnly(metal);
             if (isUsablePrice(cached)) {
-                prices.push(cached);
+                this.cascadeMetrics.recordCacheHit();
+                prices.push(withFetchSource(cached, 'cache'));
                 continue;
             }
+            this.cascadeMetrics.recordCacheMiss();
             const dbRow = await this.spotCache.getFromDbOnly(metal);
             if (isUsablePrice(dbRow) && isFresh(dbRow.timestamp, DB_STALE_MS)) {
                 await this.spotCache.set(metal, dbRow);
-                prices.push(dbRow);
+                prices.push(withFetchSource(dbRow, 'db'));
                 continue;
             }
             needsLiveFetch.push(metal);
@@ -76,7 +90,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             return { prices, degradedMetals: [] };
         }
         this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} — trying the live API as a last resort`);
-        const liveRates = await this.fetchFromExternalApi();
+        const liveRates = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
         const timestamp = new Date();
         const degradedMetals = [];
         for (const metal of needsLiveFetch) {
@@ -84,7 +98,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             if (rate && rate.eur > 0) {
                 const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp };
                 await this.storeInDb([record]);
-                const dto = this.toDto(record);
+                const dto = this.toDto(record, 'live');
                 await this.spotCache.set(metal, dto);
                 prices.push(dto);
                 continue;
@@ -92,12 +106,12 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             degradedMetals.push(metal);
             const lastResort = await this.spotCache.getFromDbOnly(metal);
             if (lastResort)
-                prices.push(lastResort);
+                prices.push(withFetchSource(lastResort, 'db'));
         }
         return { prices, degradedMetals };
     }
-    async refreshAll() {
-        const liveRates = await this.fetchFromExternalApi();
+    async refreshAll(triggeredBy = 'REFRESH') {
+        const liveRates = await this.fetchFromExternalApi(triggeredBy);
         const timestamp = new Date();
         const prices = [];
         const liveMetals = Object.keys(liveRates).filter((m) => (liveRates[m]?.eur ?? 0) > 0);
@@ -110,7 +124,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                 timestamp,
             }));
             await this.storeInDb(records);
-            const dtos = records.map((record) => this.toDto(record));
+            const dtos = records.map((record) => this.toDto(record, 'live'));
             await Promise.all(dtos.map((dto) => this.spotCache.set(dto.metalType, dto)));
             prices.push(...dtos);
             this.logger.log(`✅ Refreshed ${liveMetals.join(', ')} from the live API`);
@@ -122,17 +136,29 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             const dbRow = await this.spotCache.getFromDbOnly(metal);
             if (isUsablePrice(dbRow)) {
                 await this.spotCache.set(metal, dbRow);
-                prices.push(dbRow);
+                prices.push(withFetchSource(dbRow, 'db', true));
             }
             else {
                 degradedMetals.push(metal);
                 if (dbRow)
-                    prices.push(dbRow);
+                    prices.push(withFetchSource(dbRow, 'db', true));
             }
         }
         return { prices, degradedMetals };
     }
-    toDto(record) {
+    async retryMetal(metal) {
+        const liveRates = await this.fetchFromExternalApi('RETRY');
+        const rate = liveRates[metal];
+        if (!rate || rate.eur <= 0) {
+            return null;
+        }
+        const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp: new Date() };
+        await this.storeInDb([record]);
+        const dto = this.toDto(record, 'live');
+        await this.spotCache.set(metal, dto);
+        return dto;
+    }
+    toDto(record, fetchSource) {
         return {
             id: '',
             metalType: record.metalType,
@@ -141,13 +167,22 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             source: record.source,
             createdAt: new Date().toISOString(),
             timestamp: record.timestamp.toISOString(),
+            fetchSource,
         };
     }
-    async fetchFromExternalApi() {
+    async fetchFromExternalApi(triggeredBy) {
+        const startedAt = Date.now();
         try {
             const response = await this.metalPriceApi.livePrices();
             if (!response.success) {
                 this.logger.error(`MetalPriceAPI returned success=false: ${JSON.stringify(response)}`);
+                await this.fetchAttempts.record({
+                    durationMs: Date.now() - startedAt,
+                    success: false,
+                    errorMessage: JSON.stringify(response),
+                    metalsResolved: [],
+                    triggeredBy,
+                });
                 return {};
             }
             this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
@@ -168,15 +203,30 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                 };
             }
             this.logger.log('✅ External API fetch succeeded: ' + JSON.stringify(rates));
+            await this.fetchAttempts.record({
+                durationMs: Date.now() - startedAt,
+                success: true,
+                errorMessage: null,
+                metalsResolved: Object.keys(rates),
+                triggeredBy,
+            });
             return rates;
         }
         catch (error) {
+            const message = error instanceof Error ? error.message : JSON.stringify(error);
             if (error instanceof Error) {
                 this.logger.error('External API fetch failed', error.stack);
             }
             else {
-                this.logger.error('External API fetch failed', JSON.stringify(error));
+                this.logger.error('External API fetch failed', message);
             }
+            await this.fetchAttempts.record({
+                durationMs: Date.now() - startedAt,
+                success: false,
+                errorMessage: message,
+                metalsResolved: [],
+                triggeredBy,
+            });
             return {};
         }
     }
@@ -304,8 +354,9 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
 exports.MetalsProvider = MetalsProvider;
 exports.MetalsProvider = MetalsProvider = MetalsProvider_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        metal_price_api_client_1.MetalPriceApiClient,
-        spot_price_cache_store_1.SpotPriceCacheStore])
+    __param(1, (0, common_1.Inject)(metal_price_api_port_1.METAL_PRICE_API)),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, Object, spot_price_cache_store_1.SpotPriceCacheStore,
+        cascade_metrics_service_1.CascadeMetricsService,
+        fetch_attempt_service_1.FetchAttemptService])
 ], MetalsProvider);
 //# sourceMappingURL=metals.provider.js.map

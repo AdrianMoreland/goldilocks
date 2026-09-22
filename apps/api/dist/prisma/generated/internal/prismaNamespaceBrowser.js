@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.FetchAttemptScalarFieldEnum = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -49,7 +49,8 @@ exports.ModelName = {
     Product: 'Product',
     MetalSpotPrice: 'MetalSpotPrice',
     HistoricSpotPrice: 'HistoricSpotPrice',
-    Branch: 'Branch'
+    Branch: 'Branch',
+    FetchAttempt: 'FetchAttempt'
 };
 exports.TransactionIsolationLevel = runtime.makeStrictEnum({
     ReadUncommitted: 'ReadUncommitted',
@@ -108,6 +109,15 @@ exports.BranchScalarFieldEnum = {
     address: 'address',
     currency: 'currency',
     createdAt: 'createdAt'
+};
+exports.FetchAttemptScalarFieldEnum = {
+    id: 'id',
+    attemptedAt: 'attemptedAt',
+    durationMs: 'durationMs',
+    success: 'success',
+    errorMessage: 'errorMessage',
+    metalsResolved: 'metalsResolved',
+    triggeredBy: 'triggeredBy'
 };
 exports.SortOrder = {
     asc: 'asc',

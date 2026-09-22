@@ -13,6 +13,17 @@ node_modules/
 # Prisma generated client
 apps/api/prisma/generated/
 
+# Stray compiled output next to .ts source — apps/api's real build output is
+# apps/api/dist/ (tracked deliberately, see above); a .js/.d.ts sitting next
+# to a same-named .ts file only ever means a stray `tsc`/`ts-node` run
+# compiled in place by mistake, so it's always safe to ignore.
+apps/api/src/**/*.js
+apps/api/src/**/*.js.map
+apps/api/src/**/*.d.ts
+apps/api/src/**/*.d.ts.map
+apps/api/prisma/*.js
+apps/api/prisma/*.js.map
+
 # Generated reports / docs
 apps/api/documentation/
 apps/api/nestjs-doctor-report.html

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetalPriceApiClient = void 0;
 const metalpriceapi_ts_1 = __importDefault(require("metalpriceapi-ts"));
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 let MetalPriceApiClient = class MetalPriceApiClient {
     api;
     metals = [
@@ -30,12 +31,8 @@ let MetalPriceApiClient = class MetalPriceApiClient {
         'XPT',
         'XPD',
     ];
-    constructor() {
-        const apiKey = process.env.METALPRICE_API_KEY;
-        if (!apiKey) {
-            throw new Error('METALPRICE_API_KEY is not defined in environment variables');
-        }
-        this.api = new metalpriceapi_ts_1.default(apiKey);
+    constructor(config) {
+        this.api = new metalpriceapi_ts_1.default(config.get('METALPRICE_API_KEY'));
     }
     async livePrices() {
         const { data } = await this.api.fetchLive('EUR', ['GBP', ...this.metals]);
@@ -85,6 +82,6 @@ let MetalPriceApiClient = class MetalPriceApiClient {
 exports.MetalPriceApiClient = MetalPriceApiClient;
 exports.MetalPriceApiClient = MetalPriceApiClient = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], MetalPriceApiClient);
 //# sourceMappingURL=metal-price-api.client.js.map

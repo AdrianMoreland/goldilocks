@@ -30,6 +30,10 @@ __export(index_exports, {
   CreateSpotPriceDtoSchema: () => CreateSpotPriceDtoSchema,
   CreateUserRequestSchema: () => CreateUserRequestSchema,
   CurrencyEnum: () => CurrencyEnum,
+  FetchAttemptSchema: () => FetchAttemptSchema,
+  FetchMetricsSchema: () => FetchMetricsSchema,
+  FetchSourceEnum: () => FetchSourceEnum,
+  FetchTriggerEnum: () => FetchTriggerEnum,
   GRAMS_PER_TROY_OUNCE: () => GRAMS_PER_TROY_OUNCE,
   HealthCheckSchema: () => HealthCheckSchema,
   HistoricSpotSchema: () => HistoricSpotSchema,
@@ -104,6 +108,7 @@ var import_zod = require("zod");
 var TaskStatusSchema = import_zod.z.enum(["todo", "in-progress", "done"]);
 var MetalTypeEnum = import_zod.z.enum(["GOLD", "SILVER", "PLATINUM", "PALLADIUM"]);
 var MetalSymbolSchema = import_zod.z.enum(["XAU", "XAG", "XPT", "XPD"]);
+var FetchSourceEnum = import_zod.z.enum(["cache", "db", "live"]);
 var SpotPriceSchema = import_zod.z.object({
   id: import_zod.z.string(),
   metalType: MetalTypeEnum,
@@ -114,7 +119,10 @@ var SpotPriceSchema = import_zod.z.object({
   changePercent: import_zod.z.number(),
   source: import_zod.z.string(),
   timestamp: import_zod.z.iso.datetime(),
-  createdAt: import_zod.z.iso.datetime()
+  createdAt: import_zod.z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  /** True when a live fetch was actually attempted for this metal and failed, and this price is the last-known-good value served instead — distinct from a cache/DB hit that's just the normal cascade preference. */
+  isFallback: import_zod.z.boolean().optional()
 });
 var RawSpotPriceSchema = import_zod.z.object({
   id: import_zod.z.string(),
@@ -123,7 +131,9 @@ var RawSpotPriceSchema = import_zod.z.object({
   priceGbp: import_zod.z.number(),
   source: import_zod.z.string(),
   timestamp: import_zod.z.iso.datetime(),
-  createdAt: import_zod.z.iso.datetime()
+  createdAt: import_zod.z.iso.datetime(),
+  fetchSource: FetchSourceEnum.optional(),
+  isFallback: import_zod.z.boolean().optional()
 });
 var HistoricSpotSchema = import_zod.z.object({
   metalType: MetalTypeEnum,
@@ -299,6 +309,7 @@ var MarketDataResponseSchema = import_zod5.z.object({
   spotPrices: import_zod5.z.array(SpotPriceSchema),
   historicSpot: import_zod5.z.array(HistoricSpotSchema),
   products: import_zod5.z.array(ProductSchema),
+  /** The actual timestamp of the spot-price snapshot being shown — the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
   fetchedAt: import_zod5.z.iso.datetime(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
@@ -307,7 +318,9 @@ var MarketDataResponseSchema = import_zod5.z.object({
    * real price. The frontend surfaces this as a toast rather than silently
    * showing zero with no explanation.
    */
-  priceWarning: import_zod5.z.string().nullable()
+  priceWarning: import_zod5.z.string().nullable(),
+  /** Same information as priceWarning, structured — lets the UI mark individual metal cards as failed rather than only showing one combined text warning. */
+  degradedMetals: import_zod5.z.array(MetalTypeEnum)
 });
 var RefreshResponseSchema = import_zod5.z.object({
   spot: SpotPriceSchema,
@@ -978,6 +991,28 @@ var CreateBranchRequestSchema = import_zod9.z.object({
   address: import_zod9.z.string().optional(),
   currency: CurrencyEnum.default("EUR")
 });
+
+// src/fetch-attempt.schema.ts
+var import_zod10 = require("zod");
+var FetchTriggerEnum = import_zod10.z.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
+var FetchAttemptSchema = import_zod10.z.object({
+  id: import_zod10.z.string(),
+  attemptedAt: import_zod10.z.iso.datetime(),
+  durationMs: import_zod10.z.number(),
+  success: import_zod10.z.boolean(),
+  errorMessage: import_zod10.z.string().nullable(),
+  metalsResolved: import_zod10.z.array(MetalTypeEnum),
+  triggeredBy: FetchTriggerEnum
+});
+var FetchMetricsSchema = import_zod10.z.object({
+  /** Fraction (0-1) of external API calls in the last 24h that succeeded. 1 when there were none to judge. */
+  successRate24h: import_zod10.z.number(),
+  totalAttempts24h: import_zod10.z.number(),
+  failureCount24h: import_zod10.z.number(),
+  avgLatencyMs: import_zod10.z.number(),
+  /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
+  cacheHitRatio: import_zod10.z.number()
+});
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ApiErrorResponseSchema,
@@ -990,6 +1025,10 @@ var CreateBranchRequestSchema = import_zod9.z.object({
   CreateSpotPriceDtoSchema,
   CreateUserRequestSchema,
   CurrencyEnum,
+  FetchAttemptSchema,
+  FetchMetricsSchema,
+  FetchSourceEnum,
+  FetchTriggerEnum,
   GRAMS_PER_TROY_OUNCE,
   HealthCheckSchema,
   HistoricSpotSchema,

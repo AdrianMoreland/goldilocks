@@ -162,6 +162,7 @@ export declare const ModelName: {
     readonly MetalSpotPrice: "MetalSpotPrice";
     readonly HistoricSpotPrice: "HistoricSpotPrice";
     readonly Branch: "Branch";
+    readonly FetchAttempt: "FetchAttempt";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export interface TypeMapCb<GlobalOmitOptions = {}> extends runtime.Types.Utils.Fn<{
@@ -174,7 +175,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         omit: GlobalOmitOptions;
     };
     meta: {
-        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch";
+        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch" | "fetchAttempt";
         txIsolationLevel: TransactionIsolationLevel;
     };
     model: {
@@ -548,6 +549,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
                 };
             };
         };
+        FetchAttempt: {
+            payload: Prisma.$FetchAttemptPayload<ExtArgs>;
+            fields: Prisma.FetchAttemptFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.FetchAttemptFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.FetchAttemptFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                findFirst: {
+                    args: Prisma.FetchAttemptFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.FetchAttemptFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                findMany: {
+                    args: Prisma.FetchAttemptFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>[];
+                };
+                create: {
+                    args: Prisma.FetchAttemptCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                createMany: {
+                    args: Prisma.FetchAttemptCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.FetchAttemptCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>[];
+                };
+                delete: {
+                    args: Prisma.FetchAttemptDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                update: {
+                    args: Prisma.FetchAttemptUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                deleteMany: {
+                    args: Prisma.FetchAttemptDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.FetchAttemptUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.FetchAttemptUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>[];
+                };
+                upsert: {
+                    args: Prisma.FetchAttemptUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$FetchAttemptPayload>;
+                };
+                aggregate: {
+                    args: Prisma.FetchAttemptAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateFetchAttempt>;
+                };
+                groupBy: {
+                    args: Prisma.FetchAttemptGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.FetchAttemptGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.FetchAttemptCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.FetchAttemptCountAggregateOutputType> | number;
+                };
+            };
+        };
     };
 } & {
     other: {
@@ -636,6 +711,16 @@ export declare const BranchScalarFieldEnum: {
     readonly createdAt: "createdAt";
 };
 export type BranchScalarFieldEnum = (typeof BranchScalarFieldEnum)[keyof typeof BranchScalarFieldEnum];
+export declare const FetchAttemptScalarFieldEnum: {
+    readonly id: "id";
+    readonly attemptedAt: "attemptedAt";
+    readonly durationMs: "durationMs";
+    readonly success: "success";
+    readonly errorMessage: "errorMessage";
+    readonly metalsResolved: "metalsResolved";
+    readonly triggeredBy: "triggeredBy";
+};
+export type FetchAttemptScalarFieldEnum = (typeof FetchAttemptScalarFieldEnum)[keyof typeof FetchAttemptScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
@@ -668,6 +753,8 @@ export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
 export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>;
 export type EnumCurrencyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Currency'>;
 export type ListEnumCurrencyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Currency[]'>;
+export type EnumFetchTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FetchTrigger'>;
+export type ListEnumFetchTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FetchTrigger[]'>;
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>;
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>;
 export type BatchPayload = {
@@ -700,6 +787,7 @@ export type GlobalOmitConfig = {
     metalSpotPrice?: Prisma.MetalSpotPriceOmit;
     historicSpotPrice?: Prisma.HistoricSpotPriceOmit;
     branch?: Prisma.BranchOmit;
+    fetchAttempt?: Prisma.FetchAttemptOmit;
 };
 export type LogLevel = 'info' | 'query' | 'warn' | 'error';
 export type LogDefinition = {

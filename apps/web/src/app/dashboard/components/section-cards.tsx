@@ -5,8 +5,43 @@ import {
 import React, {type SVGProps, useEffect, useState} from "react";
 import {Input} from "@/components/ui/input.tsx";
 import {PauseIcon, PlayIcon, ArrowUp, ArrowDown} from "lucide-react";
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {MetalCardData} from "../schemas/card-data.schema";
 import {metalAccentStyle} from "./pricing-tools/tab-theme";
+import {formatMinutesAgo} from "../utils/formatters";
+import {FETCH_SOURCE_LABEL} from "../utils/fetch-source";
+
+const FRESHNESS_DOT_COLOR: Record<MetalCardData["freshness"], string> = {
+    fresh: "bg-emerald-500",
+    stale: "bg-amber-500",
+    fallback: "bg-orange-500",
+    failed: "bg-red-500",
+}
+
+const FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
+    fresh: "Fresh",
+    stale: "Stale",
+    fallback: "Live fetch failed — showing last known price",
+    failed: "Failed to fetch",
+}
+
+/** The small dot next to the metal name — fresh/stale/failed, computed from lastFetchedAt + degradedMetals (see use-pricing-workbook.hook.ts). Money-risk signal: a red or amber dot means don't trust this price without checking further. */
+function FreshnessDot({ data }: { data: MetalCardData }) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span
+                    className={`inline-block size-1.5 shrink-0 rounded-full ${FRESHNESS_DOT_COLOR[data.freshness]}`}
+                    aria-label={`Price freshness: ${FRESHNESS_LABEL[data.freshness]}`}
+                />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+                <p>{FRESHNESS_LABEL[data.freshness]} — updated {formatMinutesAgo(data.lastFetchedAt)}</p>
+                {data.fetchSource && <p className="opacity-70">Source: {FETCH_SOURCE_LABEL[data.fetchSource]}</p>}
+            </TooltipContent>
+        </Tooltip>
+    )
+}
 
 
 interface SectionCardProps {
@@ -80,8 +115,11 @@ export function SectionCards({
             }`}
         >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0">
-            <CardTitle className="text-sm font-bold text-[var(--tab-accent-text)]">
+            <CardTitle className="flex items-center gap-1.5 text-sm font-bold text-[var(--tab-accent-text)]">
                 {data.metal}
+                <span onClick={(e) => e.stopPropagation()}>
+                    <FreshnessDot data={data} />
+                </span>
             </CardTitle>
             <div
                 className="p-1.5 rounded-lg transition-colors cursor-pointer"

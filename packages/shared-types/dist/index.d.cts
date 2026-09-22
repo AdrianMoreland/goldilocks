@@ -187,6 +187,12 @@ declare const MetalSymbolSchema: z.ZodEnum<{
     XPT: "XPT";
     XPD: "XPD";
 }>;
+/** Which tier actually satisfied this read — Redis cache, Postgres, or a fresh call to the live vendor API. Optional: only the two "how did we get this price" cascades (getAllLatestForLaunch/refreshAll) bother tagging it. */
+declare const FetchSourceEnum: z.ZodEnum<{
+    cache: "cache";
+    db: "db";
+    live: "live";
+}>;
 declare const SpotPriceSchema: z.ZodObject<{
     id: z.ZodString;
     metalType: z.ZodEnum<{
@@ -203,6 +209,12 @@ declare const SpotPriceSchema: z.ZodObject<{
     source: z.ZodString;
     timestamp: z.ZodISODateTime;
     createdAt: z.ZodISODateTime;
+    fetchSource: z.ZodOptional<z.ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;
 declare const RawSpotPriceSchema: z.ZodObject<{
     id: z.ZodString;
@@ -217,6 +229,12 @@ declare const RawSpotPriceSchema: z.ZodObject<{
     source: z.ZodString;
     timestamp: z.ZodISODateTime;
     createdAt: z.ZodISODateTime;
+    fetchSource: z.ZodOptional<z.ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;
 declare const HistoricSpotSchema: z.ZodObject<{
     metalType: z.ZodEnum<{
@@ -249,6 +267,12 @@ declare const SpotPriceArraySchema: z.ZodArray<z.ZodObject<{
     source: z.ZodString;
     timestamp: z.ZodISODateTime;
     createdAt: z.ZodISODateTime;
+    fetchSource: z.ZodOptional<z.ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>>;
 declare const SpotPriceMapSchema: z.ZodRecord<z.ZodEnum<{
     GOLD: "GOLD";
@@ -271,6 +295,12 @@ declare const SpotPriceMapSchema: z.ZodRecord<z.ZodEnum<{
     source: z.ZodString;
     timestamp: z.ZodISODateTime;
     createdAt: z.ZodISODateTime;
+    fetchSource: z.ZodOptional<z.ZodEnum<{
+        cache: "cache";
+        db: "db";
+        live: "live";
+    }>>;
+    isFallback: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>>;
 declare const TaskQueryParamsSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
@@ -284,6 +314,7 @@ type TaskQueryParams = z.infer<typeof TaskQueryParamsSchema>;
 type TaskStatus = z.infer<typeof TaskStatusSchema>;
 type MetalType = z.infer<typeof MetalTypeEnum>;
 type MetalSymbol = z.infer<typeof MetalSymbolSchema>;
+type FetchSource = z.infer<typeof FetchSourceEnum>;
 type SpotPrice = z.infer<typeof SpotPriceSchema>;
 type HistoricSpot = z.infer<typeof HistoricSpotSchema>;
 type CreateSpotPriceDto = z.infer<typeof CreateSpotPriceDtoSchema>;
@@ -444,6 +475,12 @@ declare const MarketDataResponseSchema: z.ZodObject<{
         source: z.ZodString;
         timestamp: z.ZodISODateTime;
         createdAt: z.ZodISODateTime;
+        fetchSource: z.ZodOptional<z.ZodEnum<{
+            cache: "cache";
+            db: "db";
+            live: "live";
+        }>>;
+        isFallback: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>>;
     historicSpot: z.ZodArray<z.ZodObject<{
         metalType: z.ZodEnum<{
@@ -483,6 +520,12 @@ declare const MarketDataResponseSchema: z.ZodObject<{
     }, z.core.$strip>>;
     fetchedAt: z.ZodISODateTime;
     priceWarning: z.ZodNullable<z.ZodString>;
+    degradedMetals: z.ZodArray<z.ZodEnum<{
+        GOLD: "GOLD";
+        SILVER: "SILVER";
+        PLATINUM: "PLATINUM";
+        PALLADIUM: "PALLADIUM";
+    }>>;
 }, z.core.$strip>;
 declare const RefreshResponseSchema: z.ZodObject<{
     spot: z.ZodObject<{
@@ -501,6 +544,12 @@ declare const RefreshResponseSchema: z.ZodObject<{
         source: z.ZodString;
         timestamp: z.ZodISODateTime;
         createdAt: z.ZodISODateTime;
+        fetchSource: z.ZodOptional<z.ZodEnum<{
+            cache: "cache";
+            db: "db";
+            live: "live";
+        }>>;
+        isFallback: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>;
     products: z.ZodArray<z.ZodObject<{
         id: z.ZodNumber;
@@ -1060,4 +1109,41 @@ declare const CreateBranchRequestSchema: z.ZodObject<{
 type Branch = z.infer<typeof BranchSchema>;
 type CreateBranchRequest = z.infer<typeof CreateBranchRequestSchema>;
 
-export { type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type ChangePasswordInput, ChangePasswordSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HistoricSpot, HistoricSpotSchema, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateProductFullDto, UpdateProductFullDtoSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, solveMissingPurchaseField };
+/** What triggered a call to the external metal-price vendor API. */
+declare const FetchTriggerEnum: z.ZodEnum<{
+    CRON: "CRON";
+    REFRESH: "REFRESH";
+    RETRY: "RETRY";
+    LAUNCH_FALLBACK: "LAUNCH_FALLBACK";
+}>;
+declare const FetchAttemptSchema: z.ZodObject<{
+    id: z.ZodString;
+    attemptedAt: z.ZodISODateTime;
+    durationMs: z.ZodNumber;
+    success: z.ZodBoolean;
+    errorMessage: z.ZodNullable<z.ZodString>;
+    metalsResolved: z.ZodArray<z.ZodEnum<{
+        GOLD: "GOLD";
+        SILVER: "SILVER";
+        PLATINUM: "PLATINUM";
+        PALLADIUM: "PALLADIUM";
+    }>>;
+    triggeredBy: z.ZodEnum<{
+        CRON: "CRON";
+        REFRESH: "REFRESH";
+        RETRY: "RETRY";
+        LAUNCH_FALLBACK: "LAUNCH_FALLBACK";
+    }>;
+}, z.core.$strip>;
+declare const FetchMetricsSchema: z.ZodObject<{
+    successRate24h: z.ZodNumber;
+    totalAttempts24h: z.ZodNumber;
+    failureCount24h: z.ZodNumber;
+    avgLatencyMs: z.ZodNumber;
+    cacheHitRatio: z.ZodNumber;
+}, z.core.$strip>;
+type FetchTrigger = z.infer<typeof FetchTriggerEnum>;
+type FetchAttempt = z.infer<typeof FetchAttemptSchema>;
+type FetchMetrics = z.infer<typeof FetchMetricsSchema>;
+
+export { type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type ChangePasswordInput, ChangePasswordSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HistoricSpot, HistoricSpotSchema, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateProductFullDto, UpdateProductFullDtoSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, solveMissingPurchaseField };

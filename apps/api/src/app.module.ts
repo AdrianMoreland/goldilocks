@@ -13,6 +13,8 @@ import {MetalPriceApiModule} from "./infrastructure/metal-price-api/metal-price-
 import {TradeModule} from "./modules/trade/trade.module";
 import {PortfolioModule} from "./modules/portfolio/portfolio.module";
 import {BranchesModule} from "./modules/branches/branches.module";
+import {PrismaModule} from "./infrastructure/prisma/prisma.module";
+import {RedisModule} from "./redis/redis.module";
 import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
 
 @Module({
@@ -30,6 +32,8 @@ import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
         TradeModule,
         PortfolioModule,
         BranchesModule,
+        PrismaModule,
+        RedisModule,
     ],
     controllers: [AppController],
     providers: [

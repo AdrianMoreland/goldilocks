@@ -20,3 +20,13 @@ export const formatGrams = (value: number | null | undefined) =>
 /** Expects an already-scaled percentage (23, not 0.23) — see the file-level note above. */
 export const formatPercent = (value: number | null | undefined) =>
     typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(2)}%` : "—"
+
+/** "less than 1 minute ago" / "14 minutes ago" — used for both the top-nav "Last Updated" line and each metal card's freshness tooltip, so the two never phrase the same age differently. */
+export function formatMinutesAgo(isoTimestamp: string | null | undefined): string {
+    if (!isoTimestamp) return "unknown"
+
+    const diffMins = Math.floor((Date.now() - new Date(isoTimestamp).getTime()) / 60000)
+    if (diffMins < 1) return "less than 1 minute ago"
+
+    return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`
+}

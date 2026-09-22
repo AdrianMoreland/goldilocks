@@ -100,6 +100,31 @@ model Branch {
   @@map("branches")
 }
 
+/// One row per call to the external metal-price vendor API (not per metal —
+/// the vendor returns all four metals in a single call, so "attempt" maps
+/// to that one HTTP round-trip). Powers the admin System Status panel's
+/// fetch-success-rate/latency metrics and its "last N attempts" log.
+model FetchAttempt {
+  id             BigInt       @id @default(autoincrement())
+  attemptedAt    DateTime     @default(now()) @db.Timestamptz(6)
+  durationMs     Int
+  success        Boolean
+  errorMessage   String?
+  /// Metals that actually got a usable (>0) rate back — empty on a fully failed call.
+  metalsResolved MetalType[]
+  triggeredBy    FetchTrigger
+
+  @@index([attemptedAt])
+  @@map("fetch_attempts")
+}
+
+enum FetchTrigger {
+  CRON
+  REFRESH
+  RETRY
+  LAUNCH_FALLBACK
+}
+
 enum UserRole {
   ADMIN
   MANAGER

@@ -16,6 +16,7 @@ export declare const ModelName: {
     readonly MetalSpotPrice: "MetalSpotPrice";
     readonly HistoricSpotPrice: "HistoricSpotPrice";
     readonly Branch: "Branch";
+    readonly FetchAttempt: "FetchAttempt";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export declare const TransactionIsolationLevel: {
@@ -82,6 +83,16 @@ export declare const BranchScalarFieldEnum: {
     readonly createdAt: "createdAt";
 };
 export type BranchScalarFieldEnum = (typeof BranchScalarFieldEnum)[keyof typeof BranchScalarFieldEnum];
+export declare const FetchAttemptScalarFieldEnum: {
+    readonly id: "id";
+    readonly attemptedAt: "attemptedAt";
+    readonly durationMs: "durationMs";
+    readonly success: "success";
+    readonly errorMessage: "errorMessage";
+    readonly metalsResolved: "metalsResolved";
+    readonly triggeredBy: "triggeredBy";
+};
+export type FetchAttemptScalarFieldEnum = (typeof FetchAttemptScalarFieldEnum)[keyof typeof FetchAttemptScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
