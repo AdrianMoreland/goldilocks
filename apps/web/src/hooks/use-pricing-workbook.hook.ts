@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { useMarketData, STALE_THRESHOLD_MS } from '@/hooks/use-market-data.hook';
+import { useUserPreference } from '@/hooks/use-user-preference.hook';
 import type { MetalType, SpotPrice } from '@/lib/types';
 import {MetalCardData} from "@/app/dashboard/schemas/card-data.schema.ts";
 
@@ -102,9 +103,10 @@ function useDebouncedRecalc(
 // ── Public hook ───────────────────────────────────────────────────────────────
 
 export function usePricingWorkbook() {
-    // Gold selected by default on launch, matching the chart's default
+    // Gold selected by default on first launch, matching the chart's default
     // "selected metal only" view — see ChartAreaInteractive's chartMode.
-    const [selectedMetal, setSelectedMetal] = useState<MetalType | null>('GOLD');
+    // Remembered per user afterwards.
+    const [selectedMetal, setSelectedMetal] = useUserPreference<MetalType | null>('selected-metal', 'GOLD');
     const [spotOverrides, setSpotOverrides] = useState<Partial<Record<MetalType, number>>>({});
 
     const {

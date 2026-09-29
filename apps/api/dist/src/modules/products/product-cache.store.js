@@ -28,6 +28,7 @@ let ProductCacheStore = class ProductCacheStore extends cache_aside_store_base_1
     }
     async fetchFromSource() {
         const products = await this.prisma.product.findMany({
+            where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },
         });
         return products.map(pricing_util_1.toRawProduct);

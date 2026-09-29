@@ -7,8 +7,8 @@ exports.toRawProduct = toRawProduct;
 exports.calculateProductPrice = calculateProductPrice;
 exports.mergeMetalPrices = mergeMetalPrices;
 exports.enrichSpotPrices = enrichSpotPrices;
+const shared_types_1 = require("@goldilocks/shared-types");
 const prismaNamespace_1 = require("../../../prisma/generated/internal/prismaNamespace");
-const GRAMS_PER_TROY_OUNCE = 31.1;
 function toNumber(value) {
     if (value === undefined || value === null)
         return 0;
@@ -42,6 +42,7 @@ function toRawProduct(product) {
         vatRate: toNumber(product.vatRate),
         stock: product.stock,
         isActive: product.isActive,
+        category: product.category ?? null,
         description: product.description,
         createdAt: product.createdAt.toISOString(),
         updatedAt: product.updatedAt.toISOString(),
@@ -49,7 +50,7 @@ function toRawProduct(product) {
 }
 function calculateProductPrice(product, spotMap) {
     const marketPrice = spotMap[product.metalType] ?? 0;
-    const spotPerGram = marketPrice / GRAMS_PER_TROY_OUNCE;
+    const spotPerGram = marketPrice / shared_types_1.GRAMS_PER_TROY_OUNCE;
     const basePrice = spotPerGram * product.weight;
     const priceSellVatExcl = basePrice * (1 + product.spreadSell);
     const priceSell = priceSellVatExcl * (1 + product.vatRate);
@@ -66,11 +67,12 @@ function calculateProductPrice(product, spotMap) {
         vatRate: product.vatRate,
         spotPrice: round2(marketPrice),
         marketValue: round2(basePrice),
-        priceSell: round2(priceSell),
-        priceSellVatExcl: round2(priceSellVatExcl),
-        priceBuy: round2(priceBuy),
+        priceSell: (0, shared_types_1.roundSellPrice)(priceSell),
+        priceSellVatExcl: (0, shared_types_1.roundSellPrice)(priceSellVatExcl),
+        priceBuy: (0, shared_types_1.roundBuyPrice)(priceBuy),
         stock: product.stock,
         isActive: product.isActive,
+        category: product.category ?? null,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
     };

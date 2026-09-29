@@ -19,6 +19,7 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-raised: var(--card-raised);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -30,6 +31,11 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-price: var(--price);
+  --color-buyback: var(--buyback);
+  --color-price-text: var(--price-text);
+  --color-buyback-text: var(--buyback-text);
+  --color-primary-text: var(--primary-text);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -82,6 +88,26 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Trade-direction colours — Price (what the customer pays us) and Buyback
+     (what we pay the customer). They are semantic, not brand: every theme
+     gets the Merrion teal/raspberry unless a preset sets its own. (They used
+     to fall back to primary/secondary, but most presets' secondary is a
+     neutral grey — near-white in light, near-black in dark — which made
+     Buyback unreadable.)
+     The *-text tones colour text and thin lines. They're derived from the
+     fill with a lightness ceiling here (and a floor under .dark), so they
+     stay readable on any theme's background even if a preset picks a fill
+     that's too light or too dark to read as text. Presets can still set
+     them explicitly (Merrion Gold does). */
+  --price: #1eb8a5;
+  --buyback: #e0558f;
+  --price-text: oklch(from var(--price) min(l, 0.45) c h);
+  --buyback-text: oklch(from var(--buyback) min(l, 0.45) c h);
+  --primary-text: oklch(from var(--primary) min(l, 0.45) c h);
+  /* A card that should read as sitting above the page (the spot-price
+     cards) even when a theme gives card and background the same colour.
+     Themes can set it; otherwise it's the card nudged toward the text. */
+  --card-raised: color-mix(in oklch, var(--card), var(--foreground) 3%);
 }
 
 .dark {
@@ -116,7 +142,32 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --price-text: oklch(from var(--price) max(l, 0.78) c h);
+  --buyback-text: oklch(from var(--buyback) max(l, 0.78) c h);
+  --primary-text: oklch(from var(--primary) max(l, 0.78) c h);
+  --card-raised: color-mix(in oklch, var(--card), var(--foreground) 6%);
 }
+
+/* Type scale — mirrors the Merrion Gold Figma text styles one-to-one (same
+   names), so a style picked in Figma has exactly one class here. Letter
+   spacing is Figma's px value converted to em so it scales with the size. */
+@utility type-h1 { font-size: 3rem; line-height: 3rem; font-weight: 800; letter-spacing: -0.012em; }
+@utility type-h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.0075em; }
+@utility type-h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; letter-spacing: -0.006em; }
+@utility type-h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; letter-spacing: -0.005em; }
+@utility type-lead { font-size: 1.25rem; line-height: 1.75rem; font-weight: 400; }
+@utility type-large { font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; }
+@utility type-p { font-size: 1rem; line-height: 1.75rem; font-weight: 400; }
+@utility type-small { font-size: 0.875rem; line-height: 0.875rem; font-weight: 500; }
+@utility type-muted { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; }
+@utility type-table-head { font-size: 1rem; line-height: 1.5rem; font-weight: 700; }
+@utility type-table-item { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
+
+/* Theme editor shadow strength (set as data-shadows on <html>). Tailwind's
+   shadow utilities read --tw-shadow and --tw-shadow-color, so these tone
+   every shadow down without touching focus rings (a separate variable). */
+[data-shadows="none"] * { --tw-shadow: 0 0 #0000 !important; }
+[data-shadows="subtle"] * { --tw-shadow-color: rgb(0 0 0 / 0.04); }
 
 @layer base {
   * {

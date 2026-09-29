@@ -1,3 +1,4 @@
+import { GRAMS_PER_TROY_OUNCE } from "@goldilocks/shared-types"
 import * as React from "react"
 import {
     ArrowLeftRight, ArrowRight, ChevronDown, CircleX, Divide, Percent as PercentIcon,
@@ -370,7 +371,7 @@ function PercentVisual({ mode, x, y, result }: { mode: PercentMode; x: number; y
 // spot prices), not the 28.35g avoirdupois ounce.
 const WEIGHT_UNITS = [
     { key: "g", label: "Gram (g)", perGram: 1 },
-    { key: "oz", label: "Ounce (oz t)", perGram: 31.1034768 },
+    { key: "oz", label: "Ounce (oz t)", perGram: GRAMS_PER_TROY_OUNCE },
     { key: "kg", label: "Kilogram (kg)", perGram: 1000 },
 ] as const
 
@@ -379,7 +380,7 @@ type WeightUnitKey = (typeof WEIGHT_UNITS)[number]["key"]
 function WeightConverter() {
     // Grams is the single source of truth — every field below is derived
     // from it, and typing into any field converts back into grams first.
-    const [grams, setGrams] = React.useState(31.1034768) // defaults to 1 troy oz
+    const [grams, setGrams] = React.useState(GRAMS_PER_TROY_OUNCE) // defaults to 1 troy oz
 
     return (
         <div className="flex flex-col gap-4">

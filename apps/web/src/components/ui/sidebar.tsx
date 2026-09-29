@@ -51,6 +51,11 @@ function useSidebar() {
   return context
 }
 
+/** Like useSidebar, but returns null instead of throwing when there's no SidebarProvider above — for UI (e.g. the theme customizer) that can render outside the page layout. */
+function useSidebarOptional() {
+  return React.useContext(SidebarContext)
+}
+
 function SidebarProvider({
   defaultOpen = true,
   open: openProp,
@@ -725,4 +730,5 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
+  useSidebarOptional,
 }

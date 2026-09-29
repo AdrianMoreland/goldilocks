@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
+import { ApiError } from '@/hooks/useApi';
 import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.api';
 import { queryKeys } from '@/lib/query-keys';
 import { formatMinutesAgo } from '@/app/dashboard/utils/formatters';
@@ -48,7 +49,11 @@ export function useMarketData() {
     useEffect(() => {
         if (error && !hasShownErrorToast.current) {
             hasShownErrorToast.current = true;
-            toast.error('Could not fetch spot prices — check your connection or try refreshing.');
+            // An ApiError already produced its own, more specific toast (with
+            // a reference) and an error-log entry — don't stack a second one.
+            if (!(error instanceof ApiError)) {
+                toast.error('Could not fetch spot prices — check your connection or try refreshing.');
+            }
         }
         if (!error) hasShownErrorToast.current = false;
     }, [error]);

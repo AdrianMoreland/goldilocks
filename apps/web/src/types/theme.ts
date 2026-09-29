@@ -43,6 +43,15 @@ export type ThemeStyleProps = {
   "shadow-offset-y"?: string;
   "letter-spacing"?: string;
   spacing?: string;
+  /** Trade-direction colours (see index.css) — optional; a theme that omits them gets the Merrion teal/raspberry. */
+  price?: string;
+  buyback?: string;
+  /** Surface for cards that should stand slightly off the page (spot-price cards). Falls back to a mix of card and foreground. */
+  "card-raised"?: string;
+  /** Text tones for primary/price/buyback — darker than the fill in light mode where the fill is too light to read on white. Fall back to the fill. */
+  "primary-text"?: string;
+  "price-text"?: string;
+  "buyback-text"?: string;
 };
 
 export type ThemeStyles = {

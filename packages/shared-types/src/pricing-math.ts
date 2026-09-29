@@ -11,6 +11,20 @@ import type { TradeTransactionType } from './trade.schema';
 export const GRAMS_PER_TROY_OUNCE = 31.1034768;
 
 /**
+ * Whole-euro rounding for quoted product prices, always in the dealer's
+ * favour: a price we charge rounds UP, a buyback we pay rounds DOWN. The
+ * value is snapped to cents first so float noise (2948.0000000004) doesn't
+ * push a whole-euro price up by €1.
+ */
+export function roundSellPrice(value: number): number {
+  return Math.ceil(Math.round(value * 100) / 100);
+}
+
+export function roundBuyPrice(value: number): number {
+  return Math.floor(Math.round(value * 100) / 100);
+}
+
+/**
  * Prices one line: a buy (customer pays a premium over spot) or a sell
  * (customer receives a discount off spot).
  *

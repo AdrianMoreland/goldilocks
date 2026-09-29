@@ -1,5 +1,6 @@
 import * as React from "react"
 import type { MetalType, Product } from "@/lib/types"
+import { useUserPreference } from "@/hooks/use-user-preference.hook"
 
 export type PricingToolTab = "product" | "trade" | "portfolio" | "calculators" | "settings"
 
@@ -56,12 +57,13 @@ const PricingToolsContext = React.createContext<PricingToolsContextValue | null>
 
 /** Pricing tools panel state — open by default, toggled via a header button. */
 export function PricingToolsProvider({ children }: { children: React.ReactNode }) {
-    const [open, setOpen] = React.useState(true)
+    // Panel and card visibility are remembered per user; the rest is per-session.
+    const [open, setOpen] = useUserPreference("tools-panel-open", true)
     const [activeTab, setActiveTab] = React.useState<PricingToolTab>("product")
     const [activeMetal, setActiveMetal] = React.useState<MetalType>("GOLD")
     const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
     const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
-    const [cardsVisible, setCardsVisible] = React.useState(true)
+    const [cardsVisible, setCardsVisible] = useUserPreference("cards-visible", true)
     const [adminPanelOpen, setAdminPanelOpen] = React.useState(false)
 
     const selectedProductIds = React.useMemo(

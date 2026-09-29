@@ -10,7 +10,12 @@ export declare class ProductsProvider {
     getById(id: number): Promise<RawProduct | null>;
     findBySku(sku: string): Promise<{
         id: number;
+        deletedAt: Date | null;
     } | null>;
+    getDeleted(): Promise<(RawProduct & {
+        deletedAt: string;
+    })[]>;
+    getDeletedById(id: number): Promise<RawProduct | null>;
     create(data: {
         sku: string;
         name: string;
@@ -20,10 +25,12 @@ export declare class ProductsProvider {
         spreadBuy: number;
         vatRate: number;
         stock: number;
+        category?: RawProduct['category'];
         description?: string;
     }): Promise<RawProduct>;
     update(id: number, data: Partial<RawProduct>): Promise<RawProduct>;
-    delete(id: number): Promise<RawProduct>;
+    softDelete(id: number): Promise<RawProduct>;
+    restore(id: number): Promise<RawProduct>;
     updateStock(id: number, stock: number): Promise<RawProduct>;
     private refreshCache;
 }

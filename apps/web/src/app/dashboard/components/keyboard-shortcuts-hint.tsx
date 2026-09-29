@@ -18,9 +18,9 @@ const SHORTCUTS: ShortcutRow[] = [
 const ADMIN_SHORTCUT: ShortcutRow = { keys: "a", label: "Admin panel" }
 
 /**
- * Bottom-right shortcut hint — deliberately tiny and near-invisible until
- * hovered. Just enough to be discoverable, never loud enough to compete
- * with the actual pricing data.
+ * Bottom-right shortcut hint — deliberately small and quiet, but readable
+ * at rest (it was 40% opacity, which made it effectively undiscoverable).
+ * Never loud enough to compete with the actual pricing data.
  */
 export function KeyboardShortcutsHint({ isAdmin }: { isAdmin: boolean }) {
     const rows = isAdmin ? [...SHORTCUTS, ADMIN_SHORTCUT] : SHORTCUTS
@@ -32,7 +32,7 @@ export function KeyboardShortcutsHint({ isAdmin }: { isAdmin: boolean }) {
                     <button
                         type="button"
                         aria-label="Keyboard shortcuts"
-                        className="pointer-events-auto flex size-6 cursor-help items-center justify-center rounded-full text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+                        className="pointer-events-auto flex size-6 cursor-help items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:text-foreground"
                     >
                         <Keyboard className="size-3.5" />
                     </button>
@@ -41,7 +41,7 @@ export function KeyboardShortcutsHint({ isAdmin }: { isAdmin: boolean }) {
                     <ul className="space-y-1">
                         {rows.map((row) => (
                             <li key={row.keys} className="flex items-center gap-2 text-xs">
-                                <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1 font-mono text-[10px]">
+                                <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1 font-mono text-[11px]">
                                     {row.keys}
                                 </kbd>
                                 <span>{row.label}</span>

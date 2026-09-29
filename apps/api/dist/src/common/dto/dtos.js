@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FetchMetricsResponseDto = exports.FetchAttemptResponseDto = exports.CreateBranchRequestDto = exports.BranchResponseDto = exports.PortfolioBuildResponseDto = exports.PortfolioBuildRequestDto = exports.ProfitAnalysisResponseDto = exports.ProfitAnalysisRequestDto = exports.MeltCalculatorResponseDto = exports.MeltCalculatorRequestDto = exports.TradeCartResponseDto = exports.TradeCartRequestDto = exports.TradeBootstrapResponseDto = exports.MarketDataResponseDto = exports.UpdateProductDto = exports.ProductResponseDto = exports.CreateProductDto = exports.CreateSpotPriceDto = exports.SpotPriceResponseDto = exports.RawSpotPriceResponseDto = exports.HealthCheckDto = exports.MessageResponseDto = exports.CreateUserRequestDto = exports.SessionUserDto = exports.LoginResponseDto = exports.LoginRequestDto = void 0;
+exports.ClientErrorReportBatchDto = exports.FetchMetricsResponseDto = exports.FetchAttemptResponseDto = exports.CreateBranchRequestDto = exports.BranchResponseDto = exports.PortfolioBuildResponseDto = exports.PortfolioBuildRequestDto = exports.ProfitAnalysisResponseDto = exports.ProfitAnalysisRequestDto = exports.MeltCalculatorResponseDto = exports.MeltCalculatorRequestDto = exports.TradeCartResponseDto = exports.TradeCartRequestDto = exports.TradeBootstrapResponseDto = exports.MarketDataResponseDto = exports.UpdateProductDto = exports.ProductResponseDto = exports.CreateProductDto = exports.CreateSpotPriceDto = exports.SpotPriceResponseDto = exports.RawSpotPriceResponseDto = exports.HealthCheckDto = exports.MessageResponseDto = exports.CreateUserRequestDto = exports.SessionUserDto = exports.LoginResponseDto = exports.LoginRequestDto = void 0;
 const shared_types_1 = require("@goldilocks/shared-types");
 const shared_types_2 = require("@goldilocks/shared-types");
 const dto_generator_1 = require("./dto-generator");
@@ -82,4 +82,7 @@ exports.FetchAttemptResponseDto = FetchAttemptResponseDto;
 class FetchMetricsResponseDto extends (0, dto_generator_1.createDto)(shared_types_1.FetchMetricsSchema, 'FetchMetricsResponseDto') {
 }
 exports.FetchMetricsResponseDto = FetchMetricsResponseDto;
+class ClientErrorReportBatchDto extends (0, dto_generator_1.createDto)(shared_types_1.ClientErrorReportBatchSchema, 'ClientErrorReportBatchDto') {
+}
+exports.ClientErrorReportBatchDto = ClientErrorReportBatchDto;
 //# sourceMappingURL=dtos.js.map

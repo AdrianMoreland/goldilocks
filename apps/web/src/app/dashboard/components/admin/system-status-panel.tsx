@@ -26,7 +26,7 @@ const FRESHNESS_DOT: Record<MetalCardData["freshness"], string> = {
 function MetricTag({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex flex-1 flex-col items-center gap-0.5 rounded-md border bg-muted/40 px-2 py-1.5">
-            <span className="text-[9px] font-bold tracking-wide text-muted-foreground uppercase">{label}</span>
+            <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">{label}</span>
             <span className="text-sm font-semibold">{value}</span>
         </div>
     )
@@ -35,6 +35,8 @@ function MetricTag({ label, value }: { label: string; value: string }) {
 interface SystemStatusPanelProps {
     /** The same per-metal freshness data the dashboard cards use — this panel is a second view onto it, not a separate source of truth. */
     metalCards: MetalCardData[]
+    /** Whether the admin panel is actually open — it stays mounted (width 0) when closed, so polling is gated on this rather than on mount. */
+    active: boolean
 }
 
 /**
@@ -43,19 +45,21 @@ interface SystemStatusPanelProps {
  * lightweight refresh action) using this project's own Tailwind/shadcn
  * tokens rather than pulling in framer-motion/react-icons for one widget.
  */
-export function SystemStatusPanel({ metalCards }: SystemStatusPanelProps) {
+export function SystemStatusPanel({ metalCards, active }: SystemStatusPanelProps) {
     const api = useAdminApi()
     const queryClient = useQueryClient()
 
     const metricsQuery = useQuery({
         queryKey: queryKeys.admin.fetchMetrics,
         queryFn: api.getFetchMetrics,
+        enabled: active,
         refetchInterval: 30_000,
     })
 
     const logQuery = useQuery({
         queryKey: queryKeys.admin.fetchLog,
         queryFn: () => api.getFetchLog(5),
+        enabled: active,
         refetchInterval: 30_000,
     })
 
@@ -110,7 +114,7 @@ export function SystemStatusPanel({ metalCards }: SystemStatusPanelProps) {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 cursor-pointer px-2 text-[10px]"
+                                className="h-6 cursor-pointer px-2 text-[11px]"
                                 disabled={retryMutation.isPending && retryMutation.variables === card.metal}
                                 onClick={() => retryMutation.mutate(card.metal)}
                             >
@@ -124,7 +128,7 @@ export function SystemStatusPanel({ metalCards }: SystemStatusPanelProps) {
             <Separator />
 
             <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">Recent attempts</span>
+                <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">Recent attempts</span>
                 {(logQuery.data ?? []).map((attempt) => (
                     <div
                         key={attempt.id}
@@ -136,7 +140,7 @@ export function SystemStatusPanel({ metalCards }: SystemStatusPanelProps) {
                             <XCircle className="size-3 shrink-0 text-red-500" />
                         )}
                         <span className="shrink-0 text-muted-foreground">{formatMinutesAgo(attempt.attemptedAt)}</span>
-                        <span className="shrink-0 rounded border px-1 text-[9px] font-bold text-muted-foreground uppercase">
+                        <span className="shrink-0 rounded border px-1 text-[11px] font-bold text-muted-foreground uppercase">
                             {TRIGGER_LABEL[attempt.triggeredBy]}
                         </span>
                         <span className="shrink-0 text-muted-foreground">{attempt.durationMs}ms</span>

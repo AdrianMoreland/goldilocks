@@ -1,8 +1,12 @@
-import { GRAMS_PER_TROY_OUNCE, type MetalType, type Product } from "@goldilocks/shared-types"
+import { GRAMS_PER_TROY_OUNCE, type MetalType, type Product, type ProductCategory } from "@goldilocks/shared-types"
 
 export type ProductGroup = "bar" | "coin" | "bonded"
 
-export type DisplayProduct = Product & { productType: ProductGroup }
+export type DisplayProduct = Product & {
+    productType: ProductGroup
+    /** Only on merged "{fraction} Coin" rows: the real per-mint products averaged into it. Admin actions target these, never the merged row's borrowed id. */
+    members?: Product[]
+}
 
 const METAL_WORDS: Record<MetalType, string> = {
     GOLD: "gold",
@@ -26,6 +30,16 @@ const COIN_MERGE_TARGETS: { label: string; weightGrams: number }[] = [
 
 function isBar(name: string): boolean {
     return /bar/i.test(name)
+}
+
+/** Name-based fallback for products created before category existed. */
+export function inferCategory(name: string): ProductCategory {
+    return isBar(name) ? "BAR" : "COIN"
+}
+
+/** The stored category wins; only uncategorised (older) products fall back to the name. */
+function isBarProduct(product: Product): boolean {
+    return (product.category ?? inferCategory(product.name)) === "BAR"
 }
 
 function isBonded(name: string): boolean {
@@ -89,6 +103,7 @@ function mergeCoinGroup(metalType: MetalType, label: string, group: Product[]): 
         createdAt: mostRecent.createdAt,
         updatedAt: mostRecent.updatedAt,
         productType: "coin",
+        members: group,
     }
 }
 
@@ -117,13 +132,13 @@ export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
         if (isBonded(product.name)) {
             bonded.push({
                 ...product,
-                name: isBar(product.name) ? stripMetalWord(product.name, product.metalType) : product.name,
+                name: isBarProduct(product) ? stripMetalWord(product.name, product.metalType) : product.name,
                 productType: "bonded",
             })
             continue
         }
 
-        if (isBar(product.name)) {
+        if (isBarProduct(product)) {
             bars.push({
                 ...product,
                 name: stripMetalWord(product.name, product.metalType),

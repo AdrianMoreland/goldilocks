@@ -14,6 +14,21 @@ export const formatEuro = (value: number | null | undefined) =>
         ? new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(value)
         : "—"
 
+const wholeEuro = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 })
+
+/**
+ * Quoted prices (Price, Buyback, totals) — whole euros, no cents. The API
+ * already rounds them in the dealer's favour (up when we charge, down when
+ * we pay); Math.round here only absorbs anything that isn't a quoted price
+ * yet (market value). Keep formatEuro for per-gram and other precise figures.
+ */
+export const formatPrice = (value: number | null | undefined) =>
+    typeof value === "number" && Number.isFinite(value) ? wholeEuro.format(Math.round(value)) : "—"
+
+/** Spot prices: whole euros for gold, platinum and palladium; silver (tens of euros an ounce) keeps its cents. */
+export const formatSpot = (metal: string, value: number | null | undefined) =>
+    metal === "SILVER" ? formatEuro(value) : formatPrice(value)
+
 export const formatGrams = (value: number | null | undefined) =>
     typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)} g` : "—"
 
@@ -30,3 +45,6 @@ export function formatMinutesAgo(isoTimestamp: string | null | undefined): strin
 
     return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`
 }
+
+/** "GOLD" -> "Gold" — for anywhere a metal enum would otherwise leak into copy verbatim. */
+export const formatMetalName = (metal: string) => metal.charAt(0).toUpperCase() + metal.slice(1).toLowerCase()

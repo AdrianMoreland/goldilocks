@@ -35,10 +35,7 @@ let ProductsService = ProductsService_1 = class ProductsService {
         return (0, pricing_util_1.calculateProductPrice)(raw, spotMap);
     }
     async create(dto) {
-        const existing = await this.productsProvider.findBySku(dto.sku);
-        if (existing) {
-            throw new common_1.ConflictException('Product already exists.');
-        }
+        await this.assertSkuAvailable(dto.sku);
         return this.productsProvider.create(dto);
     }
     async update(id, dto) {
@@ -46,17 +43,43 @@ let ProductsService = ProductsService_1 = class ProductsService {
         if (!existing) {
             throw new common_1.NotFoundException('Product not found');
         }
-        return this.productsProvider.update(id, dto);
+        if (dto.sku && dto.sku.toLowerCase() !== existing.sku.toLowerCase()) {
+            await this.assertSkuAvailable(dto.sku);
+        }
+        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description } = dto;
+        return this.productsProvider.update(id, { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description });
     }
     async delete(id) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new common_1.NotFoundException('Product not found');
         }
-        return this.productsProvider.delete(id);
+        return this.productsProvider.softDelete(id);
+    }
+    async getDeleted() {
+        return this.productsProvider.getDeleted();
+    }
+    async restore(id) {
+        const existing = await this.productsProvider.getDeletedById(id);
+        if (!existing) {
+            throw new common_1.NotFoundException('Deleted product not found');
+        }
+        return this.productsProvider.restore(id);
     }
     async updateStock(id, stockQuantity) {
+        const existing = await this.productsProvider.getById(id);
+        if (!existing) {
+            throw new common_1.NotFoundException('Product not found');
+        }
         return this.productsProvider.updateStock(id, stockQuantity);
+    }
+    async assertSkuAvailable(sku) {
+        const existing = await this.productsProvider.findBySku(sku);
+        if (!existing)
+            return;
+        throw new common_1.ConflictException(existing.deletedAt
+            ? 'A deleted product already uses this SKU. Restore it from Deleted products instead.'
+            : 'A product with this SKU already exists.');
     }
 };
 exports.ProductsService = ProductsService;

@@ -10,6 +10,14 @@ const isoDateString = z.preprocess((val) => {
   return undefined;
 }, z.iso.datetime());
 
+/**
+ * Bar or coin, as chosen when the product was created. Nullable: products
+ * created before this field existed have none, and the table then falls back
+ * to inferring it from the name ("… Bar").
+ */
+export const ProductCategoryEnum = z.enum(['BAR', 'COIN']);
+export type ProductCategory = z.infer<typeof ProductCategoryEnum>;
+
 export const ProductSchema = z.object({
   id: z.number(),
   sku: z.string(),
@@ -23,6 +31,8 @@ export const ProductSchema = z.object({
   spreadSell: z.number(),
 
   vatRate: z.number(),
+
+  category: ProductCategoryEnum.nullable().optional(),
 
   description: z.string(),
 
@@ -59,6 +69,7 @@ export const RawProductSchema = z.object({
   vatRate: z.number(),
   stock: z.number(),
   isActive: z.boolean(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: z.string().nullable().optional(),
   createdAt: isoDateString,
   updatedAt: isoDateString,
@@ -74,6 +85,7 @@ export const CreateProductDtoSchema = z.object({
   spreadSell: z.number(),
   vatRate: z.number(),
   stock: z.number(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: z.string().optional(),
 });
 

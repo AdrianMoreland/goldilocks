@@ -11,6 +11,8 @@ export declare class RedisService implements OnModuleInit, OnModuleDestroy {
     get<T>(key: string): Promise<T | null>;
     set(key: string, value: any, ttl?: number): Promise<void>;
     del(...keys: string[]): Promise<void>;
+    pushCapped(key: string, value: unknown, maxLength: number): Promise<boolean>;
+    listRange<T>(key: string, count: number): Promise<T[] | null>;
     isHealthy(): boolean;
 }
 //# sourceMappingURL=redis.service.d.ts.map

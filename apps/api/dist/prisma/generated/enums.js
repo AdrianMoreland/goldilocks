@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Currency = exports.MetalType = exports.UserRole = exports.FetchTrigger = void 0;
+exports.Currency = exports.ProductCategory = exports.MetalType = exports.UserRole = exports.FetchTrigger = void 0;
 exports.FetchTrigger = {
     CRON: 'CRON',
     REFRESH: 'REFRESH',
@@ -19,6 +19,10 @@ exports.MetalType = {
     SILVER: 'SILVER',
     PLATINUM: 'PLATINUM',
     PALLADIUM: 'PALLADIUM'
+};
+exports.ProductCategory = {
+    BAR: 'BAR',
+    COIN: 'COIN'
 };
 exports.Currency = {
     EUR: 'EUR',

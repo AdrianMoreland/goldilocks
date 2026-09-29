@@ -20,6 +20,7 @@ export class ProductCacheStore extends CacheAsideStore<'all', RawProduct[]> {
 
     protected async fetchFromSource(): Promise<RawProduct[]> {
         const products = await this.prisma.product.findMany({
+            where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },
         });
         return products.map(toRawProduct);

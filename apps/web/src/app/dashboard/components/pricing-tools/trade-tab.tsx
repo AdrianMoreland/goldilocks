@@ -1,11 +1,11 @@
-import { Flame, Snowflake, X, Plus } from "lucide-react"
+import { ArrowLeftRight, Flame, Snowflake, X, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { useAuth } from "@/contexts/auth-context"
 import { MELT_CATEGORY_OPTIONS, useTradeTools } from "@/hooks/use-trade-tools.hook"
-import { formatEuro, formatGrams } from "../../utils/formatters"
+import { formatEuro, formatGrams, formatPrice } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
@@ -17,27 +17,30 @@ export function TradeTab() {
 
     const showMeltButton = trade.transactionType === "selling"
     const showingMelt = trade.subTab === "melt" && showMeltButton
-    // Re-themes green/pink by trade direction — mirrors the Apps Script
-    // tool's per-section accents (the melt calculator stays inside whichever
+    // Re-themes by trade direction, using the same colours as the table's
+    // columns: teal Price when the customer is buying from us, gold Buyback
+    // when they're selling to us (the melt calculator stays inside whichever
     // direction's color is active; only its own toggle pill goes dark/active).
-    const theme = trade.transactionType === "buying" ? "buy" : "sell"
+    const isPrice = trade.transactionType === "buying"
+    const theme = isPrice ? "price" : "buyback"
 
     return (
         <div className="flex flex-col gap-4 px-4 text-sm" style={tabThemeStyle(theme)}>
-            {/* ── Mode row: single Buy/Sell toggle pill, Melt switch, Freeze ─── */}
+            {/* ── Mode row: single Price/Buyback toggle pill, Melt switch, Freeze ─── */}
             <div className="flex items-center gap-2">
                 <button
                     type="button"
-                    aria-pressed={trade.transactionType === "selling"}
-                    onClick={() => trade.setTransactionType(trade.transactionType === "buying" ? "selling" : "buying")}
-                    className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-full px-3.5 py-2.5 text-white transition-colors"
+                    aria-pressed={!isPrice}
+                    aria-label={isPrice ? "Quoting Price — switch to Buyback" : "Quoting Buyback — switch to Price"}
+                    title={isPrice ? "Switch to Buyback" : "Switch to Price"}
+                    onClick={() => trade.setTransactionType(isPrice ? "selling" : "buying")}
+                    className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-full px-3.5 py-2.5 text-[var(--tab-accent-on)] transition-colors"
                     style={{ background: "var(--tab-accent)" }}
                 >
-                    <span className="text-[15px] leading-tight font-extrabold">
-                        {trade.transactionType === "buying" ? "Buy" : "Sell"}
-                    </span>
-                    <span className="mt-0.5 text-[10px] font-semibold opacity-85">
-                        {trade.transactionType === "buying" ? "Sell" : "Buy"}
+                    <span className="text-base leading-tight font-extrabold">{isPrice ? "Price" : "Buyback"}</span>
+                    <span className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold opacity-85">
+                        <ArrowLeftRight className="size-3" aria-hidden />
+                        {isPrice ? "Buyback" : "Price"}
                     </span>
                 </button>
 
@@ -214,26 +217,26 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     <div key={`${line.productId}-${index}`} className="flex items-center justify-between">
                         <div>
                             <div className="font-medium">{line.quantity} × {line.product}</div>
-                            <div className="text-muted-foreground text-xs">
+                            <div className="text-muted-foreground text-xs tabular-nums">
                                 {formatGrams(line.weight)} · {line.percent.toFixed(2)}%
                             </div>
                         </div>
-                        <div className="font-semibold">{formatEuro(line.lineTotal)}</div>
+                        <div className="font-semibold tabular-nums">{formatPrice(line.lineTotal)}</div>
                     </div>
                 ))}
 
                 <div className="flex items-center justify-between text-sm">
                     <span>Total weight</span>
-                    <span className="font-medium">{formatGrams(trade.cartResult?.totalWeight)}</span>
+                    <span className="font-medium tabular-nums">{formatGrams(trade.cartResult?.totalWeight)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                     <span>Avg €/g</span>
-                    <span className="font-medium">{formatEuro(trade.cartResult?.averagePerGram)}</span>
+                    <span className="font-medium tabular-nums">{formatEuro(trade.cartResult?.averagePerGram)}</span>
                 </div>
 
                 <ResultHighlight
-                    label={trade.transactionType === "buying" ? "Total price to customer" : "Total offer to customer"}
-                    value={formatEuro(trade.cartResult?.totalPrice)}
+                    label={trade.transactionType === "buying" ? "Total price to customer" : "Total buyback to customer"}
+                    value={formatPrice(trade.cartResult?.totalPrice)}
                 />
             </div>
         </div>
@@ -275,14 +278,14 @@ function MeltPanel({ trade }: { trade: TradeTools }) {
                 <SectionLabel>RESULTS</SectionLabel>
                 <div className="flex items-center justify-between text-sm">
                     <span>Spot per gram</span>
-                    <span className="font-medium">{formatEuro(trade.meltResult?.spotPerGram)}</span>
+                    <span className="font-medium tabular-nums">{formatEuro(trade.meltResult?.spotPerGram)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                     <span>Market value</span>
-                    <span className="font-medium">{formatEuro(trade.meltResult && trade.meltResult.spotPerGram * trade.meltResult.weight)}</span>
+                    <span className="font-medium tabular-nums">{formatEuro(trade.meltResult && trade.meltResult.spotPerGram * trade.meltResult.weight)}</span>
                 </div>
 
-                <ResultHighlight label="Estimated payout" value={formatEuro(trade.meltResult?.meltValue)} />
+                <ResultHighlight label="Estimated payout" value={formatPrice(trade.meltResult?.meltValue)} />
             </div>
         </div>
     )

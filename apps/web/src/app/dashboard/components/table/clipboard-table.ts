@@ -1,4 +1,4 @@
-import { formatEuro, formatGrams, formatPercent } from "../../utils/formatters"
+import { formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import { productColumnLabels } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
 
@@ -13,12 +13,12 @@ const CELL_VALUE: Record<ExportableColumnId, (p: DisplayProduct) => string> = {
     name: (p) => p.name,
     metalType: (p) => p.metalType,
     weight: (p) => formatGrams(p.weight),
-    marketValue: (p) => formatEuro(p.marketValue),
-    priceSell: (p) => formatEuro(p.priceSell),
+    marketValue: (p) => formatPrice(p.marketValue),
+    priceSell: (p) => formatPrice(p.priceSell),
     spreadSell: (p) => formatPercent(p.spreadSell * 100),
-    priceBuy: (p) => formatEuro(p.priceBuy),
+    priceBuy: (p) => formatPrice(p.priceBuy),
     spreadBuy: (p) => formatPercent(p.spreadBuy * 100),
-    priceSellVatExcl: (p) => formatEuro(p.priceSellVatExcl),
+    priceSellVatExcl: (p) => formatPrice(p.priceSellVatExcl),
 }
 
 /** Narrows an arbitrary column-id list (e.g. a table's current visible-column order) down to the ones this module knows how to export, in that same order. */

@@ -20,6 +20,7 @@ export declare class ProductsService {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }[]>;
     getById(id: number, spotMap?: Record<MetalType, number>): Promise<Product>;
@@ -36,6 +37,7 @@ export declare class ProductsService {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     update(id: number, dto: Partial<UpdateProductDto>): Promise<{
@@ -51,6 +53,7 @@ export declare class ProductsService {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     delete(id: number): Promise<{
@@ -66,6 +69,41 @@ export declare class ProductsService {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
+        description?: string | null | undefined;
+    }>;
+    getDeleted(): Promise<({
+        id: number;
+        sku: string;
+        name: string;
+        metalType: "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM";
+        weight: number;
+        spreadBuy: number;
+        spreadSell: number;
+        vatRate: number;
+        stock: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
+        description?: string | null | undefined;
+    } & {
+        deletedAt: string;
+    })[]>;
+    restore(id: number): Promise<{
+        id: number;
+        sku: string;
+        name: string;
+        metalType: "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM";
+        weight: number;
+        spreadBuy: number;
+        spreadSell: number;
+        vatRate: number;
+        stock: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     updateStock(id: number, stockQuantity: number): Promise<{
@@ -81,7 +119,9 @@ export declare class ProductsService {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
+    private assertSkuAvailable;
 }
 //# sourceMappingURL=products.service.d.ts.map

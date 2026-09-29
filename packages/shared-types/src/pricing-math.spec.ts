@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeMeltValue, computeTransactionPrice } from './pricing-math';
+import { computeMeltValue, computeTransactionPrice, roundBuyPrice, roundSellPrice } from './pricing-math';
 
 describe('computeTransactionPrice', () => {
   describe('buying (dealer sells to customer — rounds UP, favors the dealer)', () => {
@@ -54,5 +54,22 @@ describe('computeMeltValue', () => {
 
   it('collapses to spot * weight when meltFactor and purity are both 1', () => {
     expect(computeMeltValue(42.5, 1, 1, 3)).toBeCloseTo(42.5 * 3, 6);
+  });
+});
+
+describe('roundSellPrice / roundBuyPrice (whole-euro quoted prices)', () => {
+  it('rounds what we charge up and what we pay down', () => {
+    expect(roundSellPrice(2948.01)).toBe(2949);
+    expect(roundBuyPrice(2948.99)).toBe(2948);
+  });
+
+  it('leaves whole-euro amounts alone', () => {
+    expect(roundSellPrice(2948)).toBe(2948);
+    expect(roundBuyPrice(2948)).toBe(2948);
+  });
+
+  it('ignores float noise below a cent instead of adding or losing a euro', () => {
+    expect(roundSellPrice(2948.0000000004)).toBe(2948);
+    expect(roundBuyPrice(2947.9999999996)).toBe(2948);
   });
 });

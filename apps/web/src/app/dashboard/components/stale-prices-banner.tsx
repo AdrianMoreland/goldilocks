@@ -9,7 +9,7 @@ export function StalePricesBanner({ lastUpdatedRelative }: StalePricesBannerProp
     return (
         <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-700 dark:text-amber-400">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>Prices may be outdated — last fetched {lastUpdatedRelative}. Hit refresh before quoting a price.</span>
+            <span>Prices may be outdated - last fetched {lastUpdatedRelative}.</span>
         </div>
     )
 }

@@ -2,7 +2,7 @@ import * as React from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
-    X, Pause, Play, Trash2, Paintbrush, UserPlus, Building2, ShieldCheck,
+    X, Pause, Play, Trash2, Paintbrush, ShieldCheck, Plus, ArchiveRestore,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -13,7 +13,10 @@ import { queryKeys } from "@/lib/query-keys"
 import { usePricingTools, SIDE_PANEL_WIDTH as PANEL_WIDTH } from "../../context/pricing-tools-context"
 import { AddUserDialog } from "./add-user-dialog"
 import { AddBranchDialog } from "./add-branch-dialog"
+import { DeletedProductsDialog } from "./deleted-products-dialog"
+import { AddProductDialog } from "../table/add-product-dialog"
 import { SystemStatusPanel } from "./system-status-panel"
+import { ErrorLogSection } from "./error-log"
 import type { MetalCardData } from "../../schemas/card-data.schema"
 
 interface AdminSidePanelProps {
@@ -90,6 +93,8 @@ export function AdminSidePanel({ metalCards }: AdminSidePanelProps) {
     const queryClient = useQueryClient()
     const [addUserOpen, setAddUserOpen] = React.useState(false)
     const [addBranchOpen, setAddBranchOpen] = React.useState(false)
+    const [addProductOpen, setAddProductOpen] = React.useState(false)
+    const [deletedProductsOpen, setDeletedProductsOpen] = React.useState(false)
     const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false)
 
     const cronStatus = useQuery({
@@ -160,6 +165,19 @@ export function AdminSidePanel({ metalCards }: AdminSidePanelProps) {
 
                         <Separator />
 
+                        {/* ── Create ──────────────────────────────────────── */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAddProductOpen(true)}>
+                                <Plus /> Product
+                            </Button>
+                            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAddBranchOpen(true)}>
+                                <Plus /> Branch
+                            </Button>
+                            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAddUserOpen(true)}>
+                                <Plus /> User
+                            </Button>
+                        </div>
+
                         {/* ── Quick actions ───────────────────────────────── */}
                         <div className="flex flex-col gap-2">
                             <ActionRow
@@ -169,25 +187,36 @@ export function AdminSidePanel({ metalCards }: AdminSidePanelProps) {
                                 disabled={clearCacheMutation.isPending}
                                 onClick={() => clearCacheMutation.mutate()}
                             />
+                            <ActionRow
+                                icon={ArchiveRestore}
+                                label="Deleted products"
+                                description="Review and restore deleted products"
+                                onClick={() => setDeletedProductsOpen(true)}
+                            />
                             <ActionRow icon={Paintbrush} label="Theme editor" onClick={() => setThemeCustomizerOpen(true)} />
-                            <ActionRow icon={UserPlus} label="Add new user" onClick={() => setAddUserOpen(true)} />
-                            <ActionRow icon={Building2} label="Add new branch" onClick={() => setAddBranchOpen(true)} />
                         </div>
 
                         <p className="text-muted-foreground text-xs">
-                            Product active/inactive is toggled from each row&apos;s &quot;⋯&quot; menu in the table.
+                            Edit, deactivate or delete a product from the &quot;⋯&quot; menu on its row in the table.
                         </p>
 
                         <Separator />
 
+                        {/* ── Error log ───────────────────────────────────── */}
+                        <ErrorLogSection active={adminPanelOpen} />
+
+                        <Separator />
+
                         {/* ── System status ───────────────────────────────── */}
-                        <SystemStatusPanel metalCards={metalCards} />
+                        <SystemStatusPanel metalCards={metalCards} active={adminPanelOpen} />
                     </div>
                 </div>
             </div>
 
             <AddUserDialog open={addUserOpen} onOpenChange={setAddUserOpen} />
             <AddBranchDialog open={addBranchOpen} onOpenChange={setAddBranchOpen} />
+            <AddProductDialog open={addProductOpen} onOpenChange={setAddProductOpen} />
+            <DeletedProductsDialog open={deletedProductsOpen} onOpenChange={setDeletedProductsOpen} />
             <ThemeCustomizer open={themeCustomizerOpen} onOpenChange={setThemeCustomizerOpen} />
         </>
     )

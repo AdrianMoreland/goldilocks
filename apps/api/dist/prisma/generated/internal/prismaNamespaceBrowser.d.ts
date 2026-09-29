@@ -51,9 +51,11 @@ export declare const ProductScalarFieldEnum: {
     readonly vatRate: "vatRate";
     readonly stock: "stock";
     readonly isActive: "isActive";
+    readonly category: "category";
     readonly description: "description";
     readonly createdAt: "createdAt";
     readonly updatedAt: "updatedAt";
+    readonly deletedAt: "deletedAt";
 };
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum];
 export declare const MetalSpotPriceScalarFieldEnum: {

@@ -3,7 +3,7 @@
 import * as React from "react"
 import {Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis} from "recharts"
 
-import {useIsMobile} from "@/hooks/use-mobile"
+import {useUserPreference} from "@/hooks/use-user-preference.hook"
 import {
     Card,
     CardAction,
@@ -25,27 +25,26 @@ import {Button} from "@/components/ui/button"
 
 
 import type {HistoricSpot, MetalType,} from "@/lib/types"
+import {METAL_ACCENT} from "./pricing-tools/tab-theme"
 
-// Gold and Silver keep the universally intuitive yellow/orange and grey —
-// Platinum and Palladium are tuned to echo the site's own accent (teal-blue)
-// and Sell (dusty rose) hues instead of an arbitrary steel-blue/violet pair,
-// so the chart reads as part of the same Merrion Gold palette.
+// Same metal colours as the spot cards (METAL_ACCENT) — a metal must read as
+// one colour everywhere on the page, not violet on its card and rose here.
 const chartConfig = {
     gold: {
         label: "Gold",
-        color: "hsl(40 78% 52%)", // warm amber-gold
+        color: METAL_ACCENT.GOLD,
     },
     silver: {
         label: "Silver",
-        color: "hsl(0 0% 65%)", // grey
+        color: METAL_ACCENT.SILVER,
     },
     platinum: {
         label: "Platinum",
-        color: "hsl(196 30% 58%)", // muted teal-blue, matches the site accent
+        color: METAL_ACCENT.PLATINUM,
     },
     palladium: {
         label: "Palladium",
-        color: "hsl(340 25% 62%)", // muted dusty rose, matches the site's Sell accent
+        color: METAL_ACCENT.PALLADIUM,
     },
 } satisfies ChartConfig;
 
@@ -75,18 +74,13 @@ export function ChartAreaInteractive({
                                          data,
                                          selectedMetal
                                      }: ChartAreaInteractiveProps) {
-    const isMobile = useIsMobile()
-    const [timeRange, setTimeRange] = React.useState<TimeRange>("90d");
-    // Defaults to showing just the selected metal (Gold, on launch) rather
-    // than all four curves at once — see usePricingWorkbook's selectedMetal.
-    const [chartMode, setChartMode] = React.useState<ChartMode>("selected");
-    const [displayMode, setDisplayMode] = React.useState<DisplayMode>("absolute");
-
-    React.useEffect(() => {
-        if (isMobile) {
-            setTimeRange("7d")
-        }
-    }, [isMobile])
+    // Defaults: 1Y range, just the selected metal (Gold on first launch —
+    // see usePricingWorkbook's selectedMetal), absolute prices. Every change
+    // is remembered per user. (A mobile-only "force 7D" effect used to live
+    // here; it overwrote the remembered range on every narrow load.)
+    const [timeRange, setTimeRange] = useUserPreference<TimeRange>("chart-range", "365d");
+    const [chartMode, setChartMode] = useUserPreference<ChartMode>("chart-mode", "selected");
+    const [displayMode, setDisplayMode] = useUserPreference<DisplayMode>("chart-display", "absolute");
 
     const chartData = React.useMemo(() => {
 
@@ -218,7 +212,7 @@ export function ChartAreaInteractive({
     return (
         <Card className="@container/card flex h-full min-h-0 flex-col gap-2 py-3">
             <CardHeader className="px-4">
-                <CardTitle>Metals Market Price Chart</CardTitle>
+                <CardTitle>Spot price history</CardTitle>
                 <CardAction className="flex items-center gap-2">
 
                     {/* All Metals / Selected toggle */}

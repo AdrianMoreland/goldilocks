@@ -11,18 +11,18 @@ import { SectionLabel } from "./tab-widgets"
 const MODE_INFO: { key: MarketMode; label: string; description: string }[] = [
     { key: "weekend", label: "Weekend", description: "Wider spread for closed markets" },
     { key: "volatile", label: "Volatile", description: "Tight adjustment for fast-moving prices" },
-    { key: "shortage", label: "Metal Shortage", description: "Sell more / buy closer to spot" },
+    { key: "shortage", label: "Metal Shortage", description: "Higher price premium / buyback closer to spot" },
 ]
 
 const GROUPS: MetalGroup[] = ["GOLD", "SILVER", "PGM"]
 
-// Which GroupAdjustment fields each mode's Buy/Sell inputs read/write, plus
+// Which GroupAdjustment fields each mode's Buyback/Price inputs read/write, plus
 // the labels for that pair — shortage's are worded differently (a reduction/
 // increase rather than a flat spread) since that's what the field means.
 const MODE_FIELDS: Record<MarketMode, { buyKey: keyof GroupAdjustment; sellKey: keyof GroupAdjustment; buyLabel: string; sellLabel: string }> = {
-    weekend: { buyKey: "wkdBuy", sellKey: "wkdSell", buyLabel: "Buy", sellLabel: "Sell" },
-    volatile: { buyKey: "volBuy", sellKey: "volSell", buyLabel: "Buy", sellLabel: "Sell" },
-    shortage: { buyKey: "shortageBuyReduction", sellKey: "shortageSellIncrease", buyLabel: "Buy discount reduction", sellLabel: "Sell premium increase" },
+    weekend: { buyKey: "wkdBuy", sellKey: "wkdSell", buyLabel: "Buyback", sellLabel: "Price" },
+    volatile: { buyKey: "volBuy", sellKey: "volSell", buyLabel: "Buyback", sellLabel: "Price" },
+    shortage: { buyKey: "shortageBuyReduction", sellKey: "shortageSellIncrease", buyLabel: "Buyback discount cut", sellLabel: "Price premium rise" },
 }
 
 /**
@@ -42,9 +42,9 @@ export function SettingsTab() {
                 <Badge
                     variant={activeStatusLabel === "STANDARD" ? "secondary" : "default"}
                     className="mt-1.5"
-                    style={activeStatusLabel !== "STANDARD" ? { background: "var(--tab-accent)", color: "white" } : undefined}
+                    style={activeStatusLabel !== "STANDARD" ? { background: "var(--tab-accent)", color: "var(--tab-accent-on)" } : undefined}
                 >
-                    ◆ {activeStatusLabel}
+                    {activeStatusLabel}
                 </Badge>
             </div>
 
@@ -91,7 +91,7 @@ export function SettingsTab() {
                         <div key={mode.key} className="flex flex-col gap-2.5 rounded-2xl border p-3.5">
                             <div className="font-medium">{mode.label}</div>
 
-                            {/* One row per metal, Buy/Sell as shared column headers above all three rows. */}
+                            {/* One row per metal, Buyback/Price as shared column headers above all three rows. */}
                             <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem] items-center gap-x-2 gap-y-2">
                                 <div />
                                 <div className="text-muted-foreground text-center text-[11px] font-semibold">{fields.buyLabel}</div>
