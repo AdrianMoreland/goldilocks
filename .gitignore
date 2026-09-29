@@ -41,6 +41,9 @@ apps/api/nestjs-doctor-report.html
 !.vscode/launch.json
 !.vscode/extensions.json
 .claude/
+# Impeccable design-skill working state (config, critique history, cache) —
+# its actual deliverable is DESIGN.md/PRODUCT.md, which are committed.
+.impeccable/
 
 # OS
 .DS_Store
