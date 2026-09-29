@@ -6,6 +6,7 @@ const app_module_1 = require("./app.module");
 const config_1 = require("@nestjs/config");
 const swagger_1 = require("@nestjs/swagger");
 const nestjs_zod_1 = require("nestjs-zod");
+const error_log_service_1 = require("./modules/error-log/error-log.service");
 const logger = new common_1.Logger('Bootstrap');
 const REQUIRED_ENV_VARS = [
     'DATABASE_URL',
@@ -27,6 +28,14 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const config = app.get(config_1.ConfigService);
     validateEnv(config);
+    const errorLog = app.get(error_log_service_1.ErrorLogService);
+    process.on('unhandledRejection', (reason) => {
+        void errorLog.record({ kind: 'crash', message: 'Unhandled promise rejection', error: reason, detail: reason instanceof Error ? null : String(reason) });
+    });
+    process.on('uncaughtException', (error) => {
+        void errorLog.record({ kind: 'crash', message: 'Uncaught exception — API process exiting', error })
+            .finally(() => process.exit(1));
+    });
     app.useGlobalPipes(new nestjs_zod_1.ZodValidationPipe());
     const frontendUrl = config.get('FRONTEND_URL', 'http://localhost:5173');
     app.enableCors({

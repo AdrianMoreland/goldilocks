@@ -139,6 +139,10 @@ declare const CreateProductDto_base: import("nestjs-zod").ZodDto<import("zod").Z
     spreadSell: import("zod").ZodNumber;
     vatRate: import("zod").ZodNumber;
     stock: import("zod").ZodNumber;
+    category: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: import("zod").ZodOptional<import("zod").ZodString>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class CreateProductDto extends CreateProductDto_base {
@@ -158,6 +162,10 @@ declare const ProductResponseDto_base: import("nestjs-zod").ZodDto<import("zod")
     spreadBuy: import("zod").ZodNumber;
     spreadSell: import("zod").ZodNumber;
     vatRate: import("zod").ZodNumber;
+    category: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: import("zod").ZodString;
     marketValue: import("zod").ZodNumber;
     priceSell: import("zod").ZodNumber;
@@ -185,6 +193,10 @@ declare const UpdateProductDto_base: import("nestjs-zod").ZodDto<import("zod").Z
     spreadBuy: import("zod").ZodOptional<import("zod").ZodNumber>;
     spreadSell: import("zod").ZodOptional<import("zod").ZodNumber>;
     vatRate: import("zod").ZodOptional<import("zod").ZodNumber>;
+    category: import("zod").ZodOptional<import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>>;
     marketValue: import("zod").ZodOptional<import("zod").ZodNumber>;
     priceSellVatExcl: import("zod").ZodOptional<import("zod").ZodNumber>;
     stock: import("zod").ZodOptional<import("zod").ZodNumber>;
@@ -244,6 +256,10 @@ declare const MarketDataResponseDto_base: import("nestjs-zod").ZodDto<import("zo
         spreadBuy: import("zod").ZodNumber;
         spreadSell: import("zod").ZodNumber;
         vatRate: import("zod").ZodNumber;
+        category: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodEnum<{
+            BAR: "BAR";
+            COIN: "COIN";
+        }>>>;
         description: import("zod").ZodString;
         marketValue: import("zod").ZodNumber;
         priceSell: import("zod").ZodNumber;
@@ -548,6 +564,32 @@ declare const FetchMetricsResponseDto_base: import("nestjs-zod").ZodDto<import("
     cacheHitRatio: import("zod").ZodNumber;
 }, import("zod/v4/core").$strip>, false>;
 export declare class FetchMetricsResponseDto extends FetchMetricsResponseDto_base {
+}
+declare const ClientErrorReportBatchDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    reports: import("zod").ZodArray<import("zod").ZodObject<{
+        reference: import("zod").ZodString;
+        occurredAt: import("zod").ZodString;
+        severity: import("zod").ZodEnum<{
+            error: "error";
+            warning: "warning";
+        }>;
+        kind: import("zod").ZodEnum<{
+            database: "database";
+            http: "http";
+            network: "network";
+            "external-api": "external-api";
+            response: "response";
+            crash: "crash";
+        }>;
+        message: import("zod").ZodString;
+        detail: import("zod").ZodOptional<import("zod").ZodString>;
+        statusCode: import("zod").ZodOptional<import("zod").ZodNumber>;
+        method: import("zod").ZodOptional<import("zod").ZodString>;
+        path: import("zod").ZodOptional<import("zod").ZodString>;
+        stack: import("zod").ZodOptional<import("zod").ZodString>;
+    }, import("zod/v4/core").$strip>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class ClientErrorReportBatchDto extends ClientErrorReportBatchDto_base {
 }
 export {};
 //# sourceMappingURL=dtos.d.ts.map

@@ -21,9 +21,11 @@ interface DataTableProps {
      * though the cards themselves are the ones hidden right now.
      */
     onActiveMetalChange?: (metal: MetalType) => void
+    isLoading?: boolean
+    hasError?: boolean
 }
 
-export function DataTable({ data, activeMetal, onActiveMetalChange }: DataTableProps) {
+export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
     const { setActiveMetal, rowSelection, setRowSelection, cardsVisible } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
@@ -82,12 +84,16 @@ export function DataTable({ data, activeMetal, onActiveMetalChange }: DataTableP
                 <ProductTableBody
                     table={table}
                     columnCount={table.getVisibleLeafColumns().length}
+                    isLoading={isLoading && data.length === 0}
+                    hasError={hasError && data.length === 0}
+                    isFiltered={isFiltered}
+                    onResetFilters={resetFilters}
                 />
 
                 <div className="flex shrink-0 items-center justify-between px-4">
                     <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
                         {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                        {table.getFilteredRowModel().rows.length} row(s) selected.
+                        {table.getFilteredRowModel().rows.length} selected
                     </div>
                 </div>
             </TabsContent>

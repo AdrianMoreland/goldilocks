@@ -28,14 +28,25 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         return (await this.productCache.get('all'));
     }
     async getById(id) {
-        const product = await this.prisma.product.findUnique({ where: { id } });
+        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: null } });
         return product ? (0, pricing_util_1.toRawProduct)(product) : null;
     }
     async findBySku(sku) {
         return this.prisma.product.findFirst({
             where: { sku: { equals: sku, mode: 'insensitive' } },
-            select: { id: true },
+            select: { id: true, deletedAt: true },
         });
+    }
+    async getDeleted() {
+        const rows = await this.prisma.product.findMany({
+            where: { deletedAt: { not: null } },
+            orderBy: { deletedAt: 'desc' },
+        });
+        return rows.map((row) => ({ ...(0, pricing_util_1.toRawProduct)(row), deletedAt: row.deletedAt.toISOString() }));
+    }
+    async getDeletedById(id) {
+        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: { not: null } } });
+        return product ? (0, pricing_util_1.toRawProduct)(product) : null;
     }
     async create(data) {
         const created = await this.prisma.product.create({ data });
@@ -47,10 +58,15 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(updated);
     }
-    async delete(id) {
-        const deleted = await this.prisma.product.delete({ where: { id } });
+    async softDelete(id) {
+        const deleted = await this.prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(deleted);
+    }
+    async restore(id) {
+        const restored = await this.prisma.product.update({ where: { id }, data: { deletedAt: null } });
+        await this.refreshCache();
+        return (0, pricing_util_1.toRawProduct)(restored);
     }
     async updateStock(id, stock) {
         const updated = await this.prisma.product.update({ where: { id }, data: { stock } });
@@ -59,7 +75,7 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
     }
     async refreshCache() {
         const fresh = await this.prisma.product
-            .findMany({ orderBy: { createdAt: 'desc' } })
+            .findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } })
             .then((rows) => rows.map(pricing_util_1.toRawProduct));
         await this.productCache.set('all', fresh);
     }

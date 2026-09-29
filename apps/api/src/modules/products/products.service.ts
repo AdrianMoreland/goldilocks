@@ -41,10 +41,7 @@ export class ProductsService {
     }
 
     async create(dto: CreateProductDto) {
-        const existing = await this.productsProvider.findBySku(dto.sku);
-        if (existing) {
-            throw new ConflictException('Product already exists.');
-        }
+        await this.assertSkuAvailable(dto.sku);
         return this.productsProvider.create(dto);
     }
 
@@ -53,19 +50,52 @@ export class ProductsService {
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.update(id, dto);
+        if (dto.sku && dto.sku.toLowerCase() !== existing.sku.toLowerCase()) {
+            await this.assertSkuAvailable(dto.sku);
+        }
+        // Only the stored columns — the DTO schema also allows calculated
+        // fields (priceSell, marketValue, …) that don't exist on the row.
+        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description } = dto;
+        return this.productsProvider.update(id, { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description });
     }
 
+    /** Soft delete — the row is kept (and can be restored), just hidden everywhere. */
     async delete(id: number) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.delete(id);
+        return this.productsProvider.softDelete(id);
+    }
+
+    async getDeleted() {
+        return this.productsProvider.getDeleted();
+    }
+
+    async restore(id: number) {
+        const existing = await this.productsProvider.getDeletedById(id);
+        if (!existing) {
+            throw new NotFoundException('Deleted product not found');
+        }
+        return this.productsProvider.restore(id);
     }
 
     async updateStock(id: number, stockQuantity: number) {
+        const existing = await this.productsProvider.getById(id);
+        if (!existing) {
+            throw new NotFoundException('Product not found');
+        }
         return this.productsProvider.updateStock(id, stockQuantity);
+    }
+
+    private async assertSkuAvailable(sku: string) {
+        const existing = await this.productsProvider.findBySku(sku);
+        if (!existing) return;
+        throw new ConflictException(
+            existing.deletedAt
+                ? 'A deleted product already uses this SKU. Restore it from Deleted products instead.'
+                : 'A product with this SKU already exists.',
+        );
     }
 
    /* /!**
@@ -243,7 +273,7 @@ export class ProductsService {
 
         return products.map((p) => {
             const marketPrice = Number(spotMap[p.metalType as MetalType] ?? 0);
-            const spotPerGram  = marketPrice /31.1;
+            const spotPerGram  = marketPrice / GRAMS_PER_TROY_OUNCE;
             const weight = Number(p.weight);
             const basePrice = spotPerGram * weight;
             const vatRate = Number(p.vatRate);

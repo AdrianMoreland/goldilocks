@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronDown, Columns2, Plus } from "lucide-react"
+import { ChevronDown, Columns2 } from "lucide-react"
 import type { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -8,8 +8,6 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/contexts/auth-context"
-import { AddProductDialog } from "./add-product-dialog"
 import type { DisplayProduct } from "./product-grouping"
 import { productColumnLabels } from "./product-columns"
 import {METAL_TABS, MetalTabValue} from "./metal-tabs"
@@ -29,8 +27,6 @@ interface MetalTabsToolbarProps {
 }
 
 export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange, showMetalSelect }: MetalTabsToolbarProps) {
-    const { isAdmin } = useAuth()
-    const [addProductOpen, setAddProductOpen] = React.useState(false)
 
     return (
         <div className="flex items-center justify-between px-4 lg:px-6 flex-wrap gap-3">
@@ -60,15 +56,6 @@ export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange, show
             )}
 
             <div className="ml-auto flex items-center gap-2">
-                {isAdmin && (
-                    <>
-                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAddProductOpen(true)}>
-                            <Plus />
-                            <span className="hidden lg:inline">Add product</span>
-                        </Button>
-                        <AddProductDialog open={addProductOpen} onOpenChange={setAddProductOpen} />
-                    </>
-                )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="cursor-pointer">

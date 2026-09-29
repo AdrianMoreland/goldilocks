@@ -66,26 +66,45 @@ export class ProductsController {
         return this.service.update(id, body);
     }
 
+    // Was guarded by JwtAuthGuard only — any signed-in user could change
+    // stock. Now admin-only like every other product write.
     @Patch('admin/products/:id/stock')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
     @ApiBearerAuth()
     @ApiOperation({summary: 'Update product stock (admin)'})
     async updateStock(@Param('id', ParseIntPipe) id: number, @Body() body: { stock_quantity: number }) {
         return this.service.updateStock(id, body.stock_quantity);
     }
 
-    // 🗑️ DELETE /products/:id
-    @ApiOperation({summary: 'Delete a product (admin)'})
+    @Get('admin/products/deleted')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({summary: 'List soft-deleted products (admin)'})
+    async getDeleted() {
+        return this.service.getDeleted();
+    }
+
+    @Post('admin/products/:id/restore')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({summary: 'Restore a soft-deleted product (admin)'})
+    async restore(@Param('id', ParseIntPipe) id: number) {
+        return this.service.restore(id);
+    }
+
+    @ApiOperation({summary: 'Soft-delete a product (admin) — hidden everywhere, restorable'})
     @Delete(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
+    @ApiBearerAuth()
     async delete(@Param('id', ParseIntPipe) id: number) {
         // service.delete() already throws NotFoundException for a missing
         // product, and the global PrismaExceptionFilter handles any raw
-        // Prisma error (e.g. a P2025 race) — nothing left for this handler
-        // to catch and re-wrap, so any failure here is genuinely unexpected
-        // and correctly surfaces as a 500.
+        // Prisma error — nothing left for this handler to catch.
         await this.service.delete(id);
-        return {message: `✅ Producto ${id} eliminado correctamente`};
+        return {message: `Product ${id} deleted`};
     }
 }

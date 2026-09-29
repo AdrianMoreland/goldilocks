@@ -3,48 +3,45 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useProductsApi } from "@/api/products.api"
 import { queryKeys } from "@/lib/query-keys"
-import type { DisplayProduct } from "./product-grouping"
+import type { Product } from "@goldilocks/shared-types"
+import { ProductFormFields, productToForm, toProductBody, validateProductForm, type ProductFormValues } from "./product-form"
 
 interface EditProductDialogProps {
-    product: DisplayProduct
+    /** A single real product — never a merged "avg of N mints" display row. */
+    product: Product
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
-/** Admin-only pricing editor for one product row — premium, discount, stock, VAT. */
+/** Admin-only editor for every stored field of one product. */
 export function EditProductDialog({ product, open, onOpenChange }: EditProductDialogProps) {
     const api = useProductsApi()
     const queryClient = useQueryClient()
 
-    const [premium, setPremium] = React.useState(0)
-    const [discount, setDiscount] = React.useState(0)
-    const [stock, setStock] = React.useState(0)
-    const [vatRate, setVatRate] = React.useState(0)
+    const [form, setForm] = React.useState<ProductFormValues>(() => productToForm(product))
+    const [error, setError] = React.useState<string | null>(null)
     const [saving, setSaving] = React.useState(false)
 
     React.useEffect(() => {
         if (!open) return
-        setPremium(Number((product.spreadSell * 100).toFixed(3)))
-        setDiscount(Number((Math.abs(product.spreadBuy) * 100).toFixed(3)))
-        setStock(product.stock)
-        setVatRate(Number((product.vatRate * 100).toFixed(2)))
+        setForm(productToForm(product))
+        setError(null)
     }, [open, product])
 
     const handleSave = async () => {
+        const problem = validateProductForm(form)
+        if (problem) {
+            setError(problem)
+            return
+        }
+
         setSaving(true)
         try {
-            await api.updateProduct(product.id, {
-                spreadSell: premium / 100,
-                spreadBuy: -Math.abs(discount) / 100,
-                stock,
-                vatRate: vatRate / 100,
-            })
+            await api.updateProduct(product.id, toProductBody(form))
             await queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all })
-            toast.success(`${product.name} updated`)
+            toast.success(`${form.name.trim()} updated`)
             onOpenChange(false)
         } catch {
             // useApi already shows an error toast on failure
@@ -55,57 +52,28 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-sm">
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Edit pricing</DialogTitle>
+                    <DialogTitle>Edit product</DialogTitle>
                     <DialogDescription>{product.name} · {product.sku}</DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-3 py-2">
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Premium %</Label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={premium}
-                            onChange={(e) => setPremium(Number(e.target.value) || 0)}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Discount %</Label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={discount}
-                            onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Stock</Label>
-                        <Input
-                            type="number"
-                            step="1"
-                            value={stock}
-                            onChange={(e) => setStock(Number(e.target.value) || 0)}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs">VAT %</Label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={vatRate}
-                            onChange={(e) => setVatRate(Number(e.target.value) || 0)}
-                        />
-                    </div>
-                </div>
+                <ProductFormFields
+                    idPrefix={`edit-product-${product.id}`}
+                    form={form}
+                    onChange={(next) => {
+                        setForm(next)
+                        setError(null)
+                    }}
+                />
+                {error && <p className="text-destructive text-sm">{error}</p>}
 
                 <DialogFooter>
                     <Button type="button" variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
                     <Button type="button" className="cursor-pointer" disabled={saving} onClick={handleSave}>
-                        {saving ? "Saving…" : "Save"}
+                        {saving ? "Saving…" : "Save changes"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

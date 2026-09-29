@@ -8,7 +8,7 @@ import {PauseIcon, PlayIcon, ArrowUp, ArrowDown} from "lucide-react";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {MetalCardData} from "../schemas/card-data.schema";
 import {metalAccentStyle} from "./pricing-tools/tab-theme";
-import {formatMinutesAgo} from "../utils/formatters";
+import {formatMinutesAgo, formatSpot} from "../utils/formatters";
 import {FETCH_SOURCE_LABEL} from "../utils/fetch-source";
 
 const FRESHNESS_DOT_COLOR: Record<MetalCardData["freshness"], string> = {
@@ -110,7 +110,7 @@ export function SectionCards({
     return (<Card
             onClick={onClick}
             style={metalAccentStyle(data.metal)}
-            className={`cursor-pointer group hover:shadow-lg transition-all duration-200 aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5 border-2 ${
+            className={`bg-card-raised cursor-pointer group hover:shadow-lg transition-all duration-200 aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5 border-2 ${
                 active ? "border-[var(--tab-accent)]" : "border-transparent"
             }`}
         >
@@ -136,7 +136,7 @@ export function SectionCards({
 
         <CardContent className="px-4 pt-0">
             <div
-                className="text-xl font-bold mb-1 cursor-text leading-none"
+                className="text-xl font-bold mb-1 cursor-text leading-none tabular-nums"
                 onClick={handleEditStart}
             >
                 {isEditingValue ? (
@@ -178,21 +178,16 @@ export function SectionCards({
                                 }}
                             />
                         ) : (
-                            displayedPrice.toLocaleString("en-IE", {
-                                style: "currency",
-                                currency: "EUR",
-                            })
+                            formatSpot(data.metal, displayedPrice)
 
                         )}
                 </div>
 
                 {data.showChange ? (
-                    <div className={`flex items-center gap-1.5 text-xs ${changeClass}`}>
+                    <div className={`flex items-center gap-1.5 text-xs tabular-nums ${changeClass}`}>
                         <span>
                             {data.change! >= 0 ? "+" : ""}
-                            {data.change?.toLocaleString("en-IE", {
-                                style: "currency", currency: "EUR",
-                            })}
+                            {formatSpot(data.metal, data.change)}
                         </span>
 
                         <span>
@@ -205,14 +200,12 @@ export function SectionCards({
                         {data.direction === "down" && (<ArrowDown className="h-3 w-3"/>)}
                     </div>
                 ) : (
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground tabular-nums">
                         <p className="font-medium">Manual Override</p>
 
                         {data.marketPrice !== undefined && (<p>
                                 Market Price:{" "}
-                                {data.marketPrice.toLocaleString("en-IE", {
-                                    style: "currency", currency: "EUR",
-                                })}
+                                {formatSpot(data.metal, data.marketPrice)}
                             </p>)}
                     </div>)}
             </CardContent>

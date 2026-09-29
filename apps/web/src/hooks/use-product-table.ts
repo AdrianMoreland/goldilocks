@@ -11,6 +11,8 @@ import { METAL_TABS, MetalTabValue } from "@/app/dashboard/components/table/meta
 import { buildDisplayProducts, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
 import {productColumns} from "@/app/dashboard/components/table/product-columns.tsx";
 
+const SECTION_SORT = { id: "productType", desc: false } as const
+
 function filterByMetalTab(data: DisplayProduct[], tab: MetalTabValue): DisplayProduct[] {
     const metalType = METAL_TABS.find((t) => t.value === tab)?.metalType
     return metalType ? data.filter((p) => p.metalType === metalType) : data
@@ -36,13 +38,38 @@ export function useProductTable(
     const storagePrefix = `product-table:${user?.id ?? "anon"}`
 
     const [data, setData] = React.useState<Product[]>(initialData)
+    // Market Value and Weight are reference columns, not quoting ones — hidden
+    // by default, still available from "Customize Columns".
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         metalType: false,
         productType: false,
         priceBucket: false,
+        marketValue: false,
+        weight: false,
     })
     const [columnFilters, setColumnFilters] = useLocalStorageState<ColumnFiltersState>(`${storagePrefix}:filters`, [])
     const [sorting, setSorting] = useLocalStorageState<SortingState>(`${storagePrefix}:sorting`, [])
+
+    // Bars / Coins / Bonded are sorted as independent sections: the section
+    // is always the first sort key, so a Price sort gives every bar in price
+    // order, then every coin in price order — never the two interleaved.
+    // TanStack's sort is stable, so with no user sort the original
+    // buildDisplayProducts order inside each section is kept. The section key
+    // is added here and stripped on write, so it never reaches storage or
+    // the column headers' own sort indicators.
+    const tableSorting = React.useMemo<SortingState>(
+        () => [SECTION_SORT, ...sorting.filter((s) => s.id !== SECTION_SORT.id)],
+        [sorting],
+    )
+    const onSortingChange = React.useCallback<React.Dispatch<React.SetStateAction<SortingState>>>(
+        (updater) => {
+            setSorting((prev) => {
+                const next = typeof updater === "function" ? updater([SECTION_SORT, ...prev]) : updater
+                return next.filter((s) => s.id !== SECTION_SORT.id)
+            })
+        },
+        [setSorting],
+    )
     const [search, setSearch] = useLocalStorageState<string>(`${storagePrefix}:search`, "")
     const [selectedTab, setSelectedTab] = React.useState<MetalTabValue>("gold")
 
@@ -60,7 +87,7 @@ export function useProductTable(
     )
 
     // Gold is VAT-exempt as investment metal (see the Calculators tab's VAT
-    // panel), so "VAT Excl." would just repeat the MG Price for every gold
+    // panel), so "Price ex. VAT" would just repeat the Price for every gold
     // row — the column is dropped entirely for gold rather than merely
     // hidden, so it also can't be re-enabled via "Customize Columns".
     const columns = React.useMemo(
@@ -71,11 +98,11 @@ export function useProductTable(
     const table = useReactTable({
         data: filteredData,
         columns,
-        state: { sorting, columnVisibility, rowSelection, columnFilters },
+        state: { sorting: tableSorting, columnVisibility, rowSelection, columnFilters },
         getRowId: (row) => row.id.toString(),
         enableRowSelection: true,
         onRowSelectionChange: setRowSelection,
-        onSortingChange: setSorting,
+        onSortingChange,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
         getCoreRowModel: getCoreRowModel(),

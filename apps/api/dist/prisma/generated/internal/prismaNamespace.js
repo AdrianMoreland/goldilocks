@@ -97,9 +97,11 @@ exports.ProductScalarFieldEnum = {
     vatRate: 'vatRate',
     stock: 'stock',
     isActive: 'isActive',
+    category: 'category',
     description: 'description',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    deletedAt: 'deletedAt'
 };
 exports.MetalSpotPriceScalarFieldEnum = {
     id: 'id',

@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useNextFetchCountdown } from "@/hooks/use-next-fetch-countdown.hook"
@@ -20,24 +21,27 @@ export function DataFreshnessIndicator({ lastUpdatedRelative, fetchSource, isSta
     const countdown = useNextFetchCountdown()
 
     return (
-        <div className="hidden flex-col items-end leading-tight md:flex">
+        <div className="flex flex-col items-end leading-tight">
             <div className="flex items-center gap-1.5">
                 <span
                     className={cn(
-                        "text-[11px] whitespace-nowrap text-muted-foreground",
-                        isStale && "font-semibold text-amber-600 dark:text-amber-500",
+                        "flex items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground",
+                        isStale && "font-semibold text-amber-700 dark:text-amber-400",
                     )}
                 >
-                    {isStale ? "⚠ Updated " : "Updated "}
-                    {lastUpdatedRelative}
+                    {isStale && <AlertTriangle className="size-3 shrink-0" aria-hidden />}
+                    {isStale && <span className="sr-only">Prices may be stale.</span>}
+                    Updated {lastUpdatedRelative}
                 </span>
                 {fetchSource && (
-                    <Badge variant="outline" className="h-4 rounded-sm px-1 text-[9px] font-normal">
+                    <Badge variant="outline" className="hidden rounded-sm px-1 py-0 text-[11px] font-normal sm:inline-flex">
                         {FETCH_SOURCE_LABEL[fetchSource]}
                     </Badge>
                 )}
             </div>
-            <span className="text-[10px] whitespace-nowrap text-muted-foreground">Next refresh in {countdown}</span>
+            <span className="hidden text-[11px] whitespace-nowrap text-muted-foreground tabular-nums md:block">
+                Next refresh in {countdown}
+            </span>
         </div>
     )
 }

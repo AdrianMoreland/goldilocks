@@ -66,6 +66,10 @@ export const routes: RouteConfig[] = [
     element: <RequireAuth><Dashboard /></RequireAuth>
   },
   {
+    path: "/demo",
+    element: <Dashboard />
+  },
+  {
     path: "/dashboard-2",
     element: <Dashboard2 />
   },

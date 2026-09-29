@@ -24,7 +24,8 @@ const portfolio_module_1 = require("./modules/portfolio/portfolio.module");
 const branches_module_1 = require("./modules/branches/branches.module");
 const prisma_module_1 = require("./infrastructure/prisma/prisma.module");
 const redis_module_1 = require("./redis/redis.module");
-const prisma_exception_filter_1 = require("./common/filters/prisma-exception.filter");
+const all_exceptions_filter_1 = require("./common/filters/all-exceptions.filter");
+const error_log_module_1 = require("./modules/error-log/error-log.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -46,13 +47,14 @@ exports.AppModule = AppModule = __decorate([
             branches_module_1.BranchesModule,
             prisma_module_1.PrismaModule,
             redis_module_1.RedisModule,
+            error_log_module_1.ErrorLogModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [
             app_service_1.AppService,
             { provide: core_1.APP_PIPE, useClass: nestjs_zod_1.ZodValidationPipe },
             { provide: core_1.APP_INTERCEPTOR, useClass: nestjs_zod_1.ZodSerializerInterceptor },
-            { provide: core_1.APP_FILTER, useClass: prisma_exception_filter_1.PrismaExceptionFilter },
+            { provide: core_1.APP_FILTER, useClass: all_exceptions_filter_1.AllExceptionsFilter },
         ],
     })
 ], AppModule);

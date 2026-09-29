@@ -7,6 +7,7 @@ import {
     BranchSchema,
     CreateBranchRequestSchema,
     FetchAttemptSchema,
+    ClientErrorReportBatchSchema,
     FetchMetricsSchema,
 } from '@goldilocks/shared-types';
 import {
@@ -114,3 +115,9 @@ export class CreateBranchRequestDto extends createDto(CreateBranchRequestSchema,
 export class FetchAttemptResponseDto extends createDto(FetchAttemptSchema, 'FetchAttemptResponseDto') {}
 
 export class FetchMetricsResponseDto extends createDto(FetchMetricsSchema, 'FetchMetricsResponseDto') {}
+
+// ============================================================================
+// ERROR LOG DTOs
+// ============================================================================
+
+export class ClientErrorReportBatchDto extends createDto(ClientErrorReportBatchSchema, 'ClientErrorReportBatchDto') {}

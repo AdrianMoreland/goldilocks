@@ -19,6 +19,7 @@ export declare class ProductsController {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     updateProduct(id: number, body: UpdateProductDto): Promise<{
@@ -34,6 +35,7 @@ export declare class ProductsController {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     updateStock(id: number, body: {
@@ -51,6 +53,41 @@ export declare class ProductsController {
         isActive: boolean;
         createdAt: string;
         updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
+        description?: string | null | undefined;
+    }>;
+    getDeleted(): Promise<({
+        id: number;
+        sku: string;
+        name: string;
+        metalType: "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM";
+        weight: number;
+        spreadBuy: number;
+        spreadSell: number;
+        vatRate: number;
+        stock: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
+        description?: string | null | undefined;
+    } & {
+        deletedAt: string;
+    })[]>;
+    restore(id: number): Promise<{
+        id: number;
+        sku: string;
+        name: string;
+        metalType: "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM";
+        weight: number;
+        spreadBuy: number;
+        spreadSell: number;
+        vatRate: number;
+        stock: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
     delete(id: number): Promise<{

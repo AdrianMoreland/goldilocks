@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTradeApi } from '@/api/trade.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MeltCategoryKey } from '@goldilocks/shared-types';
+import { GRAMS_PER_TROY_OUNCE } from '@goldilocks/shared-types';
 
 const DEBOUNCE_MS = 150;
 
@@ -19,7 +20,7 @@ export function useMeltCalculator(enabled: boolean) {
     const api = useTradeApi();
 
     const [meltCategory, setMeltCategory] = useState<MeltCategoryKey>('24ct');
-    const [meltWeight, setMeltWeight] = useState(31.1);
+    const [meltWeight, setMeltWeight] = useState(GRAMS_PER_TROY_OUNCE);
     const [meltPayload, setMeltPayload] = useState<{ category: MeltCategoryKey; weight: number } | null>(null);
 
     useEffect(() => {

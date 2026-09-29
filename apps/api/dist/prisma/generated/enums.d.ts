@@ -20,6 +20,11 @@ export declare const MetalType: {
     readonly PALLADIUM: "PALLADIUM";
 };
 export type MetalType = (typeof MetalType)[keyof typeof MetalType];
+export declare const ProductCategory: {
+    readonly BAR: "BAR";
+    readonly COIN: "COIN";
+};
+export type ProductCategory = (typeof ProductCategory)[keyof typeof ProductCategory];
 export declare const Currency: {
     readonly EUR: "EUR";
     readonly USD: "USD";

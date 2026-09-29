@@ -87,6 +87,30 @@ let RedisService = RedisService_1 = class RedisService {
             this.logger.warn(`Redis DEL failed: ${keys.join(', ')}`);
         }
     }
+    async pushCapped(key, value, maxLength) {
+        if (!this.client || !this.isConnected)
+            return false;
+        try {
+            await this.client.multi().lpush(key, JSON.stringify(value)).ltrim(key, 0, maxLength - 1).exec();
+            return true;
+        }
+        catch (err) {
+            this.logger.warn(`Redis LPUSH failed: ${key}`);
+            return false;
+        }
+    }
+    async listRange(key, count) {
+        if (!this.client || !this.isConnected)
+            return null;
+        try {
+            const rows = await this.client.lrange(key, 0, count - 1);
+            return rows.map((row) => JSON.parse(row));
+        }
+        catch (err) {
+            this.logger.warn(`Redis LRANGE failed: ${key}`);
+            return null;
+        }
+    }
     isHealthy() {
         return this.isConnected;
     }

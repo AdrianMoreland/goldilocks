@@ -1,5 +1,6 @@
 import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
 import type { RawProduct, RawSpotPrice, HistoricSpot } from '@goldilocks/shared-types';
+import { GRAMS_PER_TROY_OUNCE } from '@goldilocks/shared-types';
 import { calculateProductPrice, enrichSpotPrices, mergeMetalPrices, toNumber } from './pricing.util';
 
 describe('toNumber', () => {
@@ -26,7 +27,7 @@ describe('calculateProductPrice', () => {
     sku: 'GOLD-1OZ',
     name: '1oz Gold Coin',
     metalType: 'GOLD',
-    weight: 31.1, // ~1 troy ounce in grams
+    weight: GRAMS_PER_TROY_OUNCE, // exactly 1 troy ounce
     spreadSell: 0.05, // +5% premium on the sell side
     spreadBuy: -0.03, // -3% discount on the buyback side
     vatRate: 0.23,
@@ -42,28 +43,48 @@ describe('calculateProductPrice', () => {
   it('prices the sell side as basePrice * (1 + premium) * (1 + VAT)', () => {
     const priced = calculateProductPrice(baseProduct, spotMap);
 
-    // basePrice = spot/gram * weight = (2000 / 31.1) * 31.1 = 2000 (weight ≈ 1 troy oz here)
-    const basePrice = (spotMap.GOLD / 31.1) * baseProduct.weight;
+    // basePrice = spot/gram * weight = (2000 / oz) * oz = 2000 (weight is exactly 1 troy oz)
+    const basePrice = (spotMap.GOLD / GRAMS_PER_TROY_OUNCE) * baseProduct.weight;
     const expectedVatExcl = basePrice * (1 + baseProduct.spreadSell);
     const expectedSell = expectedVatExcl * (1 + baseProduct.vatRate);
 
-    expect(priced.priceSellVatExcl).toBeCloseTo(expectedVatExcl, 2);
-    expect(priced.priceSell).toBeCloseTo(expectedSell, 2);
+    // Whole euros, rounded up — we're charging.
+    expect(priced.priceSellVatExcl).toBe(Math.ceil(Math.round(expectedVatExcl * 100) / 100));
+    expect(priced.priceSell).toBe(Math.ceil(Math.round(expectedSell * 100) / 100));
   });
 
   it('prices the buyback side as basePrice * (1 + spreadBuy), spreadBuy already signed negative', () => {
     const priced = calculateProductPrice(baseProduct, spotMap);
-    const basePrice = (spotMap.GOLD / 31.1) * baseProduct.weight;
+    const basePrice = (spotMap.GOLD / GRAMS_PER_TROY_OUNCE) * baseProduct.weight;
 
-    expect(priced.priceBuy).toBeCloseTo(basePrice * (1 + baseProduct.spreadBuy), 2);
+    // Whole euros, rounded down — we're paying.
+    expect(priced.priceBuy).toBe(Math.floor(Math.round(basePrice * (1 + baseProduct.spreadBuy) * 100) / 100));
     // Sanity: a negative spread must genuinely discount off the base price.
     expect(priced.priceBuy).toBeLessThan(basePrice);
   });
 
-  it('rounds every money field to 2 decimal places', () => {
+  it('quotes Price and Buyback in whole euros, rounded in the dealer\'s favour', () => {
+    const product = { ...baseProduct, weight: 7.777 };
+    const spot = { ...spotMap, GOLD: 1999.999 };
+    const priced = calculateProductPrice(product, spot);
+    const basePrice = (spot.GOLD / GRAMS_PER_TROY_OUNCE) * product.weight;
+    const rawSell = basePrice * (1 + product.spreadSell) * (1 + product.vatRate);
+    const rawBuy = basePrice * (1 + product.spreadBuy);
+
+    for (const value of [priced.priceSell, priced.priceSellVatExcl, priced.priceBuy]) {
+      expect(Number.isInteger(value)).toBe(true);
+    }
+    // Never charge less than the exact price, never pay more than it.
+    expect(priced.priceSell).toBeGreaterThanOrEqual(rawSell - 0.005);
+    expect(priced.priceSell - rawSell).toBeLessThan(1);
+    expect(priced.priceBuy).toBeLessThanOrEqual(rawBuy + 0.005);
+    expect(rawBuy - priced.priceBuy).toBeLessThan(1);
+  });
+
+  it('keeps market value and spot at 2 decimal places', () => {
     const priced = calculateProductPrice({ ...baseProduct, weight: 7.777 }, { ...spotMap, GOLD: 1999.999 });
 
-    for (const value of [priced.marketValue, priced.priceSell, priced.priceSellVatExcl, priced.priceBuy, priced.spotPrice]) {
+    for (const value of [priced.marketValue, priced.spotPrice]) {
       // value * 100 must be within float-noise distance of a whole
       // integer — Number.isInteger(value * 100) is too strict here since
       // float multiplication (e.g. 123.45 * 100 === 12344.999999999998)

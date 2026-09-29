@@ -33,7 +33,7 @@ export function ResultHighlight({ label, value }: { label: string; value: string
     return (
         <div className="mt-1 flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: "var(--tab-accent-soft)" }}>
             <span className="text-[13px] font-semibold text-[var(--tab-accent-text-soft)]">{label}</span>
-            <span className="text-xl font-extrabold text-[var(--tab-accent-text)]">{value}</span>
+            <span className="text-xl font-extrabold tabular-nums text-[var(--tab-accent-text)]">{value}</span>
         </div>
     )
 }
@@ -60,7 +60,7 @@ export function SubtabRow<T extends string>({
                         aria-pressed={active}
                         className={cn(
                             "flex-1 cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-colors",
-                            active ? "text-white" : "text-muted-foreground hover:text-foreground",
+                            active ? "text-[var(--tab-accent-on)]" : "text-muted-foreground hover:text-foreground",
                         )}
                         style={active ? { background: "var(--tab-accent)" } : undefined}
                     >

@@ -56,6 +56,7 @@ var isoDateString = z2.preprocess((val) => {
   if (typeof val === "string") return val;
   return void 0;
 }, z2.iso.datetime());
+var ProductCategoryEnum = z2.enum(["BAR", "COIN"]);
 var ProductSchema = z2.object({
   id: z2.number(),
   sku: z2.string(),
@@ -66,6 +67,7 @@ var ProductSchema = z2.object({
   spreadBuy: z2.number(),
   spreadSell: z2.number(),
   vatRate: z2.number(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: z2.string(),
   // Calculated fields
   // Raw market value of this product's own weight at the current spot price
@@ -93,6 +95,7 @@ var RawProductSchema = z2.object({
   vatRate: z2.number(),
   stock: z2.number(),
   isActive: z2.boolean(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: z2.string().nullable().optional(),
   createdAt: isoDateString,
   updatedAt: isoDateString
@@ -106,6 +109,7 @@ var CreateProductDtoSchema = z2.object({
   spreadSell: z2.number(),
   vatRate: z2.number(),
   stock: z2.number(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: z2.string().optional()
 });
 var UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial().extend({
@@ -388,6 +392,12 @@ var PortfolioBuildResponseSchema = z7.object({
 
 // src/pricing-math.ts
 var GRAMS_PER_TROY_OUNCE = 31.1034768;
+function roundSellPrice(value) {
+  return Math.ceil(Math.round(value * 100) / 100);
+}
+function roundBuyPrice(value) {
+  return Math.floor(Math.round(value * 100) / 100);
+}
 function computeTransactionPrice(basePrice, transactionType, percent) {
   if (transactionType === "buying") {
     return Math.ceil(basePrice * (1 + percent / 100));
@@ -911,17 +921,69 @@ var FetchMetricsSchema = z10.object({
   /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
   cacheHitRatio: z10.number()
 });
+
+// src/error-log.schema.ts
+import { z as z11 } from "zod";
+var ErrorLogSourceEnum = z11.enum(["server", "client"]);
+var ErrorLogSeverityEnum = z11.enum(["error", "warning"]);
+var ErrorLogKindEnum = z11.enum(["database", "http", "network", "external-api", "response", "crash"]);
+var ErrorLogEntrySchema = z11.object({
+  id: z11.string(),
+  /** Short code shown to staff in the error toast ("ref E-7F3K2"), to find the matching entry. */
+  reference: z11.string(),
+  at: z11.string(),
+  source: ErrorLogSourceEnum,
+  severity: ErrorLogSeverityEnum,
+  kind: ErrorLogKindEnum,
+  message: z11.string(),
+  detail: z11.string().nullable().optional(),
+  statusCode: z11.number().nullable().optional(),
+  method: z11.string().nullable().optional(),
+  path: z11.string().nullable().optional(),
+  /** Vendor/driver error code, e.g. Prisma's "P1001". */
+  code: z11.string().nullable().optional(),
+  stack: z11.string().nullable().optional(),
+  user: z11.string().nullable().optional(),
+  userAgent: z11.string().nullable().optional()
+});
+var ClientErrorReportSchema = z11.object({
+  reference: z11.string().max(20),
+  occurredAt: z11.string().max(40),
+  severity: ErrorLogSeverityEnum,
+  kind: ErrorLogKindEnum,
+  message: z11.string().max(500),
+  detail: z11.string().max(4e3).optional(),
+  statusCode: z11.number().int().optional(),
+  method: z11.string().max(10).optional(),
+  path: z11.string().max(500).optional(),
+  stack: z11.string().max(4e3).optional()
+});
+var ClientErrorReportBatchSchema = z11.object({
+  reports: z11.array(ClientErrorReportSchema).max(50)
+});
+function createErrorReference() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 5; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return `E-${out}`;
+}
 export {
   ApiErrorResponseSchema,
   ApiSuccessResponseSchema,
   AuthResponseSchema,
   BranchSchema,
   ChangePasswordSchema,
+  ClientErrorReportBatchSchema,
+  ClientErrorReportSchema,
   CreateBranchRequestSchema,
   CreateProductDtoSchema,
   CreateSpotPriceDtoSchema,
   CreateUserRequestSchema,
   CurrencyEnum,
+  ErrorLogEntrySchema,
+  ErrorLogKindEnum,
+  ErrorLogSeverityEnum,
+  ErrorLogSourceEnum,
   FetchAttemptSchema,
   FetchMetricsSchema,
   FetchSourceEnum,
@@ -952,6 +1014,7 @@ export {
   PortfolioStrategyResultSchema,
   PriorityStrengthEnum,
   ProductArraySchema,
+  ProductCategoryEnum,
   ProductMapSchema,
   ProductSchema,
   ProductsSchema,
@@ -988,5 +1051,8 @@ export {
   computeProfit,
   computeRequiredSpotForTarget,
   computeTransactionPrice,
+  createErrorReference,
+  roundBuyPrice,
+  roundSellPrice,
   solveMissingPurchaseField
 };

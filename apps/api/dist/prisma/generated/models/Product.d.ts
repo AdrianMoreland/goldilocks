@@ -36,9 +36,11 @@ export type ProductMinAggregateOutputType = {
     vatRate: runtime.Decimal | null;
     stock: number | null;
     isActive: boolean | null;
+    category: $Enums.ProductCategory | null;
     description: string | null;
     createdAt: Date | null;
     updatedAt: Date | null;
+    deletedAt: Date | null;
 };
 export type ProductMaxAggregateOutputType = {
     id: number | null;
@@ -51,9 +53,11 @@ export type ProductMaxAggregateOutputType = {
     vatRate: runtime.Decimal | null;
     stock: number | null;
     isActive: boolean | null;
+    category: $Enums.ProductCategory | null;
     description: string | null;
     createdAt: Date | null;
     updatedAt: Date | null;
+    deletedAt: Date | null;
 };
 export type ProductCountAggregateOutputType = {
     id: number;
@@ -66,9 +70,11 @@ export type ProductCountAggregateOutputType = {
     vatRate: number;
     stock: number;
     isActive: number;
+    category: number;
     description: number;
     createdAt: number;
     updatedAt: number;
+    deletedAt: number;
     _all: number;
 };
 export type ProductAvgAggregateInputType = {
@@ -98,9 +104,11 @@ export type ProductMinAggregateInputType = {
     vatRate?: true;
     stock?: true;
     isActive?: true;
+    category?: true;
     description?: true;
     createdAt?: true;
     updatedAt?: true;
+    deletedAt?: true;
 };
 export type ProductMaxAggregateInputType = {
     id?: true;
@@ -113,9 +121,11 @@ export type ProductMaxAggregateInputType = {
     vatRate?: true;
     stock?: true;
     isActive?: true;
+    category?: true;
     description?: true;
     createdAt?: true;
     updatedAt?: true;
+    deletedAt?: true;
 };
 export type ProductCountAggregateInputType = {
     id?: true;
@@ -128,9 +138,11 @@ export type ProductCountAggregateInputType = {
     vatRate?: true;
     stock?: true;
     isActive?: true;
+    category?: true;
     description?: true;
     createdAt?: true;
     updatedAt?: true;
+    deletedAt?: true;
     _all?: true;
 };
 export type ProductAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -172,9 +184,11 @@ export type ProductGroupByOutputType = {
     vatRate: runtime.Decimal;
     stock: number;
     isActive: boolean;
+    category: $Enums.ProductCategory | null;
     description: string | null;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt: Date | null;
     _count: ProductCountAggregateOutputType | null;
     _avg: ProductAvgAggregateOutputType | null;
     _sum: ProductSumAggregateOutputType | null;
@@ -198,9 +212,11 @@ export type ProductWhereInput = {
     vatRate?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFilter<"Product"> | number;
     isActive?: Prisma.BoolFilter<"Product"> | boolean;
+    category?: Prisma.EnumProductCategoryNullableFilter<"Product"> | $Enums.ProductCategory | null;
     description?: Prisma.StringNullableFilter<"Product"> | string | null;
     createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
+    deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null;
 };
 export type ProductOrderByWithRelationInput = {
     id?: Prisma.SortOrder;
@@ -213,9 +229,11 @@ export type ProductOrderByWithRelationInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
     isActive?: Prisma.SortOrder;
+    category?: Prisma.SortOrderInput | Prisma.SortOrder;
     description?: Prisma.SortOrderInput | Prisma.SortOrder;
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
+    deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder;
 };
 export type ProductWhereUniqueInput = Prisma.AtLeast<{
     id?: number;
@@ -231,9 +249,11 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
     vatRate?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFilter<"Product"> | number;
     isActive?: Prisma.BoolFilter<"Product"> | boolean;
+    category?: Prisma.EnumProductCategoryNullableFilter<"Product"> | $Enums.ProductCategory | null;
     description?: Prisma.StringNullableFilter<"Product"> | string | null;
     createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
+    deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null;
 }, "id" | "sku">;
 export type ProductOrderByWithAggregationInput = {
     id?: Prisma.SortOrder;
@@ -246,9 +266,11 @@ export type ProductOrderByWithAggregationInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
     isActive?: Prisma.SortOrder;
+    category?: Prisma.SortOrderInput | Prisma.SortOrder;
     description?: Prisma.SortOrderInput | Prisma.SortOrder;
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
+    deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder;
     _count?: Prisma.ProductCountOrderByAggregateInput;
     _avg?: Prisma.ProductAvgOrderByAggregateInput;
     _max?: Prisma.ProductMaxOrderByAggregateInput;
@@ -269,9 +291,11 @@ export type ProductScalarWhereWithAggregatesInput = {
     vatRate?: Prisma.DecimalWithAggregatesFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntWithAggregatesFilter<"Product"> | number;
     isActive?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean;
+    category?: Prisma.EnumProductCategoryNullableWithAggregatesFilter<"Product"> | $Enums.ProductCategory | null;
     description?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null;
     createdAt?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string;
     updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string;
+    deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Product"> | Date | string | null;
 };
 export type ProductCreateInput = {
     sku: string;
@@ -283,9 +307,11 @@ export type ProductCreateInput = {
     vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: number;
     isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
     description?: string | null;
     createdAt?: Date | string;
     updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
 };
 export type ProductUncheckedCreateInput = {
     id?: number;
@@ -298,9 +324,11 @@ export type ProductUncheckedCreateInput = {
     vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: number;
     isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
     description?: string | null;
     createdAt?: Date | string;
     updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
 };
 export type ProductUpdateInput = {
     sku?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -312,9 +340,11 @@ export type ProductUpdateInput = {
     vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFieldUpdateOperationsInput | number;
     isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
     description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
 };
 export type ProductUncheckedUpdateInput = {
     id?: Prisma.IntFieldUpdateOperationsInput | number;
@@ -327,9 +357,11 @@ export type ProductUncheckedUpdateInput = {
     vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFieldUpdateOperationsInput | number;
     isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
     description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
 };
 export type ProductCreateManyInput = {
     id?: number;
@@ -342,9 +374,11 @@ export type ProductCreateManyInput = {
     vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: number;
     isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
     description?: string | null;
     createdAt?: Date | string;
     updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
 };
 export type ProductUpdateManyMutationInput = {
     sku?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -356,9 +390,11 @@ export type ProductUpdateManyMutationInput = {
     vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFieldUpdateOperationsInput | number;
     isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
     description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
 };
 export type ProductUncheckedUpdateManyInput = {
     id?: Prisma.IntFieldUpdateOperationsInput | number;
@@ -371,9 +407,11 @@ export type ProductUncheckedUpdateManyInput = {
     vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
     stock?: Prisma.IntFieldUpdateOperationsInput | number;
     isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
     description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
 };
 export type ProductCountOrderByAggregateInput = {
     id?: Prisma.SortOrder;
@@ -386,9 +424,11 @@ export type ProductCountOrderByAggregateInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
     isActive?: Prisma.SortOrder;
+    category?: Prisma.SortOrder;
     description?: Prisma.SortOrder;
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
+    deletedAt?: Prisma.SortOrder;
 };
 export type ProductAvgOrderByAggregateInput = {
     id?: Prisma.SortOrder;
@@ -409,9 +449,11 @@ export type ProductMaxOrderByAggregateInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
     isActive?: Prisma.SortOrder;
+    category?: Prisma.SortOrder;
     description?: Prisma.SortOrder;
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
+    deletedAt?: Prisma.SortOrder;
 };
 export type ProductMinOrderByAggregateInput = {
     id?: Prisma.SortOrder;
@@ -424,9 +466,11 @@ export type ProductMinOrderByAggregateInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
     isActive?: Prisma.SortOrder;
+    category?: Prisma.SortOrder;
     description?: Prisma.SortOrder;
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
+    deletedAt?: Prisma.SortOrder;
 };
 export type ProductSumOrderByAggregateInput = {
     id?: Prisma.SortOrder;
@@ -453,6 +497,9 @@ export type IntFieldUpdateOperationsInput = {
     multiply?: number;
     divide?: number;
 };
+export type NullableEnumProductCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.ProductCategory | null;
+};
 export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null;
 };
@@ -467,9 +514,11 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     vatRate?: boolean;
     stock?: boolean;
     isActive?: boolean;
+    category?: boolean;
     description?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    deletedAt?: boolean;
 }, ExtArgs["result"]["product"]>;
 export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
@@ -482,9 +531,11 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
     vatRate?: boolean;
     stock?: boolean;
     isActive?: boolean;
+    category?: boolean;
     description?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    deletedAt?: boolean;
 }, ExtArgs["result"]["product"]>;
 export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
@@ -497,9 +548,11 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
     vatRate?: boolean;
     stock?: boolean;
     isActive?: boolean;
+    category?: boolean;
     description?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    deletedAt?: boolean;
 }, ExtArgs["result"]["product"]>;
 export type ProductSelectScalar = {
     id?: boolean;
@@ -512,11 +565,13 @@ export type ProductSelectScalar = {
     vatRate?: boolean;
     stock?: boolean;
     isActive?: boolean;
+    category?: boolean;
     description?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    deletedAt?: boolean;
 };
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sku" | "name" | "metalType" | "weight" | "spreadBuy" | "spreadSell" | "vatRate" | "stock" | "isActive" | "description" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>;
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sku" | "name" | "metalType" | "weight" | "spreadBuy" | "spreadSell" | "vatRate" | "stock" | "isActive" | "category" | "description" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["product"]>;
 export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "Product";
     objects: {};
@@ -531,9 +586,11 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
         vatRate: runtime.Decimal;
         stock: number;
         isActive: boolean;
+        category: $Enums.ProductCategory | null;
         description: string | null;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
     }, ExtArgs["result"]["product"]>;
     composites: {};
 };
@@ -601,9 +658,11 @@ export interface ProductFieldRefs {
     readonly vatRate: Prisma.FieldRef<"Product", 'Decimal'>;
     readonly stock: Prisma.FieldRef<"Product", 'Int'>;
     readonly isActive: Prisma.FieldRef<"Product", 'Boolean'>;
+    readonly category: Prisma.FieldRef<"Product", 'ProductCategory'>;
     readonly description: Prisma.FieldRef<"Product", 'String'>;
     readonly createdAt: Prisma.FieldRef<"Product", 'DateTime'>;
     readonly updatedAt: Prisma.FieldRef<"Product", 'DateTime'>;
+    readonly deletedAt: Prisma.FieldRef<"Product", 'DateTime'>;
 }
 export type ProductFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;

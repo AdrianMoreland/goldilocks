@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {RefreshCw, PanelRight, LineChart, LayoutGrid, ShieldCheck, LogOut} from 'lucide-react';
 import {DataTable} from './components/table/data-table2.tsx';
@@ -10,6 +9,7 @@ import {Button} from '@/components/ui/button';
 import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
 import {useGlobalShortcuts} from '@/hooks/use-global-shortcuts.hook';
 import {useAuth} from '@/contexts/auth-context';
+import {useUserPreference} from '@/hooks/use-user-preference.hook';
 import {PricingToolsProvider, usePricingTools} from './context/pricing-tools-context';
 import {PricingSettingsProvider} from './context/pricing-settings-context';
 import {PricingToolsPanel} from './components/pricing-tools/pricing-tools-panel';
@@ -64,11 +64,13 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,
+        loading,
+        error,
     } = workbook;
-    const { open: toolsOpen, toggleOpen: toggleTools, toggleAdminPanel, cardsVisible, toggleCardsVisible } = usePricingTools();
+    const { open: toolsOpen, toggleOpen: toggleTools, adminPanelOpen, toggleAdminPanel, cardsVisible, toggleCardsVisible } = usePricingTools();
     const { isAdmin, logout } = useAuth();
     const navigate = useNavigate();
-    const [graphVisible, setGraphVisible] = useState(true);
+    const [graphVisible, setGraphVisible] = useUserPreference('chart-visible', true);
 
     useGlobalShortcuts({
         onToggleTools: toggleTools,
@@ -129,7 +131,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                     </Button>
                     <ModeToggle />
                     <Button
-                        variant={toolsOpen ? "default" : "outline"}
+                        variant={toolsOpen && !adminPanelOpen ? "default" : "outline"}
                         size="icon"
                         className="cursor-pointer"
                         title="Toggle pricing tools panel (t)"
@@ -140,7 +142,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                     </Button>
                     {isAdmin && (
                         <Button
-                            variant="outline"
+                            variant={adminPanelOpen ? "default" : "outline"}
                             size="icon"
                             className="cursor-pointer"
                             title="Admin panel (a)"
@@ -218,7 +220,13 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                 height keeps it from being fully crushed by the cards/chart
                 block above on a very short window. ────────────────────── */}
             <div className="@container/main flex min-h-[180px] flex-1 flex-col overflow-hidden">
-                <DataTable data={productsArr} activeMetal={selectedMetal} onActiveMetalChange={setSelectedMetal}/>
+                <DataTable
+                    data={productsArr}
+                    activeMetal={selectedMetal}
+                    onActiveMetalChange={setSelectedMetal}
+                    isLoading={loading}
+                    hasError={Boolean(error)}
+                />
             </div>
 
             <KeyboardShortcutsHint isAdmin={isAdmin}/>

@@ -15,7 +15,8 @@ import {PortfolioModule} from "./modules/portfolio/portfolio.module";
 import {BranchesModule} from "./modules/branches/branches.module";
 import {PrismaModule} from "./infrastructure/prisma/prisma.module";
 import {RedisModule} from "./redis/redis.module";
-import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
+import {AllExceptionsFilter} from "./common/filters/all-exceptions.filter";
+import {ErrorLogModule} from "./modules/error-log/error-log.module";
 
 @Module({
     imports: [
@@ -34,13 +35,14 @@ import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
         BranchesModule,
         PrismaModule,
         RedisModule,
+        ErrorLogModule,
     ],
     controllers: [AppController],
     providers: [
         AppService,
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
-        { provide: APP_FILTER, useClass: PrismaExceptionFilter },
+        { provide: APP_FILTER, useClass: AllExceptionsFilter },
     ],
 })
 export class AppModule {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import type { FetchAttempt, FetchMetrics, FetchTrigger, MetalType } from '@goldilocks/shared-types';
 import { CascadeMetricsService } from './cascade-metrics.service';
+import { ErrorLogService } from '../error-log/error-log.service';
 
 interface RecordAttemptInput {
     durationMs: number;
@@ -23,9 +24,22 @@ export class FetchAttemptService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly cascadeMetrics: CascadeMetricsService,
+        private readonly errorLog: ErrorLogService,
     ) {}
 
     async record(entry: RecordAttemptInput): Promise<void> {
+        // A failed vendor call also goes to the error log, so the Admin
+        // panel's single log answers "why are prices stale?" too. Recorded
+        // before the DB write: if the database is what's failing, the
+        // vendor failure still gets logged.
+        if (!entry.success) {
+            await this.errorLog.record({
+                severity: 'warning',
+                kind: 'external-api',
+                message: `Spot price fetch failed (${entry.triggeredBy})`,
+                detail: `${entry.errorMessage ?? 'No error message'} — after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
+            });
+        }
         await this.prisma.fetchAttempt.create({ data: entry });
     }
 

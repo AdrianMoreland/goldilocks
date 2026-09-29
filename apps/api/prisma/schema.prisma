@@ -44,9 +44,15 @@ model Product {
   stock       Int       @default(0)
   /// Whether this product is shown/sellable — admin-toggleable, doesn't delete the row.
   isActive    Boolean   @default(true)
+  /// Bar or coin, chosen when the product is created. Null on older rows —
+  /// the dashboard then infers it from the name.
+  category    ProductCategory?
   description String?
   createdAt   DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  /// Soft delete — set instead of removing the row, so a deleted product
+  /// is hidden everywhere but can be restored from the admin panel.
+  deletedAt   DateTime? @db.Timestamptz(6)
 
   @@index([metalType])
   @@index([metalType, stock])
@@ -138,6 +144,11 @@ enum MetalType {
   SILVER
   PLATINUM
   PALLADIUM
+}
+
+enum ProductCategory {
+  BAR
+  COIN
 }
 
 enum Currency {

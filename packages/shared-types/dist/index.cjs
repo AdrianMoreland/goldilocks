@@ -25,11 +25,17 @@ __export(index_exports, {
   AuthResponseSchema: () => AuthResponseSchema,
   BranchSchema: () => BranchSchema,
   ChangePasswordSchema: () => ChangePasswordSchema,
+  ClientErrorReportBatchSchema: () => ClientErrorReportBatchSchema,
+  ClientErrorReportSchema: () => ClientErrorReportSchema,
   CreateBranchRequestSchema: () => CreateBranchRequestSchema,
   CreateProductDtoSchema: () => CreateProductDtoSchema,
   CreateSpotPriceDtoSchema: () => CreateSpotPriceDtoSchema,
   CreateUserRequestSchema: () => CreateUserRequestSchema,
   CurrencyEnum: () => CurrencyEnum,
+  ErrorLogEntrySchema: () => ErrorLogEntrySchema,
+  ErrorLogKindEnum: () => ErrorLogKindEnum,
+  ErrorLogSeverityEnum: () => ErrorLogSeverityEnum,
+  ErrorLogSourceEnum: () => ErrorLogSourceEnum,
   FetchAttemptSchema: () => FetchAttemptSchema,
   FetchMetricsSchema: () => FetchMetricsSchema,
   FetchSourceEnum: () => FetchSourceEnum,
@@ -60,6 +66,7 @@ __export(index_exports, {
   PortfolioStrategyResultSchema: () => PortfolioStrategyResultSchema,
   PriorityStrengthEnum: () => PriorityStrengthEnum,
   ProductArraySchema: () => ProductArraySchema,
+  ProductCategoryEnum: () => ProductCategoryEnum,
   ProductMapSchema: () => ProductMapSchema,
   ProductSchema: () => ProductSchema,
   ProductsSchema: () => ProductsSchema,
@@ -96,6 +103,9 @@ __export(index_exports, {
   computeProfit: () => computeProfit,
   computeRequiredSpotForTarget: () => computeRequiredSpotForTarget,
   computeTransactionPrice: () => computeTransactionPrice,
+  createErrorReference: () => createErrorReference,
+  roundBuyPrice: () => roundBuyPrice,
+  roundSellPrice: () => roundSellPrice,
   solveMissingPurchaseField: () => solveMissingPurchaseField
 });
 module.exports = __toCommonJS(index_exports);
@@ -158,6 +168,7 @@ var isoDateString = import_zod2.z.preprocess((val) => {
   if (typeof val === "string") return val;
   return void 0;
 }, import_zod2.z.iso.datetime());
+var ProductCategoryEnum = import_zod2.z.enum(["BAR", "COIN"]);
 var ProductSchema = import_zod2.z.object({
   id: import_zod2.z.number(),
   sku: import_zod2.z.string(),
@@ -168,6 +179,7 @@ var ProductSchema = import_zod2.z.object({
   spreadBuy: import_zod2.z.number(),
   spreadSell: import_zod2.z.number(),
   vatRate: import_zod2.z.number(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: import_zod2.z.string(),
   // Calculated fields
   // Raw market value of this product's own weight at the current spot price
@@ -195,6 +207,7 @@ var RawProductSchema = import_zod2.z.object({
   vatRate: import_zod2.z.number(),
   stock: import_zod2.z.number(),
   isActive: import_zod2.z.boolean(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: import_zod2.z.string().nullable().optional(),
   createdAt: isoDateString,
   updatedAt: isoDateString
@@ -208,6 +221,7 @@ var CreateProductDtoSchema = import_zod2.z.object({
   spreadSell: import_zod2.z.number(),
   vatRate: import_zod2.z.number(),
   stock: import_zod2.z.number(),
+  category: ProductCategoryEnum.nullable().optional(),
   description: import_zod2.z.string().optional()
 });
 var UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial().extend({
@@ -490,6 +504,12 @@ var PortfolioBuildResponseSchema = import_zod7.z.object({
 
 // src/pricing-math.ts
 var GRAMS_PER_TROY_OUNCE = 31.1034768;
+function roundSellPrice(value) {
+  return Math.ceil(Math.round(value * 100) / 100);
+}
+function roundBuyPrice(value) {
+  return Math.floor(Math.round(value * 100) / 100);
+}
 function computeTransactionPrice(basePrice, transactionType, percent) {
   if (transactionType === "buying") {
     return Math.ceil(basePrice * (1 + percent / 100));
@@ -1013,6 +1033,52 @@ var FetchMetricsSchema = import_zod10.z.object({
   /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
   cacheHitRatio: import_zod10.z.number()
 });
+
+// src/error-log.schema.ts
+var import_zod11 = require("zod");
+var ErrorLogSourceEnum = import_zod11.z.enum(["server", "client"]);
+var ErrorLogSeverityEnum = import_zod11.z.enum(["error", "warning"]);
+var ErrorLogKindEnum = import_zod11.z.enum(["database", "http", "network", "external-api", "response", "crash"]);
+var ErrorLogEntrySchema = import_zod11.z.object({
+  id: import_zod11.z.string(),
+  /** Short code shown to staff in the error toast ("ref E-7F3K2"), to find the matching entry. */
+  reference: import_zod11.z.string(),
+  at: import_zod11.z.string(),
+  source: ErrorLogSourceEnum,
+  severity: ErrorLogSeverityEnum,
+  kind: ErrorLogKindEnum,
+  message: import_zod11.z.string(),
+  detail: import_zod11.z.string().nullable().optional(),
+  statusCode: import_zod11.z.number().nullable().optional(),
+  method: import_zod11.z.string().nullable().optional(),
+  path: import_zod11.z.string().nullable().optional(),
+  /** Vendor/driver error code, e.g. Prisma's "P1001". */
+  code: import_zod11.z.string().nullable().optional(),
+  stack: import_zod11.z.string().nullable().optional(),
+  user: import_zod11.z.string().nullable().optional(),
+  userAgent: import_zod11.z.string().nullable().optional()
+});
+var ClientErrorReportSchema = import_zod11.z.object({
+  reference: import_zod11.z.string().max(20),
+  occurredAt: import_zod11.z.string().max(40),
+  severity: ErrorLogSeverityEnum,
+  kind: ErrorLogKindEnum,
+  message: import_zod11.z.string().max(500),
+  detail: import_zod11.z.string().max(4e3).optional(),
+  statusCode: import_zod11.z.number().int().optional(),
+  method: import_zod11.z.string().max(10).optional(),
+  path: import_zod11.z.string().max(500).optional(),
+  stack: import_zod11.z.string().max(4e3).optional()
+});
+var ClientErrorReportBatchSchema = import_zod11.z.object({
+  reports: import_zod11.z.array(ClientErrorReportSchema).max(50)
+});
+function createErrorReference() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 5; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return `E-${out}`;
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ApiErrorResponseSchema,
@@ -1020,11 +1086,17 @@ var FetchMetricsSchema = import_zod10.z.object({
   AuthResponseSchema,
   BranchSchema,
   ChangePasswordSchema,
+  ClientErrorReportBatchSchema,
+  ClientErrorReportSchema,
   CreateBranchRequestSchema,
   CreateProductDtoSchema,
   CreateSpotPriceDtoSchema,
   CreateUserRequestSchema,
   CurrencyEnum,
+  ErrorLogEntrySchema,
+  ErrorLogKindEnum,
+  ErrorLogSeverityEnum,
+  ErrorLogSourceEnum,
   FetchAttemptSchema,
   FetchMetricsSchema,
   FetchSourceEnum,
@@ -1055,6 +1127,7 @@ var FetchMetricsSchema = import_zod10.z.object({
   PortfolioStrategyResultSchema,
   PriorityStrengthEnum,
   ProductArraySchema,
+  ProductCategoryEnum,
   ProductMapSchema,
   ProductSchema,
   ProductsSchema,
@@ -1091,5 +1164,8 @@ var FetchMetricsSchema = import_zod10.z.object({
   computeProfit,
   computeRequiredSpotForTarget,
   computeTransactionPrice,
+  createErrorReference,
+  roundBuyPrice,
+  roundSellPrice,
   solveMissingPurchaseField
 });

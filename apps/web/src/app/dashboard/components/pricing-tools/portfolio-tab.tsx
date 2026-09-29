@@ -11,7 +11,7 @@ import type { MetalType } from "@/lib/types"
 import type { PortfolioProductTypeFilter, PriorityStrength, PortfolioStrategyResultDto } from "@goldilocks/shared-types"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { usePortfolioPL, usePortfolioScenario, usePortfolioBuilder } from "@/hooks/use-portfolio-tools.hook"
-import { formatEuro, formatGrams, formatPercent } from "../../utils/formatters"
+import { formatEuro, formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { SectionLabel, ResultHighlight, ErrorBanner, SubtabRow } from "./tab-widgets"
 
@@ -32,7 +32,7 @@ export function PortfolioTab() {
             <SubtabRow options={PORTFOLIO_SUBTABS} value={subTab} onChange={setSubTab} />
 
             {subTab === "pl" && <ProfitLossPanel metal={activeMetal} />}
-            {subTab === "scenario" && <ScenarioPanel />}
+            {subTab === "scenario" && <ScenarioPanel metal={activeMetal} />}
             {subTab === "builder" && <BuilderPanel metal={activeMetal} />}
         </div>
     )
@@ -144,7 +144,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
                 }
             >
                 <div className="text-xs opacity-80">Profit if sold back today</div>
-                <div className="text-lg font-bold">
+                <div className="text-lg font-bold tabular-nums">
                     {pl.result
                         ? `${pl.result.profit >= 0 ? "+" : "-"}${formatEuro(Math.abs(pl.result.profit))} (${pl.result.profitPercent >= 0 ? "+" : ""}${pl.result.profitPercent.toFixed(1)}%)`
                         : "—"}
@@ -163,17 +163,17 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
 
             <div className="flex items-center justify-between text-sm">
                 <span>Spot needed</span>
-                <span className="font-medium">{formatEuro(pl.result?.requiredSpot)}</span>
+                <span className="font-medium tabular-nums">{formatEuro(pl.result?.requiredSpot)}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
                 <span>Move required</span>
-                <span className="font-medium">
+                <span className="font-medium tabular-nums">
                     {pl.moveRequired !== null ? `${pl.moveRequired >= 0 ? "+" : ""}${pl.moveRequired.toFixed(2)}% from current` : "—"}
                 </span>
             </div>
             <div className="flex items-center justify-between text-sm">
                 <span>Target return</span>
-                <span className="font-medium">{formatPercent(pl.result?.targetReturn)}</span>
+                <span className="font-medium tabular-nums">{formatPercent(pl.result?.targetReturn)}</span>
             </div>
         </div>
     )
@@ -181,8 +181,9 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
 
 const SCENARIO_PRESETS = [-20, -10, 0, 10, 20]
 
-function ScenarioPanel() {
+function ScenarioPanel({ metal }: { metal: MetalType }) {
     const sc = usePortfolioScenario()
+    const metalName = metal.toLowerCase()
 
     return (
         <div className="flex flex-col gap-4">
@@ -217,20 +218,20 @@ function ScenarioPanel() {
             <Separator />
 
             <ResultHighlight
-                label={`Portfolio at ${sc.pct >= 0 ? "+" : ""}${sc.pct}% gold`}
+                label={`Portfolio at ${sc.pct >= 0 ? "+" : ""}${sc.pct}% ${metalName}`}
                 value={formatEuro(sc.newValue)}
             />
 
             <div className="flex items-center justify-between text-sm">
                 <span>Change in value</span>
-                <span className={"font-medium " + (sc.change >= 0 ? "text-green-600" : "text-red-600")}>
+                <span className={"font-medium tabular-nums " + (sc.change >= 0 ? "text-green-600" : "text-red-600")}>
                     {sc.change >= 0 ? "+" : "-"}
                     {formatEuro(Math.abs(sc.change))}
                 </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-                <span>1% gold move ≈</span>
-                <span className="font-medium">{formatEuro(sc.onePercent)}</span>
+                <span>1% {metalName} move ≈</span>
+                <span className="font-medium tabular-nums">{formatEuro(sc.onePercent)}</span>
             </div>
         </div>
     )
@@ -328,7 +329,7 @@ function BuilderPanel({ metal }: { metal: MetalType }) {
 
             <Button
                 type="button"
-                className="w-full cursor-pointer rounded-full border-0 text-white"
+                className="w-full cursor-pointer rounded-full border-0 text-[var(--tab-accent-on)] hover:opacity-90"
                 style={{ background: "var(--tab-accent)" }}
                 onClick={builder.build}
                 disabled={builder.loading || builder.budget <= 0}
@@ -359,8 +360,8 @@ function StrategyCard({ result }: { result: PortfolioStrategyResultDto }) {
                 <span className="text-sm font-semibold">{strategy.name}</span>
                 <Badge
                     variant={strategy.id === "balanced" ? "default" : "secondary"}
-                    className="text-[10px]"
-                    style={strategy.id === "balanced" ? { background: "var(--tab-accent)", color: "white" } : undefined}
+                    className="text-[11px]"
+                    style={strategy.id === "balanced" ? { background: "var(--tab-accent)", color: "var(--tab-accent-on)" } : undefined}
                 >
                     {strategy.badge}
                 </Badge>
@@ -368,8 +369,8 @@ function StrategyCard({ result }: { result: PortfolioStrategyResultDto }) {
             <p className="text-muted-foreground mb-3 text-xs">{strategy.description}</p>
 
             <div className="grid grid-cols-3 gap-2 text-xs">
-                <Stat label="Invested" value={formatEuro(result.totalInvested)} />
-                <Stat label="Unspent" value={formatEuro(result.unspent)} />
+                <Stat label="Invested" value={formatPrice(result.totalInvested)} />
+                <Stat label="Unspent" value={formatPrice(result.unspent)} />
                 <Stat label="Weight" value={formatGrams(result.totalGrams)} />
                 <Stat label="€/gram" value={formatEuro(result.averagePerGram)} />
                 <Stat label="Avg premium" value={formatPercent(result.averagePremium)} />
@@ -396,13 +397,13 @@ function StrategyCard({ result }: { result: PortfolioStrategyResultDto }) {
                             <span className="font-medium">{item.quantity}×</span>
                             <span className="truncate">{item.product}</span>
                             {item.isPriority && (
-                                <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                                <Badge variant="outline" className="px-1 py-0 text-[11px]">
                                     priority
                                 </Badge>
                             )}
                         </div>
-                        <div className="text-muted-foreground shrink-0 text-right">
-                            <div>{formatEuro(item.totalValue)}</div>
+                        <div className="text-muted-foreground shrink-0 text-right tabular-nums">
+                            <div>{formatPrice(item.totalValue)}</div>
                             <div>{formatGrams(item.totalWeight)}</div>
                         </div>
                     </div>
@@ -415,8 +416,8 @@ function StrategyCard({ result }: { result: PortfolioStrategyResultDto }) {
 function Stat({ label, value }: { label: string; value: string }) {
     return (
         <div className="bg-muted rounded p-1.5">
-            <div className="text-muted-foreground text-[10px]">{label}</div>
-            <div className="font-medium">{value}</div>
+            <div className="text-muted-foreground text-[11px]">{label}</div>
+            <div className="font-medium tabular-nums">{value}</div>
         </div>
     )
 }

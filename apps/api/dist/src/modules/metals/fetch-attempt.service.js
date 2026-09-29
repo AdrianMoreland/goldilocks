@@ -13,15 +13,26 @@ exports.FetchAttemptService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
 const cascade_metrics_service_1 = require("./cascade-metrics.service");
+const error_log_service_1 = require("../error-log/error-log.service");
 const METRICS_WINDOW_MS = 24 * 60 * 60 * 1000;
 let FetchAttemptService = class FetchAttemptService {
     prisma;
     cascadeMetrics;
-    constructor(prisma, cascadeMetrics) {
+    errorLog;
+    constructor(prisma, cascadeMetrics, errorLog) {
         this.prisma = prisma;
         this.cascadeMetrics = cascadeMetrics;
+        this.errorLog = errorLog;
     }
     async record(entry) {
+        if (!entry.success) {
+            await this.errorLog.record({
+                severity: 'warning',
+                kind: 'external-api',
+                message: `Spot price fetch failed (${entry.triggeredBy})`,
+                detail: `${entry.errorMessage ?? 'No error message'} — after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
+            });
+        }
         await this.prisma.fetchAttempt.create({ data: entry });
     }
     async getRecent(limit) {
@@ -68,6 +79,7 @@ exports.FetchAttemptService = FetchAttemptService;
 exports.FetchAttemptService = FetchAttemptService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        cascade_metrics_service_1.CascadeMetricsService])
+        cascade_metrics_service_1.CascadeMetricsService,
+        error_log_service_1.ErrorLogService])
 ], FetchAttemptService);
 //# sourceMappingURL=fetch-attempt.service.js.map

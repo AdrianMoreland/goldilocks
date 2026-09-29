@@ -46,3 +46,4 @@ export * from './portfolio-builder-math';
 export * from './session.schema';
 export * from './branch.schema';
 export * from './fetch-attempt.schema';
+export * from './error-log.schema';

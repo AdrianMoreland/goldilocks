@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
-import { BranchSchema, FetchAttemptSchema, FetchMetricsSchema, RawSpotPriceSchema } from '@goldilocks/shared-types';
+import { BranchSchema, ErrorLogEntrySchema, FetchAttemptSchema, FetchMetricsSchema, RawSpotPriceSchema } from '@goldilocks/shared-types';
 import type { Branch, CreateBranchRequest, CreateUserRequest, MetalType } from '@goldilocks/shared-types';
 
 const CronStatusResponseSchema = z.object({ running: z.boolean() });
 const MessageResponseSchema = z.object({ message: z.string() });
 const SessionUserResponseSchema = z.object({ id: z.string() }).passthrough();
+const ErrorLogResponseSchema = z.object({ entries: z.array(ErrorLogEntrySchema), persisted: z.boolean() });
 
 /** Admin Panel actions — every call here is gated server-side by JwtAuthGuard + RolesGuard('admin'). */
 export function useAdminApi() {
@@ -24,5 +25,8 @@ export function useAdminApi() {
         getFetchLog: (limit = 5) => client.get(`/metals/fetch-log?limit=${limit}`, z.array(FetchAttemptSchema)),
         getFetchMetrics: () => client.get('/metals/fetch-metrics', FetchMetricsSchema),
         retryMetal: (metal: MetalType) => client.post(`/metals/${metal}/retry`, {}, RawSpotPriceSchema),
+
+        getErrorLog: (limit = 200) => client.get(`/errors?limit=${limit}`, ErrorLogResponseSchema),
+        clearErrorLog: () => client.del('/errors', MessageResponseSchema),
     };
 }

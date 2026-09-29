@@ -3,12 +3,17 @@
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { useSidebarConfig } from '@/contexts/sidebar-context'
-import { useSidebar } from '@/components/ui/sidebar'
+import { useSidebarOptional } from '@/components/ui/sidebar'
 import { sidebarVariants, sidebarCollapsibleOptions, sidebarSideOptions } from '@/config/theme-customizer-constants'
 
 export function LayoutTab() {
   const { config: sidebarConfig, updateConfig: updateSidebarConfig } = useSidebarConfig()
-  const { toggleSidebar, state: sidebarState } = useSidebar()
+  // Optional: on the dashboard the customizer opens from the Admin panel,
+  // which sits outside BaseLayout's SidebarProvider. The strict useSidebar()
+  // threw there and unmounted the whole app (blank screen).
+  const sidebar = useSidebarOptional()
+  const toggleSidebar = () => sidebar?.toggleSidebar()
+  const sidebarState = sidebar?.state
 
   // Sidebar handler functions
   const handleSidebarVariantSelect = (variant: "sidebar" | "floating" | "inset") => {

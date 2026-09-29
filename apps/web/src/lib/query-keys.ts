@@ -21,5 +21,7 @@ export const queryKeys = {
         branches: ['admin', 'branches'] as const,
         fetchMetrics: ['admin', 'fetch-metrics'] as const,
         fetchLog: ['admin', 'fetch-log'] as const,
+        deletedProducts: ['admin', 'deleted-products'] as const,
+        errorLog: ['admin', 'error-log'] as const,
     },
 };

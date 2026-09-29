@@ -40,9 +40,15 @@ let ProductsController = class ProductsController {
     async updateStock(id, body) {
         return this.service.updateStock(id, body.stock_quantity);
     }
+    async getDeleted() {
+        return this.service.getDeleted();
+    }
+    async restore(id) {
+        return this.service.restore(id);
+    }
     async delete(id) {
         await this.service.delete(id);
-        return { message: `✅ Producto ${id} eliminado correctamente` };
+        return { message: `Product ${id} deleted` };
     }
 };
 exports.ProductsController = ProductsController;
@@ -96,7 +102,8 @@ __decorate([
 ], ProductsController.prototype, "updateProduct", null);
 __decorate([
     (0, common_1.Patch)('admin/products/:id/stock'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Update product stock (admin)' }),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
@@ -106,10 +113,32 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "updateStock", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Delete a product (admin)' }),
+    (0, common_1.Get)('admin/products/deleted'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List soft-deleted products (admin)' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "getDeleted", null);
+__decorate([
+    (0, common_1.Post)('admin/products/:id/restore'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Restore a soft-deleted product (admin)' }),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "restore", null);
+__decorate([
+    (0, swagger_1.ApiOperation)({ summary: 'Soft-delete a product (admin) — hidden everywhere, restorable' }),
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

@@ -4,13 +4,15 @@ import {
     SpotPrice,
     HistoricSpot,
     RawProduct,
-    RawSpotPrice
+    RawSpotPrice,
+    roundBuyPrice,
+    roundSellPrice,
+    GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
 import { Decimal } from "../../../prisma/generated/internal/prismaNamespace";
 import {Product as PrismaProduct} from '../../../prisma/generated/client'
 import {MetalSpotPrice as PrismaSpotPrice } from '../../../prisma/generated/client'
 
-const GRAMS_PER_TROY_OUNCE = 31.1;
 
 /**
  * Converts a Decimal, number, or undefined/null value to a number.
@@ -95,6 +97,7 @@ export function toRawProduct(
 
         stock: product.stock,
         isActive: product.isActive,
+        category: product.category ?? null,
 
         description: product.description,
 
@@ -137,12 +140,16 @@ export function calculateProductPrice(
 
         spotPrice: round2(marketPrice),
         marketValue: round2(basePrice),
-        priceSell: round2(priceSell),
-        priceSellVatExcl: round2(priceSellVatExcl),
-        priceBuy: round2(priceBuy),
+        // Quoted prices are whole euros, rounded in the dealer's favour:
+        // what we charge rounds up, what we pay rounds down — the same rule
+        // the Trade tool's computeTransactionPrice applies.
+        priceSell: roundSellPrice(priceSell),
+        priceSellVatExcl: roundSellPrice(priceSellVatExcl),
+        priceBuy: roundBuyPrice(priceBuy),
 
         stock: product.stock,
         isActive: product.isActive,
+        category: product.category ?? null,
 
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,

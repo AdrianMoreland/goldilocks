@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import {ConfigService} from "@nestjs/config";
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {ZodValidationPipe} from "nestjs-zod";
+import { ErrorLogService } from './modules/error-log/error-log.service';
 
 const logger = new Logger('Bootstrap');
 
@@ -33,6 +34,20 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   validateEnv(config);
+
+  // Failures outside any HTTP request (cron jobs, fire-and-forget promises)
+  // never reach the exception filter — record them too, so the Admin
+  // panel's error log isn't blind to background work.
+  const errorLog = app.get(ErrorLogService);
+  process.on('unhandledRejection', (reason) => {
+    void errorLog.record({ kind: 'crash', message: 'Unhandled promise rejection', error: reason, detail: reason instanceof Error ? null : String(reason) });
+  });
+  // Record, then still exit: a listener here would otherwise stop Node
+  // crashing and leave the API running in an unknown state.
+  process.on('uncaughtException', (error) => {
+    void errorLog.record({ kind: 'crash', message: 'Uncaught exception — API process exiting', error })
+      .finally(() => process.exit(1));
+  });
 
   // Enable global validation with Zod
   app.useGlobalPipes(new ZodValidationPipe());

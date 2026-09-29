@@ -49,7 +49,7 @@ export function SiteHeader({ title, actions, showSidebarTrigger = true, showSear
           )}
           {title && (
             <>
-              <h1 className="hidden shrink-0 text-lg font-semibold tracking-tight whitespace-nowrap lg:inline-block">{title}</h1>
+              <h1 className="type-h3 hidden shrink-0 whitespace-nowrap lg:inline-block">{title}</h1>
               <Separator
                 orientation="vertical"
                 className="mx-2 hidden shrink-0 data-[orientation=vertical]:h-4 lg:block"

@@ -29,16 +29,31 @@ export class ProductsProvider {
         return (await this.productCache.get('all'))!; // fetchFromSource always returns an array, never null
     }
 
+    /** A live (not soft-deleted) product. */
     async getById(id: number): Promise<RawProduct | null> {
-        const product = await this.prisma.product.findUnique({ where: { id } });
+        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: null } });
         return product ? toRawProduct(product) : null;
     }
 
-    async findBySku(sku: string): Promise<{ id: number } | null> {
+    /** Includes soft-deleted rows — the SKU column is unique across both. */
+    async findBySku(sku: string): Promise<{ id: number; deletedAt: Date | null } | null> {
         return this.prisma.product.findFirst({
             where: { sku: { equals: sku, mode: 'insensitive' } },
-            select: { id: true },
+            select: { id: true, deletedAt: true },
         });
+    }
+
+    async getDeleted(): Promise<(RawProduct & { deletedAt: string })[]> {
+        const rows = await this.prisma.product.findMany({
+            where: { deletedAt: { not: null } },
+            orderBy: { deletedAt: 'desc' },
+        });
+        return rows.map((row) => ({ ...toRawProduct(row), deletedAt: row.deletedAt!.toISOString() }));
+    }
+
+    async getDeletedById(id: number): Promise<RawProduct | null> {
+        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: { not: null } } });
+        return product ? toRawProduct(product) : null;
     }
 
     async create(data: {
@@ -50,6 +65,7 @@ export class ProductsProvider {
         spreadBuy: number;
         vatRate: number;
         stock: number;
+        category?: RawProduct['category'];
         description?: string;
     }): Promise<RawProduct> {
         const created = await this.prisma.product.create({ data });
@@ -63,10 +79,16 @@ export class ProductsProvider {
         return toRawProduct(updated);
     }
 
-    async delete(id: number): Promise<RawProduct> {
-        const deleted = await this.prisma.product.delete({ where: { id } });
+    async softDelete(id: number): Promise<RawProduct> {
+        const deleted = await this.prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
         await this.refreshCache();
         return toRawProduct(deleted);
+    }
+
+    async restore(id: number): Promise<RawProduct> {
+        const restored = await this.prisma.product.update({ where: { id }, data: { deletedAt: null } });
+        await this.refreshCache();
+        return toRawProduct(restored);
     }
 
     async updateStock(id: number, stock: number): Promise<RawProduct> {
@@ -77,7 +99,7 @@ export class ProductsProvider {
 
     private async refreshCache(): Promise<void> {
         const fresh = await this.prisma.product
-            .findMany({ orderBy: { createdAt: 'desc' } })
+            .findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } })
             .then((rows) => rows.map(toRawProduct));
         await this.productCache.set('all', fresh);
     }

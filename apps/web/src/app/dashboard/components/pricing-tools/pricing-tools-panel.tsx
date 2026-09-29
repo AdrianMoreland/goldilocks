@@ -8,6 +8,7 @@ import { PortfolioTab } from "./portfolio-tab"
 import { SettingsTab } from "./settings-tab"
 import { CalculatorsTab } from "./calculators-tab"
 import { cn } from "@/lib/utils"
+import { formatMetalName } from "../../utils/formatters"
 
 // Settings isn't one of the row's tabs — it's a distinct "configure this
 // panel" action rather than a workflow tab, so it gets its own icon button
@@ -37,8 +38,8 @@ export function PricingToolsPanel() {
             <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH }}>
                 <div className="flex items-start justify-between gap-2 border-b p-4">
                     <div>
-                        <div className="font-semibold">{selectedProduct ? selectedProduct.name : "Pricing Tools"}</div>
-                        <div className="text-muted-foreground text-sm">{activeMetal} mode</div>
+                        <div className="type-h4">{selectedProduct ? selectedProduct.name : "Pricing Tools"}</div>
+                        <div className="type-muted text-muted-foreground">{formatMetalName(activeMetal)}</div>
                     </div>
                     <Button
                         type="button"

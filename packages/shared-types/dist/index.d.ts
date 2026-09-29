@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+/**
+ * Bar or coin, as chosen when the product was created. Nullable: products
+ * created before this field existed have none, and the table then falls back
+ * to inferring it from the name ("… Bar").
+ */
+declare const ProductCategoryEnum: z.ZodEnum<{
+    BAR: "BAR";
+    COIN: "COIN";
+}>;
+type ProductCategory = z.infer<typeof ProductCategoryEnum>;
 declare const ProductSchema: z.ZodObject<{
     id: z.ZodNumber;
     sku: z.ZodString;
@@ -15,6 +25,10 @@ declare const ProductSchema: z.ZodObject<{
     spreadBuy: z.ZodNumber;
     spreadSell: z.ZodNumber;
     vatRate: z.ZodNumber;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodString;
     marketValue: z.ZodNumber;
     priceSell: z.ZodNumber;
@@ -41,6 +55,10 @@ declare const RawProductSchema: z.ZodObject<{
     vatRate: z.ZodNumber;
     stock: z.ZodNumber;
     isActive: z.ZodBoolean;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     createdAt: z.ZodPreprocess<z.ZodISODateTime>;
     updatedAt: z.ZodPreprocess<z.ZodISODateTime>;
@@ -59,6 +77,10 @@ declare const CreateProductDtoSchema: z.ZodObject<{
     spreadSell: z.ZodNumber;
     vatRate: z.ZodNumber;
     stock: z.ZodNumber;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 declare const UpdateProductFullDtoSchema: z.ZodObject<{
@@ -76,6 +98,10 @@ declare const UpdateProductFullDtoSchema: z.ZodObject<{
     spreadBuy: z.ZodOptional<z.ZodNumber>;
     spreadSell: z.ZodOptional<z.ZodNumber>;
     vatRate: z.ZodOptional<z.ZodNumber>;
+    category: z.ZodOptional<z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>>;
     marketValue: z.ZodOptional<z.ZodNumber>;
     priceSellVatExcl: z.ZodOptional<z.ZodNumber>;
     stock: z.ZodOptional<z.ZodNumber>;
@@ -98,6 +124,10 @@ declare const ProductsSchema: z.ZodArray<z.ZodObject<{
     spreadBuy: z.ZodNumber;
     spreadSell: z.ZodNumber;
     vatRate: z.ZodNumber;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodString;
     marketValue: z.ZodNumber;
     priceSell: z.ZodNumber;
@@ -123,6 +153,10 @@ declare const ProductArraySchema: z.ZodArray<z.ZodObject<{
     spreadBuy: z.ZodNumber;
     spreadSell: z.ZodNumber;
     vatRate: z.ZodNumber;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodString;
     marketValue: z.ZodNumber;
     priceSell: z.ZodNumber;
@@ -153,6 +187,10 @@ declare const ProductMapSchema: z.ZodRecord<z.ZodEnum<{
     spreadBuy: z.ZodNumber;
     spreadSell: z.ZodNumber;
     vatRate: z.ZodNumber;
+    category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        BAR: "BAR";
+        COIN: "COIN";
+    }>>>;
     description: z.ZodString;
     marketValue: z.ZodNumber;
     priceSell: z.ZodNumber;
@@ -508,6 +546,10 @@ declare const MarketDataResponseSchema: z.ZodObject<{
         spreadBuy: z.ZodNumber;
         spreadSell: z.ZodNumber;
         vatRate: z.ZodNumber;
+        category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+            BAR: "BAR";
+            COIN: "COIN";
+        }>>>;
         description: z.ZodString;
         marketValue: z.ZodNumber;
         priceSell: z.ZodNumber;
@@ -566,6 +608,10 @@ declare const RefreshResponseSchema: z.ZodObject<{
         spreadBuy: z.ZodNumber;
         spreadSell: z.ZodNumber;
         vatRate: z.ZodNumber;
+        category: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+            BAR: "BAR";
+            COIN: "COIN";
+        }>>>;
         description: z.ZodString;
         marketValue: z.ZodNumber;
         priceSell: z.ZodNumber;
@@ -935,6 +981,14 @@ type PortfolioBuildResponse = z.infer<typeof PortfolioBuildResponseSchema>;
 
 declare const GRAMS_PER_TROY_OUNCE = 31.1034768;
 /**
+ * Whole-euro rounding for quoted product prices, always in the dealer's
+ * favour: a price we charge rounds UP, a buyback we pay rounds DOWN. The
+ * value is snapped to cents first so float noise (2948.0000000004) doesn't
+ * push a whole-euro price up by €1.
+ */
+declare function roundSellPrice(value: number): number;
+declare function roundBuyPrice(value: number): number;
+/**
  * Prices one line: a buy (customer pays a premium over spot) or a sell
  * (customer receives a discount off spot).
  *
@@ -1146,4 +1200,115 @@ type FetchTrigger = z.infer<typeof FetchTriggerEnum>;
 type FetchAttempt = z.infer<typeof FetchAttemptSchema>;
 type FetchMetrics = z.infer<typeof FetchMetricsSchema>;
 
-export { type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type ChangePasswordInput, ChangePasswordSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HistoricSpot, HistoricSpotSchema, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateProductFullDto, UpdateProductFullDtoSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, solveMissingPurchaseField };
+declare const ErrorLogSourceEnum: z.ZodEnum<{
+    server: "server";
+    client: "client";
+}>;
+declare const ErrorLogSeverityEnum: z.ZodEnum<{
+    error: "error";
+    warning: "warning";
+}>;
+/**
+ * Machine-readable category, so the Admin panel can group and explain:
+ *  - database      Prisma / Postgres failure
+ *  - http          an API request answered with an error status
+ *  - network       the browser couldn't reach the API at all
+ *  - external-api  the metal-price vendor failed
+ *  - response      the API answered, but not in the shape the app expects
+ *  - crash         an unhandled exception (server or browser)
+ */
+declare const ErrorLogKindEnum: z.ZodEnum<{
+    database: "database";
+    http: "http";
+    network: "network";
+    "external-api": "external-api";
+    response: "response";
+    crash: "crash";
+}>;
+declare const ErrorLogEntrySchema: z.ZodObject<{
+    id: z.ZodString;
+    reference: z.ZodString;
+    at: z.ZodString;
+    source: z.ZodEnum<{
+        server: "server";
+        client: "client";
+    }>;
+    severity: z.ZodEnum<{
+        error: "error";
+        warning: "warning";
+    }>;
+    kind: z.ZodEnum<{
+        database: "database";
+        http: "http";
+        network: "network";
+        "external-api": "external-api";
+        response: "response";
+        crash: "crash";
+    }>;
+    message: z.ZodString;
+    detail: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    statusCode: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    method: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    path: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    code: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    stack: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    user: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    userAgent: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+}, z.core.$strip>;
+/** What the web app sends for a browser-side failure. Bounded so a bug can't flood Redis. */
+declare const ClientErrorReportSchema: z.ZodObject<{
+    reference: z.ZodString;
+    occurredAt: z.ZodString;
+    severity: z.ZodEnum<{
+        error: "error";
+        warning: "warning";
+    }>;
+    kind: z.ZodEnum<{
+        database: "database";
+        http: "http";
+        network: "network";
+        "external-api": "external-api";
+        response: "response";
+        crash: "crash";
+    }>;
+    message: z.ZodString;
+    detail: z.ZodOptional<z.ZodString>;
+    statusCode: z.ZodOptional<z.ZodNumber>;
+    method: z.ZodOptional<z.ZodString>;
+    path: z.ZodOptional<z.ZodString>;
+    stack: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+declare const ClientErrorReportBatchSchema: z.ZodObject<{
+    reports: z.ZodArray<z.ZodObject<{
+        reference: z.ZodString;
+        occurredAt: z.ZodString;
+        severity: z.ZodEnum<{
+            error: "error";
+            warning: "warning";
+        }>;
+        kind: z.ZodEnum<{
+            database: "database";
+            http: "http";
+            network: "network";
+            "external-api": "external-api";
+            response: "response";
+            crash: "crash";
+        }>;
+        message: z.ZodString;
+        detail: z.ZodOptional<z.ZodString>;
+        statusCode: z.ZodOptional<z.ZodNumber>;
+        method: z.ZodOptional<z.ZodString>;
+        path: z.ZodOptional<z.ZodString>;
+        stack: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+type ErrorLogSource = z.infer<typeof ErrorLogSourceEnum>;
+type ErrorLogSeverity = z.infer<typeof ErrorLogSeverityEnum>;
+type ErrorLogKind = z.infer<typeof ErrorLogKindEnum>;
+type ErrorLogEntry = z.infer<typeof ErrorLogEntrySchema>;
+type ClientErrorReport = z.infer<typeof ClientErrorReportSchema>;
+type ClientErrorReportBatch = z.infer<typeof ClientErrorReportBatchSchema>;
+/** "E-7F3K2" — short enough to read out over the phone. */
+declare function createErrorReference(): string;
+
+export { type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HistoricSpot, HistoricSpotSchema, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateProductFullDto, UpdateProductFullDtoSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, createErrorReference, roundBuyPrice, roundSellPrice, solveMissingPurchaseField };
