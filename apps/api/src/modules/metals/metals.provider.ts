@@ -149,8 +149,7 @@ export class MetalsProvider {
         }
 
         this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} — trying the live API as a last resort`);
-        const liveRates = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
-        const timestamp = new Date();
+        const { rates: liveRates, asOf: timestamp } = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
         const degradedMetals: MetalType[] = [];
 
         for (const metal of needsLiveFetch) {
@@ -190,8 +189,7 @@ export class MetalsProvider {
      * click when reading the System Status panel later.
      */
     async refreshAll(triggeredBy: FetchTrigger = 'REFRESH'): Promise<MetalsRefreshResult> {
-        const liveRates = await this.fetchFromExternalApi(triggeredBy);
-        const timestamp = new Date();
+        const { rates: liveRates, asOf: timestamp } = await this.fetchFromExternalApi(triggeredBy);
         const prices: RawSpotPrice[] = [];
 
         const liveMetals = (Object.keys(liveRates) as MetalType[]).filter((m) => (liveRates[m]?.eur ?? 0) > 0);
@@ -245,14 +243,14 @@ export class MetalsProvider {
      * include a usable rate for it.
      */
     async retryMetal(metal: MetalType): Promise<RawSpotPrice | null> {
-        const liveRates = await this.fetchFromExternalApi('RETRY');
+        const { rates: liveRates, asOf } = await this.fetchFromExternalApi('RETRY');
         const rate = liveRates[metal];
 
         if (!rate || rate.eur <= 0) {
             return null;
         }
 
-        const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp: new Date() };
+        const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp: asOf };
         await this.storeInDb([record]);
         const dto = this.toDto(record, 'live');
         await this.spotCache.set(metal, dto);
@@ -289,9 +287,11 @@ export class MetalsProvider {
      * check correctly abort instead, leaving whatever's already cached/
      * stored alone until the API is healthy again.
      */
-    private async fetchFromExternalApi(triggeredBy: FetchTrigger): Promise<
-        Partial<Record<MetalType, { eur: number; gbp: number }>>
-    > {
+    private async fetchFromExternalApi(triggeredBy: FetchTrigger): Promise<{
+        rates: Partial<Record<MetalType, { eur: number; gbp: number }>>;
+        /** When the vendor says these rates were struck (their `timestamp`), not when we asked — a cache/DB hit later shows this same time, which is what staff need to judge how old the price really is. Falls back to "now" if the vendor omits it. */
+        asOf: Date;
+    }> {
         const startedAt = Date.now();
 
         try {
@@ -310,8 +310,13 @@ export class MetalsProvider {
                     metalsResolved: [],
                     triggeredBy,
                 });
-                return {};
+                return { rates: {}, asOf: new Date() };
             }
+
+            // Vendor timestamps are unix seconds; ignore anything missing or
+            // not in the past so a bad value can't make a price look brand new.
+            const vendorMs = Number(response.timestamp) * 1000;
+            const asOf = Number.isFinite(vendorMs) && vendorMs > 0 && vendorMs <= Date.now() ? new Date(vendorMs) : new Date();
 
             this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
             this.logger.debug(`XAU=${response.rates.XAU}`);
@@ -344,7 +349,7 @@ export class MetalsProvider {
                 metalsResolved: Object.keys(rates) as MetalType[],
                 triggeredBy,
             });
-            return rates;
+            return { rates, asOf };
         } catch (error) {
             const message = error instanceof Error ? error.message : JSON.stringify(error);
             if (error instanceof Error) {
@@ -359,7 +364,7 @@ export class MetalsProvider {
                 metalsResolved: [],
                 triggeredBy,
             });
-            return {};
+            return { rates: {}, asOf: new Date() };
         }
     }
 

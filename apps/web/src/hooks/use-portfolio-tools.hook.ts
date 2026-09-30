@@ -4,6 +4,8 @@ import { useTradeApi } from '@/api/trade.api';
 import { usePortfolioApi } from '@/api/portfolio.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MetalType } from '@/lib/types';
+import { useSpotPrices } from '@/app/dashboard/context/spot-prices-context';
+import { findDefaultProduct } from '@/lib/default-product';
 import type {
     ProfitAnalysisMissingFieldDto,
     ProfitAnalysisRequest,
@@ -17,11 +19,6 @@ const DEBOUNCE_MS = 150;
 
 type PurchaseMode = 'premium' | 'price';
 
-function findDefaultProduct(products: TradeProduct[]): TradeProduct | null {
-    const oneOz = products.find((p) => p.name.toLowerCase().replace(/\s/g, '').includes('1oz'));
-    return oneOz ?? products[0] ?? null;
-}
-
 /**
  * Portfolio P/L subtab — ported from Scripts.Portfolio.html's P/L panel +
  * Api.Pricing.gs's calculateProfitAnalysis. Shares the Trade tab's bootstrap
@@ -30,6 +27,7 @@ function findDefaultProduct(products: TradeProduct[]): TradeProduct | null {
 export function usePortfolioPL(metal: MetalType) {
     const tradeApi = useTradeApi();
     const portfolioApi = usePortfolioApi();
+    const { displayPrices, setSpot: setMetalSpot } = useSpotPrices();
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -38,12 +36,21 @@ export function usePortfolioPL(metal: MetalType) {
 
     const products = useMemo(() => bootstrapQuery.data?.products ?? [], [bootstrapQuery.data]);
 
+    // The current spot is the card's spot (override included), never a copy
+    // taken at first load — so editing a card re-runs the analysis.
+    const currentSpot = displayPrices[metal] > 0 ? displayPrices[metal] : null;
+    const setCurrentSpot = useCallback(
+        (value: number) => {
+            if (value > 0) setMetalSpot(metal, value);
+        },
+        [metal, setMetalSpot],
+    );
+
     const [productId, setProductId] = useState<number | null>(null);
     const [purchMode, setPurchMode] = useState<PurchaseMode>('premium');
     const [purchaseSpot, setPurchaseSpot] = useState<number | null>(null);
     const [purchasePremium, setPurchasePremium] = useState(0);
     const [purchasePrice, setPurchasePrice] = useState(0);
-    const [currentSpot, setCurrentSpot] = useState<number | null>(null);
     const [currentDiscount, setCurrentDiscount] = useState(0);
     const [targetProfit, setTargetProfit] = useState(0);
 
@@ -52,11 +59,10 @@ export function usePortfolioPL(metal: MetalType) {
         if (!bootstrapQuery.data || lastResetMetal.current === metal) return;
         lastResetMetal.current = metal;
 
-        const defaultProduct = findDefaultProduct(bootstrapQuery.data.products);
+        const defaultProduct = findDefaultProduct(metal, bootstrapQuery.data.products);
 
         setProductId(defaultProduct?.id ?? null);
         setPurchaseSpot(bootstrapQuery.data.spot);
-        setCurrentSpot(bootstrapQuery.data.spot);
         setPurchMode('premium');
         setPurchasePremium(defaultProduct?.premiumPct ?? 0);
         setCurrentDiscount(defaultProduct?.discountPct ?? 0);
@@ -183,6 +189,8 @@ export function usePortfolioScenario() {
 export function usePortfolioBuilder(metal: MetalType) {
     const tradeApi = useTradeApi();
     const portfolioApi = usePortfolioApi();
+    const { displayPrices } = useSpotPrices();
+    const customSpot = displayPrices[metal] > 0 ? displayPrices[metal] : undefined;
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -212,6 +220,7 @@ export function usePortfolioBuilder(metal: MetalType) {
                 productType,
                 priorityProductId: priorityProductId ?? undefined,
                 priorityStrength,
+                customSpot,
             }),
     });
 

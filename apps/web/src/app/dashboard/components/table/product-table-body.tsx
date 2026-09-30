@@ -111,7 +111,7 @@ function EmptyTableMessage({
     onResetFilters,
 }: Omit<ProductTableBodyProps, "table" | "columnCount">) {
     if (isLoading) return <>Loading products…</>
-    if (hasError) return <>Couldn&apos;t load products. Refresh spot prices to try again.</>
+    if (hasError) return <>Couldn&apos;t load products from the server. Check your connection and press refresh in the top bar; if it keeps failing, tell an admin.</>
     if (isFiltered) {
         return (
             <>

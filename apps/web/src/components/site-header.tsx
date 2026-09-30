@@ -5,9 +5,12 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandSearch, SearchTrigger } from "@/components/command-search"
 import { ModeToggle } from "@/components/mode-toggle"
+import { Logo } from "@/components/logo"
 
 interface SiteHeaderProps {
   title?: string
+  /** Shows the Merrion Gold mark beside the title. */
+  showLogo?: boolean
   actions?: React.ReactNode
   /** The sidebar (and its toggle) are admin-only — see BaseLayout. */
   showSidebarTrigger?: boolean
@@ -17,7 +20,7 @@ interface SiteHeaderProps {
   showModeToggle?: boolean
 }
 
-export function SiteHeader({ title, actions, showSidebarTrigger = true, showSearch = true, showModeToggle = true }: SiteHeaderProps) {
+export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true, showSearch = true, showModeToggle = true }: SiteHeaderProps) {
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -49,6 +52,7 @@ export function SiteHeader({ title, actions, showSidebarTrigger = true, showSear
           )}
           {title && (
             <>
+              {showLogo && <Logo size={30} className="shrink-0" />}
               <h1 className="type-h3 hidden shrink-0 whitespace-nowrap lg:inline-block">{title}</h1>
               <Separator
                 orientation="vertical"

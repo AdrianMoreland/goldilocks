@@ -122,6 +122,12 @@ var ProductsSchema = z2.array(ProductSchema);
 var ProductArraySchema = z2.array(ProductSchema);
 var ProductMapSchema = z2.record(MetalTypeEnum, ProductSchema);
 
+// src/product-name.ts
+var WEIGHT_SPACE_RE = /(\d+(?:[./]\d+)?)\s+(oz|kg|g)\b/gi;
+function normalizeProductName(name) {
+  return name.replace(WEIGHT_SPACE_RE, "$1$2").trim();
+}
+
 // src/common.schema.ts
 import { z as z3 } from "zod";
 var ApiSuccessResponseSchema = (dataSchema) => z3.object({
@@ -287,7 +293,9 @@ var MeltCategoryDataSchema = z6.object({
 });
 var MeltCalculatorRequestSchema = z6.object({
   category: MeltCategoryKeyEnum,
-  weight: z6.coerce.number().positive()
+  weight: z6.coerce.number().positive(),
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: z6.number().positive().optional()
 });
 var MeltCalculatorResponseSchema = z6.object({
   category: MeltCategoryKeyEnum,
@@ -349,7 +357,9 @@ var PortfolioBuildRequestSchema = z7.object({
   budget: z7.coerce.number().positive(),
   productType: PortfolioProductTypeFilterEnum,
   priorityProductId: z7.number().optional(),
-  priorityStrength: PriorityStrengthEnum
+  priorityStrength: PriorityStrengthEnum,
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: z7.number().positive().optional()
 });
 var PortfolioLineItemSchema = z7.object({
   product: z7.string(),
@@ -1052,6 +1062,7 @@ export {
   computeRequiredSpotForTarget,
   computeTransactionPrice,
   createErrorReference,
+  normalizeProductName,
   roundBuyPrice,
   roundSellPrice,
   solveMissingPurchaseField

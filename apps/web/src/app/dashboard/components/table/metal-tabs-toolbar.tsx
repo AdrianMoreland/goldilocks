@@ -1,19 +1,10 @@
 import * as React from "react"
-import { ChevronDown, Columns2 } from "lucide-react"
-import type { Table } from "@tanstack/react-table"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { DisplayProduct } from "./product-grouping"
-import { productColumnLabels } from "./product-columns"
 import {METAL_TABS, MetalTabValue} from "./metal-tabs"
 
 interface MetalTabsToolbarProps {
-    table: Table<DisplayProduct>
     selectedTab: MetalTabValue
     onSelectedTabChange: (tab: MetalTabValue) => void
     /**
@@ -26,7 +17,7 @@ interface MetalTabsToolbarProps {
     showMetalSelect: boolean
 }
 
-export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange, showMetalSelect }: MetalTabsToolbarProps) {
+export function MetalTabsToolbar({ selectedTab, onSelectedTabChange, showMetalSelect }: MetalTabsToolbarProps) {
 
     return (
         <div className="flex items-center justify-between px-4 lg:px-6 flex-wrap gap-3">
@@ -54,33 +45,6 @@ export function MetalTabsToolbar({ table, selectedTab, onSelectedTabChange, show
                     </TabsList>
                 </>
             )}
-
-            <div className="ml-auto flex items-center gap-2">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="cursor-pointer">
-                            <Columns2 />
-                            <span className="hidden lg:inline">Customize Columns</span>
-                            <span className="lg:hidden">Columns</span>
-                            <ChevronDown />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide())
-                            .map((column) => (
-                                <DropdownMenuCheckboxItem
-                                    key={column.id}
-                                    checked={column.getIsVisible()}
-                                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                                >
-                                    {productColumnLabels[column.id] ?? column.id}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
         </div>
     )
 }

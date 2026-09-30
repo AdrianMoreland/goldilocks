@@ -1,0 +1,1 @@
+import{c}from"./index-BElVI0Ff.js";const e=[["path",{d:"M12 5v14",key:"s699le"}],["path",{d:"m19 12-7 7-7-7",key:"1idqje"}]],t=c("arrow-down",e);const o=[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]],a=c("circle-check",o);export{t as A,a as C};

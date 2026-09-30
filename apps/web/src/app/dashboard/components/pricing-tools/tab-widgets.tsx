@@ -17,14 +17,18 @@ export function SectionLabel({ children }: { children: ReactNode }) {
     return <div className="text-[11px] font-bold tracking-wide text-[var(--tab-accent-text-soft)]">{children}</div>
 }
 
-export function ErrorBanner({ message }: { message: string }) {
+export function ErrorBanner({ message, next }: { message: string; next?: string }) {
     return (
         <div
-            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-[var(--tab-accent-text-soft)]"
+            role="alert"
+            className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs font-medium text-[var(--tab-accent-text-soft)]"
             style={{ background: "var(--tab-accent-soft)" }}
         >
-            <AlertTriangle className="size-3.5 shrink-0" />
-            <span>{message}</span>
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+                {message}
+                {next && <span className="mt-0.5 block font-semibold">{next}</span>}
+            </span>
         </div>
     )
 }

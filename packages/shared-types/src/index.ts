@@ -24,6 +24,7 @@ export {
 // typescript
 // File: `packages/shared-types/src/index.ts`
 export * from './product.schema';
+export * from './product-name';
 export * from './spot-price.schema';
 export * from './common.schema';
 export * from './auth.schemas';

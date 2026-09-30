@@ -66,7 +66,7 @@ let PortfolioService = class PortfolioService {
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${request.metalType}.`);
         }
-        const spotMap = { ...pricing_util_1.ZERO_SPOT_MAP, [request.metalType]: spot.priceEur };
+        const spotMap = { ...pricing_util_1.ZERO_SPOT_MAP, [request.metalType]: request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur };
         const priorityProduct = request.priorityProductId
             ? rawProducts.find((p) => p.id === request.priorityProductId)
             : undefined;

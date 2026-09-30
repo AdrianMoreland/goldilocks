@@ -104,6 +104,7 @@ __export(index_exports, {
   computeRequiredSpotForTarget: () => computeRequiredSpotForTarget,
   computeTransactionPrice: () => computeTransactionPrice,
   createErrorReference: () => createErrorReference,
+  normalizeProductName: () => normalizeProductName,
   roundBuyPrice: () => roundBuyPrice,
   roundSellPrice: () => roundSellPrice,
   solveMissingPurchaseField: () => solveMissingPurchaseField
@@ -233,6 +234,12 @@ var UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, createdAt: true,
 var ProductsSchema = import_zod2.z.array(ProductSchema);
 var ProductArraySchema = import_zod2.z.array(ProductSchema);
 var ProductMapSchema = import_zod2.z.record(MetalTypeEnum, ProductSchema);
+
+// src/product-name.ts
+var WEIGHT_SPACE_RE = /(\d+(?:[./]\d+)?)\s+(oz|kg|g)\b/gi;
+function normalizeProductName(name) {
+  return name.replace(WEIGHT_SPACE_RE, "$1$2").trim();
+}
 
 // src/common.schema.ts
 var import_zod3 = require("zod");
@@ -399,7 +406,9 @@ var MeltCategoryDataSchema = import_zod6.z.object({
 });
 var MeltCalculatorRequestSchema = import_zod6.z.object({
   category: MeltCategoryKeyEnum,
-  weight: import_zod6.z.coerce.number().positive()
+  weight: import_zod6.z.coerce.number().positive(),
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: import_zod6.z.number().positive().optional()
 });
 var MeltCalculatorResponseSchema = import_zod6.z.object({
   category: MeltCategoryKeyEnum,
@@ -461,7 +470,9 @@ var PortfolioBuildRequestSchema = import_zod7.z.object({
   budget: import_zod7.z.coerce.number().positive(),
   productType: PortfolioProductTypeFilterEnum,
   priorityProductId: import_zod7.z.number().optional(),
-  priorityStrength: PriorityStrengthEnum
+  priorityStrength: PriorityStrengthEnum,
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: import_zod7.z.number().positive().optional()
 });
 var PortfolioLineItemSchema = import_zod7.z.object({
   product: import_zod7.z.string(),
@@ -1165,6 +1176,7 @@ function createErrorReference() {
   computeRequiredSpotForTarget,
   computeTransactionPrice,
   createErrorReference,
+  normalizeProductName,
   roundBuyPrice,
   roundSellPrice,
   solveMissingPurchaseField

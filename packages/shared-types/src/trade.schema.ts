@@ -95,6 +95,8 @@ export type MeltCategoryData = z.infer<typeof MeltCategoryDataSchema>;
 export const MeltCalculatorRequestSchema = z.object({
   category: MeltCategoryKeyEnum,
   weight: z.coerce.number().positive(),
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: z.number().positive().optional(),
 });
 export type MeltCalculatorRequest = z.infer<typeof MeltCalculatorRequestSchema>;
 

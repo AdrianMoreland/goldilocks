@@ -90,8 +90,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             return { prices, degradedMetals: [] };
         }
         this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} — trying the live API as a last resort`);
-        const liveRates = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
-        const timestamp = new Date();
+        const { rates: liveRates, asOf: timestamp } = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
         const degradedMetals = [];
         for (const metal of needsLiveFetch) {
             const rate = liveRates[metal];
@@ -111,8 +110,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         return { prices, degradedMetals };
     }
     async refreshAll(triggeredBy = 'REFRESH') {
-        const liveRates = await this.fetchFromExternalApi(triggeredBy);
-        const timestamp = new Date();
+        const { rates: liveRates, asOf: timestamp } = await this.fetchFromExternalApi(triggeredBy);
         const prices = [];
         const liveMetals = Object.keys(liveRates).filter((m) => (liveRates[m]?.eur ?? 0) > 0);
         if (liveMetals.length > 0) {
@@ -147,12 +145,12 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         return { prices, degradedMetals };
     }
     async retryMetal(metal) {
-        const liveRates = await this.fetchFromExternalApi('RETRY');
+        const { rates: liveRates, asOf } = await this.fetchFromExternalApi('RETRY');
         const rate = liveRates[metal];
         if (!rate || rate.eur <= 0) {
             return null;
         }
-        const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp: new Date() };
+        const record = { metalType: metal, priceEur: rate.eur, priceGbp: rate.gbp, source: 'metalpriceapi', timestamp: asOf };
         await this.storeInDb([record]);
         const dto = this.toDto(record, 'live');
         await this.spotCache.set(metal, dto);
@@ -183,8 +181,10 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                     metalsResolved: [],
                     triggeredBy,
                 });
-                return {};
+                return { rates: {}, asOf: new Date() };
             }
+            const vendorMs = Number(response.timestamp) * 1000;
+            const asOf = Number.isFinite(vendorMs) && vendorMs > 0 && vendorMs <= Date.now() ? new Date(vendorMs) : new Date();
             this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
             this.logger.debug(`XAU=${response.rates.XAU}`);
             this.logger.debug(`Computed EUR/XAU=${1 / response.rates.XAU}`);
@@ -210,7 +210,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                 metalsResolved: Object.keys(rates),
                 triggeredBy,
             });
-            return rates;
+            return { rates, asOf };
         }
         catch (error) {
             const message = error instanceof Error ? error.message : JSON.stringify(error);
@@ -227,7 +227,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                 metalsResolved: [],
                 triggeredBy,
             });
-            return {};
+            return { rates: {}, asOf: new Date() };
         }
     }
     async fetchHistoricFromExternalApi(startDate, endDate) {

@@ -4,7 +4,10 @@ import { useTradeApi } from '@/api/trade.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MetalType } from '@/lib/types';
 import { usePricingSettings } from '@/app/dashboard/context/pricing-settings-context';
+import { useSpotPrices } from '@/app/dashboard/context/spot-prices-context';
+import { usePricingTools } from '@/app/dashboard/context/pricing-tools-context';
 import { useMeltCalculator } from './use-melt-calculator.hook';
+import { findDefaultProduct } from '@/lib/default-product';
 import {
     GRAMS_PER_TROY_OUNCE,
     MeltCategoryKeyEnum,
@@ -36,27 +39,8 @@ function defaultPercentFor(
     const product = products.find((p) => p.id === productId);
     if (!product) return 0;
     const base = transactionType === 'buying' ? product.premiumPct : product.discountPct;
-    return Math.max(0, base + adjustmentDeltaPct);
-}
-
-const BAR_NAME_RE = /bar/i;
-const BONDED_NAME_RE = /bonded/i;
-
-// The default product opened for a fresh metal quote — plain 1oz bars for
-// gold/platinum/palladium, a 1kg bar for silver (matching how each metal is
-// actually traded in bulk). Picked by shape (bar) + weight rather than by
-// name text alone, since "contains 1oz" also matches mint coins like the
-// US Eagle — which isn't a high-volume product and shouldn't be the default.
-// Bonded bars are excluded even though they match the same weight tier —
-// they're a separate, specialty pricing product, not the standard bar.
-function findDefaultProduct(metal: MetalType, products: TradeProduct[]): TradeProduct | null {
-    const targetWeight = metal === 'SILVER' ? 1000 : GRAMS_PER_TROY_OUNCE;
-    const tolerance = metal === 'SILVER' ? 1 : 0.5;
-
-    const bar = products.find(
-        (p) => BAR_NAME_RE.test(p.name) && !BONDED_NAME_RE.test(p.name) && Math.abs(p.weight - targetWeight) < tolerance,
-    );
-    return bar ?? products[0] ?? null;
+    // Rounded: premium (5.9) plus a mode delta (0.5) carries float noise otherwise.
+    return Math.round(Math.max(0, base + adjustmentDeltaPct) * 1e4) / 1e4;
 }
 
 /**
@@ -64,13 +48,11 @@ function findDefaultProduct(metal: MetalType, products: TradeProduct[]): TradePr
  * scoped to a single metal mode. Ported from the Merrion Gold Apps Script
  * tool's Scripts.Trade.html + Api.Trade.gs/Api.Melt.gs.
  *
- * "Freeze" here means: while ON, the working spot price won't be
- * overwritten by a background refetch of live prices. The original
- * spreadsheet tool used freeze to stop the active cart item from following
- * the user's spreadsheet cell selection — there's no equivalent "active
- * cell" concept in a web dashboard, so this is the closest faithful
- * reinterpretation: it protects a manually-typed spot price from being
- * clobbered while the user is working with it.
+ * The spot here is the same number the metal's card shows — the user's
+ * override if they froze or typed one, otherwise the live price. Editing it
+ * in this tab edits the card, so Trade, Melt, Portfolio and the cards can
+ * never quote different spots. (The old per-tab "Freeze" is now the card's
+ * own freeze control.)
  */
 export function useTradeTools(
     metal: MetalType,
@@ -80,20 +62,18 @@ export function useTradeTools(
 ) {
     const api = useTradeApi();
     const { getAdjustmentDelta } = usePricingSettings();
-
-    const [transactionType, setTransactionTypeState] = useState<TradeTransactionType>('buying');
-    const [freeze, setFreeze] = useState(true);
+    const { displayPrices, setSpot: setMetalSpot, clearSpot } = useSpotPrices();
+    const { transactionType, setTransactionType: setTransactionTypeState } = usePricingTools();
 
     // Cart + spot are kept per metal, not reset on every switch — leaving
     // metal X's quote and looking at metal Y (or its dashboard card) must
     // not discard what was being built for X, so the panel can work like a
     // running quote per metal instead of a single throwaway scratchpad.
     const [cartsByMetal, setCartsByMetal] = useState<Partial<Record<MetalType, CartItemState[]>>>({});
-    const [spotByMetal, setSpotByMetal] = useState<Partial<Record<MetalType, number>>>({});
     const initializedMetals = useRef<Set<MetalType>>(new Set());
 
     const items = cartsByMetal[metal] ?? [];
-    const spot = spotByMetal[metal] ?? null;
+    const spot = displayPrices[metal] > 0 ? displayPrices[metal] : null;
 
     // A ref rather than state: syncing the product-table selection can add
     // several items in one pass (see the effect below), which needs several
@@ -109,12 +89,15 @@ export function useTradeTools(
     );
 
     const setSpot = useCallback(
-        (value: number) => setSpotByMetal((prev) => ({ ...prev, [metal]: value })),
-        [metal],
+        (value: number) => {
+            // A blank or zero field mid-typing must not become a €0 override.
+            if (value > 0) setMetalSpot(metal, value);
+        },
+        [metal, setMetalSpot],
     );
 
     const [subTab, setSubTab] = useState<'products' | 'melt'>('products');
-    const melt = useMeltCalculator(subTab === 'melt');
+    const melt = useMeltCalculator(subTab === 'melt', displayPrices);
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -137,8 +120,6 @@ export function useTradeTools(
         if (!bootstrapQuery.data || initializedMetals.current.has(metal)) return;
         initializedMetals.current.add(metal);
 
-        setSpotByMetal((prev) => ({ ...prev, [metal]: bootstrapQuery.data!.spot }));
-
         const defaultProduct = findDefaultProduct(metal, bootstrapQuery.data!.products);
         setCartsByMetal((prev) => ({
             ...prev,
@@ -157,12 +138,6 @@ export function useTradeTools(
         // only run once per metal (its first load), not on every toggle.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [metal, bootstrapQuery.data]);
-
-    // While unfrozen, keep this metal's working spot glued to its live price.
-    useEffect(() => {
-        if (freeze || !bootstrapQuery.data) return;
-        setSpot(bootstrapQuery.data.spot);
-    }, [bootstrapQuery.data, freeze, setSpot]);
 
     // "Open in Trade" from the Product tab: replace this metal's cart with
     // just the product that was opened, as soon as its data is available.
@@ -215,27 +190,27 @@ export function useTradeTools(
         });
     }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal]);
 
-    const setTransactionType = useCallback(
-        (mode: TradeTransactionType) => {
-            setTransactionTypeState(mode);
-            const delta = getAdjustmentDelta(metal, mode === 'buying' ? 'sell' : 'buy') * 100;
-            setItemsForMetal((current) =>
-                current.map((item) => ({
-                    ...item,
-                    percent: defaultPercentFor(products, item.productId, mode, delta),
-                })),
-            );
-            if (mode === 'buying') setSubTab('products'); // melt only makes sense when selling
-        },
-        [products, metal, getAdjustmentDelta, setItemsForMetal],
-    );
+    // Price/Buyback lives in the pricing-tools context so a keyboard shortcut
+    // can flip it from anywhere — so re-default the cart's premium/discount
+    // whenever it changes, not just when this tab's own toggle is clicked.
+    const lastTransactionType = useRef(transactionType);
+    useEffect(() => {
+        if (lastTransactionType.current === transactionType) return;
+        lastTransactionType.current = transactionType;
 
-    const toggleFreeze = useCallback(() => setFreeze((f) => !f), []);
+        setItemsForMetal((current) =>
+            current.map((item) => ({
+                ...item,
+                percent: defaultPercentFor(products, item.productId, transactionType, adjustmentDeltaPct),
+            })),
+        );
+        if (transactionType === 'buying') setSubTab('products'); // melt only makes sense when selling
+    }, [transactionType, products, adjustmentDeltaPct, setItemsForMetal]);
 
-    const resetSpot = useCallback(async () => {
-        const result = await bootstrapQuery.refetch();
-        if (result.data) setSpot(result.data.spot);
-    }, [bootstrapQuery, setSpot]);
+    const setTransactionType = setTransactionTypeState;
+
+    /** Back to the live market price (drops this metal's override). */
+    const resetSpot = useCallback(() => clearSpot(metal), [clearSpot, metal]);
 
     const addItem = useCallback(() => {
         const lastProductId = items.length ? items[items.length - 1].productId : (products[0]?.id ?? null);
@@ -278,6 +253,33 @@ export function useTradeTools(
     const updateItemPercent = useCallback((id: number, percent: number) => {
         setItemsForMetal((current) => current.map((item) => (item.id === id ? { ...item, percent } : item)));
     }, [setItemsForMetal]);
+
+    /**
+     * Prices the same items from the other side of the trade (Buyback when
+     * quoting Price, and vice versa) at each product's own default
+     * premium/discount plus any active market mode — for customer messages
+     * that show both figures. The cart on screen is left untouched.
+     */
+    const quoteOppositeSide = useCallback(
+        (customSpot: number) => {
+            const other: TradeTransactionType = transactionType === 'buying' ? 'selling' : 'buying';
+            const delta = getAdjustmentDelta(metal, other === 'buying' ? 'sell' : 'buy') * 100;
+
+            return api.calculateCart({
+                metalType: metal,
+                transactionType: other,
+                customSpot,
+                items: items
+                    .filter((i) => i.productId !== null)
+                    .map((i) => ({
+                        productId: i.productId as number,
+                        quantity: i.quantity,
+                        percent: defaultPercentFor(products, i.productId, other, delta),
+                    })),
+            });
+        },
+        [api, transactionType, getAdjustmentDelta, metal, items, products],
+    );
 
     const itemsView = useMemo(
         () =>
@@ -329,9 +331,6 @@ export function useTradeTools(
         transactionType,
         setTransactionType,
 
-        freeze,
-        toggleFreeze,
-
         spot,
         setSpot,
         resetSpot,
@@ -347,6 +346,8 @@ export function useTradeTools(
 
         subTab,
         setSubTab,
+
+        quoteOppositeSide,
 
         cartResult: cartQuery.data,
         cartLoading: cartQuery.isFetching,

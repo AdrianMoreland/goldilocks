@@ -11,7 +11,7 @@ export const queryKeys = {
         // network call for the same bootstrap data.
         bootstrap: (metal: string) => ['trade', 'bootstrap', metal] as const,
         cart: (payload: TradeCartRequest | null) => ['trade', 'cart', payload] as const,
-        melt: (payload: { category: MeltCategoryKey; weight: number } | null) => ['trade', 'melt', payload] as const,
+        melt: (payload: { category: MeltCategoryKey; weight: number; customSpot?: number } | null) => ['trade', 'melt', payload] as const,
     },
     portfolio: {
         profitAnalysis: (payload: ProfitAnalysisRequest | null) => ['portfolio', 'profit-analysis', payload] as const,
