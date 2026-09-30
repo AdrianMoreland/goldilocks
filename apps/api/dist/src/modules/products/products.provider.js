@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsProvider = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const shared_types_1 = require("@goldilocks/shared-types");
 const pricing_util_1 = require("../../common/utils/pricing.util");
 const product_cache_store_1 = require("./product-cache.store");
 let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
@@ -49,12 +50,15 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         return product ? (0, pricing_util_1.toRawProduct)(product) : null;
     }
     async create(data) {
-        const created = await this.prisma.product.create({ data });
+        const created = await this.prisma.product.create({ data: { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) } });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(created);
     }
     async update(id, data) {
-        const updated = await this.prisma.product.update({ where: { id }, data });
+        const updated = await this.prisma.product.update({
+            where: { id },
+            data: data.name === undefined ? data : { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+        });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(updated);
     }

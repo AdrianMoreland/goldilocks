@@ -20,6 +20,8 @@ interface BaseLayoutHelpers {
 interface BaseLayoutProps {
   children: React.ReactNode
   title?: string
+  /** Shows the Merrion Gold mark beside the title. */
+  showLogo?: boolean
   description?: string
   headerActions?: (helpers: BaseLayoutHelpers) => React.ReactNode
   /**
@@ -34,7 +36,7 @@ interface BaseLayoutProps {
   manualModeToggle?: boolean
 }
 
-export function BaseLayout({ children, title, description, headerActions, fillViewport, manualModeToggle }: BaseLayoutProps) {
+export function BaseLayout({ children, title, showLogo, description, headerActions, fillViewport, manualModeToggle }: BaseLayoutProps) {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false)
   const { config } = useSidebarConfig()
   const { isAdmin } = useAuth()
@@ -67,7 +69,7 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
           "--header-height": "calc(var(--spacing) * 14)",
         } as React.CSSProperties
       }
-      className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-svh overflow-hidden")}
+      className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
     >
       {config.side === "left" ? (
         <>
@@ -79,7 +81,7 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
             />
           )}
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
+            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
@@ -87,7 +89,7 @@ export function BaseLayout({ children, title, description, headerActions, fillVi
       ) : (
           <>
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
+              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>

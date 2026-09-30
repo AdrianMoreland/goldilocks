@@ -364,6 +364,7 @@ declare const MeltCalculatorRequestDto_base: import("nestjs-zod").ZodDto<import(
         Silver: "Silver";
     }>;
     weight: import("zod").ZodCoercedNumber<unknown>;
+    customSpot: import("zod").ZodOptional<import("zod").ZodNumber>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class MeltCalculatorRequestDto extends MeltCalculatorRequestDto_base {
 }
@@ -449,6 +450,7 @@ declare const PortfolioBuildRequestDto_base: import("nestjs-zod").ZodDto<import(
         medium: "medium";
         high: "high";
     }>;
+    customSpot: import("zod").ZodOptional<import("zod").ZodNumber>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class PortfolioBuildRequestDto extends PortfolioBuildRequestDto_base {
 }

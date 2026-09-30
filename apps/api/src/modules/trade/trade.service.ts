@@ -17,6 +17,9 @@ import {
 import { MetalsProvider } from '../metals/metals.provider';
 import { ProductsProvider } from '../products/products.provider';
 
+/** Percentages are stored as fractions, so x100 leaves float noise (0.059 -> 5.8999999999999995). Four decimals is finer than any real premium. */
+const roundPct = (value: number) => Math.round(value * 1e4) / 1e4;
+
 /**
  * TradeService — buy/sell cart pricing + the melt/scrap calculator.
  *
@@ -56,11 +59,11 @@ export class TradeService {
                 name: p.name,
                 weight: p.weight,
                 metalType: p.metalType,
-                premiumPct: p.spreadSell * 100,
+                premiumPct: roundPct(p.spreadSell * 100),
                 // spreadBuy is stored signed (negative = below spot); the
                 // discount % here — like Apps Script's own 0-99.99 discount
                 // input — is always a positive magnitude.
-                discountPct: Math.abs(p.spreadBuy) * 100,
+                discountPct: roundPct(Math.abs(p.spreadBuy) * 100),
             }));
 
         return {
@@ -143,13 +146,14 @@ export class TradeService {
             throw new NotFoundException(`No spot price available for ${category.metal}.`);
         }
 
-        const spotPerGram = spot.priceEur / GRAMS_PER_TROY_OUNCE;
+        const spotEur = request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur;
+        const spotPerGram = spotEur / GRAMS_PER_TROY_OUNCE;
         const meltValue = computeMeltValue(spotPerGram, category.meltFactor, category.purity, request.weight);
 
         return {
             category: request.category,
             metal: category.metal,
-            spot: spot.priceEur,
+            spot: spotEur,
             spotPerGram,
             meltFactor: category.meltFactor,
             purity: category.purity,

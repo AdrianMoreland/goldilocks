@@ -1,25 +1,36 @@
 import * as React from "react"
 
+type StorageKind = "local" | "session"
+
+function getStorage(kind: StorageKind): Storage {
+    return kind === "session" ? sessionStorage : localStorage
+}
+
 /**
- * useState backed by localStorage — reads the stored value once on mount
- * (or whenever `key` changes, e.g. switching users) and writes back on every
- * change. Wrapped in try/catch: private-browsing mode and a full storage
- * quota both throw on read/write, and neither should ever break the table.
+ * useState backed by localStorage (or sessionStorage, for state that should
+ * die with the tab) — reads the stored value once on mount (or whenever `key`
+ * changes, e.g. switching users) and writes back on every change. Wrapped in
+ * try/catch: private-browsing mode and a full storage quota both throw on
+ * read/write, and neither should ever break the table.
  */
-export function useLocalStorageState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = React.useState<T>(() => readStorage(key, initialValue))
+export function useLocalStorageState<T>(
+    key: string,
+    initialValue: T,
+    kind: StorageKind = "local",
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = React.useState<T>(() => readStorage(key, initialValue, kind))
 
     // Re-hydrate when the key itself changes (e.g. a different user logs
     // in) — a plain lazy useState initializer only runs once per mount.
     const lastKeyRef = React.useRef(key)
     if (lastKeyRef.current !== key) {
         lastKeyRef.current = key
-        setState(readStorage(key, initialValue))
+        setState(readStorage(key, initialValue, kind))
     }
 
     React.useEffect(() => {
         try {
-            localStorage.setItem(key, JSON.stringify(state))
+            getStorage(kind).setItem(key, JSON.stringify(state))
         } catch {
             // Ignore — private-browsing or quota errors aren't worth surfacing here.
         }
@@ -31,9 +42,9 @@ export function useLocalStorageState<T>(key: string, initialValue: T): [T, React
     return [state, setState]
 }
 
-function readStorage<T>(key: string, initialValue: T): T {
+function readStorage<T>(key: string, initialValue: T, kind: StorageKind): T {
     try {
-        const stored = localStorage.getItem(key)
+        const stored = getStorage(kind).getItem(key)
         return stored ? (JSON.parse(stored) as T) : initialValue
     } catch {
         return initialValue

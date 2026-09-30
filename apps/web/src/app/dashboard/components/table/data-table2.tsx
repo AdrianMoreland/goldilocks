@@ -26,12 +26,22 @@ interface DataTableProps {
 }
 
 export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
-    const { setActiveMetal, rowSelection, setRowSelection, cardsVisible } = usePricingTools()
+    const { setActiveMetal, rowSelection, setRowSelection, cardsVisible, tableCopySource } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
     const { table, selectedTab, setSelectedTab, selectedProducts, search, setSearch, isFiltered, resetFilters } =
         useProductTable(data, rowSelection, setRowSelection)
+
+    // The Trade tab's Easy Copy button copies whatever is ticked here, in the
+    // columns currently shown. A ref, not state: it is only read on click, and
+    // publishing it as state would re-render the whole page on every keystroke.
+    React.useEffect(() => {
+        tableCopySource.current = {
+            selectedProducts,
+            visibleColumnIds: table.getVisibleLeafColumns().map((c) => c.id),
+        }
+    })
 
     // Clicking a spot-price card selects that metal — mirror the selection
     // into the product table's own tab so the cards drive what's displayed.
@@ -59,14 +69,15 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
             onValueChange={(value) => setSelectedTab(value as typeof selectedTab)}
             className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
-            <div className="shrink-0">
-                <MetalTabsToolbar
-                    table={table}
-                    selectedTab={selectedTab}
-                    onSelectedTabChange={setSelectedTab}
-                    showMetalSelect={!cardsVisible}
-                />
-            </div>
+            {!cardsVisible && (
+                <div className="shrink-0">
+                    <MetalTabsToolbar
+                        selectedTab={selectedTab}
+                        onSelectedTabChange={setSelectedTab}
+                        showMetalSelect
+                    />
+                </div>
+            )}
 
             <TabsContent
                 value={selectedTab}
@@ -74,7 +85,6 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
             >
                 <ProductFilterBar
                     table={table}
-                    selectedProducts={selectedProducts}
                     search={search}
                     onSearchChange={setSearch}
                     isFiltered={isFiltered}

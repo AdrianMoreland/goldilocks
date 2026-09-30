@@ -1,6 +1,6 @@
 // src/hooks/use-market-data.hook.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/hooks/useApi';
 import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.api';
@@ -8,8 +8,8 @@ import { queryKeys } from '@/lib/query-keys';
 import { formatMinutesAgo } from '@/app/dashboard/utils/formatters';
 import type { MarketDataResponse } from '../lib/types.ts';
 
-/** How old a snapshot can be before we tell the user prices might be wrong — the cron refreshes every 10 minutes, so this gives one missed cycle of slack before crying wolf. */
-export const STALE_THRESHOLD_MS = 15 * 60 * 1000;
+/** How old the vendor's price snapshot can be before we tell the user prices might be wrong. Set to 5 minutes by the owner — note the cron only refreshes every 10, so a healthy snapshot can read stale for up to half of each cycle. */
+export const STALE_THRESHOLD_MS = 5 * 60 * 1000;
 
 /** To-the-second timestamp for the "prices fetched at" toast — deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
 function formatFetchedAtTime(fetchedAt?: string | null): string | null {
@@ -83,19 +83,30 @@ export function useMarketData() {
         if (time) toast(`Prices fetched at ${time}`);
     }, [data?.fetchedAt]);
 
+    // Ages are computed from Date.now(), so without a tick they'd freeze at
+    // whatever they were when the snapshot last changed — and with a 5-minute
+    // stale threshold, that would leave a price looking fresh long after it isn't.
+    const [nowTick, setNowTick] = useState(0);
+    useEffect(() => {
+        const id = setInterval(() => setNowTick((n) => n + 1), 30_000);
+        return () => clearInterval(id);
+    }, []);
+
     const lastUpdatedRelative = useMemo(() => {
         if (isLoading) return 'Loading…';
         if (error) return 'unavailable';
 
         return formatMinutesAgo(data?.fetchedAt);
-    }, [isLoading, error, data?.fetchedAt]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoading, error, data?.fetchedAt, nowTick]);
 
     const lastUpdatedLabel = `Last Updated: ${lastUpdatedRelative}`;
 
     const isStale = useMemo(() => {
         if (!data?.fetchedAt) return false;
         return Date.now() - new Date(data.fetchedAt).getTime() > STALE_THRESHOLD_MS;
-    }, [data?.fetchedAt]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data?.fetchedAt, nowTick]);
 
     // ── Manual recalculation (UI spot overrides) ───────────────────────────
     const recalcMutation = useMutation({

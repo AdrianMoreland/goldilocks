@@ -1,18 +1,25 @@
-import { ArrowLeftRight, Flame, Snowflake, X, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
+import { MELT_CATEGORIES } from "@goldilocks/shared-types"
+import { useMarketData } from "@/hooks/use-market-data.hook"
+import type { MetalType } from "@/lib/types"
+import { ArrowLeftRight, Flame, Snowflake, Table2, X, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { usePricingTools } from "../../context/pricing-tools-context"
-import { useAuth } from "@/contexts/auth-context"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { TRADE_FIRST_QTY_ID, usePricingTools } from "../../context/pricing-tools-context"
+import { useSpotPrices } from "../../context/spot-prices-context"
 import { MELT_CATEGORY_OPTIONS, useTradeTools } from "@/hooks/use-trade-tools.hook"
-import { formatEuro, formatGrams, formatPrice } from "../../utils/formatters"
+import { formatEuro, formatGrams, formatMetalName, formatPrice, formatSpot, roundSpot } from "../../utils/formatters"
+import { describeApiError } from "../../utils/describe-error"
+import { CustomerMessageButton } from "./customer-message-button"
+import { copyRowsToClipboard } from "../table/copy-rows-button"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
 
 export function TradeTab() {
     const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
-    const { isAdmin } = useAuth()
     const trade = useTradeTools(activeMetal, selectedProductIds, pendingTradeProductId, clearPendingTradeProduct)
 
     const showMeltButton = trade.transactionType === "selling"
@@ -23,12 +30,13 @@ export function TradeTab() {
     // direction's color is active; only its own toggle pill goes dark/active).
     const isPrice = trade.transactionType === "buying"
     const theme = isPrice ? "price" : "buyback"
+    const loadError = trade.bootstrapError ? describeApiError(trade.bootstrapError, `load ${activeMetal.toLowerCase()} trade data`) : null
 
     return (
         <div className="flex flex-col gap-4 px-4 text-sm" style={tabThemeStyle(theme)}>
-            {/* ── Mode row: single Price/Buyback toggle pill, Melt switch, Freeze ─── */}
+            {/* ── Mode row: single Price/Buyback toggle pill and the Melt switch ─── */}
             <div className="flex items-center gap-2">
-                <button
+                <Tooltip><TooltipTrigger asChild><button
                     type="button"
                     aria-pressed={!isPrice}
                     aria-label={isPrice ? "Quoting Price — switch to Buyback" : "Quoting Buyback — switch to Price"}
@@ -42,7 +50,7 @@ export function TradeTab() {
                         <ArrowLeftRight className="size-3" aria-hidden />
                         {isPrice ? "Buyback" : "Price"}
                     </span>
-                </button>
+                </button></TooltipTrigger><TooltipContent side="bottom">Price = what the customer pays us. Buyback = what we pay the customer. Press P to flip.</TooltipContent></Tooltip>
 
                 {showMeltButton && (
                     <button
@@ -62,24 +70,6 @@ export function TradeTab() {
                     </button>
                 )}
 
-                {isAdmin && (
-                    <button
-                        type="button"
-                        title="Freeze spot price (won't follow live updates)"
-                        aria-label="Freeze spot price"
-                        aria-pressed={trade.freeze}
-                        onClick={trade.toggleFreeze}
-                        className={cn(
-                            "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
-                            trade.freeze
-                                ? "border-[var(--tab-accent)] text-[var(--tab-accent-text)]"
-                                : "border-border bg-card text-muted-foreground",
-                        )}
-                        style={trade.freeze ? { background: "var(--tab-accent-soft)" } : undefined}
-                    >
-                        <Snowflake className="size-4.5" />
-                    </button>
-                )}
             </div>
 
             {showingMelt ? (
@@ -87,9 +77,10 @@ export function TradeTab() {
             ) : trade.bootstrapLoading ? (
                 <div className="text-muted-foreground text-sm">Loading {activeMetal.toLowerCase()} trade data…</div>
             ) : trade.bootstrapError || !trade.bootstrap ? (
-                <div className="text-destructive text-sm">
-                    Unable to load trade data for {activeMetal.toLowerCase()}.
-                </div>
+                <ErrorBanner
+                    message={loadError?.message ?? `Unable to load trade data for ${activeMetal.toLowerCase()}.`}
+                    next={loadError?.next ?? "Press refresh in the top bar, then try again."}
+                />
             ) : (
                 <TradePanel trade={trade} deselectProductId={deselectProductId} />
             )}
@@ -99,48 +90,111 @@ export function TradeTab() {
 
 type TradeTools = ReturnType<typeof useTradeTools>
 
+/** The spot for the active metal — the same number as its card, so typing here re-prices the card and everything else too. Keeps its own draft text so clearing the field mid-edit doesn't push a €0 spot. */
+function SpotField({ metal, trade, frozen }: { metal: MetalType; trade: TradeTools; frozen: boolean }) {
+    const rounded = trade.spot !== null ? roundSpot(metal, trade.spot) : ""
+    const [draft, setDraft] = useState(String(rounded))
+    const [focused, setFocused] = useState(false)
+
+    useEffect(() => {
+        if (!focused) setDraft(String(rounded))
+    }, [rounded, focused])
+
+    return (
+        <div className="flex items-center gap-2">
+            <Input
+                id="trade-spot"
+                type="number"
+                step="0.01"
+                value={draft}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onChange={(e) => {
+                    setDraft(e.target.value)
+                    const value = parseFloat(e.target.value)
+                    if (value > 0) trade.setSpot(value)
+                }}
+                className="h-10 w-28 shrink-0 rounded-xl"
+                aria-label={`${formatMetalName(metal)} spot price`}
+            />
+            <Slider
+                value={trade.spot ?? trade.minSpot}
+                min={trade.minSpot}
+                max={trade.maxSpot}
+                step={0.01}
+                onValueChange={trade.setSpot}
+                className="flex-1 accent-[var(--tab-accent)]"
+                aria-label="Adjust spot price"
+            />
+            {frozen && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            onClick={trade.resetSpot}
+                            className="border-border bg-background hover:bg-muted shrink-0 cursor-pointer rounded-full border px-3 py-2 text-xs font-bold transition-colors"
+                        >
+                            Back to live
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Drop your spot and follow the live market price again</TooltipContent>
+                </Tooltip>
+            )}
+        </div>
+    )
+}
+
+function SpotSourceNote({ metal, frozen, marketSpot }: { metal: MetalType; frozen: boolean; marketSpot?: number }) {
+    return (
+        <p className="text-muted-foreground text-[11px]">
+            {frozen ? (
+                <>
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--tab-accent-text)]">
+                        <Snowflake className="size-3" aria-hidden /> Frozen at your spot
+                    </span>
+                    {marketSpot ? <> — live market is {formatSpot(metal, marketSpot)}</> : null}. Same as the {formatMetalName(metal)} card.
+                </>
+            ) : (
+                <>Following the live {formatMetalName(metal)} price. Edit it here or on the card to quote from your own spot.</>
+            )}
+        </p>
+    )
+}
+
 function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectProductId: (id: number) => void }) {
+    const { activeMetal, tableCopySource, selectedProductIds } = usePricingTools()
+    const { overriddenMetals } = useSpotPrices()
+    const { spotPrices } = useMarketData()
     const percentLabel = trade.transactionType === "buying" ? "Premium %" : "Discount %"
+    const frozen = overriddenMetals.includes(activeMetal)
+    const marketSpot = spotPrices.find((p) => p.metalType === activeMetal)?.priceEur
+    const cartError = trade.cartError ? describeApiError(trade.cartError, "calculate this order") : null
+    const totalLabel = trade.transactionType === "buying" ? "Total price to customer" : "Total buyback to customer"
 
     return (
         <div className="flex flex-col gap-4">
             {/* ── Spot price card ─────────────────────────────────────────── */}
             <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
                 <FieldLabel>Spot price</FieldLabel>
-                <div className="flex items-center gap-2">
-                    <Input
-                        id="trade-spot"
-                        type="number"
-                        step="0.01"
-                        value={trade.spot !== null ? Math.floor(trade.spot * 100) / 100 : ""}
-                        onChange={(e) => trade.setSpot(parseFloat(e.target.value) || 0)}
-                        className="h-10 w-28 shrink-0 rounded-xl"
-                    />
-                    <Slider
-                        value={trade.spot ?? trade.minSpot}
-                        min={trade.minSpot}
-                        max={trade.maxSpot}
-                        step={0.01}
-                        onValueChange={trade.setSpot}
-                        className="flex-1 accent-[var(--tab-accent)]"
-                        aria-label="Adjust spot price"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => void trade.resetSpot()}
-                        className="border-border bg-background hover:bg-muted shrink-0 cursor-pointer rounded-full border px-4 py-2 text-xs font-bold transition-colors"
-                    >
-                        Reset
-                    </button>
-                </div>
+                <SpotField metal={activeMetal} trade={trade} frozen={frozen} />
+                <SpotSourceNote metal={activeMetal} frozen={frozen} marketSpot={marketSpot} />
             </div>
 
             {/* ── Items — one card per line: product / qty / %. ──────────── */}
             <div className="flex flex-col gap-2">
                 <FieldLabel>Items</FieldLabel>
 
+                {trade.items.length > 0 && (
+                    <div className="text-muted-foreground flex items-center gap-1.5 pr-1.5 pl-6 text-[11px] font-semibold">
+                        <span className="flex-1">Product</span>
+                        <span className="w-11 text-center">Qty</span>
+                        <span className="w-14 text-center">{trade.transactionType === "buying" ? "Prem %" : "Disc %"}</span>
+                        <span className="w-7" />
+                    </div>
+                )}
+
                 <div className="flex flex-col gap-1.5">
-                    {trade.items.map((item) => (
+                    {trade.items.map((item, index) => (
                         <div key={item.id} className="bg-muted/40 flex items-center gap-1.5 rounded-2xl p-1.5 pl-2.5">
                             <span
                                 className="size-2 shrink-0 rounded-full"
@@ -164,12 +218,14 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                             </Select>
 
                             <Input
+                                id={index === 0 ? TRADE_FIRST_QTY_ID : undefined}
                                 type="number"
                                 min={1}
                                 value={item.quantity}
                                 onChange={(e) => trade.updateItemQuantity(item.id, Number(e.target.value))}
                                 className="bg-background h-8 w-11 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
                                 title="Quantity"
+                                aria-label={`Quantity of ${item.product?.name ?? "item"}`}
                             />
                             <Input
                                 type="number"
@@ -178,6 +234,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 onChange={(e) => trade.updateItemPercent(item.id, Number(e.target.value))}
                                 className="bg-background h-8 w-14 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
                                 title={percentLabel}
+                                aria-label={`${percentLabel} for ${item.product?.name ?? "item"}`}
                             />
                             <button
                                 type="button"
@@ -207,7 +264,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                 </button>
             </div>
 
-            {trade.cartError && <ErrorBanner message={trade.cartError.message || "Unable to calculate order."} />}
+            {cartError && <ErrorBanner message={cartError.message} next={cartError.next} />}
 
             {/* ── Results ─────────────────────────────────────────────────── */}
             <div className="flex flex-col gap-2">
@@ -234,16 +291,44 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     <span className="font-medium tabular-nums">{formatEuro(trade.cartResult?.averagePerGram)}</span>
                 </div>
 
-                <ResultHighlight
-                    label={trade.transactionType === "buying" ? "Total price to customer" : "Total buyback to customer"}
-                    value={formatPrice(trade.cartResult?.totalPrice)}
-                />
+                <ResultHighlight label={totalLabel} value={formatPrice(trade.cartResult?.totalPrice)} />
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {/* A span carries the tooltip because a disabled button swallows hover events. */}
+                        <span className="flex">
+                            <button
+                                type="button"
+                                disabled={selectedProductIds.length === 0}
+                                onClick={() => {
+                                    const source = tableCopySource.current
+                                    if (source) void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds)
+                                }}
+                                className="border-border bg-card hover:bg-muted flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <Table2 className="size-4" /> Easy Copy
+                            </button>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        {selectedProductIds.length === 0
+                            ? "Tick rows in the product table first, then copy them as a table to paste into Excel, email or chat"
+                            : "Copy the ticked rows as a table, in the columns the product table shows"}
+                    </TooltipContent>
+                </Tooltip>
+
+                <CustomerMessageButton cart={trade.cartResult} transactionType={trade.transactionType} fetchOtherSide={trade.quoteOppositeSide} />
             </div>
         </div>
     )
 }
 
 function MeltPanel({ trade }: { trade: TradeTools }) {
+    const { overriddenMetals } = useSpotPrices()
+    const meltMetal = MELT_CATEGORIES[trade.meltCategory].metal
+    const frozen = overriddenMetals.includes(meltMetal)
+    const meltError = trade.meltError ? describeApiError(trade.meltError, "calculate the melt value") : null
+
     return (
         <div className="flex flex-col gap-4">
             <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
@@ -270,9 +355,14 @@ function MeltPanel({ trade }: { trade: TradeTools }) {
                         ))}
                     </SelectContent>
                 </Select>
+                <p className="text-muted-foreground text-[11px]">
+                    {frozen
+                        ? `Using your frozen ${formatMetalName(meltMetal)} spot from its card.`
+                        : `Using the live ${formatMetalName(meltMetal)} spot. Freeze or edit it on its card to quote from your own.`}
+                </p>
             </div>
 
-            {trade.meltError && <ErrorBanner message={trade.meltError.message || "Unable to calculate melt value."} />}
+            {meltError && <ErrorBanner message={meltError.message} next={meltError.next} />}
 
             <div className="flex flex-col gap-2">
                 <SectionLabel>RESULTS</SectionLabel>

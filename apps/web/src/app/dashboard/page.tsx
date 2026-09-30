@@ -1,3 +1,4 @@
+import {useCallback, useMemo} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {RefreshCw, PanelRight, LineChart, LayoutGrid, ShieldCheck, LogOut} from 'lucide-react';
 import {DataTable} from './components/table/data-table2.tsx';
@@ -18,6 +19,9 @@ import {KeyboardShortcutsHint} from './components/keyboard-shortcuts-hint';
 import {DataFreshnessIndicator} from './components/data-freshness-indicator';
 import {StalePricesBanner} from './components/stale-prices-banner';
 import {summarizeFetchSource} from './utils/fetch-source';
+import {MarketModeBanner} from './components/market-mode-banner';
+import {SpotPricesProvider} from './context/spot-prices-context';
+import type {MetalType} from '@/lib/types';
 
 export default function Page() {
     return (
@@ -39,14 +43,29 @@ export default function Page() {
 function DashboardShell() {
     const workbook = usePricingWorkbook();
 
+    const spotPrices = useMemo(
+        () => ({
+            displayPrices: workbook.displayPrices,
+            overriddenMetals: Object.keys(workbook.spotOverrides) as MetalType[],
+            setSpot: workbook.handleSpotOverride,
+            clearSpot: workbook.clearSpotOverride,
+        }),
+        [workbook.displayPrices, workbook.spotOverrides, workbook.handleSpotOverride, workbook.clearSpotOverride],
+    );
+
     return (
-        <div className="flex h-svh min-h-0 items-stretch gap-4 overflow-hidden">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <PricingWorkbookPage workbook={workbook}/>
+        <SpotPricesProvider value={spotPrices}>
+            <div className="flex h-svh flex-col overflow-hidden">
+                <MarketModeBanner/>
+                <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-hidden">
+                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                        <PricingWorkbookPage workbook={workbook}/>
+                    </div>
+                    <PricingToolsPanel/>
+                    <AdminSidePanel metalCards={workbook.metalCards}/>
+                </div>
             </div>
-            <PricingToolsPanel/>
-            <AdminSidePanel metalCards={workbook.metalCards}/>
-        </div>
+        </SpotPricesProvider>
     );
 }
 
@@ -64,18 +83,31 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,
+        clearAllSpotOverrides,
+        freezeSpot,
+        fetchedAt,
         loading,
         error,
     } = workbook;
-    const { open: toolsOpen, toggleOpen: toggleTools, adminPanelOpen, toggleAdminPanel, cardsVisible, toggleCardsVisible } = usePricingTools();
+    const { open: toolsOpen, toggleOpen: toggleTools, adminPanelOpen, toggleAdminPanel, cardsVisible, toggleCardsVisible, flipTransactionType, focusTradeQuantity, clearSelection } = usePricingTools();
     const { isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const [graphVisible, setGraphVisible] = useUserPreference('chart-visible', true);
+
+    // Ctrl+Z: back to a clean slate — every frozen spot resumes live, every ticked row is unticked.
+    const resetAll = useCallback(() => {
+        clearAllSpotOverrides();
+        clearSelection();
+    }, [clearAllSpotOverrides, clearSelection]);
 
     useGlobalShortcuts({
         onToggleTools: toggleTools,
         onToggleChart: () => setGraphVisible((v) => !v),
         onToggleAdminPanel: isAdmin ? toggleAdminPanel : undefined,
+        onSelectMetal: setSelectedMetal,
+        onFlipTransaction: flipTransactionType,
+        onFocusQuantity: focusTradeQuantity,
+        onResetAll: resetAll,
     });
 
     const handleLogout = () => {
@@ -89,11 +121,13 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         <BaseLayout
             fillViewport
             title="Pricing Workbook"
+            showLogo
             manualModeToggle
             headerActions={() => (
                 <>
                     <DataFreshnessIndicator
                         lastUpdatedRelative={lastUpdatedRelative}
+                        snapshotAt={fetchedAt}
                         fetchSource={summarizeFetchSource(metalCards)}
                         isStale={isStale}
                     />
@@ -170,7 +204,13 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                 <div className="px-4 lg:px-6">
                     {isStale && (
                         <div className="mb-3">
-                            <StalePricesBanner lastUpdatedRelative={lastUpdatedRelative} />
+                            <StalePricesBanner
+                                lastUpdatedRelative={lastUpdatedRelative}
+                                snapshotAt={fetchedAt}
+                                fetchSource={summarizeFetchSource(metalCards)}
+                                onRefresh={() => refresh()}
+                                refreshing={refreshing}
+                            />
                         </div>
                     )}
 
@@ -190,6 +230,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                                             value
                                         )
                                     }
+                                    onFreeze={() => freezeSpot(card.metal)}
                                     onClearOverride={() => {
                                         clearSpotOverride(card.metal);
                                     }}

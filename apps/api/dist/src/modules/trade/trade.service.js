@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
 const metals_provider_1 = require("../metals/metals.provider");
 const products_provider_1 = require("../products/products.provider");
+const roundPct = (value) => Math.round(value * 1e4) / 1e4;
 let TradeService = class TradeService {
     metalsProvider;
     productsProvider;
@@ -38,8 +39,8 @@ let TradeService = class TradeService {
             name: p.name,
             weight: p.weight,
             metalType: p.metalType,
-            premiumPct: p.spreadSell * 100,
-            discountPct: Math.abs(p.spreadBuy) * 100,
+            premiumPct: roundPct(p.spreadSell * 100),
+            discountPct: roundPct(Math.abs(p.spreadBuy) * 100),
         }));
         return {
             metalType,
@@ -104,12 +105,13 @@ let TradeService = class TradeService {
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${category.metal}.`);
         }
-        const spotPerGram = spot.priceEur / shared_types_1.GRAMS_PER_TROY_OUNCE;
+        const spotEur = request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur;
+        const spotPerGram = spotEur / shared_types_1.GRAMS_PER_TROY_OUNCE;
         const meltValue = (0, shared_types_1.computeMeltValue)(spotPerGram, category.meltFactor, category.purity, request.weight);
         return {
             category: request.category,
             metal: category.metal,
-            spot: spot.priceEur,
+            spot: spotEur,
             spotPerGram,
             meltFactor: category.meltFactor,
             purity: category.purity,

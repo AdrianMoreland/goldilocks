@@ -48,3 +48,18 @@ export function formatMinutesAgo(isoTimestamp: string | null | undefined): strin
 
 /** "GOLD" -> "Gold" — for anywhere a metal enum would otherwise leak into copy verbatim. */
 export const formatMetalName = (metal: string) => metal.charAt(0).toUpperCase() + metal.slice(1).toLowerCase()
+
+/** The clock time of a price snapshot, to the second — with the date only when it isn't today, so an old snapshot can't be mistaken for a recent one. */
+export function formatSnapshotTime(isoTimestamp: string | null | undefined): string {
+    if (!isoTimestamp) return "unknown"
+
+    const date = new Date(isoTimestamp)
+    const time = date.toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    const isToday = date.toDateString() === new Date().toDateString()
+
+    return isToday ? time : `${date.toLocaleDateString("en-IE", { day: "numeric", month: "short" })} ${time}`
+}
+
+/** A spot price rounded the way it's displayed (whole euros, silver keeps cents), as a plain number for an input's value. */
+export const roundSpot = (metal: string, value: number) =>
+    metal === "SILVER" ? Math.round(value * 100) / 100 : Math.round(value)

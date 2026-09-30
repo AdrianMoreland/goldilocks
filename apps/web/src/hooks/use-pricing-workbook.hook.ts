@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
+import { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useMarketData, STALE_THRESHOLD_MS } from '@/hooks/use-market-data.hook';
-import { useUserPreference } from '@/hooks/use-user-preference.hook';
+import { useUserPreference, useUserSessionState } from '@/hooks/use-user-preference.hook';
 import type { MetalType, SpotPrice } from '@/lib/types';
 import {MetalCardData} from "@/app/dashboard/schemas/card-data.schema.ts";
 
@@ -107,7 +107,10 @@ export function usePricingWorkbook() {
     // "selected metal only" view — see ChartAreaInteractive's chartMode.
     // Remembered per user afterwards.
     const [selectedMetal, setSelectedMetal] = useUserPreference<MetalType | null>('selected-metal', 'GOLD');
-    const [spotOverrides, setSpotOverrides] = useState<Partial<Record<MetalType, number>>>({});
+    // Overrides (a frozen or hand-typed spot) survive a page refresh but not a
+    // closed tab, and belong to the signed-in user — a clerk's manual quote
+    // shouldn't leak into the next person's session at a shared counter PC.
+    const [spotOverrides, setSpotOverrides] = useUserSessionState<Partial<Record<MetalType, number>>>('spot-overrides', {});
 
     const {
         products,
@@ -145,7 +148,16 @@ export function usePricingWorkbook() {
             ...prev,
             [metal]: value,
         }));
-    }, []);
+    }, [setSpotOverrides]);
+
+    /** Pins a metal at whatever it reads right now, so live updates stop moving the quote. */
+    const freezeSpot = useCallback((metal: MetalType) => {
+        const live = spotPrices.find((p) => p.metalType === metal)?.priceEur;
+        if (live === undefined) return;
+        setSpotOverrides((prev) => (prev[metal] === undefined ? { ...prev, [metal]: live } : prev));
+    }, [spotPrices, setSpotOverrides]);
+
+    const clearAllSpotOverrides = useCallback(() => setSpotOverrides({}), [setSpotOverrides]);
 
     const clearSpotOverride = useCallback((metal: MetalType) => {
         setSpotOverrides(prev => {
@@ -153,7 +165,7 @@ export function usePricingWorkbook() {
             delete next[metal];
             return next;
         });
-    }, []);
+    }, [setSpotOverrides]);
 
     const metalCards = useMemo(
         () =>
@@ -179,6 +191,8 @@ export function usePricingWorkbook() {
             displayPrices,
             spotOverrides,
             degradedMetals,
+            // Freshness is age-based, so re-derive as the minute-granular label ticks over.
+            lastUpdatedRelative,
         ]
     );
 
@@ -217,5 +231,8 @@ export function usePricingWorkbook() {
         toggleSelectedMetal,
         handleSpotOverride,
         clearSpotOverride,
+        clearAllSpotOverrides,
+        freezeSpot,
+        spotOverrides,
     };
 }

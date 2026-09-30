@@ -9,6 +9,7 @@ import type { Product } from "@goldilocks/shared-types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
     DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
@@ -258,23 +259,39 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
         id: "select",
         header: ({ table }) => (
             <div className="flex items-center justify-center">
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && "indeterminate")
-                    }
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                    aria-label="Select all"
-                />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                            <Checkbox
+                                checked={
+                                    table.getIsAllPageRowsSelected() ||
+                                    (table.getIsSomePageRowsSelected() && "indeterminate")
+                                }
+                                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                                aria-label="Select all"
+                            />
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Select every row shown — they all go into the Trade cart and can be copied as a table</TooltipContent>
+                </Tooltip>
             </div>
         ),
         cell: ({ row }) => (
             <div className="flex items-center justify-center">
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) => row.toggleSelected(!!value)}
-                    aria-label="Select row"
-                />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                            <Checkbox
+                                checked={row.getIsSelected()}
+                                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                                aria-label="Select row"
+                            />
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        Add to the Trade tab to quote it. Selected rows can also be copied as a table with the Copy button.
+                    </TooltipContent>
+                </Tooltip>
             </div>
         ),
         enableSorting: false,

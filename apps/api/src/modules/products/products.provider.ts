@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import {RawProduct} from "@goldilocks/shared-types";
+import {RawProduct, normalizeProductName} from "@goldilocks/shared-types";
 import {toRawProduct} from "../../common/utils/pricing.util";
 import {ProductCacheStore} from "./product-cache.store";
 
@@ -68,13 +68,16 @@ export class ProductsProvider {
         category?: RawProduct['category'];
         description?: string;
     }): Promise<RawProduct> {
-        const created = await this.prisma.product.create({ data });
+        const created = await this.prisma.product.create({ data: { ...data, name: normalizeProductName(data.name) } });
         await this.refreshCache();
         return toRawProduct(created);
     }
 
     async update(id: number, data: Partial<RawProduct>): Promise<RawProduct> {
-        const updated = await this.prisma.product.update({ where: { id }, data });
+        const updated = await this.prisma.product.update({
+            where: { id },
+            data: data.name === undefined ? data : { ...data, name: normalizeProductName(data.name) },
+        });
         await this.refreshCache();
         return toRawProduct(updated);
     }

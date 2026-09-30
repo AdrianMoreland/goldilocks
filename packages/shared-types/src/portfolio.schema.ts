@@ -66,6 +66,8 @@ export const PortfolioBuildRequestSchema = z.object({
   productType: PortfolioProductTypeFilterEnum,
   priorityProductId: z.number().optional(),
   priorityStrength: PriorityStrengthEnum,
+  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  customSpot: z.number().positive().optional(),
 });
 export type PortfolioBuildRequest = z.infer<typeof PortfolioBuildRequestSchema>;
 

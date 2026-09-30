@@ -84,7 +84,8 @@ export function NavMain({
                   </CollapsibleContent>
                 </>
               ) : (
-                <SidebarMenuButton asChild tooltip={item.title} className="cursor-pointer" isActive={location.pathname === item.url}>
+                // Native title, not the Radix tooltip: Tooltip > Slot > router Link stacks three composed refs (one state-setting) and threw "Maximum update depth exceeded" on load.
+                <SidebarMenuButton asChild title={item.title} className="cursor-pointer" isActive={location.pathname === item.url}>
                   <Link to={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>

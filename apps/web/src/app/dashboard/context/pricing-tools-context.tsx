@@ -1,6 +1,11 @@
 import * as React from "react"
 import type { MetalType, Product } from "@/lib/types"
 import { useUserPreference } from "@/hooks/use-user-preference.hook"
+import type { TradeTransactionType } from "@goldilocks/shared-types"
+import type { DisplayProduct } from "../components/table/product-grouping"
+
+/** Element id of the first quantity field in the Trade tab — the "jump to quantity" shortcut focuses it. */
+export const TRADE_FIRST_QTY_ID = "trade-first-qty"
 
 export type PricingToolTab = "product" | "trade" | "portfolio" | "calculators" | "settings"
 
@@ -33,6 +38,7 @@ interface PricingToolsContextValue {
     adminPanelOpen: boolean
 
     toggleOpen: () => void
+    openTools: () => void
     openAdminPanel: () => void
     closeAdminPanel: () => void
     toggleAdminPanel: () => void
@@ -51,6 +57,17 @@ interface PricingToolsContextValue {
     /** Switches to the Trade tab for a specific product's metal, replacing that metal's cart with just this product — "Open in Trade" from the Product tab. */
     openInTrade: (product: Product) => void
     clearPendingTradeProduct: () => void
+
+    /** Which side of the trade is being quoted — "buying" is Price (customer buys from us), "selling" is Buyback. Held here, not in the Trade tab, so the Price/Buyback shortcut works from anywhere. */
+    transactionType: TradeTransactionType
+    setTransactionType: (mode: TradeTransactionType) => void
+    flipTransactionType: () => void
+    /** Unticks every product row (the Trade cart keeps whatever it already holds). */
+    clearSelection: () => void
+    /** The product table's current selection and visible columns, published by the table for the Trade tab's Easy Copy button. */
+    tableCopySource: React.MutableRefObject<{ selectedProducts: DisplayProduct[]; visibleColumnIds: string[] } | null>
+    /** Opens the Trade tab and puts the cursor in its first quantity field. */
+    focusTradeQuantity: () => void
 }
 
 const PricingToolsContext = React.createContext<PricingToolsContextValue | null>(null)
@@ -65,11 +82,50 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
     const [cardsVisible, setCardsVisible] = useUserPreference("cards-visible", true)
     const [adminPanelOpen, setAdminPanelOpen] = React.useState(false)
+    const [transactionType, setTransactionType] = React.useState<TradeTransactionType>("buying")
 
     const selectedProductIds = React.useMemo(
         () => Object.keys(rowSelection).filter((id) => rowSelection[id]).map(Number),
         [rowSelection],
     )
+
+    // Ticking a row means "I want to quote this" — bring the Trade tab up
+    // instead of leaving the clerk to discover the cart. Fires only when the
+    // selection grows, so unticking or Ctrl+Z never yanks the panel around.
+    const previousSelectionCount = React.useRef(0)
+    React.useEffect(() => {
+        if (selectedProductIds.length > previousSelectionCount.current) {
+            setActiveTab("trade")
+            setOpen(true)
+        }
+        previousSelectionCount.current = selectedProductIds.length
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedProductIds.length])
+
+    const tableCopySource = React.useRef<{ selectedProducts: DisplayProduct[]; visibleColumnIds: string[] } | null>(null)
+
+    const clearSelection = React.useCallback(() => setRowSelection({}), [])
+    const flipTransactionType = React.useCallback(
+        () => setTransactionType((t) => (t === "buying" ? "selling" : "buying")),
+        [],
+    )
+
+    const focusTradeQuantity = React.useCallback(() => {
+        setActiveTab("trade")
+        setOpen(true)
+        // The tab body mounts on the next render, so poll briefly for the field.
+        let attempts = 0
+        const tryFocus = () => {
+            const el = document.getElementById(TRADE_FIRST_QTY_ID) as HTMLInputElement | null
+            if (el) {
+                el.focus()
+                el.select()
+            } else if (attempts++ < 15) {
+                setTimeout(tryFocus, 60)
+            }
+        }
+        setTimeout(tryFocus, 0)
+    }, [])
 
     const deselectProductId = React.useCallback((id: number) => {
         setRowSelection((prev) => {
@@ -82,6 +138,7 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     }, [])
 
     const toggleOpen = React.useCallback(() => setOpen((o) => !o), [])
+    const openTools = React.useCallback(() => setOpen(true), [])
     const toggleCardsVisible = React.useCallback(() => setCardsVisible((v) => !v), [])
     const openAdminPanel = React.useCallback(() => setAdminPanelOpen(true), [])
     const closeAdminPanel = React.useCallback(() => setAdminPanelOpen(false), [])
@@ -116,6 +173,7 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
             cardsVisible,
             adminPanelOpen,
             toggleOpen,
+            openTools,
             openAdminPanel,
             closeAdminPanel,
             toggleAdminPanel,
@@ -128,11 +186,18 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
             pendingTradeProductId,
             openInTrade,
             clearPendingTradeProduct,
+            transactionType,
+            setTransactionType,
+            flipTransactionType,
+            clearSelection,
+            focusTradeQuantity,
+            tableCopySource,
         }),
         [
             open, activeTab, activeMetal, selectedProduct, rowSelection, selectedProductIds, cardsVisible, adminPanelOpen,
-            toggleOpen, openAdminPanel, closeAdminPanel, toggleAdminPanel, deselectProductId, toggleCardsVisible, openWithProduct,
+            toggleOpen, openTools, openAdminPanel, closeAdminPanel, toggleAdminPanel, deselectProductId, toggleCardsVisible, openWithProduct,
             pendingTradeProductId, openInTrade, clearPendingTradeProduct,
+            transactionType, flipTransactionType, clearSelection, focusTradeQuantity,
         ],
     )
 
