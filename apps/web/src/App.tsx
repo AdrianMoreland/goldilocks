@@ -2,6 +2,7 @@ import { BrowserRouter as Router } from 'react-router-dom'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarConfigProvider } from '@/contexts/sidebar-context'
 import { AuthProvider } from '@/contexts/auth-context'
+import { DocksProvider } from '@/contexts/docks-context'
 import { ThemePreferenceProvider } from '@/contexts/theme-preference-context'
 import { AppRouter } from '@/components/router/app-router'
 import { Toaster } from '@/components/ui/sonner'
@@ -23,9 +24,11 @@ function App() {
                 <AuthProvider>
                     <ThemePreferenceProvider>
                         <SidebarConfigProvider>
-                            <Router basename={basename}>
-                                <AppRouter />
-                            </Router>
+                            <DocksProvider>
+                                <Router basename={basename}>
+                                    <AppRouter />
+                                </Router>
+                            </DocksProvider>
                             <Toaster />
                         </SidebarConfigProvider>
                     </ThemePreferenceProvider>

@@ -1,6 +1,7 @@
 import { Settings } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { useAssistantDock } from "@/contexts/docks-context"
 import { usePricingTools, type PricingToolTab, SIDE_PANEL_WIDTH as PANEL_WIDTH } from "../../context/pricing-tools-context"
 import { ProductTab } from "./product-tab"
 import { TradeTab } from "./trade-tab"
@@ -28,12 +29,15 @@ const TABS: { value: PricingToolTab; label: string }[] = [
  * overflow-hidden) does.
  */
 export function PricingToolsPanel() {
-    const { open, adminPanelOpen, activeTab, setActiveTab, activeMetal, selectedProduct } = usePricingTools()
+    const { open, activeTab, setActiveTab, activeMetal, selectedProduct } = usePricingTools()
+    // The assistant takes this panel's slot while it is open; the tools' own open/closed choice is kept for when it closes.
+    const assistantOpen = useAssistantDock().open
 
     return (
         <div
             className="h-full shrink-0 overflow-hidden border-l bg-card transition-[width] duration-200 ease-in-out"
-            style={{ width: open && !adminPanelOpen ? PANEL_WIDTH : 0 }}
+            style={{ width: open && !assistantOpen ? PANEL_WIDTH : 0 }}
+            inert={!open || assistantOpen}
         >
             <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH }}>
                 <div className="flex items-start justify-between gap-2 border-b p-4">

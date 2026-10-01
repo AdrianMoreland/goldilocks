@@ -1,11 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useTheme } from "@/hooks/use-theme"
 import { useCircularTransition } from "@/hooks/use-circular-transition"
+import { useIsDarkMode } from "@/hooks/use-is-dark-mode"
 import "./theme-customizer/circular-transition.css"
 
 interface ModeToggleProps {
@@ -13,41 +12,14 @@ interface ModeToggleProps {
 }
 
 export function ModeToggle({ variant = "outline" }: ModeToggleProps) {
-  const { theme } = useTheme()
   const { toggleTheme } = useCircularTransition()
-
-  // Simple, reliable dark mode detection with re-sync
-  const [isDarkMode, setIsDarkMode] = React.useState(false)
-
-  React.useEffect(() => {
-    const updateMode = () => {
-      if (theme === "dark") {
-        setIsDarkMode(true)
-      } else if (theme === "light") {
-        setIsDarkMode(false)
-      } else {
-        setIsDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches)
-      }
-    }
-
-    updateMode()
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
-    mediaQuery.addEventListener("change", updateMode)
-
-    return () => mediaQuery.removeEventListener("change", updateMode)
-  }, [theme])
-
-  const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    toggleTheme(event)
-  }
+  const isDarkMode = useIsDarkMode()
 
   return (
     <Button
       variant={variant}
       size="icon"
-      onClick={handleToggle}
+      onClick={toggleTheme}
       className="cursor-pointer mode-toggle-button relative overflow-hidden"
     >
       {/* Show the icon for the mode you can switch TO */}

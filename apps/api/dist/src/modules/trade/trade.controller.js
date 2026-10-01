@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TradeController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const shared_types_1 = require("@goldilocks/shared-types");
+const nestjs_zod_1 = require("nestjs-zod");
 const trade_service_1 = require("./trade.service");
 const dtos_1 = require("../../common/dto/dtos");
 let TradeController = class TradeController {
@@ -35,13 +37,16 @@ let TradeController = class TradeController {
 exports.TradeController = TradeController;
 __decorate([
     (0, common_1.Get)(':metal/bootstrap'),
-    (0, swagger_1.ApiParam)({ name: 'metal', enum: ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'] }),
+    (0, swagger_1.ApiParam)({
+        name: 'metal',
+        enum: ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'],
+    }),
     (0, swagger_1.ApiOperation)({
         summary: 'Load Trade tab bootstrap data for a metal',
         description: 'Live spot price, slider bounds, and the tradeable product list for the given metal mode.',
     }),
     (0, swagger_1.ApiResponse)({ status: 200, type: dtos_1.TradeBootstrapResponseDto }),
-    __param(0, (0, common_1.Param)('metal')),
+    __param(0, (0, common_1.Param)('metal', new nestjs_zod_1.ZodValidationPipe(shared_types_1.MetalTypeEnum))),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
@@ -50,7 +55,7 @@ __decorate([
     (0, common_1.Post)('cart'),
     (0, swagger_1.ApiOperation)({
         summary: 'Price a Trade tab buy/sell cart',
-        description: 'Prices every item in the cart against a shared spot price (live or a custom override), applying each item\'s own premium/discount.',
+        description: "Prices every item in the cart against a shared spot price (live or a custom override), applying each item's own premium/discount.",
     }),
     (0, swagger_1.ApiResponse)({ status: 200, type: dtos_1.TradeCartResponseDto }),
     __param(0, (0, common_1.Body)()),

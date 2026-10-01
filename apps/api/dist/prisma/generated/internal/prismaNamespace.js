@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineExtension = exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.FetchAttemptScalarFieldEnum = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
+exports.defineExtension = exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.JsonNullValueInput = exports.SortOrder = exports.AiAnswerCacheScalarFieldEnum = exports.AiQuestionLogScalarFieldEnum = exports.KbDocumentScalarFieldEnum = exports.FetchAttemptScalarFieldEnum = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/client"));
 exports.PrismaClientKnownRequestError = runtime.PrismaClientKnownRequestError;
 exports.PrismaClientUnknownRequestError = runtime.PrismaClientUnknownRequestError;
@@ -65,7 +65,10 @@ exports.ModelName = {
     MetalSpotPrice: 'MetalSpotPrice',
     HistoricSpotPrice: 'HistoricSpotPrice',
     Branch: 'Branch',
-    FetchAttempt: 'FetchAttempt'
+    FetchAttempt: 'FetchAttempt',
+    KbDocument: 'KbDocument',
+    AiQuestionLog: 'AiQuestionLog',
+    AiAnswerCache: 'AiAnswerCache'
 };
 exports.TransactionIsolationLevel = runtime.makeStrictEnum({
     ReadUncommitted: 'ReadUncommitted',
@@ -136,9 +139,60 @@ exports.FetchAttemptScalarFieldEnum = {
     metalsResolved: 'metalsResolved',
     triggeredBy: 'triggeredBy'
 };
+exports.KbDocumentScalarFieldEnum = {
+    id: 'id',
+    slug: 'slug',
+    title: 'title',
+    category: 'category',
+    jurisdiction: 'jurisdiction',
+    owner: 'owner',
+    status: 'status',
+    version: 'version',
+    contentUpdatedOn: 'contentUpdatedOn',
+    markdown: 'markdown',
+    contentHash: 'contentHash',
+    editedInApp: 'editedInApp',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+exports.AiQuestionLogScalarFieldEnum = {
+    id: 'id',
+    createdAt: 'createdAt',
+    userId: 'userId',
+    question: 'question',
+    status: 'status',
+    mode: 'mode',
+    toolNames: 'toolNames',
+    cached: 'cached',
+    retried: 'retried',
+    citations: 'citations',
+    model: 'model',
+    corpusHash: 'corpusHash',
+    inputTokens: 'inputTokens',
+    cachedInputTokens: 'cachedInputTokens',
+    outputTokens: 'outputTokens',
+    costMicros: 'costMicros',
+    latencyMs: 'latencyMs',
+    error: 'error'
+};
+exports.AiAnswerCacheScalarFieldEnum = {
+    id: 'id',
+    questionKey: 'questionKey',
+    corpusHash: 'corpusHash',
+    answer: 'answer',
+    status: 'status',
+    citations: 'citations',
+    model: 'model',
+    hits: 'hits',
+    createdAt: 'createdAt',
+    expiresAt: 'expiresAt'
+};
 exports.SortOrder = {
     asc: 'asc',
     desc: 'desc'
+};
+exports.JsonNullValueInput = {
+    JsonNull: exports.JsonNull
 };
 exports.QueryMode = {
     default: 'default',
@@ -147,6 +201,11 @@ exports.QueryMode = {
 exports.NullsOrder = {
     first: 'first',
     last: 'last'
+};
+exports.JsonNullValueFilter = {
+    DbNull: exports.DbNull,
+    JsonNull: exports.JsonNull,
+    AnyNull: exports.AnyNull
 };
 exports.defineExtension = runtime.Extensions.defineExtension;
 //# sourceMappingURL=prismaNamespace.js.map

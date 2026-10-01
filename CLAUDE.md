@@ -8,7 +8,7 @@ Project guide for Claude (and anyone else) working in this repository — code o
 
 **Merrion Gold Pricing Workbook** — an internal pricing/trading dashboard for an Irish bullion dealer, ported from a Google Apps Script tool the business used previously. It shows live metal spot prices, a per-product pricing table (premiums/discounts/VAT), a trade calculator, a portfolio builder, tax reference calculators, and an admin-gated pricing editor.
 
-**⚠️ Scope rule — read this first:** `apps/web` was bootstrapped from a generic shadcn-store admin dashboard template. Only the **`/dashboard`** route (`apps/web/src/app/dashboard/**`) is this project. Every other page under `apps/web/src/app/*` (mail, tasks, chat, calendar, users, FAQs, pricing, all the `/auth/sign-in-2`/`-3` variants, `/dashboard-2`, the `admin/` scaffold, etc.) is unused template filler. **Do not read, "fix", or refactor those pages unless the user explicitly asks about one by name.** Assume the real product is Dashboard + everything it renders (header, cards, chart, product table, the right-hand Pricing Tools panel, and the auth pages that actually gate it: `/auth/sign-in`).
+**⚠️ Scope rule — read this first:** `apps/web` was bootstrapped from a generic shadcn-store admin dashboard template. Only the **`/dashboard`** route (`apps/web/src/app/dashboard/**`), the **Knowledge Center** (`/knowledge`, `apps/web/src/app/knowledge/**`) and the admin-only **Admin Console** (`/admin`, `apps/web/src/app/admin/**`) are this project. Every other page under `apps/web/src/app/*` (mail, tasks, chat, calendar, users, FAQs, pricing, all the `/auth/sign-in-2`/`-3` variants, `/dashboard-2`, the old `apps/web/src/admin/` scaffold, etc.) is unused template filler. **Do not read, "fix", or refactor those pages unless the user explicitly asks about one by name.** Assume the real product is Dashboard + everything it renders (header, cards, chart, product table, the right-hand Pricing Tools panel, and the auth pages that actually gate it: `/auth/sign-in`).
 
 ---
 
@@ -43,8 +43,15 @@ apps/api/src/modules/
 ├── trade/
 ├── portfolio/
 ├── metals/
-└── market-data/
+├── market-data/
+├── admin/            # /admin console: health (Terminus), request/login history (Redis hourly buckets), pino log buffer, endpoint catalogue, DB browser
+├── knowledge/        # SOPs (roadmap 1.4) — source files in docs/sops/, loaded with `pnpm --filter api kb:import`
+└── ai/               # internal assistant (roadmap 1.5) — plan in docs/AI-AGENT-PLAN.md; model behind infrastructure/llm (LlmPort)
 ```
+
+`pnpm --filter api ai:eval` runs the golden questions (`modules/ai/eval`) through the real model; it spends a few cents, so it is opt-in. The assistant's live lookups live in `modules/ai/tools/` (one class per tool, listed under the `AI_TOOLS` token); they read prices through `MarketDataService.getPricedCatalogue()`, never the providers directly (§2 boundary).
+
+The Knowledge Center's parsing rules (frontmatter, section anchors, `[[slug#section]]` links, `[TODO: …]` detection, search) are pure functions in `packages/shared-types/src/kb-*.ts`, used by the importer and the web reader alike. The SOP file format is specified in `docs/sops/00-README.md`; SOP content is the owners' to edit — don't rewrite it.
 
 Frontend dashboard code mirrors this under `apps/web/src/app/dashboard/components/<feature>/` (`pricing-tools/`, `table/`), with cross-cutting state in `apps/web/src/app/dashboard/context/` (pricing tools panel state, pricing-settings/market-mode state) and `apps/web/src/contexts/` (app-wide: auth, theme, sidebar).
 
@@ -173,7 +180,7 @@ Existing consumers: `ProductCacheStore` (5-minute TTL on the full product list),
 
 ## 10. Testing
 
-**Current state: there is no automated test suite in this repo.** Treat the patterns below as the target to write *toward* as new logic is added — don't assume a suite exists that you can run, and don't claim something is "tested" unless you wrote the test yourself in the same change.
+**Current state: the API has a Jest suite (`pnpm --filter api exec jest`, ~470 tests) and `packages/shared-types` has specs for the pricing math and the Knowledge Center parsers. The web app has no tests yet.** Run the suite before claiming a backend change works, and don't claim something is "tested" unless a test covers it. The patterns below are the target for new logic.
 
 ```ts
 describe('TradeService', () => {
@@ -250,6 +257,19 @@ METALPRICE_API_KEY=
 REDIS_URL=              # ← must be a real host, see above
 PORT=4000
 NODE_ENV=production
+SWAGGER_ENABLED=        # optional; /docs is off in production unless this is "true"
+AI_ENABLED=             # optional; the AI assistant is off unless this is exactly "true"
+OPENAI_API_KEY=         # only required when AI_ENABLED=true; a dedicated project key with a spend limit
+AI_MODEL=               # optional; defaults to gpt-4o-mini
+AI_MAX_OUTPUT_TOKENS=   # optional; defaults to 600
+AI_DAILY_QUOTA_PER_USER= # optional; 50 questions per user per Irish day
+AI_PER_MINUTE_LIMIT=    # optional; 5 per user per minute
+AI_DAILY_BUDGET_USD=    # optional; 2 — company-wide daily ceiling, then the assistant pauses
+AI_LOG_RETENTION_DAYS=  # optional; 90
+LOG_LEVEL=              # optional; pino level, defaults to info
+SPOT_PRICE_RETENTION_DAYS= # optional; days of metal_spot_prices ticks kept (default 7)
+AI_CACHE_TTL_DAYS=      # optional; 7
+AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million tokens, for a model the price table doesn't know
 ```
 
 ### Environment variables to set on the Web service (build-time, Vite)
@@ -316,3 +336,61 @@ Reach for this shape again anywhere a third-party integration (a metals price AP
 - **A raw script against Prisma bypasses the Redis cache** (§8) — the dashboard can show stale data for up to 5 minutes after a direct DB write until the TTL expires, or until the key is cleared manually.
 - **Numeric route params need `ParseIntPipe` explicitly** — the global Zod pipe validates `@Body()`, not `@Param()`. This caused a real, silent 500 on the product-pricing-update endpoint.
 - **Tailwind's `top-(--css-var)` shorthand has misbehaved** for positional properties in this codebase (resolved to the wrong value for no clear reason) — prefer a plain utility class or a `clamp()`/`min()` expression instead.
+
+---
+
+## 17. Roadmap — `docs/ROADMAP.md` is the planning source of truth
+
+The full, merged roadmap (Phase 0 harden/polish → Phase 1 internal features + branch rollout → Phase 2 separate customer site/eshop at `apps/site`) lives in [`docs/ROADMAP.md`](docs/ROADMAP.md). Use it like this:
+
+- **When the user asks "what's next", or proposes a feature,** locate it in the roadmap first (by ID, e.g. `1.8 Hedge control`), state its phase/priority/dependencies, and flag if it skips an unmet `← depends:` or 2.0-style prerequisite.
+- **Respect the ground rules at the top of the roadmap**, especially: Business Central is the system of record (no invoicing/CRM module in Goldilocks; formal quotes/orders are written to BC via its API); money uses `decimal.js`/`Decimal`; shared pricing logic lives in `packages/shared-types`; AI/market output is labelled and never predictive.
+- **Scope rule (§1) still applies:** roadmap items refer to the `/dashboard` product and the API, not the unused template pages.
+- **Statuses can lag the repo.** Verify in code before saying an item is done or missing; when you finish or discover a finished item, tick it (`[x]`) in `docs/ROADMAP.md` in the same change and mention it. Do not reorder phases or re-prioritise without the user's say-so.
+- New ideas go in the matching section (or the Icebox) with priority + effort tags; keep the Notion-pasteable nested-checkbox format.
+
+---
+
+## 18. NestJS engineering skills (`.claude/skills/nestjs-*`)
+
+Six skills from [amirtaherkhani/nestjs-agent-skills](https://github.com/amirtaherkhani/nestjs-agent-skills) v2.1.0 (MIT) are installed, unmodified except that their `evals/` and Codex-only `agents/` folders were dropped. **`.claude/` is gitignored, so they are local-only** — reinstall with `npx skills add amirtaherkhani/nestjs-agent-skills` (then delete `nestjs-git-commit-pr-message`, see below). Don't edit the skill files; put project-specific overrides here so upstream updates stay clean.
+
+### Which skill owns what
+
+| Task | Skill |
+|---|---|
+| Implement / fix / refactor anything in `apps/api` or `packages/shared-types` (default lead) | `nestjs-professional-software-engineering` |
+| Module boundaries, dependency direction, data/transaction ownership, BC/port boundaries, "should this be a service/worker?" | `nestjs-architecture-principles` |
+| Class/provider responsibilities, SOLID, choosing a pattern (strategy, adapter…) | `nestjs-oop-design-patterns` |
+| Guards/pipes/filters, error contracts, security, caching, queues (BullMQ), SSE, observability, performance, deployment | `nestjs-features-performance` |
+| Read-only whole-API review | `nestjs-code-audit` |
+| "Is feature X done per the roadmap?" | `nestjs-feature-audit` |
+
+Typical mapping to the roadmap: 0.6/0.7 (security, reliability) → features-performance; 1.8/1.9 (hedge, audit hub, BC integration) → architecture first, then implementation; Phase 2 `apps/site` and any extraction of `apps/worker` → architecture-principles **before** any code.
+
+### Not installed, on purpose
+
+`nestjs-git-commit-pr-message` conflicts with §11 (Conventional Commits, and Claude commits/pushes **only when asked**). Do not add it back without changing §11.
+
+### Project rules that override skill defaults (CLAUDE.md wins)
+
+- **Validation is Zod via `nestjs-zod` (§4), error handling per §5.** Ignore any skill suggestion of `class-validator`, `class-transformer`, or a different DTO system. Numeric route params still need `ParseIntPipe`.
+- **Architecture baseline is the existing modular monolith (§3):** feature modules, Prisma used directly in services, one `AuthProviderPort`-style port only where a third-party integration is genuinely swappable (§15, e.g. BC, Open Banking, hedge platform). Do **not** introduce repositories, CQRS, Clean-Architecture layers or microservices because a skill lists them; the skills' own rule is to justify each from a real constraint, and the roadmap's "Scaling triggers" already define when to split.
+- **Scope (§1) still applies:** audits and refactors cover `apps/api`, `packages/shared-types`, and the `/dashboard` frontend only — never the template pages.
+- **Business Central is the system of record** (`docs/ROADMAP.md` ground rules): skills must not propose local invoice/customer ledgers.
+- **The default branch is `master`**, not `main`. `nestjs-feature-audit` defaults to `main` — always pass `--branch master` (or the branch under review), e.g. `$nestjs-feature-audit "hedge control" --branch master`.
+- **Roadmap source for feature audits is `docs/ROADMAP.md`.** It satisfies the skill's roadmap gate; name the section (e.g. `1.8`) so the audit scopes to it. The skill will stop on a dirty worktree instead of switching branches — commit or ask before auditing; it must never stash or reset.
+- Audits are **read-only**; fixing findings needs a separate request, and ticking roadmap checkboxes follows §17.
+
+### Running `nestjs-code-audit` here (Windows + pnpm monorepo)
+
+- Target `apps/api`: `node .claude/skills/nestjs-code-audit/scripts/collect-quality-evidence.mjs --root apps/api --run`.
+- **The collector cannot launch `eslint.cmd`/`tsc.cmd` on Windows** (Node `EINVAL`), so both gates report "not run". Run them directly instead and report the exact commands/results, both read-only:
+  ```
+  pnpm --filter api exec tsc --noEmit --pretty false --incremental false
+  node apps/api/node_modules/.bin/eslint apps/api/src --no-fix --no-cache
+  ```
+  Never use the `lint` script for auditing — it passes `--fix`.
+- **Baseline when installed (2026-09-30, working tree at that time):** `tsc` passed; ESLint reported ~2,870 problems, ~2,830 of them `prettier/prettier` and ~45 real `@typescript-eslint` findings. The Prettier noise was mostly indentation (code is 4-space, Prettier defaulted to 2), not CRLF. **Resolved the same day:** `apps/api/.prettierrc` now sets `tabWidth: 4` / `endOfLine: auto`, the tree was formatted once, and ESLint reports 0 problems. Any non-zero count is a regression.
+- **Run ESLint from `apps/api`** (`cd apps/api && node node_modules/eslint/bin/eslint.js src --no-fix --no-cache`): the flat config lives there, and `node_modules/.bin/eslint` is a shell shim that Node can't execute directly.
+- Heuristic candidates seen by the collector (to verify, not findings): 6× `HttpException` imports, 2× `@Global()`, 2× `process.on(uncaughtException|unhandledRejection)`.

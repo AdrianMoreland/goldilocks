@@ -1,10 +1,13 @@
 "use client"
 
-import { EllipsisVertical, LogOut } from "lucide-react"
+import { EllipsisVertical, LogOut, Moon, Paintbrush, Sun } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { Logo } from "@/components/logo"
+import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useCircularTransition } from "@/hooks/use-circular-transition"
+import { useIsDarkMode } from "@/hooks/use-is-dark-mode"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +23,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+/**
+ * The account and preferences home: sign out, day/night and (for admins) the
+ * theme editor all live behind the user card, so no page needs its own copy
+ * of those buttons in its header.
+ */
 export function NavUser({
   user,
 }: {
@@ -30,8 +38,11 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const { toggleTheme } = useCircularTransition()
+  const isDarkMode = useIsDarkMode()
+  const themeEditor = useThemeEditorDock()
 
   const handleLogout = () => {
     logout()
@@ -78,6 +89,17 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+              {isDarkMode ? <Sun /> : <Moon />}
+              {isDarkMode ? "Light mode" : "Dark mode"}
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onSelect={themeEditor.toggle} className="cursor-pointer">
+                <Paintbrush />
+                Theme editor
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
               <LogOut />

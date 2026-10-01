@@ -1,15 +1,44 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {HistoricSpot, MetalType, Product, RawSpotPrice, MarketDataResponse } from '@goldilocks/shared-types';
+import {
+    HistoricSpot,
+    MetalType,
+    Product,
+    RawSpotPrice,
+    MarketDataResponse,
+} from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
+import { HistoricSpotService } from '../metals/historic-spot.service';
 import { ProductsProvider } from '../products/products.provider';
 
 import {
     calculateProductPrice,
     enrichSpotPrices,
     mergeMetalPrices,
-    ZERO_SPOT_MAP
-} from "../../common/utils/pricing.util";
-import {getYesterday} from "../../common/utils/date.utils";
+    ZERO_SPOT_MAP,
+} from '../../common/utils/pricing.util';
+
+/** One metal's spot as a price is being quoted from it right now. */
+export interface QuotedSpot {
+    metalType: MetalType;
+    /** EUR per troy ounce actually used for pricing: the override when one is set, otherwise the live spot. */
+    usedEur: number;
+    liveEur: number;
+    overridden: boolean;
+    /** When the live spot was taken; null when there is no usable price for the metal. */
+    timestamp: string | null;
+    /** True when the live feed failed and this is the last stored price. */
+    isFallback: boolean;
+}
+
+/** Every product priced the way the dashboard table prices it, plus the spot behind those prices. */
+export interface PricedCatalogue {
+    products: Product[];
+    spots: QuotedSpot[];
+    /** Metals with no usable price at all (their products read €0). */
+    degradedMetals: MetalType[];
+}
+
+const ALL_METALS: MetalType[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
 
 /**
  * MarketDataService — the composition layer.
@@ -25,6 +54,7 @@ export class MarketDataService {
 
     constructor(
         private readonly metalsProvider: MetalsProvider,
+        private readonly historicSpots: HistoricSpotService,
         private readonly productsProvider: ProductsProvider,
     ) {}
 
@@ -38,7 +68,8 @@ export class MarketDataService {
      */
     async getMarketData(): Promise<MarketDataResponse> {
         this.logger.log('Loading market data');
-        const { prices, degradedMetals } = await this.metalsProvider.getAllLatestForLaunch();
+        const { prices, degradedMetals } =
+            await this.metalsProvider.getAllLatestForLaunch();
         return this.composeMarketData(prices, degradedMetals);
     }
 
@@ -56,7 +87,7 @@ export class MarketDataService {
      *
      */
     async recalculate(
-        overrides: Partial<Record<MetalType, number>>
+        overrides: Partial<Record<MetalType, number>>,
     ): Promise<Product[]> {
         const [spotPrices, rawProducts] = await Promise.all([
             this.metalsProvider.getAllLatest(),
@@ -68,9 +99,42 @@ export class MarketDataService {
         // Merge live prices with overrides
         const finalMap = mergeMetalPrices(liveMap, overrides);
 
-        return rawProducts.map((p) =>
-            calculateProductPrice(p, finalMap)
-        );
+        return rawProducts.map((p) => calculateProductPrice(p, finalMap));
+    }
+
+    /**
+     * The product table's prices as data: every product priced from the live
+     * spot, or from `overrides` (a frozen or hand-typed spot) where the user
+     * has set one. Uses the same cascade and the same pure pricing functions as
+     * the page load, so a price read here equals the price on screen. The AI
+     * assistant's price lookups call this; nothing is persisted.
+     */
+    async getPricedCatalogue(
+        overrides: Partial<Record<MetalType, number>> = {},
+    ): Promise<PricedCatalogue> {
+        const [{ prices, degradedMetals }, rawProducts] = await Promise.all([
+            this.metalsProvider.getAllLatestForLaunch(),
+            this.productsProvider.getAll(),
+        ]);
+
+        const liveMap = this.toSpotMap(prices);
+        const usedMap = mergeMetalPrices(liveMap, overrides);
+
+        return {
+            products: rawProducts.map((p) => calculateProductPrice(p, usedMap)),
+            spots: ALL_METALS.map((metal) => {
+                const spot = prices.find((s) => s.metalType === metal);
+                return {
+                    metalType: metal,
+                    usedEur: usedMap[metal],
+                    liveEur: liveMap[metal],
+                    overridden: overrides[metal] !== undefined,
+                    timestamp: spot?.timestamp ?? null,
+                    isFallback: spot?.isFallback ?? false,
+                };
+            }),
+            degradedMetals,
+        };
     }
 
     /**
@@ -84,7 +148,8 @@ export class MarketDataService {
      * for no benefit.
      */
     async refresh(): Promise<MarketDataResponse> {
-        const { prices, degradedMetals } = await this.metalsProvider.refreshAll();
+        const { prices, degradedMetals } =
+            await this.metalsProvider.refreshAll();
         return this.composeMarketData(prices, degradedMetals);
     }
 
@@ -94,9 +159,12 @@ export class MarketDataService {
      * turns any degraded metals into a human-readable warning the frontend
      * shows as a toast instead of silently rendering €0.00.
      */
-    private async composeMarketData(spotPrices: RawSpotPrice[], degradedMetals: MetalType[]): Promise<MarketDataResponse> {
+    private async composeMarketData(
+        spotPrices: RawSpotPrice[],
+        degradedMetals: MetalType[],
+    ): Promise<MarketDataResponse> {
         const [historicSpot, rawProducts] = await Promise.all([
-            this.metalsProvider.getHistoricSpots(),
+            this.historicSpots.getHistoricSpots(),
             this.productsProvider.getAll(),
         ]);
 
@@ -105,7 +173,10 @@ export class MarketDataService {
         for (const h of historicSpot) {
             const current = latestHistoric.get(h.metalType);
 
-            if (!current || new Date(h.timestamp) > new Date(current.timestamp)) {
+            if (
+                !current ||
+                new Date(h.timestamp) > new Date(current.timestamp)
+            ) {
                 latestHistoric.set(h.metalType, h);
             }
         }
@@ -113,7 +184,9 @@ export class MarketDataService {
         const enrichedSpotPrices = enrichSpotPrices(spotPrices, latestHistoric);
 
         const spotMap = this.toSpotMap(enrichedSpotPrices);
-        const products = rawProducts.map((p) => calculateProductPrice(p, spotMap));
+        const products = rawProducts.map((p) =>
+            calculateProductPrice(p, spotMap),
+        );
 
         return {
             spotPrices: enrichedSpotPrices,
@@ -135,7 +208,8 @@ export class MarketDataService {
         if (spotPrices.length === 0) return new Date().toISOString();
 
         return spotPrices.reduce(
-            (oldest, spot) => (spot.timestamp < oldest ? spot.timestamp : oldest),
+            (oldest, spot) =>
+                spot.timestamp < oldest ? spot.timestamp : oldest,
             spotPrices[0].timestamp,
         );
     }
@@ -160,7 +234,7 @@ export class MarketDataService {
      */
     async fetchHistoricClose(date: string): Promise<void> {
         this.logger.log(`Manual historic close fetch requested for ${date}`);
-        await this.metalsProvider.fetchAndStoreHistoricClose(date);
+        await this.historicSpots.fetchAndStoreHistoricClose(date);
         this.logger.log(`Manual historic close fetch completed for ${date}`);
     }
 
@@ -168,18 +242,17 @@ export class MarketDataService {
      * Seeds the database with historic prices by fetching and storing them.
      * @returns A promise resolving when the seeding process is complete.
      */
+    /** Extends the historic table back `years` years; see HistoricSpotService.backfillYears. */
+    backfillHistory(years: number) {
+        this.logger.log(`Historic backfill requested: ${years} year(s)`);
+        return this.historicSpots.backfillYears(years);
+    }
+
     async seedHistoricPrices(): Promise<void> {
+        this.logger.log('Starting historic price seed...');
 
-        this.logger.log(
-            'Starting historic price seed...'
-        );
+        await this.historicSpots.seedHistoricPrices();
 
-
-        await this.metalsProvider.seedHistoricPrices();
-
-
-        this.logger.log(
-            'Historic price seed completed.'
-        );
+        this.logger.log('Historic price seed completed.');
     }
 }

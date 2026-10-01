@@ -1,11 +1,9 @@
 // populate-metals.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { prisma } from "./lib/db/prisma";
-import {Decimal} from "../prisma/generated/internal/prismaNamespace";
-import {MetalsProvider} from "./modules/metals/metals.provider";
-
-
+import { prisma } from './lib/db/prisma';
+import { Decimal } from '../prisma/generated/internal/prismaNamespace';
+import { MetalsProvider } from './modules/metals/metals.provider';
 
 async function run() {
     const app = await NestFactory.create(AppModule);
@@ -39,7 +37,7 @@ async function run() {
                 {
                     metalType: 'PALLADIUM',
                     priceGbp: new Decimal('2600'),
-                    priceEur: new Decimal('2400'), 
+                    priceEur: new Decimal('2400'),
                     source: 'livepriceofgold',
                     timestamp: new Date('2000-01-01T00:00:00.000Z'),
                 },
@@ -59,4 +57,7 @@ async function run() {
     }
 }
 
-run();
+run().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});

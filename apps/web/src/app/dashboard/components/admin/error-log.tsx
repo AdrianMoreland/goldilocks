@@ -6,7 +6,6 @@ import type { ErrorLogEntry, ErrorLogKind } from "@goldilocks/shared-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAdminApi } from "@/api/admin.api"
 import { queryKeys } from "@/lib/query-keys"
 import { clearLocalErrors, getLocalErrors, subscribeToLocalErrors, type LocalErrorEntry } from "@/lib/error-log"
@@ -40,7 +39,6 @@ const KIND_EXPLANATION: Record<ErrorLogKind, string> = {
 }
 
 const timeFormat = new Intl.DateTimeFormat("en-IE", { dateStyle: "medium", timeStyle: "medium" })
-const shortTimeFormat = new Intl.DateTimeFormat("en-IE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
 
 function useLocalErrors(): LocalErrorEntry[] {
     const [entries, setEntries] = React.useState(getLocalErrors)
@@ -170,10 +168,11 @@ const FILTERS: { value: Filter; label: string }[] = [
     { value: "browser", label: "Browsers" },
 ]
 
-export function ErrorLogDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+/** The merged server + browser error log: search, filter, expandable entries and a clear button. Used by the admin console's Logs tab. */
+export function ErrorLogView() {
     const api = useAdminApi()
     const queryClient = useQueryClient()
-    const { entries, serverQuery, persisted } = useErrorLog(open)
+    const { entries, serverQuery, persisted } = useErrorLog(true)
     const [filter, setFilter] = React.useState<Filter>("all")
     const [search, setSearch] = React.useState("")
     const [confirmClear, setConfirmClear] = React.useState(false)
@@ -183,6 +182,7 @@ export function ErrorLogDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         onSuccess: () => {
             clearLocalErrors()
             void queryClient.invalidateQueries({ queryKey: queryKeys.admin.errorLog })
+            void queryClient.invalidateQueries({ queryKey: queryKeys.admin.overview })
             toast.success("Error log cleared")
             setConfirmClear(false)
         },
@@ -198,152 +198,87 @@ export function ErrorLogDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     })
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90svh] flex-col sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Error log</DialogTitle>
-                    <DialogDescription>
-                        Everything that went wrong on the API and in staff browsers, newest first. Search by the reference shown in an error message
-                        (e.g. E-7F3K2).
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                        placeholder="Search message, reference, path, user"
-                        aria-label="Search the error log"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="min-w-48 flex-1"
-                    />
-                    <div className="flex gap-1" role="group" aria-label="Filter">
-                        {FILTERS.map((f) => (
-                            <Button
-                                key={f.value}
-                                size="sm"
-                                variant={filter === f.value ? "default" : "outline"}
-                                aria-pressed={filter === f.value}
-                                className="cursor-pointer"
-                                onClick={() => setFilter(f.value)}
-                            >
-                                {f.label}
-                            </Button>
-                        ))}
-                    </div>
-                    <Button
-                        size="icon"
-                        variant="outline"
-                        className="size-8 cursor-pointer"
-                        aria-label="Refresh"
-                        title="Refresh"
-                        disabled={serverQuery.isFetching}
-                        onClick={() => void serverQuery.refetch()}
-                    >
-                        <RefreshCw className={cn(serverQuery.isFetching && "animate-spin")} />
-                    </Button>
-                </div>
-
-                {serverQuery.isError && (
-                    <p className="text-destructive flex items-center gap-2 text-sm">
-                        <AlertTriangle className="size-4 shrink-0" /> Couldn&apos;t load the server log — showing this browser&apos;s entries only.
-                    </p>
-                )}
-                {!persisted && (
-                    <p className="text-muted-foreground text-xs">
-                        Redis is unavailable, so the server log only has this API process&apos;s entries since it last started.
-                    </p>
-                )}
-
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border">
-                    {serverQuery.isLoading && entries.length === 0 ? (
-                        <p className="text-muted-foreground p-4 text-sm">Loading the error log…</p>
-                    ) : visible.length === 0 ? (
-                        <p className="text-muted-foreground p-4 text-sm">
-                            {entries.length === 0 ? "No errors recorded." : "No entries match this filter."}
-                        </p>
-                    ) : (
-                        <ul>
-                            {visible.map((entry) => (
-                                <EntryRow key={`${entry.origin}-${entry.id}`} entry={entry} />
-                            ))}
-                        </ul>
-                    )}
-                </div>
-
-                <DialogFooter className="items-center sm:justify-between">
-                    <span className="text-muted-foreground text-xs tabular-nums">
-                        {visible.length} of {entries.length} entries
-                    </span>
-                    {confirmClear ? (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Clear the whole log?</span>
-                            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setConfirmClear(false)}>
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                className="cursor-pointer"
-                                disabled={clearMutation.isPending}
-                                onClick={() => clearMutation.mutate()}
-                            >
-                                Clear log
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button variant="outline" size="sm" className="cursor-pointer" disabled={entries.length === 0} onClick={() => setConfirmClear(true)}>
-                            <Trash2 /> Clear log
+        <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+                <Input
+                    placeholder="Search message, reference (e.g. E-7F3K2), path, user"
+                    aria-label="Search the error log"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="min-w-48 flex-1"
+                />
+                <div className="flex gap-1" role="group" aria-label="Filter">
+                    {FILTERS.map((f) => (
+                        <Button
+                            key={f.value}
+                            size="sm"
+                            variant={filter === f.value ? "default" : "outline"}
+                            aria-pressed={filter === f.value}
+                            className="cursor-pointer"
+                            onClick={() => setFilter(f.value)}
+                        >
+                            {f.label}
                         </Button>
-                    )}
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-/** Compact summary for the Admin panel: last-24h counts and the latest few entries, opening the full log. */
-export function ErrorLogSection({ active }: { active: boolean }) {
-    const { entries, serverQuery } = useErrorLog(active)
-    const [dialogOpen, setDialogOpen] = React.useState(false)
-
-    const dayAgo = Date.now() - 24 * 60 * 60 * 1000
-    const recent = entries.filter((e) => new Date(e.at).getTime() >= dayAgo)
-    const errorCount = recent.filter((e) => e.severity === "error").length
-    const warningCount = recent.length - errorCount
-
-    return (
-        <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground text-[11px] font-bold tracking-wide uppercase">Error log</span>
-                <span className={cn("text-xs tabular-nums", errorCount > 0 ? "text-destructive font-medium" : "text-muted-foreground")}>
-                    Last 24 h: {errorCount} error{errorCount === 1 ? "" : "s"}, {warningCount} warning{warningCount === 1 ? "" : "s"}
-                </span>
+                    ))}
+                </div>
+                <Button
+                    size="icon"
+                    variant="outline"
+                    className="cursor-pointer"
+                    aria-label="Refresh"
+                    title="Refresh"
+                    disabled={serverQuery.isFetching}
+                    onClick={() => void serverQuery.refetch()}
+                >
+                    <RefreshCw className={cn(serverQuery.isFetching && "animate-spin")} />
+                </Button>
             </div>
 
             {serverQuery.isError && (
-                <p className="text-destructive text-xs">Couldn&apos;t load the server log. This browser&apos;s entries are still shown.</p>
-            )}
-
-            {entries.length === 0 ? (
-                <p className="text-muted-foreground rounded-lg border px-3 py-2.5 text-xs">
-                    {serverQuery.isLoading ? "Loading…" : "No errors recorded."}
+                <p className="text-destructive flex items-center gap-2 text-sm">
+                    <AlertTriangle className="size-4 shrink-0" /> Couldn&apos;t load the server log, showing this browser&apos;s entries only.
                 </p>
-            ) : (
-                <ul className="divide-y rounded-lg border">
-                    {entries.slice(0, 4).map((entry) => (
-                        <li key={`${entry.origin}-${entry.id}`} className="flex items-center gap-2 px-2.5 py-2">
-                            <KindBadge entry={entry} />
-                            <span className="min-w-0 flex-1 truncate text-xs" title={entry.message}>{entry.message}</span>
-                            <span className="text-muted-foreground shrink-0 text-[11px] tabular-nums">{shortTimeFormat.format(new Date(entry.at))}</span>
-                        </li>
-                    ))}
-                </ul>
+            )}
+            {!persisted && (
+                <p className="text-muted-foreground text-xs">
+                    Redis is unavailable, so the server log only has this API process&apos;s entries since it last started.
+                </p>
             )}
 
-            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setDialogOpen(true)}>
-                Open error log{entries.length > 0 ? ` (${entries.length})` : ""}
-            </Button>
-            <ErrorLogDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+            <div className="rounded-lg border">
+                {serverQuery.isLoading && entries.length === 0 ? (
+                    <p className="text-muted-foreground p-4 text-sm">Loading the error log…</p>
+                ) : visible.length === 0 ? (
+                    <p className="text-muted-foreground p-4 text-sm">{entries.length === 0 ? "No errors recorded." : "No entries match this filter."}</p>
+                ) : (
+                    <ul>
+                        {visible.map((entry) => (
+                            <EntryRow key={`${entry.origin}-${entry.id}`} entry={entry} />
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-xs tabular-nums">
+                    {visible.length} of {entries.length} entries
+                </span>
+                {confirmClear ? (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm">Clear the whole log?</span>
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setConfirmClear(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" size="sm" className="cursor-pointer" disabled={clearMutation.isPending} onClick={() => clearMutation.mutate()}>
+                            Clear log
+                        </Button>
+                    </div>
+                ) : (
+                    <Button variant="outline" size="sm" className="cursor-pointer" disabled={entries.length === 0} onClick={() => setConfirmClear(true)}>
+                        <Trash2 /> Clear log
+                    </Button>
+                )}
+            </div>
         </div>
     )
 }

@@ -160,7 +160,7 @@ components:
 
 **Creative North Star: "The Living Spreadsheet"**
 
-This is the workbook the staff already know, grown up. The product grid is the main feature: a scrollable table of every product, with Price and Buyback figures side by side. It sits under a fixed strip of four live metal spot cards and an optional price chart. Everything else is a tool arranged around the grid: a slide-out Pricing Tools panel on the right, the admin panel in the same slot, and one row of icon buttons in the header. The screen fills the viewport exactly. Only the table body and the side panel scroll.
+This is the workbook the staff already know, grown up. The product grid is the main feature: a scrollable table of every product, with Price and Buyback figures side by side. It sits under a fixed strip of four live metal spot cards and an optional price chart. Everything else is a tool arranged around the grid: a slide-out Pricing Tools panel on the right (its Settings tab carries the admin buttons for admins), and one row of icon buttons in the header. The admin console is a separate page, `/admin`, reached from the left menu. The screen fills the viewport exactly. Only the table body and the side panel scroll.
 
 Colour does functional work, organised as three pillars: **brand gold** (identity, active and selected states, primary actions), **Price teal** (anything we charge the customer) and **Buyback raspberry** (anything we pay the customer). Metal colours and status colours answer two more questions: which metal is this, and can I trust this price right now. Beyond that the surface stays neutral zinc: white or near-black ground, hairline borders. Spacing is compact (the Merrion Gold preset sets the spacing unit to 0.18rem, Tailwind's default being 0.25rem); text follows the Figma type scale, with 16px table text.
 
@@ -221,7 +221,7 @@ Price freshness uses Tailwind's stock status colours as small 6px dots: emerald 
 
 **The Earned Colour Rule.** A colour appears only when it answers one of the questions above: brand/state, direction, metal, or trust. Decorative colour, multi-colour tags, gradient fills and tinted section backgrounds do not belong here.
 
-**The Stale Is Loud Rule.** A freshness signal must never be removed, recoloured to neutral, or hidden behind a hover without a visible fallback. The dot, the header freshness indicator and the stale-prices banner exist so that a stale price is never silent.
+**The Stale Is Loud Rule.** A freshness signal must never be removed, recoloured to neutral, or hidden behind a hover without a visible fallback. The dot, the header freshness indicator and the amber stale-prices triangle exist so that a stale price is never silent. The triangle's message is on hover and focus, but the icon itself is always visible while prices are stale.
 
 ## Typography
 
@@ -264,16 +264,16 @@ The scale mirrors the Figma text styles one-to-one. Each has a `type-*` utility 
 
 The layout fills the viewport exactly (`h-svh`, `overflow-hidden`):
 
-1. **Header:** the title, then the data-freshness indicator, then a right-aligned row of 36px square icon buttons in a fixed order: Refresh, Graph, Cards, Day/Night, Tools panel, Admin (admins only), Sign out.
-2. **Fixed band (does not scroll):** an optional stale-prices banner, then the metal spot cards (2 columns, 4 columns at `lg`), then an optional area chart whose height is `clamp(140px, 26vh, 320px)`.
+1. **Header:** the title, then the data-freshness indicator, then a right-aligned cluster: the stale-prices triangle (only while stale) and Refresh next to the freshness text, then Assistant (admins only) and the Tools panel toggle. Day/Night, the theme editor (admins) and Sign out live in the sidebar's user menu; the chart's hide control lives on the chart itself.
+2. **Fixed band (does not scroll):** the metal spot cards (always shown; 2 columns, 4 columns at `lg`), then the area chart whose height is `clamp(140px, 26vh, 320px)`. The chart collapses to a one-line bar.
 3. **Table:** the only region of the main column that scrolls, with its column header pinned. It has a minimum height of 180px so the band above can never crush it.
-4. **Side slot:** a right-hand column `clamp(260px, 32vw, 384px)` wide, shared by the Pricing Tools panel and the Admin panel (only one is open at a time). It opens by animating its width over 200ms. Its inner content keeps a fixed width and is clipped, so it never reflows while the panel animates.
+4. **Side slot:** a right-hand column `clamp(260px, 32vw, 384px)` wide, holding the Pricing Tools panel. It opens by animating its width over 200ms. Its inner content keeps a fixed width and is clipped, so it never reflows while the panel animates.
 
 The page gutter is 4 spacing steps, rising to 6 at `lg`. The metal cards use a 3-step gap. Table cells are 2 steps tall and 3 wide. Panel sections use 4 steps of padding. All of these multiply the 0.18rem unit.
 
 **The Viewport-Tracking Rule.** Anything that has to fit the real window (the chart height, the side panel width) is sized with `clamp()` or `min()`, never a fixed pixel value, so a very small or very large window degrades gracefully instead of breaking.
 
-**The Grid Keeps Its Room Rule.** Anything added above the table comes out of the fixed band, and each new element needs a toggle (the chart and the cards both have one, `g` and the Cards button). The table must never shrink below its minimum height.
+**The Grid Keeps Its Room Rule.** Anything added above the table comes out of the fixed band, and each new element needs a way to collapse (the chart has one, `g` or its own hide button). The table must never shrink below its minimum height.
 
 ## Elevation & Depth
 
@@ -336,7 +336,7 @@ A tabbed workbench in the side slot.
 - **Focus:** the `ring` focus ring, as on buttons.
 
 ### Freshness Signals
-There are three signals at increasing volume. The first is a 6px dot on each card, with a tooltip giving its state, age and source. The second is a text indicator in the header, shown at every width (the source badge and countdown drop away on narrow screens), with an alert icon and amber-700 text when stale. The third is a full-width stale-prices banner above the cards, shown only while prices are stale.
+There are three signals at increasing volume. The first is a 6px dot on each card, with a tooltip giving its state, age and source. The second is a quiet status in the header: a dot plus one muted line such as "Live · 01:56:30" (the line drops away on narrow screens, the dot stays). Both turn amber when prices are stale or served from cache or the database; age, source and the next-refresh countdown are in its tooltip. The cards carry only the dot, with no age text, because all four metals come from one vendor call. The third is an amber triangle icon beside the freshness text, shown only while prices are stale; hovering or focusing it gives the full sentence (struck-at time, age, source). It replaced a full-width banner that cost too much room.
 
 ### Spot Price Chart
 The area chart ("Spot price history") draws each metal in its own metal colour (`METAL_ACCENT`), the same as its spot card.

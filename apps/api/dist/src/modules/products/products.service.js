@@ -8,15 +8,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var ProductsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const products_provider_1 = require("./products.provider");
 const pricing_util_1 = require("../../common/utils/pricing.util");
-let ProductsService = ProductsService_1 = class ProductsService {
+let ProductsService = class ProductsService {
     productsProvider;
-    logger = new common_1.Logger(ProductsService_1.name);
     constructor(productsProvider) {
         this.productsProvider = productsProvider;
     }
@@ -27,12 +25,12 @@ let ProductsService = ProductsService_1 = class ProductsService {
     async getRawProducts() {
         return this.productsProvider.getAll();
     }
-    async getById(id, spotMap = pricing_util_1.ZERO_SPOT_MAP) {
+    async getById(id) {
         const raw = await this.productsProvider.getById(id);
         if (!raw) {
             throw new common_1.NotFoundException('Product not found');
         }
-        return (0, pricing_util_1.calculateProductPrice)(raw, spotMap);
+        return raw;
     }
     async create(dto) {
         await this.assertSkuAvailable(dto.sku);
@@ -46,8 +44,20 @@ let ProductsService = ProductsService_1 = class ProductsService {
         if (dto.sku && dto.sku.toLowerCase() !== existing.sku.toLowerCase()) {
             await this.assertSkuAvailable(dto.sku);
         }
-        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description } = dto;
-        return this.productsProvider.update(id, { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description });
+        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description, } = dto;
+        return this.productsProvider.update(id, {
+            name,
+            sku,
+            metalType,
+            weight,
+            spreadSell,
+            spreadBuy,
+            vatRate,
+            stock,
+            isActive,
+            category,
+            description,
+        });
     }
     async delete(id) {
         const existing = await this.productsProvider.getById(id);
@@ -83,7 +93,7 @@ let ProductsService = ProductsService_1 = class ProductsService {
     }
 };
 exports.ProductsService = ProductsService;
-exports.ProductsService = ProductsService = ProductsService_1 = __decorate([
+exports.ProductsService = ProductsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [products_provider_1.ProductsProvider])
 ], ProductsService);

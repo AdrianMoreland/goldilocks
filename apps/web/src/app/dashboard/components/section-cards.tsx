@@ -25,18 +25,13 @@ const FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
     failed: "Failed to fetch",
 }
 
-/** The dot next to the metal name — fresh/stale/failed, computed from the vendor snapshot time + degradedMetals (see use-pricing-workbook.hook.ts). Money-risk signal: a red or amber dot means don't trust this price without checking further. Not-fresh states also spell the age out beside the dot, so the warning doesn't depend on hovering. */
+/** The dot next to the metal name — fresh/stale/failed, computed from the vendor snapshot time + degradedMetals (see use-pricing-workbook.hook.ts). Money-risk signal: a red or amber dot means don't trust this price without checking further. The age is not repeated per card: all four come from one vendor call, so the header's status text and stale triangle say it once. */
 function FreshnessDot({ data }: { data: MetalCardData }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1.5" tabIndex={0} aria-label={`Price freshness: ${FRESHNESS_LABEL[data.freshness]}`}>
+                <span className="inline-flex items-center" tabIndex={0} aria-label={`Price freshness: ${FRESHNESS_LABEL[data.freshness]}`}>
                     <span className={`inline-block size-2 shrink-0 rounded-full ${FRESHNESS_DOT_COLOR[data.freshness]}`} />
-                    {data.freshness !== "fresh" && (
-                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                            {data.freshness === "stale" ? formatMinutesAgo(data.lastFetchedAt).replace(" ago", " old") : FRESHNESS_LABEL[data.freshness].split(" — ")[0]}
-                        </span>
-                    )}
                 </span>
             </TooltipTrigger>
             <TooltipContent side="bottom">

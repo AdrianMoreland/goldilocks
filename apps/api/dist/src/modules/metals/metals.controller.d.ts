@@ -11,9 +11,9 @@ export declare class MetalsController {
     getCronStatus(): {
         running: boolean;
     };
-    toggleCron(): {
+    toggleCron(): Promise<{
         running: boolean;
-    };
+    }>;
     clearCache(): Promise<{
         message: string;
     }>;

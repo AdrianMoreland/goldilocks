@@ -6,7 +6,7 @@ export declare abstract class CacheAsideStore<TKey, TValue> {
     protected constructor(redis: RedisService, ttlSeconds: number);
     protected abstract cacheKey(key: TKey): string;
     protected abstract fetchFromSource(key: TKey): Promise<TValue | null>;
-    protected isUsable(value: TValue): boolean;
+    protected isUsable(_value: TValue): boolean;
     get(key: TKey): Promise<TValue | null>;
     set(key: TKey, value: TValue): Promise<void>;
 }

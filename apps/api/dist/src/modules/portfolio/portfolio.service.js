@@ -66,7 +66,12 @@ let PortfolioService = class PortfolioService {
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${request.metalType}.`);
         }
-        const spotMap = { ...pricing_util_1.ZERO_SPOT_MAP, [request.metalType]: request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur };
+        const spotMap = {
+            ...pricing_util_1.ZERO_SPOT_MAP,
+            [request.metalType]: request.customSpot && request.customSpot > 0
+                ? request.customSpot
+                : spot.priceEur,
+        };
         const priorityProduct = request.priorityProductId
             ? rawProducts.find((p) => p.id === request.priorityProductId)
             : undefined;
@@ -88,7 +93,9 @@ let PortfolioService = class PortfolioService {
             results = (0, shared_types_1.buildPortfolioStrategies)(candidates, request.budget, request.productType, priorityProduct?.name ?? '', request.priorityStrength);
         }
         catch (err) {
-            throw new common_1.BadRequestException(err instanceof Error ? err.message : 'Unable to build a portfolio.');
+            throw new common_1.BadRequestException(err instanceof Error
+                ? err.message
+                : 'Unable to build a portfolio.');
         }
         return {
             metalType: request.metalType,
@@ -96,7 +103,10 @@ let PortfolioService = class PortfolioService {
             productType: request.productType,
             priorityProductId: priorityProduct?.id ?? null,
             priorityStrength: request.priorityStrength,
-            results: results.map(({ strategy, result }) => ({ strategy, ...result })),
+            results: results.map(({ strategy, result }) => ({
+                strategy,
+                ...result,
+            })),
         };
     }
 };

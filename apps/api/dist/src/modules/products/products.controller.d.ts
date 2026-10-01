@@ -1,11 +1,11 @@
 import { ProductsService } from './products.service';
-import { CreateProductDto, ProductResponseDto, UpdateProductDto } from "../../common/dto/dtos";
-import { RawProduct } from "@goldilocks/shared-types";
+import { CreateProductDto, UpdateProductDto, UpdateStockRequestDto } from '../../common/dto/dtos';
+import { RawProduct } from '@goldilocks/shared-types';
 export declare class ProductsController {
     private readonly service;
     constructor(service: ProductsService);
     getAll(): Promise<RawProduct[]>;
-    getById(id: number, metal: any): Promise<ProductResponseDto>;
+    getById(id: number): Promise<RawProduct>;
     createProduct(body: CreateProductDto): Promise<{
         id: number;
         sku: string;
@@ -38,9 +38,7 @@ export declare class ProductsController {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    updateStock(id: number, body: {
-        stock_quantity: number;
-    }): Promise<{
+    updateStock(id: number, body: UpdateStockRequestDto): Promise<{
         id: number;
         sku: string;
         name: string;

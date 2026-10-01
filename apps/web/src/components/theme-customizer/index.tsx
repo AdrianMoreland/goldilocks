@@ -3,7 +3,8 @@
 import React from 'react'
 import { Layout, Palette, RotateCcw, Settings, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { DockedPanel, LEFT_PANEL_WIDTH } from '@/components/docked-panel'
+import { useThemeEditorDock } from '@/contexts/docks-context'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSidebarConfig } from '@/contexts/sidebar-context'
 import { useThemePreference } from '@/contexts/theme-preference-context'
@@ -13,18 +14,15 @@ import { ImportModal } from './import-modal.tsx'
 import { cn } from '@/lib/utils'
 import type { ImportedTheme } from '@/types/theme-customizer'
 
-interface ThemeCustomizerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
 /**
- * The theme editor sheet. All state lives in ThemePreferenceProvider (app
- * root), which applies and remembers every change per user — this is just
- * the UI onto it.
+ * The theme editor, docked on the left beside the sidebar so the app reflows
+ * around it and every change can be watched live. All state lives in
+ * ThemePreferenceProvider (app root), which applies and remembers every
+ * change per user: this is just the UI onto it.
  */
-export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
-  const { config: sidebarConfig, updateConfig: updateSidebarConfig } = useSidebarConfig()
+export function ThemeEditorDock() {
+  const { open, close } = useThemeEditorDock()
+  const { updateConfig: updateSidebarConfig } = useSidebarConfig()
   const { update, resetAll } = useThemePreference()
 
   const [activeTab, setActiveTab] = React.useState("theme")
@@ -41,51 +39,37 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-        <SheetContent
-          side={sidebarConfig.side === "left" ? "right" : "left"}
-          className="w-[400px] p-0 gap-0 pointer-events-auto [&>button]:hidden overflow-hidden flex flex-col"
-          onInteractOutside={(e) => {
-            // Prevent the sheet from closing when dialog is open
-            if (importModalOpen) {
-              e.preventDefault()
-            }
-          }}
-        >
-          <SheetHeader className="space-y-0 p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Settings className="h-4 w-4" />
-              </div>
-              <SheetTitle className="text-lg font-semibold">Theme editor</SheetTitle>
-              <div className="ml-auto flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleReset}
-                  className="cursor-pointer h-8 w-8"
-                  title="Reset everything to the app defaults"
-                  aria-label="Reset everything to the app defaults"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onOpenChange(false)}
-                  className="cursor-pointer h-8 w-8"
-                  aria-label="Close theme editor"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+      <DockedPanel side="left" open={open} width={LEFT_PANEL_WIDTH} label="Theme editor">
+        <>
+          <div className="flex items-center gap-2 p-3 pb-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Settings className="h-4 w-4" />
             </div>
-            <SheetDescription className="text-sm text-muted-foreground sr-only">
-              Customize the theme and layout of your dashboard. Changes are saved automatically.
-            </SheetDescription>
-          </SheetHeader>
+            <h2 className="text-base font-semibold">Theme editor</h2>
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleReset}
+                className="cursor-pointer h-8 w-8"
+                title="Reset everything to the app defaults"
+                aria-label="Reset everything to the app defaults"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={close}
+                className="cursor-pointer h-8 w-8"
+                aria-label="Close theme editor"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
               <div className="py-2">
                 <TabsList className="grid w-full grid-cols-2 rounded-none h-12 p-1.5">
@@ -103,8 +87,8 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
               </TabsContent>
             </Tabs>
           </div>
-        </SheetContent>
-      </Sheet>
+        </>
+      </DockedPanel>
 
       <ImportModal
         open={importModalOpen}

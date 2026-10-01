@@ -9,12 +9,8 @@ export const TRADE_FIRST_QTY_ID = "trade-first-qty"
 
 export type PricingToolTab = "product" | "trade" | "portfolio" | "calculators" | "settings"
 
-// Shared by both side panels (Pricing Tools and the Admin panel) so they
-// occupy exactly the same slot at exactly the same width — scales with the
-// viewport instead of staying pinned at 384px regardless of width: 384px on
-// wide screens, shrinking down to a 260px floor so it never hogs most of a
-// narrower window.
-export const SIDE_PANEL_WIDTH = "clamp(260px, 32vw, 384px)"
+// Scales with the viewport (384px on wide screens, down to a 260px floor). Shared with the Assistant panel, which takes this same slot.
+export { RIGHT_PANEL_WIDTH as SIDE_PANEL_WIDTH } from "@/components/docked-panel"
 
 interface PricingToolsContextValue {
     open: boolean
@@ -25,29 +21,13 @@ interface PricingToolsContextValue {
     rowSelection: Record<string, boolean>
     /** Ids of the currently-selected rows, derived from `rowSelection` — the Trade tab uses this to build its cart. */
     selectedProductIds: number[]
-    /**
-     * Whether the metal spot-price cards are shown. There are two ways to
-     * pick which metal's table is showing — the cards, and the small
-     * per-metal buttons above the table — and only one is ever meant to be
-     * visible at a time so they can't drift out of sync with each other.
-     * Cards are the default; the small buttons only appear once the cards
-     * are hidden (see the header's "Toggle metal cards" button).
-     */
-    cardsVisible: boolean
-    /** Whether the Admin side panel is showing — occupies the exact same slot as the Pricing Tools panel (see PricingToolsPanel's own `open` check), so only one is ever visible at a time. */
-    adminPanelOpen: boolean
-
     toggleOpen: () => void
     openTools: () => void
-    openAdminPanel: () => void
-    closeAdminPanel: () => void
-    toggleAdminPanel: () => void
     setActiveTab: (tab: PricingToolTab) => void
     setActiveMetal: (metal: MetalType) => void
     setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
     /** Unchecks one product's row-selection checkbox — used when a cart item tied to a selected row is removed from the Trade tab. */
     deselectProductId: (id: number) => void
-    toggleCardsVisible: () => void
 
     /** Switches the panel to the Product tab for a specific product row, opening it if closed. */
     openWithProduct: (product: Product) => void
@@ -80,8 +60,6 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     const [activeMetal, setActiveMetal] = React.useState<MetalType>("GOLD")
     const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
     const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
-    const [cardsVisible, setCardsVisible] = useUserPreference("cards-visible", true)
-    const [adminPanelOpen, setAdminPanelOpen] = React.useState(false)
     const [transactionType, setTransactionType] = React.useState<TradeTransactionType>("buying")
 
     const selectedProductIds = React.useMemo(
@@ -139,10 +117,6 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
 
     const toggleOpen = React.useCallback(() => setOpen((o) => !o), [])
     const openTools = React.useCallback(() => setOpen(true), [])
-    const toggleCardsVisible = React.useCallback(() => setCardsVisible((v) => !v), [])
-    const openAdminPanel = React.useCallback(() => setAdminPanelOpen(true), [])
-    const closeAdminPanel = React.useCallback(() => setAdminPanelOpen(false), [])
-    const toggleAdminPanel = React.useCallback(() => setAdminPanelOpen((v) => !v), [])
 
     const openWithProduct = React.useCallback((product: Product) => {
         setSelectedProduct(product)
@@ -170,18 +144,12 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
             selectedProduct,
             rowSelection,
             selectedProductIds,
-            cardsVisible,
-            adminPanelOpen,
             toggleOpen,
             openTools,
-            openAdminPanel,
-            closeAdminPanel,
-            toggleAdminPanel,
             setActiveTab,
             setActiveMetal,
             setRowSelection,
             deselectProductId,
-            toggleCardsVisible,
             openWithProduct,
             pendingTradeProductId,
             openInTrade,
@@ -194,8 +162,8 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
             tableCopySource,
         }),
         [
-            open, activeTab, activeMetal, selectedProduct, rowSelection, selectedProductIds, cardsVisible, adminPanelOpen,
-            toggleOpen, openTools, openAdminPanel, closeAdminPanel, toggleAdminPanel, deselectProductId, toggleCardsVisible, openWithProduct,
+            open, activeTab, activeMetal, selectedProduct, rowSelection, selectedProductIds,
+            toggleOpen, openTools, deselectProductId, openWithProduct,
             pendingTradeProductId, openInTrade, clearPendingTradeProduct,
             transactionType, flipTransactionType, clearSelection, focusTradeQuantity,
         ],

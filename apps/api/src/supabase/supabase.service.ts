@@ -1,11 +1,14 @@
 // src/supabase/supabase.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-// import { config } from 'dotenv';
-import {ConfigService} from "@nestjs/config";
+import { ConfigService } from '@nestjs/config';
 
-// config(); // load .env
-
+/**
+ * Thin wrapper over the Supabase SDK. Only SupabaseAuthProvider should call
+ * it — everything else goes through AuthProviderPort. Methods throw the SDK's
+ * own error (with `status`/`code`) so the provider can tell "wrong password"
+ * from "Supabase is down".
+ */
 @Injectable()
 export class SupabaseService {
     private supabase: SupabaseClient;
@@ -19,11 +22,9 @@ export class SupabaseService {
             throw new Error('Supabase env variables not set');
         }
 
+        // The SDK's untyped-schema client is generic over `any`; we use none of the typed-table API.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.supabase = createClient(supabaseUrl, supabaseKey);
-    }
-
-    get client() {
-        return this.supabase;
     }
 
     // Lazily created — the service-role key is only ever needed for the
@@ -32,10 +33,14 @@ export class SupabaseService {
     private get admin(): SupabaseClient {
         if (!this.supabaseAdmin) {
             const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-            const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+            const serviceRoleKey = this.configService.get<string>(
+                'SUPABASE_SERVICE_ROLE_KEY',
+            );
 
             if (!supabaseUrl || !serviceRoleKey) {
-                throw new InternalServerErrorException('SUPABASE_SERVICE_ROLE_KEY not set');
+                throw new InternalServerErrorException(
+                    'SUPABASE_SERVICE_ROLE_KEY not set',
+                );
             }
 
             this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
@@ -51,39 +56,22 @@ export class SupabaseService {
             password,
             email_confirm: true,
         });
-        if (error) throw new InternalServerErrorException(error.message);
+        if (error) throw error;
         return data.user;
     }
 
-    // Auth methods
-    async signUp(email: string, password: string) {
-        const { data, error } = await this.supabase.auth.signUp({ email, password });
-        if (error) throw new InternalServerErrorException(error.message);
-        return data;
+    /** Admin-only: removes an identity, used to roll back a half-finished createUser. */
+    async adminDeleteUser(id: string): Promise<void> {
+        const { error } = await this.admin.auth.admin.deleteUser(id);
+        if (error) throw error;
     }
 
     async signIn(email: string, password: string) {
-        const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
-        if (error) throw new InternalServerErrorException(error.message);
-        return data;
-    }
-
-    async signOut() {
-        const { error } = await this.supabase.auth.signOut();
-        if (error) throw new InternalServerErrorException(error.message);
-        return { success: true };
-    }
-
-
-    async updateUserPassword(password: string) {
-        const { data, error } = await this.supabase.auth.updateUser({ password });
-        if (error) throw new InternalServerErrorException(error.message);
-        return data;
-    }
-
-    async updateUserEmail(newEmail: string) {
-        const { data, error } = await this.supabase.auth.updateUser({ email: newEmail });
-        if (error) throw new InternalServerErrorException(error.message);
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+        if (error) throw error;
         return data;
     }
 

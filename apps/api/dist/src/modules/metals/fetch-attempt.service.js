@@ -44,10 +44,14 @@ let FetchAttemptService = class FetchAttemptService {
     }
     async getMetrics() {
         const since = new Date(Date.now() - METRICS_WINDOW_MS);
-        const attempts = await this.prisma.fetchAttempt.findMany({ where: { attemptedAt: { gte: since } } });
+        const attempts = await this.prisma.fetchAttempt.findMany({
+            where: { attemptedAt: { gte: since } },
+        });
         const total = attempts.length;
         const failureCount = attempts.filter((a) => !a.success).length;
-        const avgLatencyMs = total > 0 ? attempts.reduce((sum, a) => sum + a.durationMs, 0) / total : 0;
+        const avgLatencyMs = total > 0
+            ? attempts.reduce((sum, a) => sum + a.durationMs, 0) / total
+            : 0;
         return {
             successRate24h: total > 0 ? (total - failureCount) / total : 1,
             totalAttempts24h: total,

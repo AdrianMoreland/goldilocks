@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 export function createDto<T extends z.ZodTypeAny>(
     schema: T,
-    className: string
+    className: string,
 ) {
     const DtoClass = createZodDto(schema);
 

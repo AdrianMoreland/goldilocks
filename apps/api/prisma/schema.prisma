@@ -156,3 +156,114 @@ enum Currency {
   USD
   GBP
 }
+
+/// One Standard Operating Procedure, imported from docs/sops/*.md (format:
+/// docs/sops/00-README.md). The Markdown is the content; everything else is
+/// the frontmatter, so the importer can round-trip a file without loss.
+/// Enum values are lowercase on purpose: they are exactly the frontmatter
+/// values and the shared-types Zod enums, so no mapping layer is needed.
+model KbDocument {
+  id               Int            @id @default(autoincrement())
+  /// Stable link key. Never changes after approval — `[[slug#section]]` links depend on it.
+  slug             String         @unique
+  title            String
+  category         KbCategory
+  jurisdiction     KbJurisdiction
+  owner            String
+  status           KbStatus       @default(draft)
+  version          Int            @default(1)
+  /// The SOP's own date (frontmatter `updatedAt`) — drives the 6-month review reminder, unlike the row's `updatedAt`.
+  contentUpdatedOn DateTime       @db.Date
+  markdown         String
+  /// sha256 of the source file, so a re-import can skip files that haven't changed.
+  contentHash      String
+  /// True once an admin has changed the content in the app. A re-import of the SOP file would
+  /// silently overwrite that work, so the importer refuses unless told to force it.
+  editedInApp      Boolean        @default(false)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6)
+
+  @@index([category, status])
+  @@map("kb_documents")
+}
+
+enum KbCategory {
+  sales
+  trading
+  operations
+  compliance
+  storage
+  systems
+  directory
+  meta
+}
+
+enum KbJurisdiction {
+  all
+  IE
+  UK
+  ES
+}
+
+enum KbStatus {
+  draft
+  approved
+  retired
+}
+
+/// One row per question asked of the internal assistant (roadmap 1.5). The question is stored
+/// already scrubbed of names, emails and phone numbers; the answer and any live prices are
+/// never stored here. Purged after AI_LOG_RETENTION_DAYS.
+model AiQuestionLog {
+  id                Int      @id @default(autoincrement())
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  userId            String
+  /// Scrubbed text — see privacy-scrubber.ts.
+  question          String
+  /// answered | refused | uncited | error
+  status            String
+  /// procedures | email | whatsapp. For the last two, `question` holds a placeholder, not the customer's message.
+  mode              String   @default("procedures")
+  /// Live lookups the answer used (getSpot, findProductPrices); never their results.
+  toolNames         String[]
+  cached            Boolean  @default(false)
+  /// True when the first answer cited nothing and a second model call was made.
+  retried           Boolean  @default(false)
+  /// "slug#anchor" for each section the answer cited.
+  citations         String[]
+  model             String
+  corpusHash        String
+  inputTokens       Int
+  cachedInputTokens Int
+  outputTokens      Int
+  /// Whole micro-dollars (1 USD = 1,000,000): exact integers, so the daily spend sum never drifts.
+  costMicros        Int
+  latencyMs         Int
+  /// Failure kind when status is "error" (unavailable, out_of_credit, …).
+  error             String?
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_question_logs")
+}
+
+/// A repeat question's answer, keyed by the normalised scrubbed question and the SOP-set hash,
+/// so approving or editing any SOP stops old answers being served. Only questions with nothing
+/// to scrub, and answers produced without live-price tools, are ever stored.
+model AiAnswerCache {
+  id          Int      @id @default(autoincrement())
+  questionKey String
+  corpusHash  String
+  answer      String
+  status      String
+  /// AiCitation[] as validated when the answer was made.
+  citations   Json
+  model       String
+  hits        Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  expiresAt   DateTime @db.Timestamptz(6)
+
+  @@unique([questionKey, corpusHash])
+  @@index([expiresAt])
+  @@map("ai_answer_cache")
+}

@@ -19,7 +19,7 @@ const SHORTCUTS: ShortcutRow[] = [
     { keys: "g", label: "Toggle chart" },
 ]
 
-const ADMIN_SHORTCUT: ShortcutRow = { keys: "a", label: "Admin panel" }
+const ADMIN_SHORTCUT: ShortcutRow = { keys: "a", label: "Admin console" }
 
 /**
  * Bottom-corner shortcut hint. Sits at rest as a clearly visible, hover-able

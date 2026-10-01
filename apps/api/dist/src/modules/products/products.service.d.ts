@@ -1,10 +1,9 @@
-import { MetalType } from "../../../prisma/generated/enums";
-import { Product } from "@goldilocks/shared-types";
-import { CreateProductDto, UpdateProductDto } from "../../common/dto/dtos";
+import { MetalType } from '../../../prisma/generated/enums';
+import { Product, RawProduct } from '@goldilocks/shared-types';
+import { CreateProductDto, UpdateProductDto } from '../../common/dto/dtos';
 import { ProductsProvider } from './products.provider';
 export declare class ProductsService {
     private readonly productsProvider;
-    private readonly logger;
     constructor(productsProvider: ProductsProvider);
     getProducts(spotMap?: Record<MetalType, number>): Promise<Product[]>;
     getRawProducts(): Promise<{
@@ -23,7 +22,7 @@ export declare class ProductsService {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }[]>;
-    getById(id: number, spotMap?: Record<MetalType, number>): Promise<Product>;
+    getById(id: number): Promise<RawProduct>;
     create(dto: CreateProductDto): Promise<{
         id: number;
         sku: string;

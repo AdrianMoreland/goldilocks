@@ -4,7 +4,8 @@ import type { MetalType } from "@/lib/types"
 interface GlobalShortcutsOptions {
     onToggleTools: () => void
     onToggleChart: () => void
-    onToggleAdminPanel?: () => void
+    /** a — go to the admin console (admins only). */
+    onOpenAdmin?: () => void
     /** 1–4 — jump to Gold / Silver / Platinum / Palladium. */
     onSelectMetal: (metal: MetalType) => void
     /** p — flip the Trade tab between Price and Buyback. */
@@ -45,7 +46,7 @@ function isDialogOpen(): boolean {
 
 /**
  * Page-chrome shortcuts: "/" to focus search, single letters to toggle the
- * tools panel / chart / admin panel, 1–4 to switch metal, p to flip
+ * tools panel / chart, a to open the admin console, 1–4 to switch metal, p to flip
  * Price/Buyback, q to jump to the Trade quantity, and Ctrl+Z to reset the
  * working state. Row navigation (arrow keys) lives separately in
  * use-row-navigation.hook.ts since it needs the table's live row model —
@@ -59,7 +60,7 @@ function isDialogOpen(): boolean {
 export function useGlobalShortcuts({
     onToggleTools,
     onToggleChart,
-    onToggleAdminPanel,
+    onOpenAdmin,
     onSelectMetal,
     onFlipTransaction,
     onFocusQuantity,
@@ -97,7 +98,7 @@ export function useGlobalShortcuts({
                     onToggleChart()
                     break
                 case "a":
-                    onToggleAdminPanel?.()
+                    onOpenAdmin?.()
                     break
                 case "p":
                     onFlipTransaction()
@@ -112,5 +113,5 @@ export function useGlobalShortcuts({
 
         window.addEventListener("keydown", handleKeyDown)
         return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [onToggleTools, onToggleChart, onToggleAdminPanel, onSelectMetal, onFlipTransaction, onFocusQuantity, onResetAll])
+    }, [onToggleTools, onToggleChart, onOpenAdmin, onSelectMetal, onFlipTransaction, onFocusQuantity, onResetAll])
 }

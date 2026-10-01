@@ -163,6 +163,16 @@
 @utility type-table-head { font-size: 1rem; line-height: 1.5rem; font-weight: 700; }
 @utility type-table-item { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
 
+/* Knowledge Center: the section a link or step sent you to. The ring is always there; this just
+   draws the eye once on arrival. Derived from the theme's primary, so it works in both modes. */
+@keyframes kb-target-flash {
+  from { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent), 0 0 0 2px var(--primary); }
+  to   { box-shadow: 0 0 0 14px color-mix(in oklab, var(--primary) 0%, transparent), 0 0 0 2px var(--primary); }
+}
+@utility kb-target-flash {
+  @media (prefers-reduced-motion: no-preference) { animation: kb-target-flash 900ms cubic-bezier(0.22, 1, 0.36, 1) 1; }
+}
+
 /* Theme editor shadow strength (set as data-shadows on <html>). Tailwind's
    shadow utilities read --tw-shadow and --tw-shadow-color, so these tone
    every shadow down without touching focus rings (a separate variable). */
@@ -178,6 +188,41 @@
     font-family: var(--font-inter);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /*
+   * Scrollbars: slim, no track, and a thumb tinted from the theme's own
+   * foreground, so they follow light/dark and any theme-editor preset instead
+   * of the browser's grey/white defaults. The thumb darkens on hover and turns
+   * brand-gold while dragged. Chromium and Safari use the -webkit pseudo
+   * elements; Firefox ignores those and gets the standard properties.
+   */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    border-radius: 9999px;
+    /* A transparent border insets the thumb so it reads as a slim pill inside the 10px gutter. */
+    border: 2.5px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 42%, transparent);
+  }
+  *::-webkit-scrollbar-thumb:active {
+    background-color: var(--primary);
+  }
+  @supports (-moz-appearance: none) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklab, var(--foreground) 28%, transparent) transparent;
+    }
   }
 }
 

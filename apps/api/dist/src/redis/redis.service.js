@@ -17,6 +17,12 @@ exports.RedisService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const ioredis_1 = __importDefault(require("ioredis"));
+const INCREMENT_SCRIPT = `local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+return count`;
+const DECREMENT_SCRIPT = `local count = tonumber(redis.call('GET', KEYS[1]))
+if count and count > 0 then return redis.call('DECR', KEYS[1]) end
+return 0`;
 let RedisService = RedisService_1 = class RedisService {
     config;
     logger = new common_1.Logger(RedisService_1.name);
@@ -25,7 +31,7 @@ let RedisService = RedisService_1 = class RedisService {
     constructor(config) {
         this.config = config;
     }
-    async onModuleInit() {
+    onModuleInit() {
         const url = this.config.get('REDIS_URL');
         if (!url) {
             this.logger.warn('REDIS_URL not set → running without Redis');
@@ -33,17 +39,14 @@ let RedisService = RedisService_1 = class RedisService {
         }
         this.client = new ioredis_1.default(url, {
             maxRetriesPerRequest: 1,
-            retryStrategy: (times) => {
-                if (times > 3) {
-                    this.logger.error('Redis retry limit reached');
-                    return null;
-                }
-                return Math.min(times * 100, 2000);
-            },
+            retryStrategy: (times) => Math.min(times * 200, 5000),
         });
-        this.client.on('connect', () => {
+        this.client.on('ready', () => {
             this.isConnected = true;
             this.logger.log('✅ Redis connected');
+        });
+        this.client.on('close', () => {
+            this.isConnected = false;
         });
         this.client.on('error', (err) => {
             this.isConnected = false;
@@ -87,11 +90,36 @@ let RedisService = RedisService_1 = class RedisService {
             this.logger.warn(`Redis DEL failed: ${keys.join(', ')}`);
         }
     }
+    async increment(key, ttlSeconds) {
+        if (!this.client || !this.isConnected)
+            return null;
+        try {
+            return Number(await this.client.eval(INCREMENT_SCRIPT, 1, key, ttlSeconds));
+        }
+        catch (err) {
+            this.logger.warn(`Redis INCR failed: ${key}`);
+            return null;
+        }
+    }
+    async decrement(key) {
+        if (!this.client || !this.isConnected)
+            return;
+        try {
+            await this.client.eval(DECREMENT_SCRIPT, 1, key);
+        }
+        catch (err) {
+            this.logger.warn(`Redis DECR failed: ${key}`);
+        }
+    }
     async pushCapped(key, value, maxLength) {
         if (!this.client || !this.isConnected)
             return false;
         try {
-            await this.client.multi().lpush(key, JSON.stringify(value)).ltrim(key, 0, maxLength - 1).exec();
+            await this.client
+                .multi()
+                .lpush(key, JSON.stringify(value))
+                .ltrim(key, 0, maxLength - 1)
+                .exec();
             return true;
         }
         catch (err) {
@@ -108,6 +136,35 @@ let RedisService = RedisService_1 = class RedisService {
         }
         catch (err) {
             this.logger.warn(`Redis LRANGE failed: ${key}`);
+            return null;
+        }
+    }
+    async hashIncrementMany(key, fields, ttlSeconds) {
+        if (!this.client || !this.isConnected)
+            return;
+        try {
+            const tx = this.client.multi();
+            for (const [field, by] of Object.entries(fields)) {
+                tx.hincrbyfloat(key, field, by);
+            }
+            await tx.expire(key, ttlSeconds).exec();
+        }
+        catch {
+            this.logger.warn(`Redis HINCRBY failed: ${key}`);
+        }
+    }
+    async hashGetAllNumbers(key) {
+        if (!this.client || !this.isConnected)
+            return null;
+        try {
+            const raw = await this.client.hgetall(key);
+            return Object.fromEntries(Object.entries(raw).map(([field, value]) => [
+                field,
+                Number(value),
+            ]));
+        }
+        catch {
+            this.logger.warn(`Redis HGETALL failed: ${key}`);
             return null;
         }
     }

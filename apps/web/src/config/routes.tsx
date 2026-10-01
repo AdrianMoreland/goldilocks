@@ -1,11 +1,15 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
-import { RequireAuth } from '@/components/auth/require-auth'
+import { RequireAdmin, RequireAuth } from '@/components/auth/require-auth'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
+const Admin = lazy(() => import('@/app/admin/page'))
+const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
+const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
+const KnowledgeArticle = lazy(() => import('@/app/knowledge/article/page'))
 const Mail = lazy(() => import('@/app/mail/page'))
 const Tasks = lazy(() => import('@/app/tasks/page'))
 const Chat = lazy(() => import('@/app/chat/page'))
@@ -64,6 +68,24 @@ export const routes: RouteConfig[] = [
   {
     path: "/dashboard",
     element: <RequireAuth><Dashboard /></RequireAuth>
+  },
+  // Admin console — admins only; the API enforces the same on every call it makes
+  {
+    path: "/admin",
+    element: <RequireAdmin><Admin /></RequireAdmin>
+  },
+  // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
+  {
+    path: "/knowledge",
+    element: <RequireAuth><KnowledgeCenter /></RequireAuth>
+  },
+  {
+    path: "/knowledge/all",
+    element: <RequireAuth><KnowledgeAll /></RequireAuth>
+  },
+  {
+    path: "/knowledge/articles/:slug",
+    element: <RequireAuth><KnowledgeArticle /></RequireAuth>
   },
   {
     path: "/demo",

@@ -97,6 +97,11 @@ export const UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, created
 });
 
 
+export const UpdateStockRequestSchema = z.object({
+  stock_quantity: z.number().int().nonnegative(),
+});
+export type UpdateStockRequest = z.infer<typeof UpdateStockRequestSchema>;
+
 export const ProductsSchema = z.array(ProductSchema);
 export const ProductArraySchema = z.array(ProductSchema);
 export const ProductMapSchema = z.record(MetalTypeEnum, ProductSchema);

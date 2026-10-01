@@ -1,4 +1,8 @@
-import type { LiveResponse, OHLCResponse, TimeframeResponse } from './metal-price-api.client';
+import type {
+    LiveResponse,
+    OHLCResponse,
+    TimeframeResponse,
+} from './metal-price-api.client';
 
 /**
  * Abstraction over the metals-price vendor — MetalsProvider depends on this,
@@ -10,8 +14,16 @@ import type { LiveResponse, OHLCResponse, TimeframeResponse } from './metal-pric
  */
 export interface MetalPriceApiPort {
     livePrices(): Promise<LiveResponse>;
-    timeframePrices(startDate: string, endDate: string, currency?: string): Promise<TimeframeResponse>;
-    ohlcPrices(date: string, currency?: string, metal?: string): Promise<OHLCResponse>;
+    timeframePrices(
+        startDate: string,
+        endDate: string,
+        currency?: string,
+    ): Promise<TimeframeResponse>;
+    ohlcPrices(
+        date: string,
+        currency?: string,
+        metal?: string,
+    ): Promise<OHLCResponse>;
 }
 
 export const METAL_PRICE_API = Symbol('METAL_PRICE_API');

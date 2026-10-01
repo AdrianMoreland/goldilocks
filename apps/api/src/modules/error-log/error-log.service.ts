@@ -52,7 +52,11 @@ export class ErrorLogService {
             severity: input.severity ?? 'error',
             kind: input.kind,
             message: input.message,
-            detail: input.detail ?? (error && error.message !== input.message ? error.message : null),
+            detail:
+                input.detail ??
+                (error && error.message !== input.message
+                    ? error.message
+                    : null),
             statusCode: input.statusCode ?? null,
             method: input.method ?? null,
             path: input.path ?? null,
@@ -62,12 +66,18 @@ export class ErrorLogService {
             userAgent: input.userAgent ?? null,
         };
         await this.store(entry);
-        this.logger.error(`[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` — ${entry.detail}` : ''}`);
+        this.logger.error(
+            `[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` — ${entry.detail}` : ''}`,
+        );
         return reference;
     }
 
     /** Stores failures the web app reported about itself (network drops, bad responses, crashes). */
-    async recordClientReports(reports: ClientErrorReport[], user: string | null, userAgent: string | null): Promise<void> {
+    async recordClientReports(
+        reports: ClientErrorReport[],
+        user: string | null,
+        userAgent: string | null,
+    ): Promise<void> {
         for (const report of reports) {
             await this.store({
                 id: randomUUID(),
@@ -89,8 +99,13 @@ export class ErrorLogService {
         }
     }
 
-    async getRecent(limit: number): Promise<{ entries: ErrorLogEntry[]; persisted: boolean }> {
-        const fromRedis = await this.redis.listRange<ErrorLogEntry>(REDIS_KEY, limit);
+    async getRecent(
+        limit: number,
+    ): Promise<{ entries: ErrorLogEntry[]; persisted: boolean }> {
+        const fromRedis = await this.redis.listRange<ErrorLogEntry>(
+            REDIS_KEY,
+            limit,
+        );
         if (fromRedis) return { entries: fromRedis, persisted: true };
         return { entries: this.memory.slice(0, limit), persisted: false };
     }

@@ -11,14 +11,23 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JwtAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 const auth_service_1 = require("../../modules/auth/auth.service");
+const public_decorator_1 = require("../decorators/public.decorator");
 let JwtAuthGuard = class JwtAuthGuard {
     authService;
-    constructor(authService) {
+    reflector;
+    constructor(authService, reflector) {
         this.authService = authService;
+        this.reflector = reflector;
     }
     async canActivate(context) {
+        const isPublic = this.reflector.getAllAndOverride(public_decorator_1.IS_PUBLIC_KEY, [context.getHandler(), context.getClass()]);
+        if (isPublic)
+            return true;
         const request = context.switchToHttp().getRequest();
+        if (request.user)
+            return true;
         const authHeader = request.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             throw new common_1.UnauthorizedException('Missing or invalid authorization header');
@@ -31,6 +40,7 @@ let JwtAuthGuard = class JwtAuthGuard {
 exports.JwtAuthGuard = JwtAuthGuard;
 exports.JwtAuthGuard = JwtAuthGuard = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        core_1.Reflector])
 ], JwtAuthGuard);
 //# sourceMappingURL=jwt-auth.guard.js.map

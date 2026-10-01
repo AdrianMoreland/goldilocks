@@ -1,6 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    ConflictException,
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    ServiceUnavailableException,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { SupabaseService } from '../../../supabase/supabase.service';
-import type { AuthIdentity, AuthProviderPort, AuthSession } from '../auth-provider.port';
+import type {
+    AuthIdentity,
+    AuthProviderPort,
+    AuthSession,
+} from '../auth-provider.port';
 
 /**
  * Supabase implementation of AuthProviderPort — the only file in the app
@@ -12,14 +23,31 @@ import type { AuthIdentity, AuthProviderPort, AuthSession } from '../auth-provid
  */
 @Injectable()
 export class SupabaseAuthProvider implements AuthProviderPort {
+    private readonly logger = new Logger(SupabaseAuthProvider.name);
+
     constructor(private readonly supabase: SupabaseService) {}
 
-    async signInWithPassword(email: string, password: string): Promise<AuthSession> {
-        let data;
+    async signInWithPassword(
+        email: string,
+        password: string,
+    ): Promise<AuthSession> {
+        let data: Awaited<ReturnType<SupabaseService['signIn']>>;
         try {
             data = await this.supabase.signIn(email, password);
-        } catch {
-            throw new UnauthorizedException('Invalid email or password');
+        } catch (error) {
+            // Only a definite "no" from Supabase is a credentials problem. A
+            // network failure, 5xx or rate limit must not read as "wrong
+            // password" — staff would keep retrying against an outage.
+            if (isRejectedCredentials(error)) {
+                throw new UnauthorizedException('Invalid email or password');
+            }
+            this.logger.error(
+                'Supabase sign-in failed',
+                error instanceof Error ? error.stack : String(error),
+            );
+            throw new ServiceUnavailableException(
+                'Sign-in is temporarily unavailable. Please try again shortly.',
+            );
         }
 
         if (!data.session || !data.user?.email) {
@@ -40,4 +68,48 @@ export class SupabaseAuthProvider implements AuthProviderPort {
         }
         return { id: user.id, email: user.email };
     }
+
+    async createIdentity(
+        email: string,
+        password: string,
+    ): Promise<AuthIdentity> {
+        try {
+            const user = await this.supabase.adminCreateUser(email, password);
+            return { id: user.id, email: user.email ?? email };
+        } catch (error) {
+            const { status, code } = errorDetails(error);
+            if (status === 422 || code === 'email_exists') {
+                throw new ConflictException(
+                    'A user with this email already exists.',
+                );
+            }
+            this.logger.error(
+                'Supabase createUser failed',
+                error instanceof Error ? error.stack : String(error),
+            );
+            throw new InternalServerErrorException(
+                'Could not create the account.',
+            );
+        }
+    }
+
+    async deleteIdentity(id: string): Promise<void> {
+        await this.supabase.adminDeleteUser(id);
+    }
+}
+
+function errorDetails(error: unknown): { status?: number; code?: string } {
+    if (typeof error !== 'object' || error === null) return {};
+    const { status, code } = error as { status?: unknown; code?: unknown };
+    return {
+        status: typeof status === 'number' ? status : undefined,
+        code: typeof code === 'string' ? code : undefined,
+    };
+}
+
+function isRejectedCredentials(error: unknown): boolean {
+    const { status } = errorDetails(error);
+    return (
+        status !== undefined && status >= 400 && status < 500 && status !== 429
+    );
 }

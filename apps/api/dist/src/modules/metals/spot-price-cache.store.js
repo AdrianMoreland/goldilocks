@@ -48,6 +48,7 @@ let SpotPriceCacheStore = class SpotPriceCacheStore extends cache_aside_store_ba
 exports.SpotPriceCacheStore = SpotPriceCacheStore;
 exports.SpotPriceCacheStore = SpotPriceCacheStore = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [redis_service_1.RedisService, prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [redis_service_1.RedisService,
+        prisma_service_1.PrismaService])
 ], SpotPriceCacheStore);
 //# sourceMappingURL=spot-price-cache.store.js.map

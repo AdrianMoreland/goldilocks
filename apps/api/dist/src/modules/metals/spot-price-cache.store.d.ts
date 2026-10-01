@@ -1,7 +1,7 @@
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MetalType, RawSpotPrice } from '@goldilocks/shared-types';
-import { CacheAsideStore } from "../../common/cache/cache-aside-store.base";
+import { CacheAsideStore } from '../../common/cache/cache-aside-store.base';
 export declare class SpotPriceCacheStore extends CacheAsideStore<MetalType, RawSpotPrice> {
     private readonly prisma;
     constructor(redis: RedisService, prisma: PrismaService);

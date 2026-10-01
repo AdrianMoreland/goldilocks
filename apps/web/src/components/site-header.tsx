@@ -4,7 +4,6 @@ import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandSearch, SearchTrigger } from "@/components/command-search"
-import { ModeToggle } from "@/components/mode-toggle"
 import { Logo } from "@/components/logo"
 
 interface SiteHeaderProps {
@@ -12,15 +11,13 @@ interface SiteHeaderProps {
   /** Shows the Merrion Gold mark beside the title. */
   showLogo?: boolean
   actions?: React.ReactNode
-  /** The sidebar (and its toggle) are admin-only — see BaseLayout. */
+  /** The sidebar toggle. The sidebar is shown to every signed-in user (it holds the Knowledge Center link). */
   showSidebarTrigger?: boolean
-  /** The command-search bar (and its ⌘K shortcut) are admin-only — see BaseLayout. */
+  /** The command-search bar (and its ⌘K shortcut) stays admin-only — see BaseLayout. It searches template pages, not SOPs. */
   showSearch?: boolean
-  /** Set false when the caller positions <ModeToggle /> itself within `actions` instead of relying on the default trailing spot. */
-  showModeToggle?: boolean
 }
 
-export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true, showSearch = true, showModeToggle = true }: SiteHeaderProps) {
+export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true, showSearch = true }: SiteHeaderProps) {
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -67,7 +64,6 @@ export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true
           )}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             {actions}
-            {showModeToggle && <ModeToggle />}
           </div>
         </div>
       </header>

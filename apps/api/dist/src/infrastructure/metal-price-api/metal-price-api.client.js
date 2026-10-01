@@ -18,24 +18,15 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 let MetalPriceApiClient = class MetalPriceApiClient {
     api;
-    metals = [
-        'XAU',
-        'XAG',
-        'XPT',
-        'XPD'
-    ];
-    timeframeCurrencies = [
-        'GBP',
-        'XAU',
-        'XAG',
-        'XPT',
-        'XPD',
-    ];
+    metals = ['XAU', 'XAG', 'XPT', 'XPD'];
     constructor(config) {
         this.api = new metalpriceapi_ts_1.default(config.get('METALPRICE_API_KEY'));
     }
     async livePrices() {
-        const { data } = await this.api.fetchLive('EUR', ['GBP', ...this.metals]);
+        const { data } = await this.api.fetchLive('EUR', [
+            'GBP',
+            ...this.metals,
+        ]);
         return data;
     }
     async timeframePrices(startDate, endDate, currency = 'EUR') {
@@ -44,38 +35,6 @@ let MetalPriceApiClient = class MetalPriceApiClient {
     }
     async ohlcPrices(date, currency = 'EUR', metal = 'XAU') {
         const { data } = await this.api.ohlc(currency, metal, date, 'troy_oz');
-        return data;
-    }
-    async historicalPrices(date, currency = 'EUR') {
-        const { data } = await this.api.fetchHistorical(date, currency, this.metals, 'troy_oz');
-        return data;
-    }
-    async symbols() {
-        const { data } = await this.api.fetchSymbols();
-        return data;
-    }
-    async hourlyPrices(startDate, endDate, currency = 'EUR', metal = 'XAU') {
-        const { data } = await this.api.hourly(currency, metal, 'troy_oz', startDate, endDate);
-        return data;
-    }
-    async convert(from, to, amount, date) {
-        const { data } = await this.api.convert(from, to, amount, date, 'troy_oz');
-        return data;
-    }
-    async timeframePrice(startDate, endDate, currency, metal) {
-        const { data } = await this.api.timeframe(startDate, endDate, currency, [metal], 'troy_oz');
-        return data;
-    }
-    async priceChange(startDate, endDate, currency = 'EUR') {
-        const { data } = await this.api.change(startDate, endDate, currency, this.metals);
-        return data;
-    }
-    async carat(currency = 'EUR', metal = 'XAU', date) {
-        const { data } = await this.api.carat(currency, metal, date);
-        return data;
-    }
-    async usage() {
-        const { data } = await this.api.usage();
         return data;
     }
 };

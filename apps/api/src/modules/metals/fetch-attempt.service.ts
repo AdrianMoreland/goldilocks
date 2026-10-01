@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import type { FetchAttempt, FetchMetrics, FetchTrigger, MetalType } from '@goldilocks/shared-types';
+import type {
+    FetchAttempt,
+    FetchMetrics,
+    FetchTrigger,
+    MetalType,
+} from '@goldilocks/shared-types';
 import { CascadeMetricsService } from './cascade-metrics.service';
 import { ErrorLogService } from '../error-log/error-log.service';
 
@@ -54,11 +59,16 @@ export class FetchAttemptService {
 
     async getMetrics(): Promise<FetchMetrics> {
         const since = new Date(Date.now() - METRICS_WINDOW_MS);
-        const attempts = await this.prisma.fetchAttempt.findMany({ where: { attemptedAt: { gte: since } } });
+        const attempts = await this.prisma.fetchAttempt.findMany({
+            where: { attemptedAt: { gte: since } },
+        });
 
         const total = attempts.length;
         const failureCount = attempts.filter((a) => !a.success).length;
-        const avgLatencyMs = total > 0 ? attempts.reduce((sum, a) => sum + a.durationMs, 0) / total : 0;
+        const avgLatencyMs =
+            total > 0
+                ? attempts.reduce((sum, a) => sum + a.durationMs, 0) / total
+                : 0;
 
         return {
             successRate24h: total > 0 ? (total - failureCount) / total : 1,

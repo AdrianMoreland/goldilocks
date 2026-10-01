@@ -1,8 +1,20 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    Inject,
+    Injectable,
+    Logger,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { SupabaseService } from '../../supabase/supabase.service';
-import { AUTH_PROVIDER, type AuthIdentity, type AuthProviderPort } from './auth-provider.port';
-import type { CreateUserRequest, LoginResponse, SessionUser } from '@goldilocks/shared-types';
+import {
+    AUTH_PROVIDER,
+    type AuthIdentity,
+    type AuthProviderPort,
+} from './auth-provider.port';
+import type {
+    CreateUserRequest,
+    LoginResponse,
+    SessionUser,
+} from '@goldilocks/shared-types';
 import type { User } from '../../../prisma/generated/client';
 
 // Never select the password hash for anything that ends up on request.user —
@@ -36,14 +48,18 @@ export type AuthenticatedUser = Omit<User, 'password'>;
  */
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         @Inject(AUTH_PROVIDER) private readonly authProvider: AuthProviderPort,
         private readonly prisma: PrismaService,
-        private readonly supabase: SupabaseService,
     ) {}
 
     async login(email: string, password: string): Promise<LoginResponse> {
-        const session = await this.authProvider.signInWithPassword(email, password);
+        const session = await this.authProvider.signInWithPassword(
+            email,
+            password,
+        );
         const user = await this.loadActiveUser(session.identity);
 
         return {
@@ -58,39 +74,69 @@ export class AuthService {
         return this.loadActiveUser(identity);
     }
 
-    /** Admin-only: provisions a new staff account (Supabase Auth identity + matching Prisma User row, same id — see prisma/provision-users.ts for the reference pattern). */
+    /** Admin-only: provisions a new staff account (identity at the auth provider + matching Prisma User row, same id — see prisma/provision-users.ts for the reference pattern). */
     async createUser(dto: CreateUserRequest): Promise<SessionUser> {
-        const authUser = await this.supabase.adminCreateUser(dto.email, dto.password);
+        const identity = await this.authProvider.createIdentity(
+            dto.email,
+            dto.password,
+        );
 
-        const user = await this.prisma.user.create({
-            data: {
-                id: authUser.id,
-                email: dto.email,
-                firstName: dto.firstName,
-                lastName: dto.lastName,
-                password: '', // Supabase Auth owns the real credential
-                role: dto.role,
-                admin: dto.admin,
-                isActive: true,
-            },
-            select: SAFE_USER_SELECT,
-        });
+        try {
+            const user = await this.prisma.user.create({
+                data: {
+                    id: identity.id,
+                    email: dto.email,
+                    firstName: dto.firstName,
+                    lastName: dto.lastName,
+                    password: '', // the auth provider owns the real credential
+                    role: dto.role,
+                    admin: dto.admin,
+                    isActive: true,
+                },
+                select: SAFE_USER_SELECT,
+            });
 
-        return this.toSessionUser(user);
+            return this.toSessionUser(user);
+        } catch (error) {
+            // The two writes can't share a transaction. Without this the
+            // identity would be orphaned and the same email could never be
+            // provisioned again.
+            await this.authProvider
+                .deleteIdentity(identity.id)
+                .catch((cleanupError: unknown) => {
+                    this.logger.error(
+                        `Could not roll back auth identity ${identity.id} after the User row failed — delete it manually`,
+                        cleanupError instanceof Error
+                            ? cleanupError.stack
+                            : String(cleanupError),
+                    );
+                });
+            throw error;
+        }
     }
 
     async me(userId: string): Promise<SessionUser> {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: SAFE_USER_SELECT });
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: SAFE_USER_SELECT,
+        });
         if (!user || !user.isActive) {
             throw new UnauthorizedException('Account not found or inactive.');
         }
         return this.toSessionUser(user);
     }
 
-    private async loadActiveUser(identity: AuthIdentity): Promise<AuthenticatedUser> {
-        const user = await this.prisma.user.findUnique({ where: { id: identity.id }, select: SAFE_USER_SELECT });
+    private async loadActiveUser(
+        identity: AuthIdentity,
+    ): Promise<AuthenticatedUser> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: identity.id },
+            select: SAFE_USER_SELECT,
+        });
         if (!user || !user.isActive) {
-            throw new UnauthorizedException('This account is not set up for this application.');
+            throw new UnauthorizedException(
+                'This account is not set up for this application.',
+            );
         }
         return user;
     }

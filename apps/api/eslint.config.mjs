@@ -29,7 +29,26 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      // `_name` marks an argument/variable that is deliberately unused; an
+      // unused `catch (err)` binding is not worth a finding.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' },
+      ],
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
+    // Test doubles are hand-rolled partial mocks; typing every jest.fn() to
+    // satisfy the unsafe-* rules adds noise without catching real bugs.
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/require-await': 'off',
     },
   },
 );

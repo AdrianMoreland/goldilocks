@@ -1,10 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import {ConfigService} from "@nestjs/config";
+import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import {ZodValidationPipe} from "nestjs-zod";
+import { ZodValidationPipe } from 'nestjs-zod';
 import { ErrorLogService } from './modules/error-log/error-log.service';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { ApiCatalogueService } from './modules/admin/api-catalogue.service';
+import { RequestMetricsService } from './modules/admin/request-metrics.service';
 
 const logger = new Logger('Bootstrap');
 
@@ -12,81 +16,130 @@ const logger = new Logger('Bootstrap');
 // whichever service first touches the missing variable (e.g. Prisma's own
 // "Environment variable not found" a few layers down the stack).
 const REQUIRED_ENV_VARS = [
-  'DATABASE_URL',
-  'DIRECT_URL',
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_KEY',
-  'METALPRICE_API_KEY',
-  'REDIS_URL',
+    'DATABASE_URL',
+    'DIRECT_URL',
+    'SUPABASE_URL',
+    'SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_KEY',
+    'METALPRICE_API_KEY',
+    'REDIS_URL',
 ] as const;
 
 function validateEnv(config: ConfigService): void {
-  const missing = REQUIRED_ENV_VARS.filter((key) => !config.get<string>(key));
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variable(s): ${missing.join(', ')}`);
-  }
+    const missing: string[] = REQUIRED_ENV_VARS.filter(
+        (key) => !config.get<string>(key),
+    );
+    // The assistant's key is only required once the assistant is switched on.
+    if (
+        config.get<string>('AI_ENABLED') === 'true' &&
+        !config.get<string>('OPENAI_API_KEY')
+    ) {
+        missing.push('OPENAI_API_KEY (required because AI_ENABLED=true)');
+    }
+    if (missing.length > 0) {
+        throw new Error(
+            `Missing required environment variable(s): ${missing.join(', ')}`,
+        );
+    }
 }
 
 async function bootstrap() {
+    // bufferLogs holds Nest's own startup lines until pino is attached, so none go to the default logger.
+    const app = await NestFactory.create(AppModule, { bufferLogs: true });
+    app.useLogger(app.get(PinoLogger));
+    const config = app.get(ConfigService);
+    validateEnv(config);
 
-  const app = await NestFactory.create(AppModule);
-  const config = app.get(ConfigService);
-  validateEnv(config);
+    // Without this, SIGTERM (every Railway redeploy) skips OnModuleDestroy, so
+    // Prisma and Redis never close their connections cleanly.
+    app.enableShutdownHooks();
 
-  // Failures outside any HTTP request (cron jobs, fire-and-forget promises)
-  // never reach the exception filter — record them too, so the Admin
-  // panel's error log isn't blind to background work.
-  const errorLog = app.get(ErrorLogService);
-  process.on('unhandledRejection', (reason) => {
-    void errorLog.record({ kind: 'crash', message: 'Unhandled promise rejection', error: reason, detail: reason instanceof Error ? null : String(reason) });
-  });
-  // Record, then still exit: a listener here would otherwise stop Node
-  // crashing and leave the API running in an unknown state.
-  process.on('uncaughtException', (error) => {
-    void errorLog.record({ kind: 'crash', message: 'Uncaught exception — API process exiting', error })
-      .finally(() => process.exit(1));
-  });
+    // Failures outside any HTTP request (cron jobs, fire-and-forget promises)
+    // never reach the exception filter — record them too, so the Admin
+    // panel's error log isn't blind to background work.
+    const errorLog = app.get(ErrorLogService);
+    process.on('unhandledRejection', (reason) => {
+        void errorLog.record({
+            kind: 'crash',
+            message: 'Unhandled promise rejection',
+            error: reason,
+            detail: reason instanceof Error ? null : String(reason),
+        });
+    });
+    // Record, then still exit: a listener here would otherwise stop Node
+    // crashing and leave the API running in an unknown state.
+    process.on('uncaughtException', (error) => {
+        void errorLog
+            .record({
+                kind: 'crash',
+                message: 'Uncaught exception — API process exiting',
+                error,
+            })
+            .finally(() => process.exit(1));
+    });
 
-  // Enable global validation with Zod
-  app.useGlobalPipes(new ZodValidationPipe());
+    app.use(app.get(RequestMetricsService).middleware());
 
-  // Railway hosts the API and the web app on different origins, so the
-  // allowed origin has to come from an env var rather than being hardcoded
-  // to the local dev server — see CLAUDE.md §13.
-  const frontendUrl = config.get<string>('FRONTEND_URL', 'http://localhost:5173');
-  app.enableCors({
-    origin: frontendUrl.split(',').map((origin) => origin.trim()),
-    credentials: true,
-  });
+    // Enable global validation with Zod
+    app.useGlobalPipes(new ZodValidationPipe());
 
-  // Swagger
-  const swaggerConfig = new DocumentBuilder()
-      .setTitle('Merrion Gold API')
-      .setDescription('Internal pricing and trading API for Merrion Gold\'s bullion desk')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .addTag('auth', 'Authentication & session management')
-      .addTag('products', 'Product catalog & per-item pricing')
-      .addTag('trade', 'Trade cart calculations & melt value')
-      .addTag('portfolio', 'Portfolio P/L, scenario, and builder tools')
-      .addTag('metals', 'Live and historic metal spot prices')
-      .addTag('market-data', 'Market data snapshots for the dashboard')
-      .build();
+    // Railway hosts the API and the web app on different origins, so the
+    // allowed origin has to come from an env var rather than being hardcoded
+    // to the local dev server — see CLAUDE.md §13.
+    const frontendUrl = config.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:5173',
+    );
+    app.enableCors({
+        origin: frontendUrl.split(',').map((origin) => origin.trim()),
+        credentials: true,
+    });
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+    // Swagger lists every route, admin ones included, without authentication —
+    // on by default for local dev, off in production unless SWAGGER_ENABLED=true.
+    const swaggerEnabled =
+        config.get<string>(
+            'SWAGGER_ENABLED',
+            config.get('NODE_ENV') === 'production' ? 'false' : 'true',
+        ) === 'true';
+    const swaggerConfig = new DocumentBuilder()
+        .setTitle('Merrion Gold API')
+        .setDescription(
+            "Internal pricing and trading API for Merrion Gold's bullion desk",
+        )
+        .setVersion('1.0')
+        .addBearerAuth()
+        .addTag('auth', 'Authentication & session management')
+        .addTag('products', 'Product catalog & per-item pricing')
+        .addTag('trade', 'Trade cart calculations & melt value')
+        .addTag('portfolio', 'Portfolio P/L, scenario, and builder tools')
+        .addTag('metals', 'Live and historic metal spot prices')
+        .addTag('market-data', 'Market data snapshots for the dashboard')
+        .addTag('admin', 'Admin console: health, logs, database browser')
+        .build();
 
-  const port = config.get<number>('PORT', 4000);
-  await app.listen(port);
+    // Built even when the public /docs page is off: the admin console's
+    // endpoint tester reads the route list from it (behind the admin guard).
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    app.get(ApiCatalogueService).setDocument(cleanupOpenApiDoc(document));
+    if (swaggerEnabled) {
+        SwaggerModule.setup('docs', app, document);
+    }
 
-  logger.log(`🚀 Goldilocks API running on http://localhost:${port}`);
-  logger.log(`📚 Swagger docs at http://localhost:${port}/docs`);
-  logger.log(`🔍 OpenAPI JSON: http://localhost:${port}/docs-json`);
+    const port = config.get<number>('PORT', 4000);
+    await app.listen(port);
 
+    logger.log(`🚀 Goldilocks API running on http://localhost:${port}`);
+    if (swaggerEnabled) {
+        logger.log(`📚 Swagger docs at http://localhost:${port}/docs`);
+        logger.log(`🔍 OpenAPI JSON: http://localhost:${port}/docs-json`);
+    }
 }
 bootstrap().catch((error) => {
-  logger.error('❌ Failed to start server:', error instanceof Error ? error.stack : error);
-  process.exit(1);
+    logger.error(
+        '❌ Failed to start server:',
+        error instanceof Error ? error.stack : error,
+    );
+    process.exit(1);
 });

@@ -36,7 +36,10 @@ let ErrorLogService = ErrorLogService_1 = class ErrorLogService {
             severity: input.severity ?? 'error',
             kind: input.kind,
             message: input.message,
-            detail: input.detail ?? (error && error.message !== input.message ? error.message : null),
+            detail: input.detail ??
+                (error && error.message !== input.message
+                    ? error.message
+                    : null),
             statusCode: input.statusCode ?? null,
             method: input.method ?? null,
             path: input.path ?? null,

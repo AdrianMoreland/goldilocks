@@ -26,9 +26,6 @@ let SupabaseService = class SupabaseService {
         }
         this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
     }
-    get client() {
-        return this.supabase;
-    }
     get admin() {
         if (!this.supabaseAdmin) {
             const supabaseUrl = this.configService.get('SUPABASE_URL');
@@ -47,37 +44,21 @@ let SupabaseService = class SupabaseService {
             email_confirm: true,
         });
         if (error)
-            throw new common_1.InternalServerErrorException(error.message);
+            throw error;
         return data.user;
     }
-    async signUp(email, password) {
-        const { data, error } = await this.supabase.auth.signUp({ email, password });
+    async adminDeleteUser(id) {
+        const { error } = await this.admin.auth.admin.deleteUser(id);
         if (error)
-            throw new common_1.InternalServerErrorException(error.message);
-        return data;
+            throw error;
     }
     async signIn(email, password) {
-        const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
         if (error)
-            throw new common_1.InternalServerErrorException(error.message);
-        return data;
-    }
-    async signOut() {
-        const { error } = await this.supabase.auth.signOut();
-        if (error)
-            throw new common_1.InternalServerErrorException(error.message);
-        return { success: true };
-    }
-    async updateUserPassword(password) {
-        const { data, error } = await this.supabase.auth.updateUser({ password });
-        if (error)
-            throw new common_1.InternalServerErrorException(error.message);
-        return data;
-    }
-    async updateUserEmail(newEmail) {
-        const { data, error } = await this.supabase.auth.updateUser({ email: newEmail });
-        if (error)
-            throw new common_1.InternalServerErrorException(error.message);
+            throw error;
         return data;
     }
     async getUserFromToken(token) {

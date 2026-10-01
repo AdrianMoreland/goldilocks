@@ -4,7 +4,6 @@ import * as React from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import type { MetalType, Product } from "@/lib/types"
 import { useProductTable } from "@/hooks/use-product-table"
-import { MetalTabsToolbar } from "./metal-tabs-toolbar"
 import { ProductFilterBar } from "./product-filter-bar"
 import { ProductTableBody } from "./product-table-body"
 import { METAL_TABS } from "./metal-tabs"
@@ -14,11 +13,8 @@ interface DataTableProps {
     data: Product[]
     activeMetal?: MetalType | null
     /**
-     * Fires whenever the table's own metal tab changes for any reason —
-     * including the small per-metal buttons that only show while the spot
-     * cards are hidden. Lets the page mirror that back into the cards'
-     * `selectedMetal` (and the chart's), so the two stay in lockstep even
-     * though the cards themselves are the ones hidden right now.
+     * Fires whenever the table's own metal tab changes, so the page can
+     * mirror it into the cards' `selectedMetal` (and the chart's).
      */
     onActiveMetalChange?: (metal: MetalType) => void
     isLoading?: boolean
@@ -26,7 +22,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
-    const { setActiveMetal, rowSelection, setRowSelection, cardsVisible, tableCopySource } = usePricingTools()
+    const { setActiveMetal, rowSelection, setRowSelection, tableCopySource } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
@@ -69,16 +65,6 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
             onValueChange={(value) => setSelectedTab(value as typeof selectedTab)}
             className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
-            {!cardsVisible && (
-                <div className="shrink-0">
-                    <MetalTabsToolbar
-                        selectedTab={selectedTab}
-                        onSelectedTabChange={setSelectedTab}
-                        showMetalSelect
-                    />
-                </div>
-            )}
-
             <TabsContent
                 value={selectedTab}
                 className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"

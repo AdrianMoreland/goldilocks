@@ -1,6 +1,6 @@
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RawProduct } from "@goldilocks/shared-types";
-import { ProductCacheStore } from "./product-cache.store";
+import { RawProduct } from '@goldilocks/shared-types';
+import { ProductCacheStore } from './product-cache.store';
 export declare class ProductsProvider {
     private readonly prisma;
     private readonly productCache;

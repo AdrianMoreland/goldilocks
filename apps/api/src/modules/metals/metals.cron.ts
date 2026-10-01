@@ -1,7 +1,8 @@
-import {Injectable, Logger, OnModuleInit} from '@nestjs/common'
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule'
-import {MetalsProvider} from "./metals.provider";
-import {getYesterday} from "../../common/utils/date.utils";
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
+import { MetalsProvider } from './metals.provider';
+import { HistoricSpotService } from './historic-spot.service';
+import { getYesterday } from '../../common/utils/date.utils';
 
 const STALE_THRESHOLD_DAYS = 1;
 
@@ -10,11 +11,11 @@ const PRICE_REFRESH_JOB = 'updateMetals';
 
 @Injectable()
 export class MetalsCron implements OnModuleInit {
-
     private readonly logger = new Logger(MetalsCron.name);
 
     constructor(
         private metalsProvider: MetalsProvider,
+        private readonly historicSpots: HistoricSpotService,
         private readonly schedulerRegistry: SchedulerRegistry,
     ) {}
 
@@ -23,13 +24,15 @@ export class MetalsCron implements OnModuleInit {
         return this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB).isActive;
     }
 
-    setPriceCronEnabled(enabled: boolean): boolean {
+    async setPriceCronEnabled(enabled: boolean): Promise<boolean> {
         const job = this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB);
         if (enabled) {
             job.start();
             this.logger.log('▶️ Price-refresh cron resumed by admin');
         } else {
-            job.stop();
+            // stop() can be asynchronous — wait for it so the status returned
+            // below reflects the job actually being stopped.
+            await job.stop();
             this.logger.warn('⏸️ Price-refresh cron paused by admin');
         }
         return this.isPriceCronRunning();
@@ -41,9 +44,21 @@ export class MetalsCron implements OnModuleInit {
      * every time the app was down at 6am UTC. On startup, check how stale
      * the newest historic row is and backfill the whole gap in one go
      * (skipDuplicates makes this safe to run even when nothing is missing).
+     *
+     * Runs in the background: it makes vendor calls, and a vendor outage or
+     * slow response at boot must not stop (or delay) the API from starting.
      */
-    async onModuleInit() {
-        const latest = await this.metalsProvider.getLatestHistoricDate();
+    onModuleInit(): void {
+        void this.backfillHistoricIfStale().catch((error: unknown) => {
+            this.logger.error(
+                'Historic backfill failed — will be retried on the next restart or by the daily job',
+                error instanceof Error ? error.stack : String(error),
+            );
+        });
+    }
+
+    private async backfillHistoricIfStale(): Promise<void> {
+        const latest = await this.historicSpots.getLatestHistoricDate();
 
         const daysStale = latest
             ? (Date.now() - latest.getTime()) / (1000 * 60 * 60 * 24)
@@ -59,28 +74,27 @@ export class MetalsCron implements OnModuleInit {
                 : 'No historic spot data found — seeding…',
         );
 
-        await this.metalsProvider.seedHistoricPrices();
+        await this.historicSpots.seedHistoricPrices();
     }
 
     @Cron(CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB })
     async updateMetals() {
         const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
         if (degradedMetals.length > 0) {
-            this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
+            this.logger.warn(
+                `No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`,
+            );
         }
     }
 
     @Cron('0 6 * * *', {
         timeZone: 'UTC',
     })
-    async dailyHistoricClose(){
+    async dailyHistoricClose() {
         this.logger.log('Running daily historic close job');
 
         const yesterday = getYesterday();
 
-        await this.metalsProvider.fetchAndStoreHistoricClose(
-            yesterday
-        );
+        await this.historicSpots.fetchAndStoreHistoricClose(yesterday);
     }
-
 }

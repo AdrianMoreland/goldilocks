@@ -28,8 +28,8 @@ let ProductsController = class ProductsController {
     async getAll() {
         return this.service.getRawProducts();
     }
-    async getById(id, metal) {
-        return this.service.getById(id, metal);
+    async getById(id) {
+        return this.service.getById(id);
     }
     async createProduct(body) {
         return this.service.create(body);
@@ -68,13 +68,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "getAll", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Get a product by id' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Product retrieved successfully', type: dtos_1.ProductResponseDto }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get a product by id',
+        description: 'The stored product, unpriced. Priced products come from GET /market-data.',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Product retrieved successfully' }),
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Param)('metal')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "getById", null);
 __decorate([
@@ -109,7 +111,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, dtos_1.UpdateStockRequestDto]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "updateStock", null);
 __decorate([
@@ -134,7 +136,9 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "restore", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Soft-delete a product (admin) — hidden everywhere, restorable' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Soft-delete a product (admin) — hidden everywhere, restorable',
+    }),
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),

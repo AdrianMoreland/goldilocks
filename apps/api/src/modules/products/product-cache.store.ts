@@ -3,14 +3,17 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { RawProduct } from '@goldilocks/shared-types';
 import { toRawProduct } from '../../common/utils/pricing.util';
-import {CacheAsideStore} from "../../common/cache/cache-aside-store.base";
+import { CacheAsideStore } from '../../common/cache/cache-aside-store.base';
 
 const PRODUCTS_CACHE_KEY = 'products:all';
 const PRODUCTS_CACHE_TTL_SECONDS = 300;
 
 @Injectable()
 export class ProductCacheStore extends CacheAsideStore<'all', RawProduct[]> {
-    constructor(redis: RedisService, private readonly prisma: PrismaService) {
+    constructor(
+        redis: RedisService,
+        private readonly prisma: PrismaService,
+    ) {
         super(redis, PRODUCTS_CACHE_TTL_SECONDS);
     }
 

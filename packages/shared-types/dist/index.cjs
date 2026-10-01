@@ -20,8 +20,26 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
+  AI_MESSAGE_MAX_LENGTH: () => AI_MESSAGE_MAX_LENGTH,
+  AI_QUESTION_MAX_LENGTH: () => AI_QUESTION_MAX_LENGTH,
+  AdminLogEntrySchema: () => AdminLogEntrySchema,
+  AdminLogsResponseSchema: () => AdminLogsResponseSchema,
+  AdminOverviewSchema: () => AdminOverviewSchema,
+  AiAnswerStatusEnum: () => AiAnswerStatusEnum,
+  AiCitationSchema: () => AiCitationSchema,
+  AiModeEnum: () => AiModeEnum,
+  AiStatusSchema: () => AiStatusSchema,
+  AiUsageSchema: () => AiUsageSchema,
+  ApiCatalogueSchema: () => ApiCatalogueSchema,
+  ApiEndpointParameterSchema: () => ApiEndpointParameterSchema,
+  ApiEndpointSchema: () => ApiEndpointSchema,
   ApiErrorResponseSchema: () => ApiErrorResponseSchema,
   ApiSuccessResponseSchema: () => ApiSuccessResponseSchema,
+  AskRequestSchema: () => AskRequestSchema,
+  AskResponseSchema: () => AskResponseSchema,
+  AskStreamEventSchema: () => AskStreamEventSchema,
+  AuditEntrySchema: () => AuditEntrySchema,
+  AuditLogResponseSchema: () => AuditLogResponseSchema,
   AuthResponseSchema: () => AuthResponseSchema,
   BranchSchema: () => BranchSchema,
   ChangePasswordSchema: () => ChangePasswordSchema,
@@ -32,6 +50,14 @@ __export(index_exports, {
   CreateSpotPriceDtoSchema: () => CreateSpotPriceDtoSchema,
   CreateUserRequestSchema: () => CreateUserRequestSchema,
   CurrencyEnum: () => CurrencyEnum,
+  DbColumnSchema: () => DbColumnSchema,
+  DbDeleteRequestSchema: () => DbDeleteRequestSchema,
+  DbInsertRequestSchema: () => DbInsertRequestSchema,
+  DbRowResponseSchema: () => DbRowResponseSchema,
+  DbRowsResponseSchema: () => DbRowsResponseSchema,
+  DbTableSummarySchema: () => DbTableSummarySchema,
+  DbTablesResponseSchema: () => DbTablesResponseSchema,
+  DbUpdateRequestSchema: () => DbUpdateRequestSchema,
   ErrorLogEntrySchema: () => ErrorLogEntrySchema,
   ErrorLogKindEnum: () => ErrorLogKindEnum,
   ErrorLogSeverityEnum: () => ErrorLogSeverityEnum,
@@ -42,7 +68,26 @@ __export(index_exports, {
   FetchTriggerEnum: () => FetchTriggerEnum,
   GRAMS_PER_TROY_OUNCE: () => GRAMS_PER_TROY_OUNCE,
   HealthCheckSchema: () => HealthCheckSchema,
+  HealthItemSchema: () => HealthItemSchema,
+  HealthStatusEnum: () => HealthStatusEnum,
+  HistoricCloseQuerySchema: () => HistoricCloseQuerySchema,
   HistoricSpotSchema: () => HistoricSpotSchema,
+  HourlyStatsSchema: () => HourlyStatsSchema,
+  KB_CATEGORIES: () => KB_CATEGORIES,
+  KB_CATEGORY_INFO: () => KB_CATEGORY_INFO,
+  KB_GUIDE: () => KB_GUIDE,
+  KB_REVIEW_MONTHS: () => KB_REVIEW_MONTHS,
+  KB_REVIEW_WARNING_DAYS: () => KB_REVIEW_WARNING_DAYS,
+  KB_TERMS: () => KB_TERMS,
+  KB_UNRESOLVED_HREF_PREFIX: () => KB_UNRESOLVED_HREF_PREFIX,
+  KbCategoryEnum: () => KbCategoryEnum,
+  KbDocumentListResponseSchema: () => KbDocumentListResponseSchema,
+  KbDocumentSchema: () => KbDocumentSchema,
+  KbFrontmatterSchema: () => KbFrontmatterSchema,
+  KbJurisdictionEnum: () => KbJurisdictionEnum,
+  KbSlugSchema: () => KbSlugSchema,
+  KbStatusEnum: () => KbStatusEnum,
+  LogLevelEnum: () => LogLevelEnum,
   LoginRequestSchema: () => LoginRequestSchema,
   LoginResponseSchema: () => LoginResponseSchema,
   LoginSchema: () => LoginSchema,
@@ -75,14 +120,18 @@ __export(index_exports, {
   ProfitAnalysisResponseSchema: () => ProfitAnalysisResponseSchema,
   RawProductSchema: () => RawProductSchema,
   RawSpotPriceSchema: () => RawSpotPriceSchema,
+  RecalculateOverridesSchema: () => RecalculateOverridesSchema,
   RefreshResponseSchema: () => RefreshResponseSchema,
   RegisterSchema: () => RegisterSchema,
+  RouteStatsSchema: () => RouteStatsSchema,
   SessionUserRoleEnum: () => SessionUserRoleEnum,
   SessionUserSchema: () => SessionUserSchema,
+  SetKbStatusRequestSchema: () => SetKbStatusRequestSchema,
   SpotPriceArraySchema: () => SpotPriceArraySchema,
   SpotPriceMapSchema: () => SpotPriceMapSchema,
   SpotPriceSchema: () => SpotPriceSchema,
   TRADE_METAL_SLIDER_BOUNDS: () => TRADE_METAL_SLIDER_BOUNDS,
+  TableSizeSchema: () => TableSizeSchema,
   TaskQueryParamsSchema: () => TaskQueryParamsSchema,
   TaskStatusSchema: () => TaskStatusSchema,
   TradeBootstrapResponseSchema: () => TradeBootstrapResponseSchema,
@@ -92,11 +141,14 @@ __export(index_exports, {
   TradeCartResponseSchema: () => TradeCartResponseSchema,
   TradeProductSchema: () => TradeProductSchema,
   TradeTransactionTypeEnum: () => TradeTransactionTypeEnum,
+  UpdateKbDocumentRequestSchema: () => UpdateKbDocumentRequestSchema,
   UpdateProductFullDtoSchema: () => UpdateProductFullDtoSchema,
+  UpdateStockRequestSchema: () => UpdateStockRequestSchema,
   UserProfileSchema: () => UserProfileSchema,
   UserRole: () => UserRole,
   UserSchema: () => UserSchema,
   UserStatus: () => UserStatus,
+  aiInputLimit: () => aiInputLimit,
   buildPortfolioStrategies: () => buildPortfolioStrategies,
   computeCurrentBuybackValue: () => computeCurrentBuybackValue,
   computeMeltValue: () => computeMeltValue,
@@ -104,10 +156,28 @@ __export(index_exports, {
   computeRequiredSpotForTarget: () => computeRequiredSpotForTarget,
   computeTransactionPrice: () => computeTransactionPrice,
   createErrorReference: () => createErrorReference,
+  findBrokenLinks: () => findBrokenLinks,
+  findLinks: () => findLinks,
+  findTodos: () => findTodos,
+  guideLibraryTargets: () => guideLibraryTargets,
+  headingAnchor: () => headingAnchor,
+  indexKbDocument: () => indexKbDocument,
+  kbArticlePath: () => kbArticlePath,
+  kbReviewDueOn: () => kbReviewDueOn,
+  kbReviewStatus: () => kbReviewStatus,
+  mapOutsideCode: () => mapOutsideCode,
   normalizeProductName: () => normalizeProductName,
+  parseKbDocument: () => parseKbDocument,
+  planAutolinks: () => planAutolinks,
+  rewriteKbLinks: () => rewriteKbLinks,
   roundBuyPrice: () => roundBuyPrice,
   roundSellPrice: () => roundSellPrice,
-  solveMissingPurchaseField: () => solveMissingPurchaseField
+  searchKb: () => searchKb,
+  solveMissingPurchaseField: () => solveMissingPurchaseField,
+  splitFrontmatter: () => splitFrontmatter,
+  splitSections: () => splitSections,
+  termRegExp: () => termRegExp,
+  toPlainText: () => toPlainText
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -231,6 +301,9 @@ var UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, createdAt: true,
   priceBuy: import_zod2.z.number().optional(),
   isActive: import_zod2.z.boolean().optional()
 });
+var UpdateStockRequestSchema = import_zod2.z.object({
+  stock_quantity: import_zod2.z.number().int().nonnegative()
+});
 var ProductsSchema = import_zod2.z.array(ProductSchema);
 var ProductArraySchema = import_zod2.z.array(ProductSchema);
 var ProductMapSchema = import_zod2.z.record(MetalTypeEnum, ProductSchema);
@@ -347,6 +420,18 @@ var RefreshResponseSchema = import_zod5.z.object({
   spot: SpotPriceSchema,
   products: import_zod5.z.array(ProductSchema),
   fetchedAt: import_zod5.z.iso.datetime()
+});
+var RecalculateOverridesSchema = import_zod5.z.object({
+  GOLD: import_zod5.z.number().positive().optional(),
+  SILVER: import_zod5.z.number().positive().optional(),
+  PLATINUM: import_zod5.z.number().positive().optional(),
+  PALLADIUM: import_zod5.z.number().positive().optional()
+});
+var HistoricCloseQuerySchema = import_zod5.z.object({
+  date: import_zod5.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD").refine((value) => {
+    const parsed = /* @__PURE__ */ new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+  }, "Not a real calendar date").optional()
 });
 
 // src/trade.schema.ts
@@ -1090,10 +1175,782 @@ function createErrorReference() {
   for (let i = 0; i < 5; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
   return `E-${out}`;
 }
+
+// src/kb.schema.ts
+var import_zod12 = require("zod");
+var KB_CATEGORIES = [
+  "sales",
+  "trading",
+  "operations",
+  "compliance",
+  "storage",
+  "systems",
+  "directory",
+  "meta"
+];
+var KbCategoryEnum = import_zod12.z.enum(KB_CATEGORIES);
+var KbJurisdictionEnum = import_zod12.z.enum(["all", "IE", "UK", "ES"]);
+var KbStatusEnum = import_zod12.z.enum(["draft", "approved", "retired"]);
+var KbSlugSchema = import_zod12.z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase, hyphenated");
+var isoDay = import_zod12.z.iso.date();
+var KbFrontmatterSchema = import_zod12.z.object({
+  slug: KbSlugSchema,
+  title: import_zod12.z.string().trim().min(1),
+  category: KbCategoryEnum,
+  jurisdiction: KbJurisdictionEnum,
+  owner: import_zod12.z.string().trim().min(1),
+  status: KbStatusEnum,
+  version: import_zod12.z.coerce.number().int().positive(),
+  updatedAt: isoDay
+});
+var KbDocumentSchema = import_zod12.z.object({
+  slug: KbSlugSchema,
+  title: import_zod12.z.string(),
+  category: KbCategoryEnum,
+  jurisdiction: KbJurisdictionEnum,
+  owner: import_zod12.z.string(),
+  status: KbStatusEnum,
+  version: import_zod12.z.number().int(),
+  contentUpdatedOn: isoDay,
+  markdown: import_zod12.z.string()
+});
+var KbDocumentListResponseSchema = import_zod12.z.object({
+  documents: import_zod12.z.array(KbDocumentSchema)
+});
+var UpdateKbDocumentRequestSchema = import_zod12.z.object({
+  title: import_zod12.z.string().trim().min(1).max(200),
+  owner: import_zod12.z.string().trim().min(1).max(100),
+  markdown: import_zod12.z.string().trim().min(1).max(1e5)
+});
+var SetKbStatusRequestSchema = import_zod12.z.object({ status: KbStatusEnum });
+var KB_CATEGORY_INFO = {
+  sales: { label: "Sales", description: "Inquiries, quotes, pricing and customer conversations" },
+  trading: { label: "Trading", description: "Payment, price lock, hedging, limit orders and cancellations" },
+  operations: { label: "Operations", description: "Stock, fulfilment, collection, buyback and delivery" },
+  compliance: { label: "Compliance", description: "KYC, AML and ID checks" },
+  storage: { label: "Storage", description: "Bonded silver" },
+  systems: { label: "Systems", description: "Which system is used for what" },
+  directory: { label: "Directory", description: "Branches and contacts" },
+  meta: { label: "About", description: "How SOPs are written" }
+};
+
+// src/kb-markdown.ts
+var CODE_SEGMENT = /(```[\s\S]*?```|`[^`\n]*`)/g;
+function mapOutsideCode(markdown, fn) {
+  return markdown.split(CODE_SEGMENT).map((part, index) => index % 2 === 1 ? part : fn(part)).join("");
+}
+function textOutsideCode(markdown) {
+  return markdown.split(CODE_SEGMENT).filter((_, index) => index % 2 === 0).join("\n");
+}
+function splitFrontmatter(raw) {
+  const text = raw.replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
+  if (!match) return null;
+  const data = {};
+  const [, header = "", body = ""] = match;
+  for (const line of header.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const colon = trimmed.indexOf(":");
+    if (colon < 1) continue;
+    const key = trimmed.slice(0, colon).trim();
+    const value = trimmed.slice(colon + 1).trim().replace(/^(['"])(.*)\1$/, "$2");
+    data[key] = value;
+  }
+  return { data, body: body.trim() };
+}
+function headingAnchor(text) {
+  return text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+var TODO_PATTERN = /\[TODO:?\s*([^\]]*)\]/gi;
+function findTodos(markdown) {
+  const found = [];
+  for (const match of textOutsideCode(markdown).matchAll(TODO_PATTERN)) {
+    found.push((match[1] ?? "").trim());
+  }
+  return found;
+}
+function plainHeading(text) {
+  return text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[*_`]/g, "").trim();
+}
+function splitSections(body) {
+  const lines = body.split("\n");
+  const raw = [{ heading: "", lines: [] }];
+  let inFence = false;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) inFence = !inFence;
+    const heading = !inFence ? /^#{1,2}\s+(.+?)\s*#*\s*$/.exec(line) : null;
+    if (heading) {
+      raw.push({ heading: plainHeading(heading[1] ?? ""), lines: [] });
+    } else {
+      raw[raw.length - 1]?.lines.push(line);
+    }
+  }
+  const used = /* @__PURE__ */ new Map();
+  return raw.filter((section, index) => index > 0 || section.lines.join("").trim() !== "").map((section) => {
+    const markdown = section.lines.join("\n").trim();
+    const base = headingAnchor(section.heading);
+    let anchor = base;
+    if (base) {
+      const seen = used.get(base) ?? 0;
+      used.set(base, seen + 1);
+      if (seen > 0) anchor = `${base}-${seen + 1}`;
+    }
+    const todos = findTodos(markdown);
+    return {
+      anchor,
+      heading: section.heading,
+      markdown,
+      hasTodo: todos.length > 0,
+      todos,
+      isProposed: /proposed controls/i.test(section.heading)
+    };
+  });
+}
+var LINK_PATTERN = /\[\[([a-z0-9]+(?:-[a-z0-9]+)*)(?:#([a-z0-9-]+))?\]\]/g;
+function findLinks(markdown) {
+  return [...textOutsideCode(markdown).matchAll(LINK_PATTERN)].map((m) => ({ slug: m[1] ?? "", anchor: m[2] ?? null }));
+}
+function kbArticlePath(slug, anchor) {
+  return `/knowledge/articles/${slug}${anchor ? `#${anchor}` : ""}`;
+}
+var KB_UNRESOLVED_HREF_PREFIX = "#unresolved-sop:";
+function rewriteKbLinks(markdown, resolve) {
+  return mapOutsideCode(
+    markdown,
+    (text) => text.replace(LINK_PATTERN, (_raw, slug, anchor) => {
+      const ref = { slug, anchor: anchor ?? null };
+      const resolved = resolve(ref);
+      return resolved ? `[${resolved.label}](${resolved.href})` : `[${slug}](${KB_UNRESOLVED_HREF_PREFIX}${slug})`;
+    })
+  );
+}
+function parseKbDocument(raw) {
+  const file = splitFrontmatter(raw);
+  if (!file) return { ok: false, errors: ["Missing frontmatter: the file must start with a --- block."] };
+  const frontmatter = KbFrontmatterSchema.safeParse(file.data);
+  if (!frontmatter.success) {
+    return {
+      ok: false,
+      errors: frontmatter.error.issues.map((issue) => `${issue.path.join(".") || "frontmatter"}: ${issue.message}`)
+    };
+  }
+  return {
+    ok: true,
+    doc: {
+      frontmatter: frontmatter.data,
+      body: file.body,
+      sections: splitSections(file.body),
+      links: findLinks(file.body)
+    }
+  };
+}
+function findBrokenLinks(docs) {
+  const bySlug = new Map(docs.map((doc) => [doc.slug, doc]));
+  const broken = [];
+  for (const doc of docs) {
+    for (const link of doc.links) {
+      const target = bySlug.get(link.slug);
+      if (!target) {
+        broken.push({ from: doc.slug, slug: link.slug, anchor: link.anchor, reason: "missing-document" });
+      } else if (link.anchor && !target.sections.some((section) => section.anchor === link.anchor)) {
+        broken.push({ from: doc.slug, slug: link.slug, anchor: link.anchor, reason: "missing-section" });
+      }
+    }
+  }
+  return broken;
+}
+
+// src/kb-search.ts
+function toPlainText(markdown) {
+  return mapOutsideCode(
+    markdown,
+    (text) => text.replace(/\[\[([a-z0-9-]+)(?:#([a-z0-9-]+))?\]\]/g, (_m, slug, anchor) => anchor ? anchor.replace(/-/g, " ") : slug.replace(/-/g, " ")).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "").replace(/^\s*\|?\s*[-:| ]+\|[-:| ]*$/gm, "").replace(/\|/g, " ").replace(/[*_~]/g, "").replace(/^#{1,6}\s+/gm, "")
+  ).replace(/`/g, "").replace(/\s+/g, " ").trim();
+}
+function indexKbDocument(doc) {
+  const body = doc.markdown.replace(/^---\n[\s\S]*?\n---\n?/, "");
+  return {
+    slug: doc.slug,
+    title: doc.title,
+    category: doc.category,
+    sections: splitSections(body).map((section) => ({
+      anchor: section.anchor,
+      heading: section.heading,
+      text: toPlainText(section.markdown),
+      hasTodo: section.hasTodo
+    }))
+  };
+}
+function tokenize(query) {
+  return query.toLowerCase().split(/\s+/).map((token) => token.replace(/[^\p{L}\p{N}-]/gu, "")).filter((token) => token.length > 0);
+}
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+var SNIPPET_RADIUS = 70;
+function buildSnippet(text, tokens) {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  const first = tokens.map((token) => lower.indexOf(token)).filter((index) => index >= 0).sort((a, b) => a - b)[0];
+  const start = first === void 0 ? 0 : Math.max(0, first - SNIPPET_RADIUS / 2);
+  const end = Math.min(text.length, start + SNIPPET_RADIUS * 2);
+  const window = `${start > 0 ? "\u2026" : ""}${text.slice(start, end).trim()}${end < text.length ? "\u2026" : ""}`;
+  if (tokens.length === 0) return [{ text: window, hit: false }];
+  const pattern = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "gi");
+  return window.split(pattern).filter((part) => part !== "").map((part) => ({ text: part, hit: tokens.includes(part.toLowerCase()) }));
+}
+function searchKb(docs, query, limit = 20) {
+  const tokens = tokenize(query);
+  if (tokens.length === 0) return [];
+  const hits = [];
+  let order = 0;
+  for (const doc of docs) {
+    const title = doc.title.toLowerCase();
+    const titleHasAll = tokens.every((token) => title.includes(token));
+    for (const section of doc.sections) {
+      order += 1;
+      const heading = section.heading.toLowerCase();
+      const text = section.text.toLowerCase();
+      const haystack = `${title} ${heading} ${text}`;
+      if (!tokens.every((token) => haystack.includes(token))) continue;
+      let score = 0;
+      for (const token of tokens) {
+        if (title.includes(token)) score += 10;
+        if (heading.includes(token)) score += 6;
+        const occurrences = text.split(token).length - 1;
+        score += Math.min(occurrences, 3);
+      }
+      hits.push({
+        slug: doc.slug,
+        title: doc.title,
+        category: doc.category,
+        sectionAnchor: section.anchor || null,
+        sectionHeading: section.heading || null,
+        hasTodo: section.hasTodo,
+        score,
+        snippet: buildSnippet(section.text, tokens),
+        order
+      });
+    }
+    if (titleHasAll && !hits.some((hit) => hit.slug === doc.slug)) {
+      order += 1;
+      hits.push({
+        slug: doc.slug,
+        title: doc.title,
+        category: doc.category,
+        sectionAnchor: null,
+        sectionHeading: null,
+        hasTodo: false,
+        score: 10 * tokens.length,
+        snippet: [],
+        order
+      });
+    }
+  }
+  return hits.sort((a, b) => b.score - a.score || a.order - b.order).slice(0, limit).map(({ order: _order, ...hit }) => hit);
+}
+
+// src/kb-guide.ts
+var KB_GUIDE = {
+  start: {
+    title: "Who is paying whom?",
+    hint: "Pick the side of the trade. Everything else follows from it."
+  },
+  branches: [
+    {
+      id: "price",
+      title: "Price",
+      tag: "Customer buys from us",
+      blurb: "They pay us. Quote, take payment, lock the price, hand over.",
+      icon: "receipt",
+      steps: [
+        {
+          title: "Quote the customer",
+          hint: "Identify them, price it, check stock, send the quote",
+          icon: "file-text",
+          target: { slug: "customer-inquiry-to-quote", anchor: "steps" }
+        },
+        {
+          title: "Work out the Price",
+          hint: "Spot, premium and VAT",
+          icon: "calculator",
+          target: { slug: "pricing", anchor: "sell-price" }
+        },
+        {
+          title: "Take payment",
+          hint: "Bank transfer, card or cash \u2014 and confirm the funds landed",
+          icon: "banknote",
+          target: { slug: "payment-lock-and-hedge", anchor: "accepted-payment-methods" }
+        },
+        {
+          title: "Lock the price and hedge",
+          hint: "Only once the funds have landed",
+          icon: "lock",
+          target: { slug: "payment-lock-and-hedge", anchor: "steps" }
+        },
+        {
+          title: "Hand it over",
+          hint: "ID check, signature, mark as collected",
+          icon: "package-check",
+          target: { slug: "customer-collection", anchor: "steps" }
+        }
+      ],
+      alsoSee: [
+        { label: "Price moved before funds landed", target: { slug: "customer-inquiry-to-quote", anchor: "price-changed-before-funds-landed" } },
+        { label: "Limit order", target: { slug: "limit-orders" } },
+        { label: "Bonded silver (VAT-free)", target: { slug: "bonded-silver-storage" } }
+      ]
+    },
+    {
+      id: "buyback",
+      title: "Buyback",
+      tag: "Customer sells to us",
+      blurb: "We pay them. Check the item, agree a price, record it, pay by bank transfer.",
+      icon: "hand-coins",
+      steps: [
+        {
+          title: "Identify the customer",
+          hint: "Find or create them in BC, run the ID and AML checks",
+          icon: "user-search",
+          target: { slug: "customer-buyback", anchor: "steps" }
+        },
+        {
+          title: "Check the item",
+          hint: "Tester, weight and dimensions",
+          icon: "search-check",
+          target: { slug: "customer-buyback", anchor: "authentication" }
+        },
+        {
+          title: "Work out the Buyback",
+          hint: "Spot value less the product\u2019s discount",
+          icon: "calculator",
+          target: { slug: "pricing", anchor: "buy-price" }
+        },
+        {
+          title: "Agree it and record it",
+          hint: "Every purchase goes into BC",
+          icon: "file-text",
+          target: { slug: "customer-buyback", anchor: "purchase-records" }
+        },
+        {
+          title: "Pay the customer",
+          hint: "Bank transfer only \u2014 tell them the timing first",
+          icon: "banknote",
+          target: { slug: "customer-buyback", anchor: "paying-the-customer" }
+        },
+        {
+          title: "Put it into stock",
+          hint: "It goes under \u201CBought\u201D on the stock sheet",
+          icon: "boxes",
+          target: { slug: "stock-management", anchor: "the-stock-sheet" }
+        }
+      ],
+      alsoSee: [
+        { label: "Scrap and non-standard items", target: { slug: "pricing", anchor: "scrap-and-non-standard-items" } },
+        { label: "Selling bonded silver back", target: { slug: "bonded-silver-storage", anchor: "selling-bonded-silver-back" } },
+        { label: "Sell at a target price (limit order)", target: { slug: "limit-orders", anchor: "placing-a-sell-limit-order" } }
+      ]
+    }
+  ],
+  quickLinks: [
+    {
+      label: "Is gold going up?",
+      hint: "What to say, and what not to",
+      icon: "messages",
+      target: { slug: "customer-market-questions" }
+    },
+    {
+      label: "Checking a customer\u2019s ID",
+      hint: "Accepted documents and the rules",
+      icon: "id-card",
+      target: { slug: "customer-collection", anchor: "identity-check" }
+    },
+    {
+      label: "Who do I escalate to?",
+      hint: "Contacts by topic",
+      icon: "phone",
+      target: { slug: "branch-directory", anchor: "escalation" }
+    },
+    {
+      label: "Which system do I use?",
+      hint: "BC, StoneX, Zoho and the rest",
+      icon: "blocks",
+      target: { slug: "systems-overview", anchor: "system-map" }
+    },
+    {
+      label: "Available vs NET stock",
+      hint: "What you can sell, and what to reorder",
+      icon: "boxes",
+      target: { slug: "stock-management", anchor: "available-vs-net" }
+    }
+  ],
+  tools: [
+    {
+      label: "Pricing Workbook",
+      hint: "Live spot and product prices",
+      icon: "layout-dashboard",
+      target: { href: "/dashboard" }
+    },
+    {
+      label: "Pricing & VAT",
+      hint: "Spot, premiums, VAT rules, market modes",
+      icon: "calculator",
+      target: { slug: "pricing" }
+    },
+    {
+      label: "Stock",
+      hint: "Monthly count and the customer safe",
+      icon: "boxes",
+      target: { slug: "stock-management" }
+    },
+    {
+      label: "Bonded silver",
+      hint: "VAT-free storage and serial numbers",
+      icon: "vault",
+      target: { slug: "bonded-silver-storage" }
+    },
+    {
+      label: "Branch directory",
+      hint: "Addresses, hours and contacts",
+      icon: "book-user",
+      target: { slug: "branch-directory" }
+    },
+    {
+      label: "Compliance & ID",
+      hint: "KYC and AML checks",
+      icon: "shield-check",
+      target: { slug: "kyc-aml" },
+      pendingSop: true
+    }
+  ]
+};
+function guideLibraryTargets(guide = KB_GUIDE) {
+  const out = [];
+  const add = (target, pendingSop = false) => {
+    if ("slug" in target) out.push({ slug: target.slug, anchor: target.anchor, pendingSop });
+  };
+  for (const branch of guide.branches) {
+    branch.steps.forEach((step) => add(step.target));
+    branch.alsoSee.forEach((link) => add(link.target));
+  }
+  [...guide.quickLinks, ...guide.tools].forEach((shortcut) => add(shortcut.target, shortcut.pendingSop));
+  return out;
+}
+
+// src/kb-terms.ts
+var KB_TERMS = [
+  { id: "price-lock", phrases: ["price is locked", "lock the price", "locks the price", "price lock", "locked price", "hedged", "hedging", "hedge"], target: { slug: "payment-lock-and-hedge", anchor: "core-rule" } },
+  { id: "funds-landed", phrases: ["funds have landed", "funds landed", "funds land", "confirm the funds", "confirming funds"], target: { slug: "payment-lock-and-hedge", anchor: "confirming-funds" } },
+  { id: "limit-orders", phrases: ["limit orders", "limit order"], target: { slug: "limit-orders" } },
+  { id: "customer-safe", phrases: ["customer safe", "CST Safe"], target: { slug: "stock-management", anchor: "customer-safe-cst-safe" } },
+  { id: "available-vs-net", phrases: ["NET"], target: { slug: "stock-management", anchor: "available-vs-net" }, caseSensitive: true },
+  { id: "stock-sheet", phrases: ["stock sheet", "Stock - IE"], target: { slug: "stock-management", anchor: "the-stock-sheet" } },
+  { id: "bonded-silver", phrases: ["bonded silver", "bonded warehouse", "in bond"], target: { slug: "bonded-silver-storage" } },
+  { id: "market-modes", phrases: ["market modes", "Metal Shortage", "Weekend", "Volatile"], target: { slug: "pricing", anchor: "market-modes" } },
+  { id: "scrap", phrases: ["non-standard items", "scrap"], target: { slug: "pricing", anchor: "scrap-and-non-standard-items" } },
+  { id: "spot-price", phrases: ["live spot", "spot price"], target: { slug: "pricing", anchor: "spot-price" } },
+  { id: "buy-price", phrases: ["buy price"], target: { slug: "pricing", anchor: "buy-price" } },
+  { id: "sell-price", phrases: ["sell price"], target: { slug: "pricing", anchor: "sell-price" } },
+  { id: "vat", phrases: ["investment gold", "VAT"], target: { slug: "pricing", anchor: "vat" }, caseSensitive: true },
+  { id: "identity-check", phrases: ["identity check", "ID check"], target: { slug: "customer-collection", anchor: "identity-check" } },
+  { id: "third-party", phrases: ["third-party collection"], target: { slug: "customer-collection", anchor: "third-party-collection" } },
+  { id: "quote-validity", phrases: ["quote validity", "indicative"], target: { slug: "customer-inquiry-to-quote", anchor: "quote-validity" } },
+  { id: "paying-customer", phrases: ["paying the customer"], target: { slug: "customer-buyback", anchor: "paying-the-customer" } },
+  { id: "signature-tablet", phrases: ["signature tablet", "signature capture"], target: { slug: "systems-overview", anchor: "customer-id-and-signatures" } },
+  { id: "hedging-platforms", phrases: ["StoneX", "CoinInvest"], target: { slug: "systems-overview", anchor: "system-map" }, caseSensitive: true },
+  { id: "bc", phrases: ["Business Central", "Zoho", "BC"], target: { slug: "systems-overview", anchor: "bc-and-zoho" }, caseSensitive: true },
+  { id: "buyback", phrases: ["Buyback", "buyback"], target: { slug: "customer-buyback" }, caseSensitive: true },
+  { id: "kyc-aml", phrases: ["KYC", "AML"], target: { slug: "kyc-aml" }, caseSensitive: true, pendingSop: true }
+];
+function escapeRegExp2(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function termRegExp(term) {
+  const phrases = [...term.phrases].sort((a, b) => b.length - a.length).map(escapeRegExp2);
+  return new RegExp(`(?<![\\w-])(?:${phrases.join("|")})(?![\\w-])`, term.caseSensitive ? "g" : "gi");
+}
+function linkableText(markdown) {
+  return mapOutsideCode(
+    markdown,
+    (text) => text.replace(/\[\[[^\]]*\]\]/g, " ").replace(/\[TODO:?[^\]]*\]/gi, " ").replace(/\[[^\]]*\]\([^)]*\)/g, " ").replace(/^#{1,6}\s.*$/gm, " ")
+  ).split("`").filter((_, index) => index % 2 === 0).join(" ");
+}
+function planAutolinks(sections, currentSlug, isAvailable, terms = KB_TERMS) {
+  const plan = /* @__PURE__ */ new Map();
+  const used = /* @__PURE__ */ new Set();
+  const candidates = terms.filter((term) => term.target.slug !== currentSlug && isAvailable(term.target));
+  for (const section of sections) {
+    if (section.anchor === "related") continue;
+    const text = linkableText(section.markdown);
+    const linked = [];
+    for (const term of candidates) {
+      if (used.has(term.id)) continue;
+      if (termRegExp(term).test(text)) {
+        used.add(term.id);
+        linked.push(term);
+      }
+    }
+    if (linked.length > 0) plan.set(section.anchor, linked);
+  }
+  return plan;
+}
+
+// src/kb-review.ts
+var KB_REVIEW_MONTHS = 6;
+var KB_REVIEW_WARNING_DAYS = 30;
+var DAY_MS = 24 * 60 * 60 * 1e3;
+function parseDay(day) {
+  return /* @__PURE__ */ new Date(`${day}T00:00:00.000Z`);
+}
+function kbReviewDueOn(contentUpdatedOn, months = KB_REVIEW_MONTHS) {
+  const start = parseDay(contentUpdatedOn);
+  const year = start.getUTCFullYear();
+  const month = start.getUTCMonth() + months;
+  const lastDayOfTarget = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const due = new Date(Date.UTC(year, month, Math.min(start.getUTCDate(), lastDayOfTarget)));
+  return due.toISOString().slice(0, 10);
+}
+function kbReviewStatus(contentUpdatedOn, now = /* @__PURE__ */ new Date()) {
+  const dueOn = kbReviewDueOn(contentUpdatedOn);
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const daysUntilDue = Math.round((parseDay(dueOn).getTime() - today) / DAY_MS);
+  return {
+    dueOn,
+    daysUntilDue,
+    state: daysUntilDue < 0 ? "overdue" : daysUntilDue <= KB_REVIEW_WARNING_DAYS ? "due-soon" : "ok"
+  };
+}
+
+// src/ai.schema.ts
+var import_zod13 = require("zod");
+var AiModeEnum = import_zod13.z.enum(["procedures", "email", "whatsapp"]);
+var AI_QUESTION_MAX_LENGTH = 500;
+var AI_MESSAGE_MAX_LENGTH = 4e3;
+function aiInputLimit(mode) {
+  return mode === "procedures" ? AI_QUESTION_MAX_LENGTH : AI_MESSAGE_MAX_LENGTH;
+}
+var AskRequestSchema = import_zod13.z.object({
+  /** A question (procedures) or the customer's pasted message (email, whatsapp). */
+  question: import_zod13.z.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
+  mode: AiModeEnum.default("procedures"),
+  /**
+   * The spot the product table is quoting from, when the user has frozen or typed one — otherwise
+   * the live spot is used. Sent so a price the assistant quotes matches the price on screen.
+   */
+  spotOverrides: RecalculateOverridesSchema.optional()
+}).refine((request) => request.question.length <= aiInputLimit(request.mode), {
+  path: ["question"],
+  message: "That is too long for a question. Keep it under 500 characters."
+});
+var AiAnswerStatusEnum = import_zod13.z.enum(["answered", "refused", "uncited"]);
+var AiCitationSchema = import_zod13.z.object({
+  slug: import_zod13.z.string(),
+  anchor: import_zod13.z.string().nullable(),
+  title: import_zod13.z.string(),
+  heading: import_zod13.z.string().nullable()
+});
+var AiUsageSchema = import_zod13.z.object({
+  inputTokens: import_zod13.z.number().int(),
+  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  cachedInputTokens: import_zod13.z.number().int(),
+  outputTokens: import_zod13.z.number().int()
+});
+var AskResponseSchema = import_zod13.z.object({
+  /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
+  answer: import_zod13.z.string(),
+  mode: AiModeEnum,
+  status: AiAnswerStatusEnum,
+  citations: import_zod13.z.array(AiCitationSchema),
+  model: import_zod13.z.string(),
+  usage: AiUsageSchema,
+  latencyMs: import_zod13.z.number().int(),
+  /** Which SOPs the answer was based on — the audit trail for "what did it know when it said that?". */
+  corpus: import_zod13.z.object({ documents: import_zod13.z.number().int(), hash: import_zod13.z.string() }),
+  /** Served from the answer cache: no model call, so usage is zero. */
+  cached: import_zod13.z.boolean(),
+  /** Email/WhatsApp only: notes for the staff member (what the reply assumes, what to check), apart from the message to send. `answer` is the message itself. */
+  notes: import_zod13.z.string().nullable(),
+  /** Things to check before relying on the answer, e.g. a figure that did not come from a price lookup, or prices that may be out of date. */
+  warnings: import_zod13.z.array(import_zod13.z.string()),
+  /** Which live lookups the answer used (getSpot, findProductPrices). Empty for a pure SOP answer. */
+  toolsUsed: import_zod13.z.array(import_zod13.z.string())
+});
+var AiStatusSchema = import_zod13.z.object({
+  enabled: import_zod13.z.boolean(),
+  model: import_zod13.z.string()
+});
+var AskStreamEventSchema = import_zod13.z.discriminatedUnion("type", [
+  import_zod13.z.object({ type: import_zod13.z.literal("delta"), text: import_zod13.z.string() }),
+  import_zod13.z.object({ type: import_zod13.z.literal("tool"), name: import_zod13.z.string() }),
+  import_zod13.z.object({ type: import_zod13.z.literal("done"), response: AskResponseSchema }),
+  import_zod13.z.object({ type: import_zod13.z.literal("error"), status: import_zod13.z.number().int(), message: import_zod13.z.string() })
+]);
+
+// src/admin.schema.ts
+var import_zod14 = require("zod");
+var HealthStatusEnum = import_zod14.z.enum(["up", "degraded", "down"]);
+var HealthItemSchema = import_zod14.z.object({
+  key: import_zod14.z.string(),
+  label: import_zod14.z.string(),
+  status: HealthStatusEnum,
+  /** One plain-language line: a measurement, or the reason it is not healthy. */
+  detail: import_zod14.z.string()
+});
+var HourlyStatsSchema = import_zod14.z.object({
+  hour: import_zod14.z.string(),
+  requests: import_zod14.z.number(),
+  clientErrors: import_zod14.z.number(),
+  serverErrors: import_zod14.z.number(),
+  avgLatencyMs: import_zod14.z.number(),
+  logins: import_zod14.z.number(),
+  failedLogins: import_zod14.z.number()
+});
+var RouteStatsSchema = import_zod14.z.object({
+  route: import_zod14.z.string(),
+  count: import_zod14.z.number(),
+  errors: import_zod14.z.number(),
+  avgLatencyMs: import_zod14.z.number()
+});
+var TableSizeSchema = import_zod14.z.object({
+  name: import_zod14.z.string(),
+  bytes: import_zod14.z.number(),
+  rows: import_zod14.z.number()
+});
+var AdminOverviewSchema = import_zod14.z.object({
+  generatedAt: import_zod14.z.string(),
+  uptimeSeconds: import_zod14.z.number(),
+  nodeVersion: import_zod14.z.string(),
+  environment: import_zod14.z.string(),
+  aiEnabled: import_zod14.z.boolean(),
+  health: import_zod14.z.array(HealthItemSchema),
+  /** False when Redis is down: the traffic history below is then empty rather than wrong. */
+  metricsAvailable: import_zod14.z.boolean(),
+  hours: import_zod14.z.array(HourlyStatsSchema),
+  topRoutes: import_zod14.z.array(RouteStatsSchema),
+  databaseBytes: import_zod14.z.number(),
+  tables: import_zod14.z.array(TableSizeSchema),
+  usersByRole: import_zod14.z.array(import_zod14.z.object({ role: import_zod14.z.string(), count: import_zod14.z.number() })),
+  activeUsers: import_zod14.z.number(),
+  errorsByKind: import_zod14.z.array(import_zod14.z.object({ kind: import_zod14.z.string(), count: import_zod14.z.number() }))
+});
+var LogLevelEnum = import_zod14.z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
+var AdminLogEntrySchema = import_zod14.z.object({
+  id: import_zod14.z.number(),
+  /** Epoch milliseconds. */
+  time: import_zod14.z.number(),
+  level: LogLevelEnum,
+  message: import_zod14.z.string(),
+  context: import_zod14.z.string().nullable(),
+  method: import_zod14.z.string().nullable(),
+  url: import_zod14.z.string().nullable(),
+  status: import_zod14.z.number().nullable(),
+  responseTimeMs: import_zod14.z.number().nullable(),
+  /** Everything else pino recorded on the line, for the expanded view. */
+  extra: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())
+});
+var AdminLogsResponseSchema = import_zod14.z.object({
+  entries: import_zod14.z.array(AdminLogEntrySchema),
+  capacity: import_zod14.z.number()
+});
+var AuditEntrySchema = import_zod14.z.object({
+  at: import_zod14.z.string(),
+  user: import_zod14.z.string(),
+  action: import_zod14.z.string(),
+  detail: import_zod14.z.string()
+});
+var AuditLogResponseSchema = import_zod14.z.object({
+  entries: import_zod14.z.array(AuditEntrySchema),
+  persisted: import_zod14.z.boolean()
+});
+var ApiEndpointParameterSchema = import_zod14.z.object({
+  name: import_zod14.z.string(),
+  in: import_zod14.z.enum(["path", "query", "header"]),
+  required: import_zod14.z.boolean(),
+  type: import_zod14.z.string(),
+  options: import_zod14.z.array(import_zod14.z.string()).optional(),
+  description: import_zod14.z.string().optional()
+});
+var ApiEndpointSchema = import_zod14.z.object({
+  method: import_zod14.z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+  path: import_zod14.z.string(),
+  summary: import_zod14.z.string(),
+  description: import_zod14.z.string().optional(),
+  tag: import_zod14.z.string(),
+  requiresAuth: import_zod14.z.boolean(),
+  parameters: import_zod14.z.array(ApiEndpointParameterSchema),
+  /** A starter JSON body built from the request schema; null when the route takes none. */
+  bodyExample: import_zod14.z.unknown().nullable()
+});
+var ApiCatalogueSchema = import_zod14.z.object({
+  endpoints: import_zod14.z.array(ApiEndpointSchema)
+});
+var DbColumnSchema = import_zod14.z.object({
+  name: import_zod14.z.string(),
+  type: import_zod14.z.string(),
+  nullable: import_zod14.z.boolean(),
+  hasDefault: import_zod14.z.boolean(),
+  isPrimaryKey: import_zod14.z.boolean(),
+  /** Generated by the database, or never shown at all — cannot be set from the browser. */
+  readOnly: import_zod14.z.boolean(),
+  /** The allowed values when the column is a Postgres enum. */
+  enumValues: import_zod14.z.array(import_zod14.z.string()).optional()
+});
+var DbTableSummarySchema = import_zod14.z.object({
+  name: import_zod14.z.string(),
+  rows: import_zod14.z.number(),
+  bytes: import_zod14.z.number(),
+  writable: import_zod14.z.boolean()
+});
+var DbTablesResponseSchema = import_zod14.z.object({
+  tables: import_zod14.z.array(DbTableSummarySchema)
+});
+var DbRowsResponseSchema = import_zod14.z.object({
+  table: import_zod14.z.string(),
+  writable: import_zod14.z.boolean(),
+  columns: import_zod14.z.array(DbColumnSchema),
+  rows: import_zod14.z.array(import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())),
+  total: import_zod14.z.number(),
+  page: import_zod14.z.number(),
+  pageSize: import_zod14.z.number()
+});
+var DbValueSchema = import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number(), import_zod14.z.boolean(), import_zod14.z.null(), import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown()), import_zod14.z.array(import_zod14.z.unknown())]);
+var DbInsertRequestSchema = import_zod14.z.object({
+  values: import_zod14.z.record(import_zod14.z.string(), DbValueSchema)
+});
+var DbUpdateRequestSchema = import_zod14.z.object({
+  /** The row's primary-key column(s) and current value(s). */
+  key: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number()])),
+  values: import_zod14.z.record(import_zod14.z.string(), DbValueSchema)
+});
+var DbDeleteRequestSchema = import_zod14.z.object({
+  key: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number()]))
+});
+var DbRowResponseSchema = import_zod14.z.object({
+  row: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())
+});
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  AI_MESSAGE_MAX_LENGTH,
+  AI_QUESTION_MAX_LENGTH,
+  AdminLogEntrySchema,
+  AdminLogsResponseSchema,
+  AdminOverviewSchema,
+  AiAnswerStatusEnum,
+  AiCitationSchema,
+  AiModeEnum,
+  AiStatusSchema,
+  AiUsageSchema,
+  ApiCatalogueSchema,
+  ApiEndpointParameterSchema,
+  ApiEndpointSchema,
   ApiErrorResponseSchema,
   ApiSuccessResponseSchema,
+  AskRequestSchema,
+  AskResponseSchema,
+  AskStreamEventSchema,
+  AuditEntrySchema,
+  AuditLogResponseSchema,
   AuthResponseSchema,
   BranchSchema,
   ChangePasswordSchema,
@@ -1104,6 +1961,14 @@ function createErrorReference() {
   CreateSpotPriceDtoSchema,
   CreateUserRequestSchema,
   CurrencyEnum,
+  DbColumnSchema,
+  DbDeleteRequestSchema,
+  DbInsertRequestSchema,
+  DbRowResponseSchema,
+  DbRowsResponseSchema,
+  DbTableSummarySchema,
+  DbTablesResponseSchema,
+  DbUpdateRequestSchema,
   ErrorLogEntrySchema,
   ErrorLogKindEnum,
   ErrorLogSeverityEnum,
@@ -1114,7 +1979,26 @@ function createErrorReference() {
   FetchTriggerEnum,
   GRAMS_PER_TROY_OUNCE,
   HealthCheckSchema,
+  HealthItemSchema,
+  HealthStatusEnum,
+  HistoricCloseQuerySchema,
   HistoricSpotSchema,
+  HourlyStatsSchema,
+  KB_CATEGORIES,
+  KB_CATEGORY_INFO,
+  KB_GUIDE,
+  KB_REVIEW_MONTHS,
+  KB_REVIEW_WARNING_DAYS,
+  KB_TERMS,
+  KB_UNRESOLVED_HREF_PREFIX,
+  KbCategoryEnum,
+  KbDocumentListResponseSchema,
+  KbDocumentSchema,
+  KbFrontmatterSchema,
+  KbJurisdictionEnum,
+  KbSlugSchema,
+  KbStatusEnum,
+  LogLevelEnum,
   LoginRequestSchema,
   LoginResponseSchema,
   LoginSchema,
@@ -1147,14 +2031,18 @@ function createErrorReference() {
   ProfitAnalysisResponseSchema,
   RawProductSchema,
   RawSpotPriceSchema,
+  RecalculateOverridesSchema,
   RefreshResponseSchema,
   RegisterSchema,
+  RouteStatsSchema,
   SessionUserRoleEnum,
   SessionUserSchema,
+  SetKbStatusRequestSchema,
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
   TRADE_METAL_SLIDER_BOUNDS,
+  TableSizeSchema,
   TaskQueryParamsSchema,
   TaskStatusSchema,
   TradeBootstrapResponseSchema,
@@ -1164,11 +2052,14 @@ function createErrorReference() {
   TradeCartResponseSchema,
   TradeProductSchema,
   TradeTransactionTypeEnum,
+  UpdateKbDocumentRequestSchema,
   UpdateProductFullDtoSchema,
+  UpdateStockRequestSchema,
   UserProfileSchema,
   UserRole,
   UserSchema,
   UserStatus,
+  aiInputLimit,
   buildPortfolioStrategies,
   computeCurrentBuybackValue,
   computeMeltValue,
@@ -1176,8 +2067,26 @@ function createErrorReference() {
   computeRequiredSpotForTarget,
   computeTransactionPrice,
   createErrorReference,
+  findBrokenLinks,
+  findLinks,
+  findTodos,
+  guideLibraryTargets,
+  headingAnchor,
+  indexKbDocument,
+  kbArticlePath,
+  kbReviewDueOn,
+  kbReviewStatus,
+  mapOutsideCode,
   normalizeProductName,
+  parseKbDocument,
+  planAutolinks,
+  rewriteKbLinks,
   roundBuyPrice,
   roundSellPrice,
-  solveMissingPurchaseField
+  searchKb,
+  solveMissingPurchaseField,
+  splitFrontmatter,
+  splitSections,
+  termRegExp,
+  toPlainText
 });

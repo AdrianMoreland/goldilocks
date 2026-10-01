@@ -10,6 +10,7 @@ exports.MarketDataModule = void 0;
 const common_1 = require("@nestjs/common");
 const market_data_controller_1 = require("./market-data.controller");
 const market_data_service_1 = require("./market-data.service");
+const auth_module_1 = require("../auth/auth.module");
 const products_module_1 = require("../products/products.module");
 const metals_module_1 = require("../metals/metals.module");
 let MarketDataModule = class MarketDataModule {
@@ -18,18 +19,13 @@ exports.MarketDataModule = MarketDataModule;
 exports.MarketDataModule = MarketDataModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            auth_module_1.AuthModule,
             products_module_1.ProductsModule,
             metals_module_1.MetalsModule,
         ],
-        controllers: [
-            market_data_controller_1.MarketDataController,
-        ],
-        providers: [
-            market_data_service_1.MarketDataService,
-        ],
-        exports: [
-            market_data_service_1.MarketDataService,
-        ],
+        controllers: [market_data_controller_1.MarketDataController],
+        providers: [market_data_service_1.MarketDataService],
+        exports: [market_data_service_1.MarketDataService],
     })
 ], MarketDataModule);
 //# sourceMappingURL=market-data.module.js.map
