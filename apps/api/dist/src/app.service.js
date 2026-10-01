@@ -11,17 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppService = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("./infrastructure/prisma/prisma.service");
 const redis_service_1 = require("./redis/redis.service");
 const fetch_attempt_service_1 = require("./modules/metals/fetch-attempt.service");
 let AppService = class AppService {
-    configService;
     prisma;
     redis;
     fetchAttempts;
-    constructor(configService, prisma, redis, fetchAttempts) {
-        this.configService = configService;
+    constructor(prisma, redis, fetchAttempts) {
         this.prisma = prisma;
         this.redis = redis;
         this.fetchAttempts = fetchAttempts;
@@ -30,13 +27,16 @@ let AppService = class AppService {
         return {
             name: 'Merrion Gold API',
             status: 'ok',
-            port: this.configService.get('PORT', 4000),
         };
     }
     async getHealth() {
-        const db = await this.prisma.$queryRaw `SELECT 1`.then(() => true).catch(() => false);
+        const db = await this.prisma.$queryRaw `SELECT 1`
+            .then(() => true)
+            .catch(() => false);
         const redis = this.redis.isHealthy();
-        const lastSuccessfulMetalsApiCall = await this.fetchAttempts.getLastSuccessfulAt().catch(() => null);
+        const lastSuccessfulMetalsApiCall = await this.fetchAttempts
+            .getLastSuccessfulAt()
+            .catch(() => null);
         return {
             status: db && redis ? 'ok' : 'degraded',
             db: db ? 'ok' : 'unreachable',
@@ -48,8 +48,7 @@ let AppService = class AppService {
 exports.AppService = AppService;
 exports.AppService = AppService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [config_1.ConfigService,
-        prisma_service_1.PrismaService,
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         redis_service_1.RedisService,
         fetch_attempt_service_1.FetchAttemptService])
 ], AppService);

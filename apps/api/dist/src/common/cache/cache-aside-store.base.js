@@ -10,7 +10,7 @@ class CacheAsideStore {
         this.redis = redis;
         this.ttlSeconds = ttlSeconds;
     }
-    isUsable(value) {
+    isUsable(_value) {
         return true;
     }
     async get(key) {

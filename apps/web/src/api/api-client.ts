@@ -81,9 +81,11 @@ export function useApiClient() {
     async function del<TSchema extends z.ZodTypeAny>(
         url: string,
         schema: TSchema,
+        body?: unknown,
     ): Promise<z.infer<TSchema>> {
         const result = await request(url, {
             method: 'DELETE',
+            ...(body !== undefined && { body: JSON.stringify(body) }),
         });
 
         return parseResponse(schema, result, 'DELETE', url);

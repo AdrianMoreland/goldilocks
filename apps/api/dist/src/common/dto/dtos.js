@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ClientErrorReportBatchDto = exports.FetchMetricsResponseDto = exports.FetchAttemptResponseDto = exports.CreateBranchRequestDto = exports.BranchResponseDto = exports.PortfolioBuildResponseDto = exports.PortfolioBuildRequestDto = exports.ProfitAnalysisResponseDto = exports.ProfitAnalysisRequestDto = exports.MeltCalculatorResponseDto = exports.MeltCalculatorRequestDto = exports.TradeCartResponseDto = exports.TradeCartRequestDto = exports.TradeBootstrapResponseDto = exports.MarketDataResponseDto = exports.UpdateProductDto = exports.ProductResponseDto = exports.CreateProductDto = exports.CreateSpotPriceDto = exports.SpotPriceResponseDto = exports.RawSpotPriceResponseDto = exports.HealthCheckDto = exports.MessageResponseDto = exports.CreateUserRequestDto = exports.SessionUserDto = exports.LoginResponseDto = exports.LoginRequestDto = void 0;
+exports.DbDeleteRequestDto = exports.DbUpdateRequestDto = exports.DbInsertRequestDto = exports.AiStatusDto = exports.AskResponseDto = exports.AskRequestDto = exports.SetKbStatusRequestDto = exports.UpdateKbDocumentRequestDto = exports.KbDocumentDto = exports.KbDocumentListResponseDto = exports.ClientErrorReportBatchDto = exports.FetchMetricsResponseDto = exports.FetchAttemptResponseDto = exports.CreateBranchRequestDto = exports.BranchResponseDto = exports.PortfolioBuildResponseDto = exports.PortfolioBuildRequestDto = exports.ProfitAnalysisResponseDto = exports.ProfitAnalysisRequestDto = exports.MeltCalculatorResponseDto = exports.MeltCalculatorRequestDto = exports.TradeCartResponseDto = exports.TradeCartRequestDto = exports.TradeBootstrapResponseDto = exports.HistoricCloseQueryDto = exports.RecalculateOverridesDto = exports.MarketDataResponseDto = exports.UpdateStockRequestDto = exports.UpdateProductDto = exports.ProductResponseDto = exports.CreateProductDto = exports.CreateSpotPriceDto = exports.SpotPriceResponseDto = exports.RawSpotPriceResponseDto = exports.HealthCheckDto = exports.MessageResponseDto = exports.CreateUserRequestDto = exports.SessionUserDto = exports.LoginResponseDto = exports.LoginRequestDto = void 0;
 const shared_types_1 = require("@goldilocks/shared-types");
 const shared_types_2 = require("@goldilocks/shared-types");
 const dto_generator_1 = require("./dto-generator");
@@ -40,9 +40,18 @@ exports.ProductResponseDto = ProductResponseDto;
 class UpdateProductDto extends (0, dto_generator_1.createDto)(shared_types_2.UpdateProductFullDtoSchema, 'UpdateProductDto') {
 }
 exports.UpdateProductDto = UpdateProductDto;
+class UpdateStockRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.UpdateStockRequestSchema, 'UpdateStockRequestDto') {
+}
+exports.UpdateStockRequestDto = UpdateStockRequestDto;
 class MarketDataResponseDto extends (0, dto_generator_1.createDto)(shared_types_2.MarketDataResponseSchema, 'MarketDataResponseDto') {
 }
 exports.MarketDataResponseDto = MarketDataResponseDto;
+class RecalculateOverridesDto extends (0, dto_generator_1.createDto)(shared_types_1.RecalculateOverridesSchema, 'RecalculateOverridesDto') {
+}
+exports.RecalculateOverridesDto = RecalculateOverridesDto;
+class HistoricCloseQueryDto extends (0, dto_generator_1.createDto)(shared_types_1.HistoricCloseQuerySchema, 'HistoricCloseQueryDto') {
+}
+exports.HistoricCloseQueryDto = HistoricCloseQueryDto;
 class TradeBootstrapResponseDto extends (0, dto_generator_1.createDto)(shared_types_2.TradeBootstrapResponseSchema, 'TradeBootstrapResponseDto') {
 }
 exports.TradeBootstrapResponseDto = TradeBootstrapResponseDto;
@@ -85,4 +94,34 @@ exports.FetchMetricsResponseDto = FetchMetricsResponseDto;
 class ClientErrorReportBatchDto extends (0, dto_generator_1.createDto)(shared_types_1.ClientErrorReportBatchSchema, 'ClientErrorReportBatchDto') {
 }
 exports.ClientErrorReportBatchDto = ClientErrorReportBatchDto;
+class KbDocumentListResponseDto extends (0, dto_generator_1.createDto)(shared_types_1.KbDocumentListResponseSchema, 'KbDocumentListResponseDto') {
+}
+exports.KbDocumentListResponseDto = KbDocumentListResponseDto;
+class KbDocumentDto extends (0, dto_generator_1.createDto)(shared_types_1.KbDocumentSchema, 'KbDocumentDto') {
+}
+exports.KbDocumentDto = KbDocumentDto;
+class UpdateKbDocumentRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.UpdateKbDocumentRequestSchema, 'UpdateKbDocumentRequestDto') {
+}
+exports.UpdateKbDocumentRequestDto = UpdateKbDocumentRequestDto;
+class SetKbStatusRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.SetKbStatusRequestSchema, 'SetKbStatusRequestDto') {
+}
+exports.SetKbStatusRequestDto = SetKbStatusRequestDto;
+class AskRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.AskRequestSchema, 'AskRequestDto') {
+}
+exports.AskRequestDto = AskRequestDto;
+class AskResponseDto extends (0, dto_generator_1.createDto)(shared_types_1.AskResponseSchema, 'AskResponseDto') {
+}
+exports.AskResponseDto = AskResponseDto;
+class AiStatusDto extends (0, dto_generator_1.createDto)(shared_types_1.AiStatusSchema, 'AiStatusDto') {
+}
+exports.AiStatusDto = AiStatusDto;
+class DbInsertRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.DbInsertRequestSchema, 'DbInsertRequestDto') {
+}
+exports.DbInsertRequestDto = DbInsertRequestDto;
+class DbUpdateRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.DbUpdateRequestSchema, 'DbUpdateRequestDto') {
+}
+exports.DbUpdateRequestDto = DbUpdateRequestDto;
+class DbDeleteRequestDto extends (0, dto_generator_1.createDto)(shared_types_1.DbDeleteRequestSchema, 'DbDeleteRequestDto') {
+}
+exports.DbDeleteRequestDto = DbDeleteRequestDto;
 //# sourceMappingURL=dtos.js.map

@@ -6,7 +6,7 @@ import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 
 @Module({
     imports: [
-        AuthModule,   // needed by JwtAuthGuard/RolesGuard
+        AuthModule, // needed by JwtAuthGuard/RolesGuard
         PrismaModule,
     ],
     controllers: [BranchesController],

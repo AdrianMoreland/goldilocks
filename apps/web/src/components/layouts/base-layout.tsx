@@ -4,18 +4,15 @@ import * as React from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { ThemeCustomizer } from "@/components/theme-customizer"
+import { ThemeEditorDock } from "@/components/theme-customizer"
+import { useUserPreference } from "@/hooks/use-user-preference.hook"
+import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
-import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-
-interface BaseLayoutHelpers {
-  openThemeCustomizer: () => void
-}
 
 interface BaseLayoutProps {
   children: React.ReactNode
@@ -23,7 +20,7 @@ interface BaseLayoutProps {
   /** Shows the Merrion Gold mark beside the title. */
   showLogo?: boolean
   description?: string
-  headerActions?: (helpers: BaseLayoutHelpers) => React.ReactNode
+  headerActions?: () => React.ReactNode
   /**
    * Pins the whole layout to exactly the viewport height (header + whatever
    * `children` render above the fold never scroll) instead of the normal
@@ -32,15 +29,20 @@ interface BaseLayoutProps {
    * column, not a naturally-growing one.
    */
   fillViewport?: boolean
-  /** Set true when `headerActions` places <ModeToggle /> itself at a specific spot, instead of relying on SiteHeader's default trailing placement. */
-  manualModeToggle?: boolean
 }
 
-export function BaseLayout({ children, title, showLogo, description, headerActions, fillViewport, manualModeToggle }: BaseLayoutProps) {
-  const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false)
+export function BaseLayout({ children, title, showLogo, description, headerActions, fillViewport }: BaseLayoutProps) {
   const { config } = useSidebarConfig()
-  const { isAdmin } = useAuth()
-  const helpers: BaseLayoutHelpers = { openThemeCustomizer: () => setThemeCustomizerOpen(true) }
+  // Remembered, so the sidebar stays as it was left when moving between pages (each page mounts its own layout).
+  const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", false)
+  // The theme editor takes the sidebar's slot while it is open, rather than sitting beside it. The
+  // remembered sidebar choice is untouched, so closing the editor brings the sidebar back as it was.
+  const themeEditor = useThemeEditorDock()
+  const handleSidebarOpenChange = (open: boolean) => {
+    // Opening the sidebar (its trigger, Ctrl+B) while the editor is showing means "go back to the menu".
+    if (themeEditor.open) themeEditor.close()
+    setSidebarOpen(open)
+  }
 
   const content = fillViewport ? (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
@@ -61,7 +63,8 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
 
   return (
     <SidebarProvider
-      defaultOpen={false}
+      open={sidebarOpen && !themeEditor.open}
+      onOpenChange={handleSidebarOpenChange}
       style={
         {
           "--sidebar-width": "16rem",
@@ -73,41 +76,34 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
     >
       {config.side === "left" ? (
         <>
-          {isAdmin && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
+          <AppSidebar
+            variant={config.variant}
+            collapsible={config.collapsible}
+            side={config.side}
+          />
+          <ThemeEditorDock />
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
+            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger showSearch={false} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
         </>
       ) : (
           <>
+            <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.(helpers)} showSidebarTrigger={isAdmin} showSearch={isAdmin} showModeToggle={!manualModeToggle} />
+              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger showSearch={false} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>
-          {isAdmin && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
+          <AppSidebar
+            variant={config.variant}
+            collapsible={config.collapsible}
+            side={config.side}
+          />
         </>
       )}
 
-      {/* Theme Customizer */}
-      <ThemeCustomizer
-        open={themeCustomizerOpen}
-        onOpenChange={setThemeCustomizerOpen}
-      />
     </SidebarProvider>
   )
 }

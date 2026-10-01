@@ -105,7 +105,9 @@ let TradeService = class TradeService {
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${category.metal}.`);
         }
-        const spotEur = request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur;
+        const spotEur = request.customSpot && request.customSpot > 0
+            ? request.customSpot
+            : spot.priceEur;
         const spotPerGram = spotEur / shared_types_1.GRAMS_PER_TROY_OUNCE;
         const meltValue = (0, shared_types_1.computeMeltValue)(spotPerGram, category.meltFactor, category.purity, request.weight);
         return {

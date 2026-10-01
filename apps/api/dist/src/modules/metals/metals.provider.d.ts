@@ -1,5 +1,5 @@
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RawSpotPrice, FetchTrigger, HistoricSpot, MetalType } from '@goldilocks/shared-types';
+import { RawSpotPrice, FetchTrigger, MetalType } from '@goldilocks/shared-types';
 import { type MetalPriceApiPort } from '../../infrastructure/metal-price-api/metal-price-api.port';
 import { SpotPriceCacheStore } from './spot-price-cache.store';
 import { CascadeMetricsService } from './cascade-metrics.service';
@@ -19,17 +19,12 @@ export declare class MetalsProvider {
     getLatest(metal: MetalType): Promise<RawSpotPrice | null>;
     clearCache(): Promise<void>;
     getAllLatest(): Promise<RawSpotPrice[]>;
-    getHistoricSpots(): Promise<HistoricSpot[]>;
     getAllLatestForLaunch(): Promise<MetalsRefreshResult>;
     refreshAll(triggeredBy?: FetchTrigger): Promise<MetalsRefreshResult>;
     retryMetal(metal: MetalType): Promise<RawSpotPrice | null>;
+    private persistLive;
     private toDto;
     private fetchFromExternalApi;
-    private fetchHistoricFromExternalApi;
-    fetchAndStoreHistoricClose(date: string): Promise<void>;
-    seedHistoricPrices(): Promise<void>;
-    getLatestHistoricDate(): Promise<Date | null>;
-    private readHistoricFromDb;
     private storeInDb;
 }
 //# sourceMappingURL=metals.provider.d.ts.map

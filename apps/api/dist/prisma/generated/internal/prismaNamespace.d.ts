@@ -163,6 +163,9 @@ export declare const ModelName: {
     readonly HistoricSpotPrice: "HistoricSpotPrice";
     readonly Branch: "Branch";
     readonly FetchAttempt: "FetchAttempt";
+    readonly KbDocument: "KbDocument";
+    readonly AiQuestionLog: "AiQuestionLog";
+    readonly AiAnswerCache: "AiAnswerCache";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export interface TypeMapCb<GlobalOmitOptions = {}> extends runtime.Types.Utils.Fn<{
@@ -175,7 +178,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         omit: GlobalOmitOptions;
     };
     meta: {
-        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch" | "fetchAttempt";
+        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch" | "fetchAttempt" | "kbDocument" | "aiQuestionLog" | "aiAnswerCache";
         txIsolationLevel: TransactionIsolationLevel;
     };
     model: {
@@ -623,6 +626,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
                 };
             };
         };
+        KbDocument: {
+            payload: Prisma.$KbDocumentPayload<ExtArgs>;
+            fields: Prisma.KbDocumentFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.KbDocumentFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.KbDocumentFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                findFirst: {
+                    args: Prisma.KbDocumentFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.KbDocumentFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                findMany: {
+                    args: Prisma.KbDocumentFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>[];
+                };
+                create: {
+                    args: Prisma.KbDocumentCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                createMany: {
+                    args: Prisma.KbDocumentCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.KbDocumentCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>[];
+                };
+                delete: {
+                    args: Prisma.KbDocumentDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                update: {
+                    args: Prisma.KbDocumentUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                deleteMany: {
+                    args: Prisma.KbDocumentDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.KbDocumentUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.KbDocumentUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>[];
+                };
+                upsert: {
+                    args: Prisma.KbDocumentUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$KbDocumentPayload>;
+                };
+                aggregate: {
+                    args: Prisma.KbDocumentAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateKbDocument>;
+                };
+                groupBy: {
+                    args: Prisma.KbDocumentGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.KbDocumentGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.KbDocumentCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.KbDocumentCountAggregateOutputType> | number;
+                };
+            };
+        };
+        AiQuestionLog: {
+            payload: Prisma.$AiQuestionLogPayload<ExtArgs>;
+            fields: Prisma.AiQuestionLogFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.AiQuestionLogFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.AiQuestionLogFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                findFirst: {
+                    args: Prisma.AiQuestionLogFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.AiQuestionLogFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                findMany: {
+                    args: Prisma.AiQuestionLogFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>[];
+                };
+                create: {
+                    args: Prisma.AiQuestionLogCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                createMany: {
+                    args: Prisma.AiQuestionLogCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.AiQuestionLogCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>[];
+                };
+                delete: {
+                    args: Prisma.AiQuestionLogDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                update: {
+                    args: Prisma.AiQuestionLogUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                deleteMany: {
+                    args: Prisma.AiQuestionLogDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.AiQuestionLogUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.AiQuestionLogUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>[];
+                };
+                upsert: {
+                    args: Prisma.AiQuestionLogUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiQuestionLogPayload>;
+                };
+                aggregate: {
+                    args: Prisma.AiQuestionLogAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateAiQuestionLog>;
+                };
+                groupBy: {
+                    args: Prisma.AiQuestionLogGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AiQuestionLogGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.AiQuestionLogCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AiQuestionLogCountAggregateOutputType> | number;
+                };
+            };
+        };
+        AiAnswerCache: {
+            payload: Prisma.$AiAnswerCachePayload<ExtArgs>;
+            fields: Prisma.AiAnswerCacheFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.AiAnswerCacheFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.AiAnswerCacheFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                findFirst: {
+                    args: Prisma.AiAnswerCacheFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.AiAnswerCacheFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                findMany: {
+                    args: Prisma.AiAnswerCacheFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>[];
+                };
+                create: {
+                    args: Prisma.AiAnswerCacheCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                createMany: {
+                    args: Prisma.AiAnswerCacheCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.AiAnswerCacheCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>[];
+                };
+                delete: {
+                    args: Prisma.AiAnswerCacheDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                update: {
+                    args: Prisma.AiAnswerCacheUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                deleteMany: {
+                    args: Prisma.AiAnswerCacheDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.AiAnswerCacheUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.AiAnswerCacheUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>[];
+                };
+                upsert: {
+                    args: Prisma.AiAnswerCacheUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCachePayload>;
+                };
+                aggregate: {
+                    args: Prisma.AiAnswerCacheAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateAiAnswerCache>;
+                };
+                groupBy: {
+                    args: Prisma.AiAnswerCacheGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AiAnswerCacheGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.AiAnswerCacheCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AiAnswerCacheCountAggregateOutputType> | number;
+                };
+            };
+        };
     };
 } & {
     other: {
@@ -723,11 +948,66 @@ export declare const FetchAttemptScalarFieldEnum: {
     readonly triggeredBy: "triggeredBy";
 };
 export type FetchAttemptScalarFieldEnum = (typeof FetchAttemptScalarFieldEnum)[keyof typeof FetchAttemptScalarFieldEnum];
+export declare const KbDocumentScalarFieldEnum: {
+    readonly id: "id";
+    readonly slug: "slug";
+    readonly title: "title";
+    readonly category: "category";
+    readonly jurisdiction: "jurisdiction";
+    readonly owner: "owner";
+    readonly status: "status";
+    readonly version: "version";
+    readonly contentUpdatedOn: "contentUpdatedOn";
+    readonly markdown: "markdown";
+    readonly contentHash: "contentHash";
+    readonly editedInApp: "editedInApp";
+    readonly createdAt: "createdAt";
+    readonly updatedAt: "updatedAt";
+};
+export type KbDocumentScalarFieldEnum = (typeof KbDocumentScalarFieldEnum)[keyof typeof KbDocumentScalarFieldEnum];
+export declare const AiQuestionLogScalarFieldEnum: {
+    readonly id: "id";
+    readonly createdAt: "createdAt";
+    readonly userId: "userId";
+    readonly question: "question";
+    readonly status: "status";
+    readonly mode: "mode";
+    readonly toolNames: "toolNames";
+    readonly cached: "cached";
+    readonly retried: "retried";
+    readonly citations: "citations";
+    readonly model: "model";
+    readonly corpusHash: "corpusHash";
+    readonly inputTokens: "inputTokens";
+    readonly cachedInputTokens: "cachedInputTokens";
+    readonly outputTokens: "outputTokens";
+    readonly costMicros: "costMicros";
+    readonly latencyMs: "latencyMs";
+    readonly error: "error";
+};
+export type AiQuestionLogScalarFieldEnum = (typeof AiQuestionLogScalarFieldEnum)[keyof typeof AiQuestionLogScalarFieldEnum];
+export declare const AiAnswerCacheScalarFieldEnum: {
+    readonly id: "id";
+    readonly questionKey: "questionKey";
+    readonly corpusHash: "corpusHash";
+    readonly answer: "answer";
+    readonly status: "status";
+    readonly citations: "citations";
+    readonly model: "model";
+    readonly hits: "hits";
+    readonly createdAt: "createdAt";
+    readonly expiresAt: "expiresAt";
+};
+export type AiAnswerCacheScalarFieldEnum = (typeof AiAnswerCacheScalarFieldEnum)[keyof typeof AiAnswerCacheScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
 };
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder];
+export declare const JsonNullValueInput: {
+    readonly JsonNull: runtime.JsonNullClass;
+};
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput];
 export declare const QueryMode: {
     readonly default: "default";
     readonly insensitive: "insensitive";
@@ -738,6 +1018,12 @@ export declare const NullsOrder: {
     readonly last: "last";
 };
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder];
+export declare const JsonNullValueFilter: {
+    readonly DbNull: runtime.DbNullClass;
+    readonly JsonNull: runtime.JsonNullClass;
+    readonly AnyNull: runtime.AnyNullClass;
+};
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter];
 export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>;
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>;
 export type EnumUserRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserRole'>;
@@ -759,6 +1045,14 @@ export type EnumCurrencyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 export type ListEnumCurrencyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Currency[]'>;
 export type EnumFetchTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FetchTrigger'>;
 export type ListEnumFetchTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FetchTrigger[]'>;
+export type EnumKbCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbCategory'>;
+export type ListEnumKbCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbCategory[]'>;
+export type EnumKbJurisdictionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbJurisdiction'>;
+export type ListEnumKbJurisdictionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbJurisdiction[]'>;
+export type EnumKbStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbStatus'>;
+export type ListEnumKbStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KbStatus[]'>;
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>;
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>;
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>;
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>;
 export type BatchPayload = {
@@ -792,6 +1086,9 @@ export type GlobalOmitConfig = {
     historicSpotPrice?: Prisma.HistoricSpotPriceOmit;
     branch?: Prisma.BranchOmit;
     fetchAttempt?: Prisma.FetchAttemptOmit;
+    kbDocument?: Prisma.KbDocumentOmit;
+    aiQuestionLog?: Prisma.AiQuestionLogOmit;
+    aiAnswerCache?: Prisma.AiAnswerCacheOmit;
 };
 export type LogLevel = 'info' | 'query' | 'warn' | 'error';
 export type LogDefinition = {

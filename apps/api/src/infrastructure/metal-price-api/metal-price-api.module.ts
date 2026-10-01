@@ -13,10 +13,7 @@ import { METAL_PRICE_API } from './metal-price-api.port';
  * binding, same shape as AUTH_PROVIDER in auth.module.ts.
  */
 @Module({
-    providers: [
-        MetalPriceApiClient,
-        { provide: METAL_PRICE_API, useClass: MetalPriceApiClient },
-    ],
+    providers: [{ provide: METAL_PRICE_API, useClass: MetalPriceApiClient }],
     exports: [METAL_PRICE_API],
 })
 export class MetalPriceApiModule {}

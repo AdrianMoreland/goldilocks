@@ -1,6 +1,6 @@
 /**
  * Auth provider abstraction — everything the rest of the app needs from
- * "whatever handles logins" boiled down to two operations. AuthService only
+ * "whatever handles logins" boiled down to four operations. AuthService only
  * ever talks to this interface, never to Supabase directly, so swapping the
  * identity provider later (Auth0, Cognito, a hand-rolled one, whatever)
  * means writing one new class that implements this and changing the single
@@ -27,6 +27,15 @@ export interface AuthProviderPort {
 
     /** Throws UnauthorizedException on an invalid/expired token. */
     verifyToken(token: string): Promise<AuthIdentity>;
+
+    /**
+     * Provisions a new login. The returned id becomes the app's User.id.
+     * Throws ConflictException if the email is already registered.
+     */
+    createIdentity(email: string, password: string): Promise<AuthIdentity>;
+
+    /** Undoes createIdentity when the app-side User row could not be written. */
+    deleteIdentity(id: string): Promise<void>;
 }
 
 export const AUTH_PROVIDER = Symbol('AUTH_PROVIDER');

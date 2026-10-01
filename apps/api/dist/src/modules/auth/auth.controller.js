@@ -16,17 +16,29 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const auth_service_1 = require("./auth.service");
+const request_metrics_service_1 = require("../admin/request-metrics.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
+const public_decorator_1 = require("../../common/decorators/public.decorator");
 const dtos_1 = require("../../common/dto/dtos");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    metrics;
+    constructor(authService, metrics) {
         this.authService = authService;
+        this.metrics = metrics;
     }
     async login(body) {
-        return this.authService.login(body.email, body.password);
+        try {
+            const result = await this.authService.login(body.email, body.password);
+            this.metrics.recordLogin(true);
+            return result;
+        }
+        catch (error) {
+            this.metrics.recordLogin(false);
+            throw error;
+        }
     }
     async me(req) {
         return this.authService.me(req.user.id);
@@ -37,6 +49,7 @@ let AuthController = class AuthController {
 };
 exports.AuthController = AuthController;
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Login with email & password' }),
@@ -69,6 +82,7 @@ __decorate([
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        request_metrics_service_1.RequestMetricsService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

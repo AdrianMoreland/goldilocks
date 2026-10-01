@@ -18,7 +18,9 @@ let BranchesService = class BranchesService {
         this.prisma = prisma;
     }
     async getAll() {
-        const rows = await this.prisma.branch.findMany({ orderBy: { createdAt: 'desc' } });
+        const rows = await this.prisma.branch.findMany({
+            orderBy: { createdAt: 'desc' },
+        });
         return rows.map((row) => ({
             id: row.id,
             name: row.name,

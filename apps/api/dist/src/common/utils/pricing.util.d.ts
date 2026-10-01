@@ -1,5 +1,5 @@
 import { MetalType, Product, SpotPrice, HistoricSpot, RawProduct, RawSpotPrice } from '@goldilocks/shared-types';
-import { Decimal } from "../../../prisma/generated/internal/prismaNamespace";
+import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
 import { Product as PrismaProduct } from '../../../prisma/generated/client';
 import { MetalSpotPrice as PrismaSpotPrice } from '../../../prisma/generated/client';
 export declare function toNumber(value: Decimal | number | undefined | null): number;
@@ -16,6 +16,11 @@ export interface HistoricSpotRecord {
     priceGbp: number;
     recordedAt: Date;
 }
-export declare const HISTORIC_LOOKBACK_DAYS = 365;
+export declare const HISTORIC_LOOKBACK_DAYS: number;
+export declare const HISTORIC_DAILY_DAYS = 365;
+export declare const HISTORIC_OLD_STEP_DAYS = 7;
+export declare function thinOldHistory<T extends {
+    recordedAt: Date;
+}>(rows: T[], now?: Date): T[];
 export declare function enrichSpotPrices(spotPrices: RawSpotPrice[], historicMap: Map<MetalType, HistoricSpot>): SpotPrice[];
 //# sourceMappingURL=pricing.util.d.ts.map

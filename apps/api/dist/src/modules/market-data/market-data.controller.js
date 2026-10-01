@@ -17,6 +17,9 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const market_data_service_1 = require("./market-data.service");
 const dtos_1 = require("../../common/dto/dtos");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
+const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const date_utils_1 = require("../../common/utils/date.utils");
 let MarketDataController = class MarketDataController {
     marketDataService;
@@ -32,13 +35,20 @@ let MarketDataController = class MarketDataController {
     async refresh() {
         return this.marketDataService.refresh();
     }
-    async debugHistoricClose(date) {
+    async debugHistoricClose({ date }) {
         const targetDate = date ?? (0, date_utils_1.getYesterday)();
         await this.marketDataService.fetchHistoricClose(targetDate);
         return {
             success: true,
             date: targetDate,
         };
+    }
+    backfillHistory(years) {
+        const n = years === undefined ? 5 : Number(years);
+        if (!Number.isInteger(n) || n < 1 || n > 10) {
+            throw new common_1.BadRequestException('years must be a whole number from 1 to 10.');
+        }
+        return this.marketDataService.backfillHistory(n);
     }
     async seedHistory() {
         await this.marketDataService.seedHistoricPrices();
@@ -75,7 +85,7 @@ __decorate([
     (0, common_1.Post)('recalculate'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [dtos_1.RecalculateOverridesDto]),
     __metadata("design:returntype", Promise)
 ], MarketDataController.prototype, "recalculate", null);
 __decorate([
@@ -90,24 +100,49 @@ __decorate([
         type: dtos_1.MarketDataResponseDto,
     }),
     (0, common_1.Post)('refresh'),
+    (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], MarketDataController.prototype, "refresh", null);
 __decorate([
     (0, swagger_1.ApiOperation)({
-        summary: 'Debug: fetch one day\'s historic close',
+        summary: "Debug: fetch one day's historic close",
         description: 'Fetches and stores the historic close for a single date (defaults to yesterday). For manual/debug use, not the regular seeding flow.',
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Historic close fetched successfully' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Historic close fetched successfully',
+    }),
     (0, common_1.Get)('historic-close/debug'),
-    __param(0, (0, common_1.Query)('date')),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [dtos_1.HistoricCloseQueryDto]),
     __metadata("design:returntype", Promise)
 ], MarketDataController.prototype, "debugHistoricClose", null);
 __decorate([
+    (0, common_1.Post)('backfill-history'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Backfill historic metal prices (admin)',
+        description: 'Fetches up to 10 years of daily closes from the vendor, a year per window (2 vendor requests each). Windows already in the database are skipped. Returns what happened to each window.',
+    }),
+    (0, swagger_1.ApiQuery)({ name: 'years', required: false, type: Number }),
+    __param(0, (0, common_1.Query)('years')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], MarketDataController.prototype, "backfillHistory", null);
+__decorate([
     (0, common_1.Post)('seed-history'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({
         summary: 'Seed historic metal prices',
         description: 'Fetches the last year of historic metal prices from MetalPriceAPI and stores them in the database.',

@@ -13,14 +13,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarketDataService = void 0;
 const common_1 = require("@nestjs/common");
 const metals_provider_1 = require("../metals/metals.provider");
+const historic_spot_service_1 = require("../metals/historic-spot.service");
 const products_provider_1 = require("../products/products.provider");
 const pricing_util_1 = require("../../common/utils/pricing.util");
+const ALL_METALS = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
 let MarketDataService = MarketDataService_1 = class MarketDataService {
     metalsProvider;
+    historicSpots;
     productsProvider;
     logger = new common_1.Logger(MarketDataService_1.name);
-    constructor(metalsProvider, productsProvider) {
+    constructor(metalsProvider, historicSpots, productsProvider) {
         this.metalsProvider = metalsProvider;
+        this.historicSpots = historicSpots;
         this.productsProvider = productsProvider;
     }
     async getMarketData() {
@@ -37,19 +41,43 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
         const finalMap = (0, pricing_util_1.mergeMetalPrices)(liveMap, overrides);
         return rawProducts.map((p) => (0, pricing_util_1.calculateProductPrice)(p, finalMap));
     }
+    async getPricedCatalogue(overrides = {}) {
+        const [{ prices, degradedMetals }, rawProducts] = await Promise.all([
+            this.metalsProvider.getAllLatestForLaunch(),
+            this.productsProvider.getAll(),
+        ]);
+        const liveMap = this.toSpotMap(prices);
+        const usedMap = (0, pricing_util_1.mergeMetalPrices)(liveMap, overrides);
+        return {
+            products: rawProducts.map((p) => (0, pricing_util_1.calculateProductPrice)(p, usedMap)),
+            spots: ALL_METALS.map((metal) => {
+                const spot = prices.find((s) => s.metalType === metal);
+                return {
+                    metalType: metal,
+                    usedEur: usedMap[metal],
+                    liveEur: liveMap[metal],
+                    overridden: overrides[metal] !== undefined,
+                    timestamp: spot?.timestamp ?? null,
+                    isFallback: spot?.isFallback ?? false,
+                };
+            }),
+            degradedMetals,
+        };
+    }
     async refresh() {
         const { prices, degradedMetals } = await this.metalsProvider.refreshAll();
         return this.composeMarketData(prices, degradedMetals);
     }
     async composeMarketData(spotPrices, degradedMetals) {
         const [historicSpot, rawProducts] = await Promise.all([
-            this.metalsProvider.getHistoricSpots(),
+            this.historicSpots.getHistoricSpots(),
             this.productsProvider.getAll(),
         ]);
         const latestHistoric = new Map();
         for (const h of historicSpot) {
             const current = latestHistoric.get(h.metalType);
-            if (!current || new Date(h.timestamp) > new Date(current.timestamp)) {
+            if (!current ||
+                new Date(h.timestamp) > new Date(current.timestamp)) {
                 latestHistoric.set(h.metalType, h);
             }
         }
@@ -70,7 +98,7 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
     getSnapshotTimestamp(spotPrices) {
         if (spotPrices.length === 0)
             return new Date().toISOString();
-        return spotPrices.reduce((oldest, spot) => (spot.timestamp < oldest ? spot.timestamp : oldest), spotPrices[0].timestamp);
+        return spotPrices.reduce((oldest, spot) => spot.timestamp < oldest ? spot.timestamp : oldest, spotPrices[0].timestamp);
     }
     toSpotMap(spotPrices) {
         const map = { ...pricing_util_1.ZERO_SPOT_MAP };
@@ -81,12 +109,16 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
     }
     async fetchHistoricClose(date) {
         this.logger.log(`Manual historic close fetch requested for ${date}`);
-        await this.metalsProvider.fetchAndStoreHistoricClose(date);
+        await this.historicSpots.fetchAndStoreHistoricClose(date);
         this.logger.log(`Manual historic close fetch completed for ${date}`);
+    }
+    backfillHistory(years) {
+        this.logger.log(`Historic backfill requested: ${years} year(s)`);
+        return this.historicSpots.backfillYears(years);
     }
     async seedHistoricPrices() {
         this.logger.log('Starting historic price seed...');
-        await this.metalsProvider.seedHistoricPrices();
+        await this.historicSpots.seedHistoricPrices();
         this.logger.log('Historic price seed completed.');
     }
 };
@@ -94,6 +126,7 @@ exports.MarketDataService = MarketDataService;
 exports.MarketDataService = MarketDataService = MarketDataService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [metals_provider_1.MetalsProvider,
+        historic_spot_service_1.HistoricSpotService,
         products_provider_1.ProductsProvider])
 ], MarketDataService);
 //# sourceMappingURL=market-data.service.js.map

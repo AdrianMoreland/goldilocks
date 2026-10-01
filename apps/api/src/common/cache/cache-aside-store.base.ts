@@ -22,7 +22,7 @@ export abstract class CacheAsideStore<TKey, TValue> {
      * something to show) but is deliberately never written back to the
      * cache, so it can't keep re-poisoning reads until it expires.
      */
-    protected isUsable(value: TValue): boolean {
+    protected isUsable(_value: TValue): boolean {
         return true;
     }
 
@@ -36,9 +36,13 @@ export abstract class CacheAsideStore<TKey, TValue> {
         }
 
         if (cached !== null) {
-            this.storeLogger.warn(`Cached value for "${redisKey}" is unusable — querying source instead`);
+            this.storeLogger.warn(
+                `Cached value for "${redisKey}" is unusable — querying source instead`,
+            );
         } else {
-            this.storeLogger.debug(`Cache miss for "${redisKey}", querying source…`);
+            this.storeLogger.debug(
+                `Cache miss for "${redisKey}", querying source…`,
+            );
         }
 
         const fresh = await this.fetchFromSource(key);
@@ -51,7 +55,9 @@ export abstract class CacheAsideStore<TKey, TValue> {
         if (this.isUsable(fresh)) {
             await this.set(key, fresh);
         } else {
-            this.storeLogger.warn(`Source value for "${redisKey}" is unusable — not caching it`);
+            this.storeLogger.warn(
+                `Source value for "${redisKey}" is unusable — not caching it`,
+            );
         }
 
         return fresh;
@@ -60,6 +66,8 @@ export abstract class CacheAsideStore<TKey, TValue> {
     async set(key: TKey, value: TValue): Promise<void> {
         const redisKey = this.cacheKey(key);
         await this.redis.set(redisKey, value, this.ttlSeconds);
-        this.storeLogger.debug(`Cached "${redisKey}" (TTL ${this.ttlSeconds}s)`);
+        this.storeLogger.debug(
+            `Cached "${redisKey}" (TTL ${this.ttlSeconds}s)`,
+        );
     }
 }

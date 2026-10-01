@@ -37,6 +37,7 @@ let ProductCacheStore = class ProductCacheStore extends cache_aside_store_base_1
 exports.ProductCacheStore = ProductCacheStore;
 exports.ProductCacheStore = ProductCacheStore = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [redis_service_1.RedisService, prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [redis_service_1.RedisService,
+        prisma_service_1.PrismaService])
 ], ProductCacheStore);
 //# sourceMappingURL=product-cache.store.js.map

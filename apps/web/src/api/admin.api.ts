@@ -1,7 +1,20 @@
 import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
-import { BranchSchema, ErrorLogEntrySchema, FetchAttemptSchema, FetchMetricsSchema, RawSpotPriceSchema } from '@goldilocks/shared-types';
-import type { Branch, CreateBranchRequest, CreateUserRequest, MetalType } from '@goldilocks/shared-types';
+import {
+    AdminLogsResponseSchema,
+    AdminOverviewSchema,
+    ApiCatalogueSchema,
+    AuditLogResponseSchema,
+    BranchSchema,
+    DbRowResponseSchema,
+    DbRowsResponseSchema,
+    DbTablesResponseSchema,
+    ErrorLogEntrySchema,
+    FetchAttemptSchema,
+    FetchMetricsSchema,
+    RawSpotPriceSchema,
+} from '@goldilocks/shared-types';
+import type { Branch, CreateBranchRequest, CreateUserRequest, LogLevel, MetalType } from '@goldilocks/shared-types';
 
 const CronStatusResponseSchema = z.object({ running: z.boolean() });
 const MessageResponseSchema = z.object({ message: z.string() });
@@ -15,6 +28,7 @@ export function useAdminApi() {
     return {
         getCronStatus: () => client.get('/metals/cron-status', CronStatusResponseSchema),
         toggleCron: () => client.post('/metals/cron-toggle', {}, CronStatusResponseSchema),
+        refreshPrices: () => client.post('/metals/refresh', {}, z.array(RawSpotPriceSchema)),
         clearPriceCache: () => client.post('/metals/clear-cache', {}, MessageResponseSchema),
 
         getBranches: () => client.get('/branches', z.array(BranchSchema)),
@@ -28,5 +42,24 @@ export function useAdminApi() {
 
         getErrorLog: (limit = 200) => client.get(`/errors?limit=${limit}`, ErrorLogResponseSchema),
         clearErrorLog: () => client.del('/errors', MessageResponseSchema),
+
+        getOverview: () => client.get('/admin/overview', AdminOverviewSchema),
+        getLogs: (level: LogLevel, q: string, limit = 300) =>
+            client.get(`/admin/logs?level=${level}&limit=${limit}&q=${encodeURIComponent(q)}`, AdminLogsResponseSchema),
+        getAudit: () => client.get('/admin/audit?limit=200', AuditLogResponseSchema),
+        getEndpoints: () => client.get('/admin/endpoints', ApiCatalogueSchema),
+
+        getDbTables: () => client.get('/admin/db/tables', DbTablesResponseSchema),
+        getDbRows: (table: string, page: number, sort: string, dir: 'asc' | 'desc', q: string, pageSize = 50) =>
+            client.get(
+                `/admin/db/tables/${encodeURIComponent(table)}/rows?page=${page}&pageSize=${pageSize}&dir=${dir}${sort ? `&sort=${encodeURIComponent(sort)}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}`,
+                DbRowsResponseSchema,
+            ),
+        insertDbRow: (table: string, values: Record<string, unknown>) =>
+            client.post(`/admin/db/tables/${encodeURIComponent(table)}/rows`, { values }, DbRowResponseSchema),
+        updateDbRow: (table: string, key: Record<string, string | number>, values: Record<string, unknown>) =>
+            client.patch(`/admin/db/tables/${encodeURIComponent(table)}/rows`, { key, values }, DbRowResponseSchema),
+        deleteDbRow: (table: string, key: Record<string, string | number>) =>
+            client.del(`/admin/db/tables/${encodeURIComponent(table)}/rows`, MessageResponseSchema, { key }),
     };
 }

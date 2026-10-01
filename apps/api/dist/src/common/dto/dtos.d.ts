@@ -206,6 +206,11 @@ declare const UpdateProductDto_base: import("nestjs-zod").ZodDto<import("zod").Z
 }, import("zod/v4/core").$strip>, false>;
 export declare class UpdateProductDto extends UpdateProductDto_base {
 }
+declare const UpdateStockRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    stock_quantity: import("zod").ZodNumber;
+}, import("zod/v4/core").$strip>, false>;
+export declare class UpdateStockRequestDto extends UpdateStockRequestDto_base {
+}
 declare const MarketDataResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
     spotPrices: import("zod").ZodArray<import("zod").ZodObject<{
         id: import("zod").ZodString;
@@ -280,6 +285,19 @@ declare const MarketDataResponseDto_base: import("nestjs-zod").ZodDto<import("zo
     }>>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class MarketDataResponseDto extends MarketDataResponseDto_base {
+}
+declare const RecalculateOverridesDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    GOLD: import("zod").ZodOptional<import("zod").ZodNumber>;
+    SILVER: import("zod").ZodOptional<import("zod").ZodNumber>;
+    PLATINUM: import("zod").ZodOptional<import("zod").ZodNumber>;
+    PALLADIUM: import("zod").ZodOptional<import("zod").ZodNumber>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class RecalculateOverridesDto extends RecalculateOverridesDto_base {
+}
+declare const HistoricCloseQueryDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    date: import("zod").ZodOptional<import("zod").ZodString>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class HistoricCloseQueryDto extends HistoricCloseQueryDto_base {
 }
 declare const TradeBootstrapResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
     metalType: import("zod").ZodEnum<{
@@ -592,6 +610,160 @@ declare const ClientErrorReportBatchDto_base: import("nestjs-zod").ZodDto<import
     }, import("zod/v4/core").$strip>>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class ClientErrorReportBatchDto extends ClientErrorReportBatchDto_base {
+}
+declare const KbDocumentListResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    documents: import("zod").ZodArray<import("zod").ZodObject<{
+        slug: import("zod").ZodString;
+        title: import("zod").ZodString;
+        category: import("zod").ZodEnum<{
+            sales: "sales";
+            trading: "trading";
+            operations: "operations";
+            compliance: "compliance";
+            storage: "storage";
+            systems: "systems";
+            directory: "directory";
+            meta: "meta";
+        }>;
+        jurisdiction: import("zod").ZodEnum<{
+            all: "all";
+            IE: "IE";
+            UK: "UK";
+            ES: "ES";
+        }>;
+        owner: import("zod").ZodString;
+        status: import("zod").ZodEnum<{
+            draft: "draft";
+            approved: "approved";
+            retired: "retired";
+        }>;
+        version: import("zod").ZodNumber;
+        contentUpdatedOn: import("zod").ZodISODate;
+        markdown: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class KbDocumentListResponseDto extends KbDocumentListResponseDto_base {
+}
+declare const KbDocumentDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    slug: import("zod").ZodString;
+    title: import("zod").ZodString;
+    category: import("zod").ZodEnum<{
+        sales: "sales";
+        trading: "trading";
+        operations: "operations";
+        compliance: "compliance";
+        storage: "storage";
+        systems: "systems";
+        directory: "directory";
+        meta: "meta";
+    }>;
+    jurisdiction: import("zod").ZodEnum<{
+        all: "all";
+        IE: "IE";
+        UK: "UK";
+        ES: "ES";
+    }>;
+    owner: import("zod").ZodString;
+    status: import("zod").ZodEnum<{
+        draft: "draft";
+        approved: "approved";
+        retired: "retired";
+    }>;
+    version: import("zod").ZodNumber;
+    contentUpdatedOn: import("zod").ZodISODate;
+    markdown: import("zod").ZodString;
+}, import("zod/v4/core").$strip>, false>;
+export declare class KbDocumentDto extends KbDocumentDto_base {
+}
+declare const UpdateKbDocumentRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    title: import("zod").ZodString;
+    owner: import("zod").ZodString;
+    markdown: import("zod").ZodString;
+}, import("zod/v4/core").$strip>, false>;
+export declare class UpdateKbDocumentRequestDto extends UpdateKbDocumentRequestDto_base {
+}
+declare const SetKbStatusRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    status: import("zod").ZodEnum<{
+        draft: "draft";
+        approved: "approved";
+        retired: "retired";
+    }>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class SetKbStatusRequestDto extends SetKbStatusRequestDto_base {
+}
+declare const AskRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    question: import("zod").ZodString;
+    mode: import("zod").ZodDefault<import("zod").ZodEnum<{
+        email: "email";
+        procedures: "procedures";
+        whatsapp: "whatsapp";
+    }>>;
+    spotOverrides: import("zod").ZodOptional<import("zod").ZodObject<{
+        GOLD: import("zod").ZodOptional<import("zod").ZodNumber>;
+        SILVER: import("zod").ZodOptional<import("zod").ZodNumber>;
+        PLATINUM: import("zod").ZodOptional<import("zod").ZodNumber>;
+        PALLADIUM: import("zod").ZodOptional<import("zod").ZodNumber>;
+    }, import("zod/v4/core").$strip>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class AskRequestDto extends AskRequestDto_base {
+}
+declare const AskResponseDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    answer: import("zod").ZodString;
+    mode: import("zod").ZodEnum<{
+        email: "email";
+        procedures: "procedures";
+        whatsapp: "whatsapp";
+    }>;
+    status: import("zod").ZodEnum<{
+        answered: "answered";
+        refused: "refused";
+        uncited: "uncited";
+    }>;
+    citations: import("zod").ZodArray<import("zod").ZodObject<{
+        slug: import("zod").ZodString;
+        anchor: import("zod").ZodNullable<import("zod").ZodString>;
+        title: import("zod").ZodString;
+        heading: import("zod").ZodNullable<import("zod").ZodString>;
+    }, import("zod/v4/core").$strip>>;
+    model: import("zod").ZodString;
+    usage: import("zod").ZodObject<{
+        inputTokens: import("zod").ZodNumber;
+        cachedInputTokens: import("zod").ZodNumber;
+        outputTokens: import("zod").ZodNumber;
+    }, import("zod/v4/core").$strip>;
+    latencyMs: import("zod").ZodNumber;
+    corpus: import("zod").ZodObject<{
+        documents: import("zod").ZodNumber;
+        hash: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>;
+    cached: import("zod").ZodBoolean;
+    notes: import("zod").ZodNullable<import("zod").ZodString>;
+    warnings: import("zod").ZodArray<import("zod").ZodString>;
+    toolsUsed: import("zod").ZodArray<import("zod").ZodString>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class AskResponseDto extends AskResponseDto_base {
+}
+declare const AiStatusDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    enabled: import("zod").ZodBoolean;
+    model: import("zod").ZodString;
+}, import("zod/v4/core").$strip>, false>;
+export declare class AiStatusDto extends AiStatusDto_base {
+}
+declare const DbInsertRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    values: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber, import("zod").ZodBoolean, import("zod").ZodNull, import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnknown>, import("zod").ZodArray<import("zod").ZodUnknown>]>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class DbInsertRequestDto extends DbInsertRequestDto_base {
+}
+declare const DbUpdateRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    key: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber]>>;
+    values: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber, import("zod").ZodBoolean, import("zod").ZodNull, import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnknown>, import("zod").ZodArray<import("zod").ZodUnknown>]>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class DbUpdateRequestDto extends DbUpdateRequestDto_base {
+}
+declare const DbDeleteRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    key: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber]>>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class DbDeleteRequestDto extends DbDeleteRequestDto_base {
 }
 export {};
 //# sourceMappingURL=dtos.d.ts.map

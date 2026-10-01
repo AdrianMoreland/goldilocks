@@ -5,7 +5,6 @@ export declare class AppController {
     getStatus(): {
         name: string;
         status: string;
-        port: number;
     };
     getHealth(): Promise<{
         status: string;

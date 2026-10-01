@@ -27,5 +27,29 @@ export const RefreshResponseSchema = z.object({
   fetchedAt: z.iso.datetime(),
 });
 
+// "What if" spot overrides from the UI. A string/NaN/negative here would flow
+// straight into price maths, so each value must be a real positive number.
+export const RecalculateOverridesSchema = z.object({
+  GOLD: z.number().positive().optional(),
+  SILVER: z.number().positive().optional(),
+  PLATINUM: z.number().positive().optional(),
+  PALLADIUM: z.number().positive().optional(),
+});
+export type RecalculateOverrides = z.infer<typeof RecalculateOverridesSchema>;
+
+// A real calendar day (2026-02-30 is rejected), since the value is turned into
+// a Date and used to drive paid vendor calls.
+export const HistoricCloseQuerySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+    .refine((value) => {
+      const parsed = new Date(`${value}T00:00:00.000Z`);
+      return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+    }, 'Not a real calendar date')
+    .optional(),
+});
+export type HistoricCloseQuery = z.infer<typeof HistoricCloseQuerySchema>;
+
 export type MarketDataResponse = z.infer<typeof MarketDataResponseSchema>;
 export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import {
     GRAMS_PER_TROY_OUNCE,
     ProfitAnalysisRequest,
@@ -14,7 +18,10 @@ import {
 } from '@goldilocks/shared-types';
 import { ProductsProvider } from '../products/products.provider';
 import { MetalsProvider } from '../metals/metals.provider';
-import { calculateProductPrice, ZERO_SPOT_MAP } from '../../common/utils/pricing.util';
+import {
+    calculateProductPrice,
+    ZERO_SPOT_MAP,
+} from '../../common/utils/pricing.util';
 
 /**
  * PortfolioService — P/L subtab (profit analysis) and the Builder subtab.
@@ -32,19 +39,25 @@ export class PortfolioService {
         private readonly metalsProvider: MetalsProvider,
     ) {}
 
-    async calculateProfitAnalysis(request: ProfitAnalysisRequest): Promise<ProfitAnalysisResponse> {
+    async calculateProfitAnalysis(
+        request: ProfitAnalysisRequest,
+    ): Promise<ProfitAnalysisResponse> {
         const product = await this.productsProvider.getById(request.productId);
 
         if (!product) {
-            throw new NotFoundException(`Product ${request.productId} not found.`);
+            throw new NotFoundException(
+                `Product ${request.productId} not found.`,
+            );
         }
         if (product.metalType !== request.metalType) {
-            throw new BadRequestException(`${product.name} is not a ${request.metalType} product.`);
+            throw new BadRequestException(
+                `${product.name} is not a ${request.metalType} product.`,
+            );
         }
 
         const productMultiplier = product.weight / GRAMS_PER_TROY_OUNCE;
 
-        let solved;
+        let solved: ReturnType<typeof solveMissingPurchaseField>;
         try {
             solved = solveMissingPurchaseField(
                 request.missingField,
@@ -54,7 +67,9 @@ export class PortfolioService {
                 productMultiplier,
             );
         } catch (err) {
-            throw new BadRequestException(err instanceof Error ? err.message : 'Invalid purchase inputs.');
+            throw new BadRequestException(
+                err instanceof Error ? err.message : 'Invalid purchase inputs.',
+            );
         }
 
         const currentBuybackValue = computeCurrentBuybackValue(
@@ -62,13 +77,17 @@ export class PortfolioService {
             request.currentDiscount,
             productMultiplier,
         );
-        const { profit, profitPercent } = computeProfit(currentBuybackValue, solved.purchasePrice);
-        const { requiredSpot, requiredPrice, targetReturn } = computeRequiredSpotForTarget(
+        const { profit, profitPercent } = computeProfit(
+            currentBuybackValue,
             solved.purchasePrice,
-            request.targetProfit,
-            productMultiplier,
-            request.currentDiscount,
         );
+        const { requiredSpot, requiredPrice, targetReturn } =
+            computeRequiredSpotForTarget(
+                solved.purchasePrice,
+                request.targetProfit,
+                productMultiplier,
+                request.currentDiscount,
+            );
 
         return {
             product: product.name,
@@ -88,16 +107,26 @@ export class PortfolioService {
         };
     }
 
-    async buildPortfolio(request: PortfolioBuildRequest): Promise<PortfolioBuildResponse> {
+    async buildPortfolio(
+        request: PortfolioBuildRequest,
+    ): Promise<PortfolioBuildResponse> {
         const [spot, rawProducts] = await Promise.all([
             this.metalsProvider.getLatest(request.metalType),
             this.productsProvider.getAll(),
         ]);
         if (!spot) {
-            throw new NotFoundException(`No spot price available for ${request.metalType}.`);
+            throw new NotFoundException(
+                `No spot price available for ${request.metalType}.`,
+            );
         }
 
-        const spotMap = { ...ZERO_SPOT_MAP, [request.metalType]: request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur };
+        const spotMap = {
+            ...ZERO_SPOT_MAP,
+            [request.metalType]:
+                request.customSpot && request.customSpot > 0
+                    ? request.customSpot
+                    : spot.priceEur,
+        };
 
         const priorityProduct = request.priorityProductId
             ? rawProducts.find((p) => p.id === request.priorityProductId)
@@ -117,7 +146,7 @@ export class PortfolioService {
                 } satisfies PortfolioCandidateProduct;
             });
 
-        let results;
+        let results: ReturnType<typeof buildPortfolioStrategies>;
         try {
             results = buildPortfolioStrategies(
                 candidates,
@@ -127,7 +156,11 @@ export class PortfolioService {
                 request.priorityStrength,
             );
         } catch (err) {
-            throw new BadRequestException(err instanceof Error ? err.message : 'Unable to build a portfolio.');
+            throw new BadRequestException(
+                err instanceof Error
+                    ? err.message
+                    : 'Unable to build a portfolio.',
+            );
         }
 
         return {
@@ -136,7 +169,10 @@ export class PortfolioService {
             productType: request.productType,
             priorityProductId: priorityProduct?.id ?? null,
             priorityStrength: request.priorityStrength,
-            results: results.map(({ strategy, result }) => ({ strategy, ...result })),
+            results: results.map(({ strategy, result }) => ({
+                strategy,
+                ...result,
+            })),
         };
     }
 }

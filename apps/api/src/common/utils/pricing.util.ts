@@ -9,10 +9,9 @@ import {
     roundSellPrice,
     GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
-import { Decimal } from "../../../prisma/generated/internal/prismaNamespace";
-import {Product as PrismaProduct} from '../../../prisma/generated/client'
-import {MetalSpotPrice as PrismaSpotPrice } from '../../../prisma/generated/client'
-
+import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
+import { Product as PrismaProduct } from '../../../prisma/generated/client';
+import { MetalSpotPrice as PrismaSpotPrice } from '../../../prisma/generated/client';
 
 /**
  * Converts a Decimal, number, or undefined/null value to a number.
@@ -26,7 +25,6 @@ export function toNumber(value: Decimal | number | undefined | null): number {
     return value;
 }
 
-
 /**
  * Rounds a number to 2 decimal places.
  * @param value - The number to round.
@@ -35,7 +33,6 @@ export function toNumber(value: Decimal | number | undefined | null): number {
 function round2(value: number): number {
     return Math.round((value + Number.EPSILON) * 100) / 100;
 }
-
 
 /*
 export function toRawMetalSpotPrice(
@@ -60,9 +57,7 @@ export function toRawMetalSpotPrice(
  * @param record - The PrismaSpotPrice record to convert.
  * @returns The converted RawSpotPrice object.
  */
-export function toRawMetalSpotPrice(
-    record: PrismaSpotPrice,
-): RawSpotPrice {
+export function toRawMetalSpotPrice(record: PrismaSpotPrice): RawSpotPrice {
     return {
         id: record.id.toString(),
         metalType: record.metalType,
@@ -79,9 +74,7 @@ export function toRawMetalSpotPrice(
  * @param product - The PrismaProduct record to convert.
  * @returns The converted RawProduct object.
  */
-export function toRawProduct(
-    product: PrismaProduct,
-): RawProduct{
+export function toRawProduct(product: PrismaProduct): RawProduct {
     return {
         id: product.id,
         sku: product.sku,
@@ -180,7 +173,6 @@ export function mergeMetalPrices(
     return merged;
 }
 
-
 /**
  * Spot-price map with all metal types defaulted to 0.
  * Serves as a safe fallback.
@@ -192,7 +184,12 @@ export const ZERO_SPOT_MAP: Record<MetalType, number> = {
     PALLADIUM: 0,
 };
 
-export const ALL_METALS: MetalType[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
+export const ALL_METALS: MetalType[] = [
+    'GOLD',
+    'SILVER',
+    'PLATINUM',
+    'PALLADIUM',
+];
 
 export const SYMBOL_MAP: Record<MetalType, string> = {
     GOLD: 'XAU',
@@ -208,7 +205,31 @@ export interface HistoricSpotRecord {
     recordedAt: Date;
 }
 
-export const HISTORIC_LOOKBACK_DAYS = 365;
+/** How far back the chart can go. Five years of daily rows is ~7,300 per metal-set, so older history is thinned (see thinOldHistory). */
+export const HISTORIC_LOOKBACK_DAYS = 5 * 365 + 1;
+/** Rows newer than this are sent daily; older ones one per week, which a 5-year chart can't tell apart from daily. */
+export const HISTORIC_DAILY_DAYS = 365;
+export const HISTORIC_OLD_STEP_DAYS = 7;
+
+/**
+ * Keeps every row from the last HISTORIC_DAILY_DAYS, and from before that only
+ * one calendar day in seven. The step is anchored to the epoch day, so the
+ * same days are chosen on every request and the chart doesn't shimmer.
+ */
+export function thinOldHistory<T extends { recordedAt: Date }>(
+    rows: T[],
+    now: Date = new Date(),
+): T[] {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const cutoff = now.getTime() - HISTORIC_DAILY_DAYS * dayMs;
+    return rows.filter(
+        (row) =>
+            row.recordedAt.getTime() >= cutoff ||
+            Math.floor(row.recordedAt.getTime() / dayMs) %
+                HISTORIC_OLD_STEP_DAYS ===
+                0,
+    );
+}
 
 /**
  * Enriches spot prices with historic data, calculating the previous close,
@@ -219,16 +240,14 @@ export const HISTORIC_LOOKBACK_DAYS = 365;
  */
 export function enrichSpotPrices(
     spotPrices: RawSpotPrice[],
-    historicMap: Map<MetalType, HistoricSpot>
+    historicMap: Map<MetalType, HistoricSpot>,
 ): SpotPrice[] {
     return spotPrices.map((spot) => {
         const previousEntry = historicMap.get(spot.metalType);
         const previousClose = previousEntry?.priceEur ?? 0;
         const change = spot.priceEur - previousClose;
         const changePercent =
-            previousClose !== 0
-                ? (change / previousClose) * 100
-                : 0;
+            previousClose !== 0 ? (change / previousClose) * 100 : 0;
 
         return {
             ...spot,

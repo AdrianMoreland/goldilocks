@@ -44,7 +44,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Recent server and reported client errors, newest first (admin)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Recent server and reported client errors, newest first (admin)',
+    }),
     __param(0, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -64,7 +66,9 @@ __decorate([
     (0, common_1.Post)('client'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Report browser-side errors (any signed-in user)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Report browser-side errors (any signed-in user)',
+    }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),

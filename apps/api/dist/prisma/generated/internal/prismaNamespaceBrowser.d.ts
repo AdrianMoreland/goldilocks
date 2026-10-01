@@ -17,6 +17,9 @@ export declare const ModelName: {
     readonly HistoricSpotPrice: "HistoricSpotPrice";
     readonly Branch: "Branch";
     readonly FetchAttempt: "FetchAttempt";
+    readonly KbDocument: "KbDocument";
+    readonly AiQuestionLog: "AiQuestionLog";
+    readonly AiAnswerCache: "AiAnswerCache";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export declare const TransactionIsolationLevel: {
@@ -95,11 +98,66 @@ export declare const FetchAttemptScalarFieldEnum: {
     readonly triggeredBy: "triggeredBy";
 };
 export type FetchAttemptScalarFieldEnum = (typeof FetchAttemptScalarFieldEnum)[keyof typeof FetchAttemptScalarFieldEnum];
+export declare const KbDocumentScalarFieldEnum: {
+    readonly id: "id";
+    readonly slug: "slug";
+    readonly title: "title";
+    readonly category: "category";
+    readonly jurisdiction: "jurisdiction";
+    readonly owner: "owner";
+    readonly status: "status";
+    readonly version: "version";
+    readonly contentUpdatedOn: "contentUpdatedOn";
+    readonly markdown: "markdown";
+    readonly contentHash: "contentHash";
+    readonly editedInApp: "editedInApp";
+    readonly createdAt: "createdAt";
+    readonly updatedAt: "updatedAt";
+};
+export type KbDocumentScalarFieldEnum = (typeof KbDocumentScalarFieldEnum)[keyof typeof KbDocumentScalarFieldEnum];
+export declare const AiQuestionLogScalarFieldEnum: {
+    readonly id: "id";
+    readonly createdAt: "createdAt";
+    readonly userId: "userId";
+    readonly question: "question";
+    readonly status: "status";
+    readonly mode: "mode";
+    readonly toolNames: "toolNames";
+    readonly cached: "cached";
+    readonly retried: "retried";
+    readonly citations: "citations";
+    readonly model: "model";
+    readonly corpusHash: "corpusHash";
+    readonly inputTokens: "inputTokens";
+    readonly cachedInputTokens: "cachedInputTokens";
+    readonly outputTokens: "outputTokens";
+    readonly costMicros: "costMicros";
+    readonly latencyMs: "latencyMs";
+    readonly error: "error";
+};
+export type AiQuestionLogScalarFieldEnum = (typeof AiQuestionLogScalarFieldEnum)[keyof typeof AiQuestionLogScalarFieldEnum];
+export declare const AiAnswerCacheScalarFieldEnum: {
+    readonly id: "id";
+    readonly questionKey: "questionKey";
+    readonly corpusHash: "corpusHash";
+    readonly answer: "answer";
+    readonly status: "status";
+    readonly citations: "citations";
+    readonly model: "model";
+    readonly hits: "hits";
+    readonly createdAt: "createdAt";
+    readonly expiresAt: "expiresAt";
+};
+export type AiAnswerCacheScalarFieldEnum = (typeof AiAnswerCacheScalarFieldEnum)[keyof typeof AiAnswerCacheScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
 };
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder];
+export declare const JsonNullValueInput: {
+    readonly JsonNull: import("@prisma/client/runtime/client").JsonNullClass;
+};
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput];
 export declare const QueryMode: {
     readonly default: "default";
     readonly insensitive: "insensitive";
@@ -110,4 +168,10 @@ export declare const NullsOrder: {
     readonly last: "last";
 };
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder];
+export declare const JsonNullValueFilter: {
+    readonly DbNull: import("@prisma/client/runtime/client").DbNullClass;
+    readonly JsonNull: import("@prisma/client/runtime/client").JsonNullClass;
+    readonly AnyNull: import("@prisma/client/runtime/client").AnyNullClass;
+};
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter];
 //# sourceMappingURL=prismaNamespaceBrowser.d.ts.map

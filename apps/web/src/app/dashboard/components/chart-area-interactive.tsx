@@ -21,6 +21,7 @@ import {
     ToggleGroup,
     ToggleGroupItem,
 } from "@/components/ui/toggle-group"
+import {ChevronDown} from "lucide-react"
 import {Button} from "@/components/ui/button"
 
 
@@ -63,16 +64,19 @@ const chartMetalKeys: ChartMetalKey[] = [
 type ChartRow = { date: string; } & Partial<Record<ChartMetalKey, number>>;
 type ChartMode = | "all" | "selected";
 type DisplayMode = | "absolute" | "performance";
-type TimeRange = | "7d" | "30d" | "90d" | "180d" | "365d";
+type TimeRange = | "7d" | "30d" | "90d" | "180d" | "365d" | "1825d";
 
 interface ChartAreaInteractiveProps {
     data: HistoricSpot[];
     selectedMetal: MetalType | null;
+    /** Hides the chart; the page leaves a one-line bar to bring it back. */
+    onCollapse?: () => void;
 }
 
 export function ChartAreaInteractive({
                                          data,
-                                         selectedMetal
+                                         selectedMetal,
+                                         onCollapse
                                      }: ChartAreaInteractiveProps) {
     // Defaults: 1Y range, just the selected metal (Gold on first launch —
     // see usePricingWorkbook's selectedMetal), absolute prices. Every change
@@ -121,6 +125,7 @@ export function ChartAreaInteractive({
                 "90d": 90,
                 "180d": 180,
                 "365d": 365,
+                "1825d": 1825,
             };
 
             const days = daysLookup[timeRange];
@@ -212,7 +217,21 @@ export function ChartAreaInteractive({
     return (
         <Card className="@container/card flex h-full min-h-0 flex-col gap-2 py-3">
             <CardHeader className="px-4">
-                <CardTitle>Spot price history</CardTitle>
+                <CardTitle className="flex items-center gap-1">
+                    {onCollapse && (
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="-ml-2 size-7 cursor-pointer"
+                            title="Hide the price chart (g)"
+                            aria-label="Hide the price chart"
+                            onClick={onCollapse}
+                        >
+                            <ChevronDown className="size-4"/>
+                        </Button>
+                    )}
+                    Spot price history
+                </CardTitle>
                 <CardAction className="flex items-center gap-2">
 
                     {/* All Metals / Selected toggle */}
@@ -303,6 +322,13 @@ export function ChartAreaInteractive({
                         >
                             1Y
                         </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="1825d"
+                            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+                        >
+                            5Y
+                        </ToggleGroupItem>
                     </ToggleGroup>
                 </CardAction>
             </CardHeader>
@@ -392,10 +418,10 @@ export function ChartAreaInteractive({
                             minTickGap={32}
                             tickFormatter={(value) => {
                                 const date = new Date(value)
-                                return date.toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                })
+                                // Past a year, "Mar 3" is ambiguous: show month and year instead.
+                                return timeRange === "365d" || timeRange === "1825d"
+                                    ? date.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+                                    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
                             }}
                         />
                         {displayMode === "performance" && (
@@ -414,6 +440,7 @@ export function ChartAreaInteractive({
                                             {
                                                 month: "short",
                                                 day: "numeric",
+                                                year: "numeric",
                                             }
                                         )
                                     }}

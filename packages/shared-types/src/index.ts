@@ -32,11 +32,15 @@ export * from './auth.schemas';
 export {
     MarketDataResponseSchema,
     RefreshResponseSchema,
+    RecalculateOverridesSchema,
+    HistoricCloseQuerySchema,
 } from './market-data.schema';
 
 export type {
     MarketDataResponse,
     RefreshResponse,
+    RecalculateOverrides,
+    HistoricCloseQuery,
 } from './market-data.schema';
 // All DTOs
 
@@ -48,3 +52,12 @@ export * from './session.schema';
 export * from './branch.schema';
 export * from './fetch-attempt.schema';
 export * from './error-log.schema';
+
+export * from './kb.schema';
+export * from './kb-markdown';
+export * from './kb-search';
+export * from './kb-guide';
+export * from './kb-terms';
+export * from './kb-review';
+export * from './ai.schema';
+export * from './admin.schema';

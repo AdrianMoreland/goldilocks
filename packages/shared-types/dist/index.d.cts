@@ -109,6 +109,10 @@ declare const UpdateProductFullDtoSchema: z.ZodObject<{
     priceBuy: z.ZodOptional<z.ZodNumber>;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;
+declare const UpdateStockRequestSchema: z.ZodObject<{
+    stock_quantity: z.ZodNumber;
+}, z.core.$strip>;
+type UpdateStockRequest = z.infer<typeof UpdateStockRequestSchema>;
 declare const ProductsSchema: z.ZodArray<z.ZodObject<{
     id: z.ZodNumber;
     sku: z.ZodString;
@@ -626,6 +630,17 @@ declare const RefreshResponseSchema: z.ZodObject<{
     }, z.core.$strip>>;
     fetchedAt: z.ZodISODateTime;
 }, z.core.$strip>;
+declare const RecalculateOverridesSchema: z.ZodObject<{
+    GOLD: z.ZodOptional<z.ZodNumber>;
+    SILVER: z.ZodOptional<z.ZodNumber>;
+    PLATINUM: z.ZodOptional<z.ZodNumber>;
+    PALLADIUM: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+type RecalculateOverrides = z.infer<typeof RecalculateOverridesSchema>;
+declare const HistoricCloseQuerySchema: z.ZodObject<{
+    date: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+type HistoricCloseQuery = z.infer<typeof HistoricCloseQuerySchema>;
 type MarketDataResponse = z.infer<typeof MarketDataResponseSchema>;
 type RefreshResponse = z.infer<typeof RefreshResponseSchema>;
 
@@ -1315,4 +1330,854 @@ type ClientErrorReportBatch = z.infer<typeof ClientErrorReportBatchSchema>;
 /** "E-7F3K2" — short enough to read out over the phone. */
 declare function createErrorReference(): string;
 
-export { type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HistoricSpot, HistoricSpotSchema, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateProductFullDto, UpdateProductFullDtoSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, createErrorReference, normalizeProductName, roundBuyPrice, roundSellPrice, solveMissingPurchaseField };
+/**
+ * Knowledge Center (roadmap 1.4). The SOP file format is specified in
+ * docs/sops/00-README.md; these enums are that spec in code, so the importer,
+ * the API and the web app can never disagree about what a category is.
+ */
+declare const KB_CATEGORIES: readonly ["sales", "trading", "operations", "compliance", "storage", "systems", "directory", "meta"];
+declare const KbCategoryEnum: z.ZodEnum<{
+    sales: "sales";
+    trading: "trading";
+    operations: "operations";
+    compliance: "compliance";
+    storage: "storage";
+    systems: "systems";
+    directory: "directory";
+    meta: "meta";
+}>;
+type KbCategory = z.infer<typeof KbCategoryEnum>;
+declare const KbJurisdictionEnum: z.ZodEnum<{
+    all: "all";
+    IE: "IE";
+    UK: "UK";
+    ES: "ES";
+}>;
+type KbJurisdiction = z.infer<typeof KbJurisdictionEnum>;
+/** draft: visible with a "Not yet approved" banner · approved: visible · retired: hidden from staff, kept for audit. */
+declare const KbStatusEnum: z.ZodEnum<{
+    draft: "draft";
+    approved: "approved";
+    retired: "retired";
+}>;
+type KbStatus = z.infer<typeof KbStatusEnum>;
+/** Matches the README's slug rule. Never changes after approval — links depend on it. */
+declare const KbSlugSchema: z.ZodString;
+/** The YAML frontmatter at the top of every SOP file. Values arrive as strings, hence the coercion on version. */
+declare const KbFrontmatterSchema: z.ZodObject<{
+    slug: z.ZodString;
+    title: z.ZodString;
+    category: z.ZodEnum<{
+        sales: "sales";
+        trading: "trading";
+        operations: "operations";
+        compliance: "compliance";
+        storage: "storage";
+        systems: "systems";
+        directory: "directory";
+        meta: "meta";
+    }>;
+    jurisdiction: z.ZodEnum<{
+        all: "all";
+        IE: "IE";
+        UK: "UK";
+        ES: "ES";
+    }>;
+    owner: z.ZodString;
+    status: z.ZodEnum<{
+        draft: "draft";
+        approved: "approved";
+        retired: "retired";
+    }>;
+    version: z.ZodCoercedNumber<unknown>;
+    updatedAt: z.ZodISODate;
+}, z.core.$strip>;
+type KbFrontmatter = z.infer<typeof KbFrontmatterSchema>;
+/** One SOP as the API serves it. `contentUpdatedOn` is the SOP's own date (frontmatter `updatedAt`), not the row's. */
+declare const KbDocumentSchema: z.ZodObject<{
+    slug: z.ZodString;
+    title: z.ZodString;
+    category: z.ZodEnum<{
+        sales: "sales";
+        trading: "trading";
+        operations: "operations";
+        compliance: "compliance";
+        storage: "storage";
+        systems: "systems";
+        directory: "directory";
+        meta: "meta";
+    }>;
+    jurisdiction: z.ZodEnum<{
+        all: "all";
+        IE: "IE";
+        UK: "UK";
+        ES: "ES";
+    }>;
+    owner: z.ZodString;
+    status: z.ZodEnum<{
+        draft: "draft";
+        approved: "approved";
+        retired: "retired";
+    }>;
+    version: z.ZodNumber;
+    contentUpdatedOn: z.ZodISODate;
+    markdown: z.ZodString;
+}, z.core.$strip>;
+type KbDocument = z.infer<typeof KbDocumentSchema>;
+declare const KbDocumentListResponseSchema: z.ZodObject<{
+    documents: z.ZodArray<z.ZodObject<{
+        slug: z.ZodString;
+        title: z.ZodString;
+        category: z.ZodEnum<{
+            sales: "sales";
+            trading: "trading";
+            operations: "operations";
+            compliance: "compliance";
+            storage: "storage";
+            systems: "systems";
+            directory: "directory";
+            meta: "meta";
+        }>;
+        jurisdiction: z.ZodEnum<{
+            all: "all";
+            IE: "IE";
+            UK: "UK";
+            ES: "ES";
+        }>;
+        owner: z.ZodString;
+        status: z.ZodEnum<{
+            draft: "draft";
+            approved: "approved";
+            retired: "retired";
+        }>;
+        version: z.ZodNumber;
+        contentUpdatedOn: z.ZodISODate;
+        markdown: z.ZodString;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+type KbDocumentListResponse = z.infer<typeof KbDocumentListResponseSchema>;
+/**
+ * Admin edit of a SOP's content. Frontmatter fields the file format owns
+ * (slug, category, jurisdiction, version, status, date) are deliberately not
+ * editable here: slug never changes, status moves through the approval
+ * workflow, and version/date are set by approval.
+ */
+declare const UpdateKbDocumentRequestSchema: z.ZodObject<{
+    title: z.ZodString;
+    owner: z.ZodString;
+    markdown: z.ZodString;
+}, z.core.$strip>;
+type UpdateKbDocumentRequest = z.infer<typeof UpdateKbDocumentRequestSchema>;
+/** Moves a SOP through draft → approved, back to draft, or to retired. */
+declare const SetKbStatusRequestSchema: z.ZodObject<{
+    status: z.ZodEnum<{
+        draft: "draft";
+        approved: "approved";
+        retired: "retired";
+    }>;
+}, z.core.$strip>;
+type SetKbStatusRequest = z.infer<typeof SetKbStatusRequestSchema>;
+/** Plain-language description of each category, shown on the library tiles (from the README's category list). */
+declare const KB_CATEGORY_INFO: Record<KbCategory, {
+    label: string;
+    description: string;
+}>;
+
+/** Applies `fn` to the text outside fenced blocks and inline code, leaving code untouched. */
+declare function mapOutsideCode(markdown: string, fn: (text: string) => string): string;
+interface RawKbFile {
+    data: Record<string, string>;
+    body: string;
+}
+/** Flat `key: value` frontmatter between `---` fences. Nothing nested — the SOP format doesn't need it. */
+declare function splitFrontmatter(raw: string): RawKbFile | null;
+/** "Identity check" → "identity-check", "Customer safe (CST Safe)" → "customer-safe-cst-safe". */
+declare function headingAnchor(text: string): string;
+interface KbSection {
+    /** Citation anchor, unique within the document. Empty for the text before the first heading. */
+    anchor: string;
+    heading: string;
+    /** Section body without its heading line. */
+    markdown: string;
+    /** Contains at least one `[TODO: …]` — the fact is unconfirmed, so nobody (human or AI) should rely on it. */
+    hasTodo: boolean;
+    /** The text of each TODO, for showing "what needs confirming". */
+    todos: string[];
+    /** "Proposed controls (not yet in force)" — intended practice, not current practice. */
+    isProposed: boolean;
+}
+declare function findTodos(markdown: string): string[];
+/** Splits at level-2 headings (the README's "section"); deeper headings stay inside their section. */
+declare function splitSections(body: string): KbSection[];
+interface KbLinkRef {
+    slug: string;
+    anchor: string | null;
+}
+/** Every `[[slug]]` / `[[slug#section]]` outside code. */
+declare function findLinks(markdown: string): KbLinkRef[];
+interface ResolvedKbLink {
+    label: string;
+    href: string;
+}
+/** Path of an article in the web app — also what the README says the importer rewrites links to. */
+declare function kbArticlePath(slug: string, anchor?: string | null): string;
+/** Marker href for a link whose SOP isn't in the Knowledge Center (yet). The web app renders it as a muted chip. */
+declare const KB_UNRESOLVED_HREF_PREFIX = "#unresolved-sop:";
+/**
+ * Turns `[[slug#section]]` into an ordinary Markdown link. `resolve` supplies
+ * the label/href (it knows titles and the current document); returning null
+ * marks the link as unresolved rather than leaving raw brackets on screen.
+ */
+declare function rewriteKbLinks(markdown: string, resolve: (ref: KbLinkRef) => ResolvedKbLink | null): string;
+interface ParsedKbDocument {
+    frontmatter: KbFrontmatter;
+    body: string;
+    sections: KbSection[];
+    links: KbLinkRef[];
+}
+type ParseKbResult = {
+    ok: true;
+    doc: ParsedKbDocument;
+} | {
+    ok: false;
+    errors: string[];
+};
+declare function parseKbDocument(raw: string): ParseKbResult;
+interface BrokenKbLink {
+    from: string;
+    slug: string;
+    anchor: string | null;
+    reason: 'missing-document' | 'missing-section';
+}
+/**
+ * Checks every link in a set of documents against that set. A link to a slug
+ * that doesn't exist fails the import (README); a link to a section that
+ * doesn't exist is the same mistake one level down.
+ */
+declare function findBrokenLinks(docs: {
+    slug: string;
+    sections: KbSection[];
+    links: KbLinkRef[];
+}[]): BrokenKbLink[];
+
+/**
+ * Knowledge Center search. Runs in the browser over the already-loaded SOPs
+ * (a handful of short documents), so typing gives instant, section-level
+ * results without a round trip. Pure and dependency-free on purpose: if the
+ * corpus ever outgrows this, the same function can back a server endpoint.
+ */
+interface KbIndexedSection {
+    anchor: string;
+    heading: string;
+    /** Plain text: Markdown syntax and [[link]] brackets removed. */
+    text: string;
+    hasTodo: boolean;
+}
+interface KbIndexedDocument {
+    slug: string;
+    title: string;
+    category: KbCategory;
+    sections: KbIndexedSection[];
+}
+/** Markdown → readable plain text, good enough for matching and snippets. */
+declare function toPlainText(markdown: string): string;
+declare function indexKbDocument(doc: {
+    slug: string;
+    title: string;
+    category: KbCategory;
+    markdown: string;
+}): KbIndexedDocument;
+interface KbSnippetPart {
+    text: string;
+    hit: boolean;
+}
+interface KbSearchHit {
+    slug: string;
+    title: string;
+    category: KbCategory;
+    /** Null when the match is on the document title alone. */
+    sectionAnchor: string | null;
+    sectionHeading: string | null;
+    hasTodo: boolean;
+    score: number;
+    snippet: KbSnippetPart[];
+}
+/**
+ * Every query word must appear somewhere in a section (or in its document's
+ * title). Title and heading matches outrank body matches; ties keep the
+ * library's own order so results don't shuffle as you type.
+ */
+declare function searchKb(docs: KbIndexedDocument[], query: string, limit?: number): KbSearchHit[];
+
+/**
+ * The Knowledge Center's front door: a flowchart that starts from the one
+ * question every desk interaction begins with — who is paying whom? — and
+ * then chains the steps, each pointing at the exact SOP section that answers
+ * "what do I do now?".
+ *
+ * This is navigation, not content: the SOP files stay the owners'. It lives
+ * here (plain data, no UI imports) so a test can check every target against
+ * the real SOP files — an owner renaming a heading must fail a test, not
+ * silently break a link on the desk's most-used page.
+ *
+ * Wording follows the product vocabulary: "Price" is what the customer pays
+ * us, "Buyback" is what we pay the customer — never "Sell"/"Buy".
+ */
+/** Icon names the web app maps to its icon set; kept as strings so this package stays UI-free. */
+type KbGuideIcon = 'file-text' | 'calculator' | 'banknote' | 'lock' | 'package-check' | 'id-card' | 'search-check' | 'hand-coins' | 'boxes' | 'vault' | 'book-user' | 'shield-check' | 'messages' | 'phone' | 'blocks' | 'layout-dashboard' | 'user-search' | 'receipt';
+/** A place in the library (a whole SOP, or one section of it), or somewhere else in the app. */
+type KbGuideTarget = {
+    slug: string;
+    anchor?: string;
+} | {
+    href: string;
+};
+interface KbGuideStep {
+    title: string;
+    hint: string;
+    icon: KbGuideIcon;
+    target: KbGuideTarget;
+}
+interface KbGuideLink {
+    label: string;
+    target: KbGuideTarget;
+}
+interface KbGuideBranch {
+    id: 'price' | 'buyback';
+    title: string;
+    /** Who is buying, in plain words. */
+    tag: string;
+    blurb: string;
+    icon: KbGuideIcon;
+    steps: KbGuideStep[];
+    /** Side situations that branch off this path. */
+    alsoSee: KbGuideLink[];
+}
+interface KbGuideShortcut {
+    label: string;
+    hint: string;
+    icon: KbGuideIcon;
+    target: KbGuideTarget;
+    /** The SOP doesn't exist yet; the tile shows "coming soon" instead of a dead link. */
+    pendingSop?: boolean;
+}
+interface KbGuide {
+    start: {
+        title: string;
+        hint: string;
+    };
+    branches: KbGuideBranch[];
+    quickLinks: KbGuideShortcut[];
+    tools: KbGuideShortcut[];
+}
+declare const KB_GUIDE: KbGuide;
+/** Every library target the guide points at, for tests and for the web app's resolver. */
+declare function guideLibraryTargets(guide?: KbGuide): {
+    slug: string;
+    anchor?: string;
+    pendingSop: boolean;
+}[];
+
+/**
+ * Words and phrases in SOP text that are explained by another SOP. The reader
+ * turns the first mention of each into a link, so nobody has to know where
+ * "customer safe" or "market modes" is defined. The SOP files are never
+ * edited for this: links are added at display time from this list, and a test
+ * checks every target against the real SOPs so a renamed heading is caught.
+ */
+interface KbTerm {
+    id: string;
+    /** Matched as whole words/phrases, longest first. */
+    phrases: string[];
+    target: {
+        slug: string;
+        anchor?: string;
+    };
+    /** Abbreviations like "VAT" or "BC" must match exactly; "net" in a sentence is not "NET". */
+    caseSensitive?: boolean;
+    /** The SOP doesn't exist yet; the term simply isn't linked until it does. */
+    pendingSop?: boolean;
+}
+declare const KB_TERMS: KbTerm[];
+/** Whole-word matcher for one term. Global, so callers can iterate matches. */
+declare function termRegExp(term: KbTerm): RegExp;
+/**
+ * Decides, once for a whole article, which section links which term. A term
+ * is linked only where it first appears — repeating a link on every mention
+ * turns a page into a wall of underlines — and never to the article you are
+ * already reading. `isAvailable` lets the caller drop targets that aren't in
+ * the library (retired, or not written yet).
+ */
+declare function planAutolinks(sections: {
+    anchor: string;
+    heading: string;
+    markdown: string;
+}[], currentSlug: string, isAvailable: (target: KbTerm['target']) => boolean, terms?: KbTerm[]): Map<string, KbTerm[]>;
+
+/**
+ * SOP review cadence (README: "Review every 6 months"). Pure date maths, used
+ * by the reader to show when a procedure is next due and by the admin view to
+ * list what is overdue. Dates are whole days in UTC, matching how SOPs are
+ * dated, so the answer never shifts with the viewer's time zone.
+ */
+declare const KB_REVIEW_MONTHS = 6;
+/** How far ahead a review counts as "due soon". */
+declare const KB_REVIEW_WARNING_DAYS = 30;
+type KbReviewState = 'ok' | 'due-soon' | 'overdue';
+interface KbReviewStatus {
+    /** YYYY-MM-DD the next review is due. */
+    dueOn: string;
+    state: KbReviewState;
+    /** Negative once overdue. */
+    daysUntilDue: number;
+}
+/** The date six months on, clamped to the month's end (31 Aug → 28 Feb, never "3 Mar"). */
+declare function kbReviewDueOn(contentUpdatedOn: string, months?: number): string;
+declare function kbReviewStatus(contentUpdatedOn: string, now?: Date): KbReviewStatus;
+
+/**
+ * Internal AI assistant (roadmap 1.5; plan in docs/AI-AGENT-PLAN.md).
+ * One question in, one answer out — no conversation history is sent.
+ */
+/**
+ * What the staff member wants from the assistant:
+ *  procedures — answer a question about how the desk works (from the approved SOPs)
+ *  email      — they pasted a customer's email; draft a reply to send back
+ *  whatsapp   — the same, for a WhatsApp message (shorter, less formal)
+ */
+declare const AiModeEnum: z.ZodEnum<{
+    email: "email";
+    procedures: "procedures";
+    whatsapp: "whatsapp";
+}>;
+type AiMode = z.infer<typeof AiModeEnum>;
+/** Long enough for a real question, short enough that nobody pastes a document (and its tokens) into it. */
+declare const AI_QUESTION_MAX_LENGTH = 500;
+/** A pasted customer message is longer than a question, but still bounded. */
+declare const AI_MESSAGE_MAX_LENGTH = 4000;
+declare function aiInputLimit(mode: AiMode): number;
+declare const AskRequestSchema: z.ZodObject<{
+    question: z.ZodString;
+    mode: z.ZodDefault<z.ZodEnum<{
+        email: "email";
+        procedures: "procedures";
+        whatsapp: "whatsapp";
+    }>>;
+    spotOverrides: z.ZodOptional<z.ZodObject<{
+        GOLD: z.ZodOptional<z.ZodNumber>;
+        SILVER: z.ZodOptional<z.ZodNumber>;
+        PLATINUM: z.ZodOptional<z.ZodNumber>;
+        PALLADIUM: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+type AskRequest = z.infer<typeof AskRequestSchema>;
+/** What a client sends: `mode` may be left out and defaults to "procedures". */
+type AskRequestInput = z.input<typeof AskRequestSchema>;
+/**
+ * answered — answered from the SOPs, with at least one valid citation
+ * refused  — the approved SOPs don't cover it (or it isn't confirmed), and the assistant said so
+ * uncited  — the model answered but cited nothing the library recognises; shown with a warning
+ */
+declare const AiAnswerStatusEnum: z.ZodEnum<{
+    answered: "answered";
+    refused: "refused";
+    uncited: "uncited";
+}>;
+type AiAnswerStatus = z.infer<typeof AiAnswerStatusEnum>;
+/** A section of a SOP the answer relied on. `anchor` is null for a citation of a whole SOP. */
+declare const AiCitationSchema: z.ZodObject<{
+    slug: z.ZodString;
+    anchor: z.ZodNullable<z.ZodString>;
+    title: z.ZodString;
+    heading: z.ZodNullable<z.ZodString>;
+}, z.core.$strip>;
+type AiCitation = z.infer<typeof AiCitationSchema>;
+declare const AiUsageSchema: z.ZodObject<{
+    inputTokens: z.ZodNumber;
+    cachedInputTokens: z.ZodNumber;
+    outputTokens: z.ZodNumber;
+}, z.core.$strip>;
+type AiUsage = z.infer<typeof AiUsageSchema>;
+declare const AskResponseSchema: z.ZodObject<{
+    answer: z.ZodString;
+    mode: z.ZodEnum<{
+        email: "email";
+        procedures: "procedures";
+        whatsapp: "whatsapp";
+    }>;
+    status: z.ZodEnum<{
+        answered: "answered";
+        refused: "refused";
+        uncited: "uncited";
+    }>;
+    citations: z.ZodArray<z.ZodObject<{
+        slug: z.ZodString;
+        anchor: z.ZodNullable<z.ZodString>;
+        title: z.ZodString;
+        heading: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>>;
+    model: z.ZodString;
+    usage: z.ZodObject<{
+        inputTokens: z.ZodNumber;
+        cachedInputTokens: z.ZodNumber;
+        outputTokens: z.ZodNumber;
+    }, z.core.$strip>;
+    latencyMs: z.ZodNumber;
+    corpus: z.ZodObject<{
+        documents: z.ZodNumber;
+        hash: z.ZodString;
+    }, z.core.$strip>;
+    cached: z.ZodBoolean;
+    notes: z.ZodNullable<z.ZodString>;
+    warnings: z.ZodArray<z.ZodString>;
+    toolsUsed: z.ZodArray<z.ZodString>;
+}, z.core.$strip>;
+type AskResponse = z.infer<typeof AskResponseSchema>;
+declare const AiStatusSchema: z.ZodObject<{
+    enabled: z.ZodBoolean;
+    model: z.ZodString;
+}, z.core.$strip>;
+type AiStatus = z.infer<typeof AiStatusSchema>;
+/**
+ * What POST /ai/ask/stream sends, one JSON object per server-sent event:
+ *  delta — a piece of the answer as the model writes it (shown live, may still be corrected)
+ *  tool  — the assistant is looking something up (e.g. a price); no text yet
+ *  done  — the final, validated answer; the reader replaces whatever it streamed with this
+ *  error — the question could not be answered; `status` is the HTTP status it would have had
+ */
+declare const AskStreamEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    type: z.ZodLiteral<"delta">;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"tool">;
+    name: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"done">;
+    response: z.ZodObject<{
+        answer: z.ZodString;
+        mode: z.ZodEnum<{
+            email: "email";
+            procedures: "procedures";
+            whatsapp: "whatsapp";
+        }>;
+        status: z.ZodEnum<{
+            answered: "answered";
+            refused: "refused";
+            uncited: "uncited";
+        }>;
+        citations: z.ZodArray<z.ZodObject<{
+            slug: z.ZodString;
+            anchor: z.ZodNullable<z.ZodString>;
+            title: z.ZodString;
+            heading: z.ZodNullable<z.ZodString>;
+        }, z.core.$strip>>;
+        model: z.ZodString;
+        usage: z.ZodObject<{
+            inputTokens: z.ZodNumber;
+            cachedInputTokens: z.ZodNumber;
+            outputTokens: z.ZodNumber;
+        }, z.core.$strip>;
+        latencyMs: z.ZodNumber;
+        corpus: z.ZodObject<{
+            documents: z.ZodNumber;
+            hash: z.ZodString;
+        }, z.core.$strip>;
+        cached: z.ZodBoolean;
+        notes: z.ZodNullable<z.ZodString>;
+        warnings: z.ZodArray<z.ZodString>;
+        toolsUsed: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"error">;
+    status: z.ZodNumber;
+    message: z.ZodString;
+}, z.core.$strip>], "type">;
+type AskStreamEvent = z.infer<typeof AskStreamEventSchema>;
+
+declare const HealthStatusEnum: z.ZodEnum<{
+    up: "up";
+    degraded: "degraded";
+    down: "down";
+}>;
+declare const HealthItemSchema: z.ZodObject<{
+    key: z.ZodString;
+    label: z.ZodString;
+    status: z.ZodEnum<{
+        up: "up";
+        degraded: "degraded";
+        down: "down";
+    }>;
+    detail: z.ZodString;
+}, z.core.$strip>;
+/** One hour of API traffic. `hour` is the start of the hour, ISO 8601 UTC. */
+declare const HourlyStatsSchema: z.ZodObject<{
+    hour: z.ZodString;
+    requests: z.ZodNumber;
+    clientErrors: z.ZodNumber;
+    serverErrors: z.ZodNumber;
+    avgLatencyMs: z.ZodNumber;
+    logins: z.ZodNumber;
+    failedLogins: z.ZodNumber;
+}, z.core.$strip>;
+declare const RouteStatsSchema: z.ZodObject<{
+    route: z.ZodString;
+    count: z.ZodNumber;
+    errors: z.ZodNumber;
+    avgLatencyMs: z.ZodNumber;
+}, z.core.$strip>;
+declare const TableSizeSchema: z.ZodObject<{
+    name: z.ZodString;
+    bytes: z.ZodNumber;
+    rows: z.ZodNumber;
+}, z.core.$strip>;
+declare const AdminOverviewSchema: z.ZodObject<{
+    generatedAt: z.ZodString;
+    uptimeSeconds: z.ZodNumber;
+    nodeVersion: z.ZodString;
+    environment: z.ZodString;
+    aiEnabled: z.ZodBoolean;
+    health: z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        label: z.ZodString;
+        status: z.ZodEnum<{
+            up: "up";
+            degraded: "degraded";
+            down: "down";
+        }>;
+        detail: z.ZodString;
+    }, z.core.$strip>>;
+    metricsAvailable: z.ZodBoolean;
+    hours: z.ZodArray<z.ZodObject<{
+        hour: z.ZodString;
+        requests: z.ZodNumber;
+        clientErrors: z.ZodNumber;
+        serverErrors: z.ZodNumber;
+        avgLatencyMs: z.ZodNumber;
+        logins: z.ZodNumber;
+        failedLogins: z.ZodNumber;
+    }, z.core.$strip>>;
+    topRoutes: z.ZodArray<z.ZodObject<{
+        route: z.ZodString;
+        count: z.ZodNumber;
+        errors: z.ZodNumber;
+        avgLatencyMs: z.ZodNumber;
+    }, z.core.$strip>>;
+    databaseBytes: z.ZodNumber;
+    tables: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        bytes: z.ZodNumber;
+        rows: z.ZodNumber;
+    }, z.core.$strip>>;
+    usersByRole: z.ZodArray<z.ZodObject<{
+        role: z.ZodString;
+        count: z.ZodNumber;
+    }, z.core.$strip>>;
+    activeUsers: z.ZodNumber;
+    errorsByKind: z.ZodArray<z.ZodObject<{
+        kind: z.ZodString;
+        count: z.ZodNumber;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+declare const LogLevelEnum: z.ZodEnum<{
+    error: "error";
+    trace: "trace";
+    debug: "debug";
+    info: "info";
+    warn: "warn";
+    fatal: "fatal";
+}>;
+declare const AdminLogEntrySchema: z.ZodObject<{
+    id: z.ZodNumber;
+    time: z.ZodNumber;
+    level: z.ZodEnum<{
+        error: "error";
+        trace: "trace";
+        debug: "debug";
+        info: "info";
+        warn: "warn";
+        fatal: "fatal";
+    }>;
+    message: z.ZodString;
+    context: z.ZodNullable<z.ZodString>;
+    method: z.ZodNullable<z.ZodString>;
+    url: z.ZodNullable<z.ZodString>;
+    status: z.ZodNullable<z.ZodNumber>;
+    responseTimeMs: z.ZodNullable<z.ZodNumber>;
+    extra: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, z.core.$strip>;
+declare const AdminLogsResponseSchema: z.ZodObject<{
+    entries: z.ZodArray<z.ZodObject<{
+        id: z.ZodNumber;
+        time: z.ZodNumber;
+        level: z.ZodEnum<{
+            error: "error";
+            trace: "trace";
+            debug: "debug";
+            info: "info";
+            warn: "warn";
+            fatal: "fatal";
+        }>;
+        message: z.ZodString;
+        context: z.ZodNullable<z.ZodString>;
+        method: z.ZodNullable<z.ZodString>;
+        url: z.ZodNullable<z.ZodString>;
+        status: z.ZodNullable<z.ZodNumber>;
+        responseTimeMs: z.ZodNullable<z.ZodNumber>;
+        extra: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    }, z.core.$strip>>;
+    capacity: z.ZodNumber;
+}, z.core.$strip>;
+declare const AuditEntrySchema: z.ZodObject<{
+    at: z.ZodString;
+    user: z.ZodString;
+    action: z.ZodString;
+    detail: z.ZodString;
+}, z.core.$strip>;
+declare const AuditLogResponseSchema: z.ZodObject<{
+    entries: z.ZodArray<z.ZodObject<{
+        at: z.ZodString;
+        user: z.ZodString;
+        action: z.ZodString;
+        detail: z.ZodString;
+    }, z.core.$strip>>;
+    persisted: z.ZodBoolean;
+}, z.core.$strip>;
+declare const ApiEndpointParameterSchema: z.ZodObject<{
+    name: z.ZodString;
+    in: z.ZodEnum<{
+        path: "path";
+        header: "header";
+        query: "query";
+    }>;
+    required: z.ZodBoolean;
+    type: z.ZodString;
+    options: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    description: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+declare const ApiEndpointSchema: z.ZodObject<{
+    method: z.ZodEnum<{
+        GET: "GET";
+        POST: "POST";
+        PUT: "PUT";
+        PATCH: "PATCH";
+        DELETE: "DELETE";
+    }>;
+    path: z.ZodString;
+    summary: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    tag: z.ZodString;
+    requiresAuth: z.ZodBoolean;
+    parameters: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        in: z.ZodEnum<{
+            path: "path";
+            header: "header";
+            query: "query";
+        }>;
+        required: z.ZodBoolean;
+        type: z.ZodString;
+        options: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>;
+    bodyExample: z.ZodNullable<z.ZodUnknown>;
+}, z.core.$strip>;
+declare const ApiCatalogueSchema: z.ZodObject<{
+    endpoints: z.ZodArray<z.ZodObject<{
+        method: z.ZodEnum<{
+            GET: "GET";
+            POST: "POST";
+            PUT: "PUT";
+            PATCH: "PATCH";
+            DELETE: "DELETE";
+        }>;
+        path: z.ZodString;
+        summary: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        tag: z.ZodString;
+        requiresAuth: z.ZodBoolean;
+        parameters: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            in: z.ZodEnum<{
+                path: "path";
+                header: "header";
+                query: "query";
+            }>;
+            required: z.ZodBoolean;
+            type: z.ZodString;
+            options: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        bodyExample: z.ZodNullable<z.ZodUnknown>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+declare const DbColumnSchema: z.ZodObject<{
+    name: z.ZodString;
+    type: z.ZodString;
+    nullable: z.ZodBoolean;
+    hasDefault: z.ZodBoolean;
+    isPrimaryKey: z.ZodBoolean;
+    readOnly: z.ZodBoolean;
+    enumValues: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
+declare const DbTableSummarySchema: z.ZodObject<{
+    name: z.ZodString;
+    rows: z.ZodNumber;
+    bytes: z.ZodNumber;
+    writable: z.ZodBoolean;
+}, z.core.$strip>;
+declare const DbTablesResponseSchema: z.ZodObject<{
+    tables: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        rows: z.ZodNumber;
+        bytes: z.ZodNumber;
+        writable: z.ZodBoolean;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+declare const DbRowsResponseSchema: z.ZodObject<{
+    table: z.ZodString;
+    writable: z.ZodBoolean;
+    columns: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        type: z.ZodString;
+        nullable: z.ZodBoolean;
+        hasDefault: z.ZodBoolean;
+        isPrimaryKey: z.ZodBoolean;
+        readOnly: z.ZodBoolean;
+        enumValues: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    }, z.core.$strip>>;
+    rows: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    total: z.ZodNumber;
+    page: z.ZodNumber;
+    pageSize: z.ZodNumber;
+}, z.core.$strip>;
+declare const DbInsertRequestSchema: z.ZodObject<{
+    values: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull, z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>;
+}, z.core.$strip>;
+declare const DbUpdateRequestSchema: z.ZodObject<{
+    key: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+    values: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull, z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>;
+}, z.core.$strip>;
+declare const DbDeleteRequestSchema: z.ZodObject<{
+    key: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+}, z.core.$strip>;
+declare const DbRowResponseSchema: z.ZodObject<{
+    row: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, z.core.$strip>;
+type HealthStatus = z.infer<typeof HealthStatusEnum>;
+type HealthItem = z.infer<typeof HealthItemSchema>;
+type HourlyStats = z.infer<typeof HourlyStatsSchema>;
+type RouteStats = z.infer<typeof RouteStatsSchema>;
+type AdminOverview = z.infer<typeof AdminOverviewSchema>;
+type LogLevel = z.infer<typeof LogLevelEnum>;
+type AdminLogEntry = z.infer<typeof AdminLogEntrySchema>;
+type AuditEntry = z.infer<typeof AuditEntrySchema>;
+type ApiEndpoint = z.infer<typeof ApiEndpointSchema>;
+type ApiEndpointParameter = z.infer<typeof ApiEndpointParameterSchema>;
+type DbColumn = z.infer<typeof DbColumnSchema>;
+type DbTableSummary = z.infer<typeof DbTableSummarySchema>;
+type DbRowsResponse = z.infer<typeof DbRowsResponseSchema>;
+type DbInsertRequest = z.infer<typeof DbInsertRequestSchema>;
+type DbUpdateRequest = z.infer<typeof DbUpdateRequestSchema>;
+type DbDeleteRequest = z.infer<typeof DbDeleteRequestSchema>;
+
+export { AI_MESSAGE_MAX_LENGTH, AI_QUESTION_MAX_LENGTH, type AdminLogEntry, AdminLogEntrySchema, AdminLogsResponseSchema, type AdminOverview, AdminOverviewSchema, type AiAnswerStatus, AiAnswerStatusEnum, type AiCitation, AiCitationSchema, type AiMode, AiModeEnum, type AiStatus, AiStatusSchema, type AiUsage, AiUsageSchema, ApiCatalogueSchema, type ApiEndpoint, type ApiEndpointParameter, ApiEndpointParameterSchema, ApiEndpointSchema, type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AskRequest, type AskRequestInput, AskRequestSchema, type AskResponse, AskResponseSchema, type AskStreamEvent, AskStreamEventSchema, type AuditEntry, AuditEntrySchema, AuditLogResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type BrokenKbLink, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type DbColumn, DbColumnSchema, type DbDeleteRequest, DbDeleteRequestSchema, type DbInsertRequest, DbInsertRequestSchema, DbRowResponseSchema, type DbRowsResponse, DbRowsResponseSchema, type DbTableSummary, DbTableSummarySchema, DbTablesResponseSchema, type DbUpdateRequest, DbUpdateRequestSchema, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HealthItem, HealthItemSchema, type HealthStatus, HealthStatusEnum, type HistoricCloseQuery, HistoricCloseQuerySchema, type HistoricSpot, HistoricSpotSchema, type HourlyStats, HourlyStatsSchema, KB_CATEGORIES, KB_CATEGORY_INFO, KB_GUIDE, KB_REVIEW_MONTHS, KB_REVIEW_WARNING_DAYS, KB_TERMS, KB_UNRESOLVED_HREF_PREFIX, type KbCategory, KbCategoryEnum, type KbDocument, type KbDocumentListResponse, KbDocumentListResponseSchema, KbDocumentSchema, type KbFrontmatter, KbFrontmatterSchema, type KbGuide, type KbGuideBranch, type KbGuideIcon, type KbGuideLink, type KbGuideShortcut, type KbGuideStep, type KbGuideTarget, type KbIndexedDocument, type KbIndexedSection, type KbJurisdiction, KbJurisdictionEnum, type KbLinkRef, type KbReviewState, type KbReviewStatus, type KbSearchHit, type KbSection, KbSlugSchema, type KbSnippetPart, type KbStatus, KbStatusEnum, type KbTerm, type LogLevel, LogLevelEnum, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, type ParseKbResult, type ParsedKbDocument, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawKbFile, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RecalculateOverrides, RecalculateOverridesSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type ResolvedKbLink, type RouteStats, RouteStatsSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SetKbStatusRequest, SetKbStatusRequestSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, TableSizeSchema, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateKbDocumentRequest, UpdateKbDocumentRequestSchema, type UpdateProductFullDto, UpdateProductFullDtoSchema, type UpdateStockRequest, UpdateStockRequestSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, aiInputLimit, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, createErrorReference, findBrokenLinks, findLinks, findTodos, guideLibraryTargets, headingAnchor, indexKbDocument, kbArticlePath, kbReviewDueOn, kbReviewStatus, mapOutsideCode, normalizeProductName, parseKbDocument, planAutolinks, rewriteKbLinks, roundBuyPrice, roundSellPrice, searchKb, solveMissingPurchaseField, splitFrontmatter, splitSections, termRegExp, toPlainText };

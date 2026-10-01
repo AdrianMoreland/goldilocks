@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { LayoutDashboard } from "lucide-react"
+import { BookOpen, LayoutDashboard, ShieldCheck } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
@@ -18,8 +18,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-// This app is a single-page pricing workbook — there's no second section to
-// navigate to, so the nav tree only ever has the one real entry.
+// BaseLayout shows this sidebar to non-admins too, so the admin group below is
+// added only for admins. That is discoverability only: /admin and every API
+// route behind it enforce admin on their own.
 const navGroups = [
   {
     label: "Navigation",
@@ -29,12 +30,29 @@ const navGroups = [
         url: "/dashboard",
         icon: LayoutDashboard,
       },
+      {
+        title: "Knowledge Center",
+        url: "/knowledge",
+        icon: BookOpen,
+      },
     ],
   },
 ]
 
+const adminGroup = {
+  label: "Admin",
+  items: [
+    {
+      title: "Admin Console",
+      url: "/admin",
+      icon: ShieldCheck,
+    },
+  ],
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
+  const groups = isAdmin ? [...navGroups, adminGroup] : navGroups
 
   return (
     <Sidebar {...props}>
@@ -56,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {navGroups.map((group) => (
+        {groups.map((group) => (
           <NavMain key={group.label} label={group.label} items={group.items} />
         ))}
       </SidebarContent>

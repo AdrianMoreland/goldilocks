@@ -1,4 +1,6 @@
 import { Fragment } from "react"
+import { Link } from "react-router-dom"
+import { ArrowUpRight } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -7,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { usePricingSettings, type MetalGroup, type GroupAdjustment, type MarketMode } from "../../context/pricing-settings-context"
 import { tabThemeStyle } from "./tab-theme"
 import { SectionLabel } from "./tab-widgets"
+import { useAuth } from "@/contexts/auth-context"
+import { AdminActions } from "@/app/admin/components/admin-actions"
 
 const MODE_INFO: { key: MarketMode; label: string; description: string }[] = [
     { key: "weekend", label: "Weekend", description: "Wider spread for closed markets" },
@@ -34,9 +38,33 @@ const MODE_FIELDS: Record<MarketMode, { buyKey: keyof GroupAdjustment; sellKey: 
  */
 export function SettingsTab() {
     const { modes, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel } = usePricingSettings()
+    const { isAdmin } = useAuth()
 
     return (
         <div className="flex flex-col gap-4 px-4 text-sm" style={tabThemeStyle("settings")}>
+            {/* The server enforces admin on every one of these calls; this only keeps the buttons out of non-admins' way. */}
+            {isAdmin && (
+                <>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <SectionLabel>ADMIN</SectionLabel>
+                            <Link
+                                to="/admin"
+                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex items-center gap-0.5 rounded text-xs font-medium outline-none focus-visible:ring-[3px]"
+                            >
+                                Open admin console <ArrowUpRight className="size-3.5" />
+                            </Link>
+                        </div>
+                        <AdminActions compact />
+                        <p className="text-muted-foreground text-xs">
+                            Edit, deactivate or delete a product from the &quot;⋯&quot; menu on its row in the table.
+                        </p>
+                    </div>
+
+                    <Separator />
+                </>
+            )}
+
             <div>
                 <SectionLabel>ACTIVE STATUS</SectionLabel>
                 <Badge

@@ -13,7 +13,13 @@ exports.AllExceptionsFilter = void 0;
 const common_1 = require("@nestjs/common");
 const prismaNamespace_1 = require("../../../prisma/generated/internal/prismaNamespace");
 const error_log_service_1 = require("../../modules/error-log/error-log.service");
-const CONNECTIVITY_CODES = new Set(['P1001', 'P1002', 'P1008', 'P1017', 'P2024']);
+const CONNECTIVITY_CODES = new Set([
+    'P1001',
+    'P1002',
+    'P1008',
+    'P1017',
+    'P2024',
+]);
 function truncate(value, max = 2000) {
     return value.length > max ? `${value.slice(0, max)}…` : value;
 }
@@ -24,7 +30,11 @@ let AllExceptionsFilter = class AllExceptionsFilter {
     }
     async catch(exception, host) {
         if (host.getType() !== 'http') {
-            await this.errorLog.record({ kind: 'crash', message: 'Unhandled error outside an HTTP request', error: exception });
+            await this.errorLog.record({
+                kind: 'crash',
+                message: 'Unhandled error outside an HTTP request',
+                error: exception,
+            });
             return;
         }
         const ctx = host.switchToHttp();
@@ -44,7 +54,9 @@ let AllExceptionsFilter = class AllExceptionsFilter {
             const status = exception.getStatus();
             const body = exception.getResponse();
             if (status < 500) {
-                send(status, typeof body === 'string' ? { message: body } : body);
+                send(status, typeof body === 'string'
+                    ? { message: body }
+                    : body);
                 return;
             }
             const reference = await this.errorLog.record({
@@ -52,7 +64,9 @@ let AllExceptionsFilter = class AllExceptionsFilter {
                 kind: 'http',
                 statusCode: status,
                 message: exception.message,
-                detail: typeof body === 'string' ? body : truncate(JSON.stringify(body)),
+                detail: typeof body === 'string'
+                    ? body
+                    : truncate(JSON.stringify(body)),
                 error: exception,
             });
             send(status, { message: exception.message, reference });
@@ -60,8 +74,12 @@ let AllExceptionsFilter = class AllExceptionsFilter {
         }
         if (exception instanceof prismaNamespace_1.PrismaClientKnownRequestError) {
             if (exception.code === 'P2002') {
-                const target = Array.isArray(exception.meta?.target) ? exception.meta.target.join(', ') : 'field';
-                send(common_1.HttpStatus.CONFLICT, { message: `A record with this ${target} already exists.` });
+                const target = Array.isArray(exception.meta?.target)
+                    ? exception.meta.target.join(', ')
+                    : 'field';
+                send(common_1.HttpStatus.CONFLICT, {
+                    message: `A record with this ${target} already exists.`,
+                });
                 return;
             }
             if (exception.code === 'P2025') {
@@ -69,8 +87,12 @@ let AllExceptionsFilter = class AllExceptionsFilter {
                 return;
             }
             const unavailable = CONNECTIVITY_CODES.has(exception.code);
-            const status = unavailable ? common_1.HttpStatus.SERVICE_UNAVAILABLE : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-            const message = unavailable ? 'The database is unreachable right now.' : 'The database rejected the request.';
+            const status = unavailable
+                ? common_1.HttpStatus.SERVICE_UNAVAILABLE
+                : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
+            const message = unavailable
+                ? 'The database is unreachable right now.'
+                : 'The database rejected the request.';
             const reference = await this.errorLog.record({
                 ...context,
                 kind: 'database',
@@ -88,13 +110,19 @@ let AllExceptionsFilter = class AllExceptionsFilter {
             exception instanceof prismaNamespace_1.PrismaClientRustPanicError ||
             exception instanceof prismaNamespace_1.PrismaClientValidationError) {
             const unavailable = exception instanceof prismaNamespace_1.PrismaClientInitializationError;
-            const status = unavailable ? common_1.HttpStatus.SERVICE_UNAVAILABLE : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-            const message = unavailable ? 'The database is unreachable right now.' : 'The database request failed.';
+            const status = unavailable
+                ? common_1.HttpStatus.SERVICE_UNAVAILABLE
+                : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
+            const message = unavailable
+                ? 'The database is unreachable right now.'
+                : 'The database request failed.';
             const reference = await this.errorLog.record({
                 ...context,
                 kind: 'database',
                 statusCode: status,
-                code: 'errorCode' in exception ? (exception.errorCode ?? null) : null,
+                code: 'errorCode' in exception
+                    ? (exception.errorCode ?? null)
+                    : null,
                 message,
                 detail: truncate(exception.message),
                 error: exception,
@@ -106,11 +134,18 @@ let AllExceptionsFilter = class AllExceptionsFilter {
             ...context,
             kind: 'crash',
             statusCode: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-            message: exception instanceof Error ? exception.message : 'Unexpected server error',
-            detail: exception instanceof Error ? exception.name : truncate(String(exception)),
+            message: exception instanceof Error
+                ? exception.message
+                : 'Unexpected server error',
+            detail: exception instanceof Error
+                ? exception.name
+                : truncate(String(exception)),
             error: exception,
         });
-        send(common_1.HttpStatus.INTERNAL_SERVER_ERROR, { message: 'Something went wrong on the server.', reference });
+        send(common_1.HttpStatus.INTERNAL_SERVER_ERROR, {
+            message: 'Something went wrong on the server.',
+            reference,
+        });
     }
 };
 exports.AllExceptionsFilter = AllExceptionsFilter;

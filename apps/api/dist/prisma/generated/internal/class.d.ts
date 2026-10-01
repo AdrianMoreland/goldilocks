@@ -48,6 +48,15 @@ export interface PrismaClient<in LogOpts extends Prisma.LogLevel = never, in out
     get fetchAttempt(): Prisma.FetchAttemptDelegate<ExtArgs, {
         omit: OmitOpts;
     }>;
+    get kbDocument(): Prisma.KbDocumentDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
+    get aiQuestionLog(): Prisma.AiQuestionLogDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
+    get aiAnswerCache(): Prisma.AiAnswerCacheDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
 }
 export declare function getPrismaClientClass(): PrismaClientConstructor;
 //# sourceMappingURL=class.d.ts.map

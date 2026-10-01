@@ -53,5 +53,8 @@ async function run() {
         await app.close();
     }
 }
-run();
+run().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});
 //# sourceMappingURL=populate-metals.js.map

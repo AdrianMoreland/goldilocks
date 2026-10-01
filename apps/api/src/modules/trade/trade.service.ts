@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import {
     MeltCalculatorRequest,
     MeltCalculatorResponse,
@@ -46,7 +50,9 @@ export class TradeService {
         ]);
 
         if (!spot) {
-            throw new NotFoundException(`No spot price available for ${metalType}.`);
+            throw new NotFoundException(
+                `No spot price available for ${metalType}.`,
+            );
         }
 
         const bounds = TRADE_METAL_SLIDER_BOUNDS[metalType];
@@ -80,15 +86,20 @@ export class TradeService {
 
         const masterSpot = await this.metalsProvider.getLatest(metalType);
         if (!masterSpot) {
-            throw new NotFoundException(`No spot price available for ${metalType}.`);
+            throw new NotFoundException(
+                `No spot price available for ${metalType}.`,
+            );
         }
 
-        const spot = customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
+        const spot =
+            customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / GRAMS_PER_TROY_OUNCE;
 
         // Each item's product lookup is independent of the others — fetch
         // them all in parallel instead of one round-trip per cart line.
-        const products = await Promise.all(items.map((item) => this.productsProvider.getById(item.productId)));
+        const products = await Promise.all(
+            items.map((item) => this.productsProvider.getById(item.productId)),
+        );
 
         let totalWeight = 0;
         let totalPrice = 0;
@@ -98,17 +109,25 @@ export class TradeService {
             const product = products[index];
 
             if (!product) {
-                throw new NotFoundException(`Product ${item.productId} not found.`);
+                throw new NotFoundException(
+                    `Product ${item.productId} not found.`,
+                );
             }
             if (product.metalType !== metalType) {
-                throw new BadRequestException(`${product.name} is not a ${metalType} product.`);
+                throw new BadRequestException(
+                    `${product.name} is not a ${metalType} product.`,
+                );
             }
 
             const percent = this.validatePercent(transactionType, item.percent);
             const quantity = Math.max(1, Math.floor(item.quantity) || 1);
 
             const basePrice = spotPerGram * product.weight;
-            const unitPrice = computeTransactionPrice(basePrice, transactionType, percent);
+            const unitPrice = computeTransactionPrice(
+                basePrice,
+                transactionType,
+                percent,
+            );
             const lineTotal = unitPrice * quantity;
             const lineWeight = product.weight * quantity;
 
@@ -138,17 +157,29 @@ export class TradeService {
         };
     }
 
-    async calculateMelt(request: MeltCalculatorRequest): Promise<MeltCalculatorResponse> {
+    async calculateMelt(
+        request: MeltCalculatorRequest,
+    ): Promise<MeltCalculatorResponse> {
         const category = MELT_CATEGORIES[request.category];
 
         const spot = await this.metalsProvider.getLatest(category.metal);
         if (!spot) {
-            throw new NotFoundException(`No spot price available for ${category.metal}.`);
+            throw new NotFoundException(
+                `No spot price available for ${category.metal}.`,
+            );
         }
 
-        const spotEur = request.customSpot && request.customSpot > 0 ? request.customSpot : spot.priceEur;
+        const spotEur =
+            request.customSpot && request.customSpot > 0
+                ? request.customSpot
+                : spot.priceEur;
         const spotPerGram = spotEur / GRAMS_PER_TROY_OUNCE;
-        const meltValue = computeMeltValue(spotPerGram, category.meltFactor, category.purity, request.weight);
+        const meltValue = computeMeltValue(
+            spotPerGram,
+            category.meltFactor,
+            category.purity,
+            request.weight,
+        );
 
         return {
             category: request.category,
@@ -162,7 +193,10 @@ export class TradeService {
         };
     }
 
-    private validatePercent(transactionType: TradeTransactionType, value: number): number {
+    private validatePercent(
+        transactionType: TradeTransactionType,
+        value: number,
+    ): number {
         if (transactionType === 'buying') {
             if (!Number.isFinite(value) || value < 0) {
                 throw new BadRequestException('Please enter a valid premium.');
@@ -171,7 +205,9 @@ export class TradeService {
         }
 
         if (!Number.isFinite(value) || value < 0 || value >= 100) {
-            throw new BadRequestException('Please enter a valid discount between 0% and 99.99%.');
+            throw new BadRequestException(
+                'Please enter a valid discount between 0% and 99.99%.',
+            );
         }
         return value;
     }

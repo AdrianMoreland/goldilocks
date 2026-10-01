@@ -1,5 +1,6 @@
 import {
-    MessageResponseSchema, RawSpotPriceSchema,
+    MessageResponseSchema,
+    RawSpotPriceSchema,
     LoginRequestSchema,
     LoginResponseSchema,
     SessionUserSchema,
@@ -9,9 +10,23 @@ import {
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
+    RecalculateOverridesSchema,
+    HistoricCloseQuerySchema,
+    UpdateStockRequestSchema,
+    KbDocumentListResponseSchema,
+    KbDocumentSchema,
+    UpdateKbDocumentRequestSchema,
+    SetKbStatusRequestSchema,
+    AskRequestSchema,
+    AskResponseSchema,
+    AiStatusSchema,
+    DbInsertRequestSchema,
+    DbUpdateRequestSchema,
+    DbDeleteRequestSchema,
 } from '@goldilocks/shared-types';
 import {
-    ApiSuccessResponseSchema, MarketDataResponseSchema,
+    ApiSuccessResponseSchema,
+    MarketDataResponseSchema,
     CreateProductDtoSchema,
     CreateSpotPriceDtoSchema,
     HealthCheckSchema,
@@ -27,97 +42,252 @@ import {
     ProfitAnalysisResponseSchema,
     PortfolioBuildRequestSchema,
     PortfolioBuildResponseSchema,
-} from "@goldilocks/shared-types";
-import {createDto} from "./dto-generator";
+} from '@goldilocks/shared-types';
+import { createDto } from './dto-generator';
 
 // ============================================================================
 // AUTHENTICATION DTOs
 // ============================================================================
 
-export class LoginRequestDto extends createDto(LoginRequestSchema, 'LoginRequestDto') {}
+export class LoginRequestDto extends createDto(
+    LoginRequestSchema,
+    'LoginRequestDto',
+) {}
 
-export class LoginResponseDto extends createDto(LoginResponseSchema, 'LoginResponseDto') {}
+export class LoginResponseDto extends createDto(
+    LoginResponseSchema,
+    'LoginResponseDto',
+) {}
 
-export class SessionUserDto extends createDto(SessionUserSchema, 'SessionUserDto') {}
+export class SessionUserDto extends createDto(
+    SessionUserSchema,
+    'SessionUserDto',
+) {}
 
-export class CreateUserRequestDto extends createDto(CreateUserRequestSchema, 'CreateUserRequestDto') {}
+export class CreateUserRequestDto extends createDto(
+    CreateUserRequestSchema,
+    'CreateUserRequestDto',
+) {}
 
 /** Message response DTO - contains success/info messages */
-export class MessageResponseDto extends createDto(ApiSuccessResponseSchema(MessageResponseSchema), 'MessageResponseDto') {}
+export class MessageResponseDto extends createDto(
+    ApiSuccessResponseSchema(MessageResponseSchema),
+    'MessageResponseDto',
+) {}
 
 // ============================================================================
 // HEALTH DTOs
 // ============================================================================
 
 /** Health check response DTO */
-export class HealthCheckDto extends createDto(HealthCheckSchema, 'HealthCheckDto') {}
+export class HealthCheckDto extends createDto(
+    HealthCheckSchema,
+    'HealthCheckDto',
+) {}
 
 // ============================================================================
 // SPOT PRICE DTOs
 // ============================================================================
 
-export class RawSpotPriceResponseDto extends createDto(RawSpotPriceSchema, 'RawSpotPriceResponseDto') {}
+export class RawSpotPriceResponseDto extends createDto(
+    RawSpotPriceSchema,
+    'RawSpotPriceResponseDto',
+) {}
 
-export class SpotPriceResponseDto extends createDto(SpotPriceSchema, 'SpotPriceResponseDto') {}
+export class SpotPriceResponseDto extends createDto(
+    SpotPriceSchema,
+    'SpotPriceResponseDto',
+) {}
 
-export class CreateSpotPriceDto extends createDto(CreateSpotPriceDtoSchema, 'CreateSpotPriceDto') {}
+export class CreateSpotPriceDto extends createDto(
+    CreateSpotPriceDtoSchema,
+    'CreateSpotPriceDto',
+) {}
 
 // ============================================================================
 // PRODUCT DTOs
 // ============================================================================
 
-export class CreateProductDto extends createDto(CreateProductDtoSchema, 'CreateProductDto') {}
+export class CreateProductDto extends createDto(
+    CreateProductDtoSchema,
+    'CreateProductDto',
+) {}
 
-export class ProductResponseDto extends createDto(ProductSchema, 'ProductResponseDto') {}
+export class ProductResponseDto extends createDto(
+    ProductSchema,
+    'ProductResponseDto',
+) {}
 
-export class UpdateProductDto extends createDto(UpdateProductFullDtoSchema, 'UpdateProductDto') {}
+export class UpdateProductDto extends createDto(
+    UpdateProductFullDtoSchema,
+    'UpdateProductDto',
+) {}
 
-export class MarketDataResponseDto extends createDto(MarketDataResponseSchema, 'MarketDataResponseDto') {}
+export class UpdateStockRequestDto extends createDto(
+    UpdateStockRequestSchema,
+    'UpdateStockRequestDto',
+) {}
+
+export class MarketDataResponseDto extends createDto(
+    MarketDataResponseSchema,
+    'MarketDataResponseDto',
+) {}
+
+export class RecalculateOverridesDto extends createDto(
+    RecalculateOverridesSchema,
+    'RecalculateOverridesDto',
+) {}
+
+export class HistoricCloseQueryDto extends createDto(
+    HistoricCloseQuerySchema,
+    'HistoricCloseQueryDto',
+) {}
 
 // ============================================================================
 // TRADE DTOs
 // ============================================================================
 
-export class TradeBootstrapResponseDto extends createDto(TradeBootstrapResponseSchema, 'TradeBootstrapResponseDto') {}
+export class TradeBootstrapResponseDto extends createDto(
+    TradeBootstrapResponseSchema,
+    'TradeBootstrapResponseDto',
+) {}
 
-export class TradeCartRequestDto extends createDto(TradeCartRequestSchema, 'TradeCartRequestDto') {}
+export class TradeCartRequestDto extends createDto(
+    TradeCartRequestSchema,
+    'TradeCartRequestDto',
+) {}
 
-export class TradeCartResponseDto extends createDto(TradeCartResponseSchema, 'TradeCartResponseDto') {}
+export class TradeCartResponseDto extends createDto(
+    TradeCartResponseSchema,
+    'TradeCartResponseDto',
+) {}
 
-export class MeltCalculatorRequestDto extends createDto(MeltCalculatorRequestSchema, 'MeltCalculatorRequestDto') {}
+export class MeltCalculatorRequestDto extends createDto(
+    MeltCalculatorRequestSchema,
+    'MeltCalculatorRequestDto',
+) {}
 
-export class MeltCalculatorResponseDto extends createDto(MeltCalculatorResponseSchema, 'MeltCalculatorResponseDto') {}
+export class MeltCalculatorResponseDto extends createDto(
+    MeltCalculatorResponseSchema,
+    'MeltCalculatorResponseDto',
+) {}
 
 // ============================================================================
 // PORTFOLIO DTOs
 // ============================================================================
 
-export class ProfitAnalysisRequestDto extends createDto(ProfitAnalysisRequestSchema, 'ProfitAnalysisRequestDto') {}
+export class ProfitAnalysisRequestDto extends createDto(
+    ProfitAnalysisRequestSchema,
+    'ProfitAnalysisRequestDto',
+) {}
 
-export class ProfitAnalysisResponseDto extends createDto(ProfitAnalysisResponseSchema, 'ProfitAnalysisResponseDto') {}
+export class ProfitAnalysisResponseDto extends createDto(
+    ProfitAnalysisResponseSchema,
+    'ProfitAnalysisResponseDto',
+) {}
 
-export class PortfolioBuildRequestDto extends createDto(PortfolioBuildRequestSchema, 'PortfolioBuildRequestDto') {}
+export class PortfolioBuildRequestDto extends createDto(
+    PortfolioBuildRequestSchema,
+    'PortfolioBuildRequestDto',
+) {}
 
-export class PortfolioBuildResponseDto extends createDto(PortfolioBuildResponseSchema, 'PortfolioBuildResponseDto') {}
+export class PortfolioBuildResponseDto extends createDto(
+    PortfolioBuildResponseSchema,
+    'PortfolioBuildResponseDto',
+) {}
 
 // ============================================================================
 // BRANCH DTOs
 // ============================================================================
 
-export class BranchResponseDto extends createDto(BranchSchema, 'BranchResponseDto') {}
+export class BranchResponseDto extends createDto(
+    BranchSchema,
+    'BranchResponseDto',
+) {}
 
-export class CreateBranchRequestDto extends createDto(CreateBranchRequestSchema, 'CreateBranchRequestDto') {}
+export class CreateBranchRequestDto extends createDto(
+    CreateBranchRequestSchema,
+    'CreateBranchRequestDto',
+) {}
 
 // ============================================================================
 // FETCH ATTEMPT / SYSTEM STATUS DTOs
 // ============================================================================
 
-export class FetchAttemptResponseDto extends createDto(FetchAttemptSchema, 'FetchAttemptResponseDto') {}
+export class FetchAttemptResponseDto extends createDto(
+    FetchAttemptSchema,
+    'FetchAttemptResponseDto',
+) {}
 
-export class FetchMetricsResponseDto extends createDto(FetchMetricsSchema, 'FetchMetricsResponseDto') {}
+export class FetchMetricsResponseDto extends createDto(
+    FetchMetricsSchema,
+    'FetchMetricsResponseDto',
+) {}
 
 // ============================================================================
 // ERROR LOG DTOs
 // ============================================================================
 
-export class ClientErrorReportBatchDto extends createDto(ClientErrorReportBatchSchema, 'ClientErrorReportBatchDto') {}
+export class ClientErrorReportBatchDto extends createDto(
+    ClientErrorReportBatchSchema,
+    'ClientErrorReportBatchDto',
+) {}
+
+// ============================================================================
+// KNOWLEDGE CENTER DTOs
+// ============================================================================
+
+export class KbDocumentListResponseDto extends createDto(
+    KbDocumentListResponseSchema,
+    'KbDocumentListResponseDto',
+) {}
+
+export class KbDocumentDto extends createDto(
+    KbDocumentSchema,
+    'KbDocumentDto',
+) {}
+
+export class UpdateKbDocumentRequestDto extends createDto(
+    UpdateKbDocumentRequestSchema,
+    'UpdateKbDocumentRequestDto',
+) {}
+
+export class SetKbStatusRequestDto extends createDto(
+    SetKbStatusRequestSchema,
+    'SetKbStatusRequestDto',
+) {}
+
+// ============================================================================
+// AI ASSISTANT DTOs
+// ============================================================================
+
+export class AskRequestDto extends createDto(
+    AskRequestSchema,
+    'AskRequestDto',
+) {}
+
+export class AskResponseDto extends createDto(
+    AskResponseSchema,
+    'AskResponseDto',
+) {}
+
+export class AiStatusDto extends createDto(AiStatusSchema, 'AiStatusDto') {}
+
+// ============================================================================
+// ADMIN CONSOLE DTOs
+// ============================================================================
+
+export class DbInsertRequestDto extends createDto(
+    DbInsertRequestSchema,
+    'DbInsertRequestDto',
+) {}
+
+export class DbUpdateRequestDto extends createDto(
+    DbUpdateRequestSchema,
+    'DbUpdateRequestDto',
+) {}
+
+export class DbDeleteRequestDto extends createDto(
+    DbDeleteRequestSchema,
+    'DbDeleteRequestDto',
+) {}

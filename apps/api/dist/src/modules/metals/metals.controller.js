@@ -48,8 +48,8 @@ let MetalsController = class MetalsController {
     getCronStatus() {
         return { running: this.metalsCron.isPriceCronRunning() };
     }
-    toggleCron() {
-        const running = this.metalsCron.setPriceCronEnabled(!this.metalsCron.isPriceCronRunning());
+    async toggleCron() {
+        const running = await this.metalsCron.setPriceCronEnabled(!this.metalsCron.isPriceCronRunning());
         return { running };
     }
     async clearCache() {
@@ -93,7 +93,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Whether the 10-minute price-refresh cron is currently running (admin)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Whether the 10-minute price-refresh cron is currently running (admin)',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Object)
@@ -109,7 +111,7 @@ __decorate([
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Object)
+    __metadata("design:returntype", Promise)
 ], MetalsController.prototype, "toggleCron", null);
 __decorate([
     (0, common_1.Post)('clear-cache'),
@@ -146,7 +148,9 @@ __decorate([
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number }),
-    (0, swagger_1.ApiOperation)({ summary: 'Recent external-API fetch attempts, newest first (admin)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Recent external-API fetch attempts, newest first (admin)',
+    }),
     (0, swagger_1.ApiResponse)({ status: 200, type: [dtos_1.FetchAttemptResponseDto] }),
     __param(0, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
@@ -158,7 +162,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: '24h fetch success rate, avg latency, and cache hit ratio (admin)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '24h fetch success rate, avg latency, and cache hit ratio (admin)',
+    }),
     (0, swagger_1.ApiResponse)({ status: 200, type: dtos_1.FetchMetricsResponseDto }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),

@@ -29,7 +29,9 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         return (await this.productCache.get('all'));
     }
     async getById(id) {
-        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: null } });
+        const product = await this.prisma.product.findFirst({
+            where: { id, deletedAt: null },
+        });
         return product ? (0, pricing_util_1.toRawProduct)(product) : null;
     }
     async findBySku(sku) {
@@ -43,43 +45,64 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
             where: { deletedAt: { not: null } },
             orderBy: { deletedAt: 'desc' },
         });
-        return rows.map((row) => ({ ...(0, pricing_util_1.toRawProduct)(row), deletedAt: row.deletedAt.toISOString() }));
+        return rows.map((row) => ({
+            ...(0, pricing_util_1.toRawProduct)(row),
+            deletedAt: row.deletedAt.toISOString(),
+        }));
     }
     async getDeletedById(id) {
-        const product = await this.prisma.product.findFirst({ where: { id, deletedAt: { not: null } } });
+        const product = await this.prisma.product.findFirst({
+            where: { id, deletedAt: { not: null } },
+        });
         return product ? (0, pricing_util_1.toRawProduct)(product) : null;
     }
     async create(data) {
-        const created = await this.prisma.product.create({ data: { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) } });
+        const created = await this.prisma.product.create({
+            data: { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+        });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(created);
     }
     async update(id, data) {
         const updated = await this.prisma.product.update({
             where: { id },
-            data: data.name === undefined ? data : { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+            data: data.name === undefined
+                ? data
+                : { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
         });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(updated);
     }
     async softDelete(id) {
-        const deleted = await this.prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
+        const deleted = await this.prisma.product.update({
+            where: { id },
+            data: { deletedAt: new Date() },
+        });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(deleted);
     }
     async restore(id) {
-        const restored = await this.prisma.product.update({ where: { id }, data: { deletedAt: null } });
+        const restored = await this.prisma.product.update({
+            where: { id },
+            data: { deletedAt: null },
+        });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(restored);
     }
     async updateStock(id, stock) {
-        const updated = await this.prisma.product.update({ where: { id }, data: { stock } });
+        const updated = await this.prisma.product.update({
+            where: { id },
+            data: { stock },
+        });
         await this.refreshCache();
         return (0, pricing_util_1.toRawProduct)(updated);
     }
     async refreshCache() {
         const fresh = await this.prisma.product
-            .findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } })
+            .findMany({
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+        })
             .then((rows) => rows.map(pricing_util_1.toRawProduct));
         await this.productCache.set('all', fresh);
     }
