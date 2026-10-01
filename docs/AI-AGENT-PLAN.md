@@ -1,7 +1,7 @@
 # Internal AI agent — implementation plan (roadmap 1.5)
 
 Status: **phases 1 and 2 built, and phase 3 partly (live prices and reply drafts; branch data not yet)** (core, a dev chat box, quotas, cost and question log, scrubber, answer cache, SSE endpoint; open to all signed-in staff since 2026-10-01, behind `AI_ENABLED`). The evaluation passes 13–15 of 15 cases per run on gpt-4o-mini, varying run to run, so the model choice is still open. Phases 3–5 not started. Depends on 1.4 (Knowledge Center), which is done.
-Written 2026-09-30. Read with `CLAUDE.md` (§4 validation, §5 errors, §15 ports, §18 skills) and `docs/ROADMAP.md` ground rules.
+Written 2026-09-30. Read with `docs/ENGINEERING.md` (§4 validation, §5 errors, §15 ports) and `docs/ROADMAP.md` ground rules.
 
 ---
 
@@ -49,7 +49,7 @@ apps/api/src/
                               · get-branch.tool.ts · tool.registry.ts
     ai.module.ts
 packages/shared-types/src/ai.schema.ts   AskRequest, stream events, feedback
-apps/web/…/knowledge/                     Ask panel (designed separately with the Impeccable skill)
+apps/web/…/knowledge/                     Ask panel
 ```
 
 **Dependency direction** (nothing depends on `AiModule`):
@@ -64,7 +64,7 @@ apps/web/…/knowledge/                     Ask panel (designed separately with 
 - *OCP:* a new tool = one new class registered in the `AI_TOOLS` multi-provider. A new retrieval strategy = a second `SopContext`.
 - *LSP/ISP:* `LlmPort` is small (stream a completion with messages, tool definitions and limits → async events: text delta, tool call, usage). Tools expose only `name`, `description`, a Zod `schema`, and `run(args)`.
 - *DIP:* swapping OpenAI for another vendor is one binding; nothing else knows the SDK exists.
-- No repositories, CQRS or layers (CLAUDE.md §18).
+- No repositories, CQRS or layers (docs/ENGINEERING.md §18).
 
 ## 4. Request flow
 
@@ -168,7 +168,7 @@ AI_PER_MINUTE_LIMIT=5
 AI_DAILY_BUDGET_USD=2
 AI_LOG_RETENTION_DAYS=90
 ```
-New dependency: the official `openai` SDK, used only inside `openai-llm.client.ts`. `validateEnv` requires the key only when `AI_ENABLED=true`. Add the variables to CLAUDE.md §13 when implemented.
+New dependency: the official `openai` SDK, used only inside `openai-llm.client.ts`. `validateEnv` requires the key only when `AI_ENABLED=true`. Add the variables to docs/ENGINEERING.md §13 when implemented.
 
 ## 11. Testing
 
@@ -182,7 +182,7 @@ New dependency: the official `openai` SDK, used only inside `openai-llm.client.t
 1. **Core, no UI, flag off** — `LlmPort` + adapter, prompt builder, SOP context, citation validator, `POST /ai/ask` (non-streaming), evaluation script. *(1.5: AiModule, cached prompt, rules)*
 2. **Safety layer** — SSE, quota, cost log, question log, scrubber, answer cache. *(1.5: streaming, quota/cost/throttling)*
 3. **Tools and branch data** — branches migration + admin form, `MarketDataService.priceProduct()`, the three tools. *(1.5: tools)*
-4. **Chat panel** — Knowledge Center "Ask", streaming reader, clickable citations (they open the article with the gold "You're here" frame), thumbs up/down, AI-generated label, quota display, "don't paste customer ID numbers" notice. Designed with the Impeccable skill. *(1.5: chat panel)*
+4. **Chat panel** — Knowledge Center "Ask", streaming reader, clickable citations (they open the article with the gold "You're here" frame), thumbs up/down, AI-generated label, quota display, "don't paste customer ID numbers" notice. *(1.5: chat panel)*
 5. **Reports** — admin "unanswered questions" and cost report. *(1.5: question log report)*
 
 Nothing is exposed to staff until phase 2 is complete and the evaluation passes; production stays behind `AI_ENABLED`.

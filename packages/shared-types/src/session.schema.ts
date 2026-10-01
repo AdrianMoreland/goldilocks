@@ -33,7 +33,7 @@ export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
 // ============================================================================
 // ADMIN — creating a new staff account. This is a closed internal tool (no
-// public self-registration — see CLAUDE.md §6), so the only way a new
+// public self-registration — see docs/ENGINEERING.md §6), so the only way a new
 // account gets created is an admin doing it from the Admin panel.
 // ============================================================================
 

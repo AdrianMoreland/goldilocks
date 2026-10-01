@@ -32,4 +32,4 @@ Each app reads its own `.env` — see `apps/api/.env.example` for the required v
 
 ## Deployment
 
-Deployed on Railway as two services (`api`, `web`) plus a Redis instance, backed by Supabase for Postgres and Auth. See `CLAUDE.md` for the full architecture, conventions, and deployment notes.
+Deployed on Railway as two services (`api`, `web`) plus a Redis instance, backed by Supabase for Postgres and Auth. See `docs/ENGINEERING.md` for the full architecture, conventions, and deployment notes.
