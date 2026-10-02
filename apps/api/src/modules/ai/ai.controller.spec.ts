@@ -8,6 +8,7 @@ import type { Response } from 'express';
 import type { AskResponse } from '@goldilocks/shared-types';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { AiController } from './ai.controller';
+import { AskStreamResponder } from './ask-stream.responder';
 import type { AskEvent, AskService } from './ask.service';
 
 const RESPONSE: AskResponse = {
@@ -63,7 +64,10 @@ function fakeResponse() {
 
 function build(events: () => AsyncGenerator<AskEvent>) {
     const askStream = jest.fn(events);
-    const controller = new AiController({ askStream } as unknown as AskService);
+    const controller = new AiController(
+        { askStream } as unknown as AskService,
+        new AskStreamResponder(),
+    );
     return { controller, askStream };
 }
 
@@ -204,9 +208,10 @@ describe('AiController.askQuestionStream', () => {
                 })();
             },
         );
-        const controller = new AiController({
-            askStream,
-        } as unknown as AskService);
+        const controller = new AiController(
+            { askStream } as unknown as AskService,
+            new AskStreamResponder(),
+        );
         const { response, raw } = fakeResponse();
 
         await controller.askQuestionStream(
@@ -232,9 +237,10 @@ describe('AiController.askQuestionStream', () => {
                 })();
             },
         );
-        const controller = new AiController({
-            askStream,
-        } as unknown as AskService);
+        const controller = new AiController(
+            { askStream } as unknown as AskService,
+            new AskStreamResponder(),
+        );
         const { response, raw } = fakeResponse();
 
         await controller.askQuestionStream(

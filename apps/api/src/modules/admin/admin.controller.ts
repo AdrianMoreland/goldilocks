@@ -18,7 +18,6 @@ import type {
     AuditEntry,
     DbRowsResponse,
     DbTableSummary,
-    LogLevel,
 } from '@goldilocks/shared-types';
 import {
     JwtAuthGuard,
@@ -34,20 +33,11 @@ import {
     DbRowsQueryDto,
     DbUpdateRequestDto,
 } from '../../common/dto/dtos';
+import { AppLogsService } from './app-logs.service';
 import { AdminOverviewService } from './admin-overview.service';
 import { ApiCatalogueService } from './api-catalogue.service';
 import { AuditLogService } from './audit-log.service';
 import { DbBrowserService } from './db-browser.service';
-import { logBuffer } from './log-buffer';
-
-const LEVEL_ORDER: LogLevel[] = [
-    'trace',
-    'debug',
-    'info',
-    'warn',
-    'error',
-    'fatal',
-];
 
 /** The admin console API. Class-level guards: every route here needs an admin, and a new route can't forget it. */
 @ApiTags('admin')
@@ -58,6 +48,7 @@ const LEVEL_ORDER: LogLevel[] = [
 export class AdminController {
     constructor(
         private readonly overview: AdminOverviewService,
+        private readonly appLogs: AppLogsService,
         private readonly logs: AuditLogService,
         private readonly catalogue: ApiCatalogueService,
         private readonly db: DbBrowserService,
@@ -79,21 +70,7 @@ export class AdminController {
         entries: AdminLogEntry[];
         capacity: number;
     } {
-        const min = LEVEL_ORDER.indexOf(level);
-        const term = q?.trim().toLowerCase();
-
-        const entries = logBuffer
-            .recent(logBuffer.capacity)
-            .filter((e) => LEVEL_ORDER.indexOf(e.level) >= min)
-            .filter(
-                (e) =>
-                    !term ||
-                    [e.message, e.context, e.url, e.method].some((v) =>
-                        v?.toLowerCase().includes(term),
-                    ),
-            )
-            .slice(0, limit);
-        return { entries, capacity: logBuffer.capacity };
+        return this.appLogs.search({ limit, level, q });
     }
 
     @Get('audit')

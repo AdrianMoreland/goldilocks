@@ -6,6 +6,7 @@ import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { RedisModule } from '../../redis/redis.module';
 import { AdminController } from './admin.controller';
 import { AdminOverviewService } from './admin-overview.service';
+import { AppLogsService } from './app-logs.service';
 import { ApiCatalogueService } from './api-catalogue.service';
 import { AuditLogService } from './audit-log.service';
 import { DbBrowserService } from './db-browser.service';
@@ -26,11 +27,13 @@ import { SystemHealthService } from './system-health.service';
     providers: [
         AdminOverviewService,
         ApiCatalogueService,
+        AppLogsService,
         AuditLogService,
         DbBrowserService,
         RequestMetricsService,
         SystemHealthService,
     ],
-    exports: [ApiCatalogueService, RequestMetricsService, AuditLogService],
+    // AuditLogService is injected by MarketModeService; main.ts reaches ApiCatalogueService through app.get().
+    exports: [RequestMetricsService, AuditLogService],
 })
 export class AdminModule {}
