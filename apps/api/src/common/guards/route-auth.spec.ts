@@ -12,6 +12,7 @@ import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
 import { ApiCatalogueService } from '../../modules/admin/api-catalogue.service';
 import { AuditLogService } from '../../modules/admin/audit-log.service';
+import { AppLogsService } from '../../modules/admin/app-logs.service';
 import { DbBrowserService } from '../../modules/admin/db-browser.service';
 import { RequestMetricsService } from '../../modules/admin/request-metrics.service';
 import { AppService } from '../../app.service';
@@ -23,6 +24,7 @@ import { ErrorLogController } from '../../modules/error-log/error-log.controller
 import { ErrorLogService } from '../../modules/error-log/error-log.service';
 import { AiController } from '../../modules/ai/ai.controller';
 import { AskService } from '../../modules/ai/ask.service';
+import { AskStreamResponder } from '../../modules/ai/ask-stream.responder';
 import { KnowledgeController } from '../../modules/knowledge/knowledge.controller';
 import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
 import { MarketModeController } from '../../modules/market-mode/market-mode.controller';
@@ -169,6 +171,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: AdminOverviewService, useValue: {} },
                 { provide: ApiCatalogueService, useValue: {} },
                 { provide: AuditLogService, useValue: {} },
+                { provide: AppLogsService, useValue: {} },
                 { provide: DbBrowserService, useValue: {} },
                 {
                     provide: RequestMetricsService,
@@ -178,6 +181,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: ErrorLogService, useValue: {} },
                 { provide: KnowledgeService, useValue: {} },
                 { provide: AskService, useValue: {} },
+                { provide: AskStreamResponder, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
                 { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
