@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { API_URL } from '@/api/base';
 import { flushClientErrors, recordClientError } from '@/lib/error-log';
+import { authorizedFetch } from '@/lib/session';
 
 /**
  * Thrown for every failed request. `logged` tells global handlers (window
@@ -38,9 +39,7 @@ async function readErrorBody(res: Response): Promise<{ message: string; referenc
  */
 export function useApi() {
     const request = async <T = any>(url: string, options?: RequestInit): Promise<T> => {
-        const token = localStorage.getItem('token') || null;
         const headers = new Headers(options?.headers || {});
-        if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
         const isFormData = options?.body instanceof FormData;
         if (!isFormData && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
@@ -49,7 +48,7 @@ export function useApi() {
 
         const send = async () => {
             try {
-                return await fetch(finalUrl, { ...options, credentials: 'include', headers });
+                return await authorizedFetch(finalUrl, { ...options, headers });
             } catch (err) {
                 // fetch only rejects when no response arrived at all: API down,
                 // network dropped, CORS, DNS. (It used to share one catch with
@@ -69,15 +68,7 @@ export function useApi() {
             }
         };
 
-        let res = await send();
-
-        if (res.status === 401) {
-            const refreshed = await tryRefresh();
-            if (refreshed) {
-                headers.set('Authorization', `Bearer ${localStorage.getItem('token')}`);
-                res = await send();
-            }
-        }
+        const res = await send();
 
         if (!res.ok) {
             const { message, reference: serverReference, raw } = await readErrorBody(res);
@@ -114,21 +105,4 @@ export function useApi() {
     };
 
     return { request };
-}
-
-let refreshPromise: Promise<string | null> | null = null;
-
-/**
- * Attempts to refresh the authentication token by making a POST request to the `/auth/refresh` endpoint.
- * Stores the new token in localStorage if successful.
- */
-async function tryRefresh() {
-    if (!refreshPromise) {
-        refreshPromise = fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
-            .then(r => r.ok ? r.json().then(d => d.access_token) : null)
-            .then(token => { if(token) localStorage.setItem('token', token); return token; })
-            .catch(() => null);
-    }
-    const token = await refreshPromise.finally(() => refreshPromise = null);
-    return !!token;
 }

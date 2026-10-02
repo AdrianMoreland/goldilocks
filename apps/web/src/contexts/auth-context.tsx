@@ -1,8 +1,7 @@
 import * as React from "react"
 import { useAuthApi } from "@/api/auth.api"
 import type { SessionUser } from "@goldilocks/shared-types"
-
-const TOKEN_STORAGE_KEY = "token"
+import { SESSION_EXPIRED_EVENT, tokenStore } from "@/lib/session"
 
 interface AuthContextValue {
     user: SessionUser | null
@@ -29,8 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = React.useState(true)
 
     React.useEffect(() => {
-        const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-        if (!token) {
+        if (!tokenStore.getAccess()) {
             setIsLoading(false)
             return
         }
@@ -38,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         api.me()
             .then(setUser)
             .catch(() => {
-                localStorage.removeItem(TOKEN_STORAGE_KEY)
+                // me() already tried to renew an expired token; reaching here means the session is gone.
+                tokenStore.clear()
                 setUser(null)
             })
             .finally(() => setIsLoading(false))
@@ -46,17 +45,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // The request layer fires this when the server rejects the refresh token (revoked or expired): sign out
+    // so RequireAuth sends the user to the sign-in page instead of leaving them on failing screens.
+    React.useEffect(() => {
+        const onExpired = () => setUser(null)
+        window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    }, [])
+
     const login = React.useCallback(
         async (email: string, password: string) => {
             const result = await api.login({ email, password })
-            localStorage.setItem(TOKEN_STORAGE_KEY, result.accessToken)
+            tokenStore.set(result.accessToken, result.refreshToken)
             setUser(result.user)
         },
         [api],
     )
 
     const logout = React.useCallback(() => {
-        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        tokenStore.clear()
         setUser(null)
     }, [])
 
