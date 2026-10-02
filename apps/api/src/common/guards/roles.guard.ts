@@ -30,10 +30,14 @@ export class RolesGuard implements CanActivate {
         const { user } = context.switchToHttp().getRequest<RequestWithUser>();
         if (!user) throw new ForbiddenException('No user found on request');
 
+        // Any listed role is enough. The admin flag satisfies 'admin' and also 'manager', so an admin
+        // is never locked out of something a manager may do.
         const isAdmin = user.admin === true;
-        if (requiredRoles.includes('admin') && !isAdmin) {
-            throw new ForbiddenException('Insufficient permissions');
-        }
+        const isManager = isAdmin || user.role === 'MANAGER';
+        const allowed =
+            (requiredRoles.includes('admin') && isAdmin) ||
+            (requiredRoles.includes('manager') && isManager);
+        if (!allowed) throw new ForbiddenException('Insufficient permissions');
 
         return true;
     }

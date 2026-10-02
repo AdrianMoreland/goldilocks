@@ -37,7 +37,7 @@ const MODE_FIELDS: Record<MarketMode, { buyKey: keyof GroupAdjustment; sellKey: 
  * stack additively, same as the sheet.
  */
 export function SettingsTab() {
-    const { modes, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel } = usePricingSettings()
+    const { modes, canChangeModes, modeChangedBy, modeChangedAt, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel } = usePricingSettings()
     const { isAdmin } = useAuth()
 
     return (
@@ -93,6 +93,7 @@ export function SettingsTab() {
                         <Switch
                             checked={modes[mode.key]}
                             onCheckedChange={() => toggleMode(mode.key)}
+                            disabled={!canChangeModes}
                             className="cursor-pointer data-[state=checked]:bg-[var(--tab-accent)]"
                             aria-label={`Toggle ${mode.label} mode`}
                         />
@@ -100,6 +101,8 @@ export function SettingsTab() {
                 ))}
                 <p className="text-muted-foreground text-xs">
                     Modes stack — e.g. Weekend + Metal Shortage applies both adjustments together.
+                    {" "}The mode is company-wide{canChangeModes ? "" : " and only a manager or admin can change it"}
+                    {modeChangedBy && modeChangedAt ? ` (last set by ${modeChangedBy}, ${new Date(modeChangedAt).toLocaleString("en-IE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}).` : "."}
                 </p>
             </div>
 

@@ -11,4 +11,6 @@ export type FetchAttempt = Prisma.FetchAttemptModel;
 export type KbDocument = Prisma.KbDocumentModel;
 export type AiQuestionLog = Prisma.AiQuestionLogModel;
 export type AiAnswerCache = Prisma.AiAnswerCacheModel;
+export type MarketModeState = Prisma.MarketModeStateModel;
+export type RoadmapDocument = Prisma.RoadmapDocumentModel;
 //# sourceMappingURL=browser.d.ts.map

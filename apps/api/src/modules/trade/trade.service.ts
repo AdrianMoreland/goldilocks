@@ -120,7 +120,8 @@ export class TradeService {
             }
 
             const percent = this.validatePercent(transactionType, item.percent);
-            const quantity = Math.max(1, Math.floor(item.quantity) || 1);
+            // Whole and >= 1 is enforced by TradeCartItemSchema, so the request never carries anything else.
+            const quantity = item.quantity;
 
             const basePrice = spotPerGram * product.weight;
             const unitPrice = computeTransactionPrice(

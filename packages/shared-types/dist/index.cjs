@@ -28,6 +28,7 @@ __export(index_exports, {
   AiAnswerStatusEnum: () => AiAnswerStatusEnum,
   AiCitationSchema: () => AiCitationSchema,
   AiModeEnum: () => AiModeEnum,
+  AiSpotNoteSchema: () => AiSpotNoteSchema,
   AiStatusSchema: () => AiStatusSchema,
   AiUsageSchema: () => AiUsageSchema,
   ApiCatalogueSchema: () => ApiCatalogueSchema,
@@ -93,6 +94,7 @@ __export(index_exports, {
   LoginSchema: () => LoginSchema,
   MELT_CATEGORIES: () => MELT_CATEGORIES,
   MarketDataResponseSchema: () => MarketDataResponseSchema,
+  MarketModeStateSchema: () => MarketModeStateSchema,
   MeltCalculatorRequestSchema: () => MeltCalculatorRequestSchema,
   MeltCalculatorResponseSchema: () => MeltCalculatorResponseSchema,
   MeltCategoryDataSchema: () => MeltCategoryDataSchema,
@@ -123,7 +125,12 @@ __export(index_exports, {
   RecalculateOverridesSchema: () => RecalculateOverridesSchema,
   RefreshResponseSchema: () => RefreshResponseSchema,
   RegisterSchema: () => RegisterSchema,
+  RoadmapDocumentSchema: () => RoadmapDocumentSchema,
+  RoadmapEditError: () => RoadmapEditError,
+  RoadmapEditRequestSchema: () => RoadmapEditRequestSchema,
+  RoadmapEditSchema: () => RoadmapEditSchema,
   RouteStatsSchema: () => RouteStatsSchema,
+  SPOT_STALE_AFTER_MS: () => SPOT_STALE_AFTER_MS,
   SessionUserRoleEnum: () => SessionUserRoleEnum,
   SessionUserSchema: () => SessionUserSchema,
   SetKbStatusRequestSchema: () => SetKbStatusRequestSchema,
@@ -142,6 +149,7 @@ __export(index_exports, {
   TradeProductSchema: () => TradeProductSchema,
   TradeTransactionTypeEnum: () => TradeTransactionTypeEnum,
   UpdateKbDocumentRequestSchema: () => UpdateKbDocumentRequestSchema,
+  UpdateMarketModeRequestSchema: () => UpdateMarketModeRequestSchema,
   UpdateProductFullDtoSchema: () => UpdateProductFullDtoSchema,
   UpdateStockRequestSchema: () => UpdateStockRequestSchema,
   UserProfileSchema: () => UserProfileSchema,
@@ -149,12 +157,14 @@ __export(index_exports, {
   UserSchema: () => UserSchema,
   UserStatus: () => UserStatus,
   aiInputLimit: () => aiInputLimit,
+  applyRoadmapEdit: () => applyRoadmapEdit,
   buildPortfolioStrategies: () => buildPortfolioStrategies,
   computeCurrentBuybackValue: () => computeCurrentBuybackValue,
   computeMeltValue: () => computeMeltValue,
   computeProfit: () => computeProfit,
   computeRequiredSpotForTarget: () => computeRequiredSpotForTarget,
   computeTransactionPrice: () => computeTransactionPrice,
+  countTasks: () => countTasks,
   createErrorReference: () => createErrorReference,
   findBrokenLinks: () => findBrokenLinks,
   findLinks: () => findLinks,
@@ -167,13 +177,16 @@ __export(index_exports, {
   kbReviewStatus: () => kbReviewStatus,
   mapOutsideCode: () => mapOutsideCode,
   normalizeProductName: () => normalizeProductName,
+  parseDesignDoc: () => parseDesignDoc,
   parseKbDocument: () => parseKbDocument,
+  parseRoadmap: () => parseRoadmap,
   planAutolinks: () => planAutolinks,
   rewriteKbLinks: () => rewriteKbLinks,
   roundBuyPrice: () => roundBuyPrice,
   roundSellPrice: () => roundSellPrice,
   searchKb: () => searchKb,
   solveMissingPurchaseField: () => solveMissingPurchaseField,
+  splitDocSections: () => splitDocSections,
   splitFrontmatter: () => splitFrontmatter,
   splitSections: () => splitSections,
   termRegExp: () => termRegExp,
@@ -600,6 +613,7 @@ var PortfolioBuildResponseSchema = import_zod7.z.object({
 
 // src/pricing-math.ts
 var GRAMS_PER_TROY_OUNCE = 31.1034768;
+var SPOT_STALE_AFTER_MS = 15 * 60 * 1e3;
 function roundSellPrice(value) {
   return Math.ceil(Math.round(value * 100) / 100);
 }
@@ -608,9 +622,9 @@ function roundBuyPrice(value) {
 }
 function computeTransactionPrice(basePrice, transactionType, percent) {
   if (transactionType === "buying") {
-    return Math.ceil(basePrice * (1 + percent / 100));
+    return roundSellPrice(basePrice * (1 + percent / 100));
   }
-  return Math.floor(basePrice * (1 - percent / 100));
+  return roundBuyPrice(basePrice * (1 - percent / 100));
 }
 function computeMeltValue(spotPerGram, meltFactor, purity, weight) {
   return spotPerGram * meltFactor * purity * weight;
@@ -1108,66 +1122,82 @@ var CreateBranchRequestSchema = import_zod9.z.object({
   currency: CurrencyEnum.default("EUR")
 });
 
-// src/fetch-attempt.schema.ts
+// src/market-mode.schema.ts
 var import_zod10 = require("zod");
-var FetchTriggerEnum = import_zod10.z.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
-var FetchAttemptSchema = import_zod10.z.object({
-  id: import_zod10.z.string(),
-  attemptedAt: import_zod10.z.iso.datetime(),
-  durationMs: import_zod10.z.number(),
-  success: import_zod10.z.boolean(),
-  errorMessage: import_zod10.z.string().nullable(),
-  metalsResolved: import_zod10.z.array(MetalTypeEnum),
+var MarketModeStateSchema = import_zod10.z.object({
+  weekend: import_zod10.z.boolean(),
+  volatile: import_zod10.z.boolean(),
+  shortage: import_zod10.z.boolean(),
+  /** Who last changed it (display name); null if it has never been changed. */
+  updatedBy: import_zod10.z.string().nullable(),
+  updatedAt: import_zod10.z.iso.datetime().nullable()
+});
+var UpdateMarketModeRequestSchema = import_zod10.z.object({
+  weekend: import_zod10.z.boolean(),
+  volatile: import_zod10.z.boolean(),
+  shortage: import_zod10.z.boolean()
+});
+
+// src/fetch-attempt.schema.ts
+var import_zod11 = require("zod");
+var FetchTriggerEnum = import_zod11.z.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
+var FetchAttemptSchema = import_zod11.z.object({
+  id: import_zod11.z.string(),
+  attemptedAt: import_zod11.z.iso.datetime(),
+  durationMs: import_zod11.z.number(),
+  success: import_zod11.z.boolean(),
+  errorMessage: import_zod11.z.string().nullable(),
+  metalsResolved: import_zod11.z.array(MetalTypeEnum),
   triggeredBy: FetchTriggerEnum
 });
-var FetchMetricsSchema = import_zod10.z.object({
+var FetchMetricsSchema = import_zod11.z.object({
   /** Fraction (0-1) of external API calls in the last 24h that succeeded. 1 when there were none to judge. */
-  successRate24h: import_zod10.z.number(),
-  totalAttempts24h: import_zod10.z.number(),
-  failureCount24h: import_zod10.z.number(),
-  avgLatencyMs: import_zod10.z.number(),
+  successRate24h: import_zod11.z.number(),
+  totalAttempts24h: import_zod11.z.number(),
+  failureCount24h: import_zod11.z.number(),
+  avgLatencyMs: import_zod11.z.number(),
   /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
-  cacheHitRatio: import_zod10.z.number()
+  cacheHitRatio: import_zod11.z.number()
 });
 
 // src/error-log.schema.ts
-var import_zod11 = require("zod");
-var ErrorLogSourceEnum = import_zod11.z.enum(["server", "client"]);
-var ErrorLogSeverityEnum = import_zod11.z.enum(["error", "warning"]);
-var ErrorLogKindEnum = import_zod11.z.enum(["database", "http", "network", "external-api", "response", "crash"]);
-var ErrorLogEntrySchema = import_zod11.z.object({
-  id: import_zod11.z.string(),
+var import_zod12 = require("zod");
+var ErrorLogSourceEnum = import_zod12.z.enum(["server", "client"]);
+var ErrorLogSeverityEnum = import_zod12.z.enum(["error", "warning"]);
+var ErrorLogKindEnum = import_zod12.z.enum(["database", "http", "network", "external-api", "response", "crash"]);
+var ErrorLogEntrySchema = import_zod12.z.object({
+  id: import_zod12.z.string(),
   /** Short code shown to staff in the error toast ("ref E-7F3K2"), to find the matching entry. */
-  reference: import_zod11.z.string(),
-  at: import_zod11.z.string(),
+  reference: import_zod12.z.string(),
+  at: import_zod12.z.string(),
   source: ErrorLogSourceEnum,
   severity: ErrorLogSeverityEnum,
   kind: ErrorLogKindEnum,
-  message: import_zod11.z.string(),
-  detail: import_zod11.z.string().nullable().optional(),
-  statusCode: import_zod11.z.number().nullable().optional(),
-  method: import_zod11.z.string().nullable().optional(),
-  path: import_zod11.z.string().nullable().optional(),
+  message: import_zod12.z.string(),
+  detail: import_zod12.z.string().nullable().optional(),
+  statusCode: import_zod12.z.number().nullable().optional(),
+  method: import_zod12.z.string().nullable().optional(),
+  path: import_zod12.z.string().nullable().optional(),
   /** Vendor/driver error code, e.g. Prisma's "P1001". */
-  code: import_zod11.z.string().nullable().optional(),
-  stack: import_zod11.z.string().nullable().optional(),
-  user: import_zod11.z.string().nullable().optional(),
-  userAgent: import_zod11.z.string().nullable().optional()
+  code: import_zod12.z.string().nullable().optional(),
+  stack: import_zod12.z.string().nullable().optional(),
+  user: import_zod12.z.string().nullable().optional(),
+  userAgent: import_zod12.z.string().nullable().optional()
 });
-var ClientErrorReportSchema = import_zod11.z.object({
-  reference: import_zod11.z.string().max(20),
-  occurredAt: import_zod11.z.string().max(40),
+var ClientErrorReportSchema = import_zod12.z.object({
+  reference: import_zod12.z.string().max(20),
+  occurredAt: import_zod12.z.string().max(40),
   severity: ErrorLogSeverityEnum,
   kind: ErrorLogKindEnum,
-  message: import_zod11.z.string().max(500),
-  detail: import_zod11.z.string().max(4e3).optional(),
-  statusCode: import_zod11.z.number().int().optional(),
-  method: import_zod11.z.string().max(10).optional(),
-  path: import_zod11.z.string().max(500).optional(),
-  stack: import_zod11.z.string().max(4e3).optional()
+  message: import_zod12.z.string().max(500),
+  detail: import_zod12.z.string().max(4e3).optional(),
+  statusCode: import_zod12.z.number().int().optional(),
+  method: import_zod12.z.string().max(10).optional(),
+  path: import_zod12.z.string().max(500).optional(),
+  stack: import_zod12.z.string().max(4e3).optional()
 });
-var ClientErrorReportBatchSchema = import_zod11.z.object({
-  reports: import_zod11.z.array(ClientErrorReportSchema).max(50)
+var ClientErrorReportBatchSchema = import_zod12.z.object({
+  reports: import_zod12.z.array(ClientErrorReportSchema).max(50)
 });
 function createErrorReference() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -1177,7 +1207,7 @@ function createErrorReference() {
 }
 
 // src/kb.schema.ts
-var import_zod12 = require("zod");
+var import_zod13 = require("zod");
 var KB_CATEGORIES = [
   "sales",
   "trading",
@@ -1188,41 +1218,41 @@ var KB_CATEGORIES = [
   "directory",
   "meta"
 ];
-var KbCategoryEnum = import_zod12.z.enum(KB_CATEGORIES);
-var KbJurisdictionEnum = import_zod12.z.enum(["all", "IE", "UK", "ES"]);
-var KbStatusEnum = import_zod12.z.enum(["draft", "approved", "retired"]);
-var KbSlugSchema = import_zod12.z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase, hyphenated");
-var isoDay = import_zod12.z.iso.date();
-var KbFrontmatterSchema = import_zod12.z.object({
+var KbCategoryEnum = import_zod13.z.enum(KB_CATEGORIES);
+var KbJurisdictionEnum = import_zod13.z.enum(["all", "IE", "UK", "ES"]);
+var KbStatusEnum = import_zod13.z.enum(["draft", "approved", "retired"]);
+var KbSlugSchema = import_zod13.z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase, hyphenated");
+var isoDay = import_zod13.z.iso.date();
+var KbFrontmatterSchema = import_zod13.z.object({
   slug: KbSlugSchema,
-  title: import_zod12.z.string().trim().min(1),
+  title: import_zod13.z.string().trim().min(1),
   category: KbCategoryEnum,
   jurisdiction: KbJurisdictionEnum,
-  owner: import_zod12.z.string().trim().min(1),
+  owner: import_zod13.z.string().trim().min(1),
   status: KbStatusEnum,
-  version: import_zod12.z.coerce.number().int().positive(),
+  version: import_zod13.z.coerce.number().int().positive(),
   updatedAt: isoDay
 });
-var KbDocumentSchema = import_zod12.z.object({
+var KbDocumentSchema = import_zod13.z.object({
   slug: KbSlugSchema,
-  title: import_zod12.z.string(),
+  title: import_zod13.z.string(),
   category: KbCategoryEnum,
   jurisdiction: KbJurisdictionEnum,
-  owner: import_zod12.z.string(),
+  owner: import_zod13.z.string(),
   status: KbStatusEnum,
-  version: import_zod12.z.number().int(),
+  version: import_zod13.z.number().int(),
   contentUpdatedOn: isoDay,
-  markdown: import_zod12.z.string()
+  markdown: import_zod13.z.string()
 });
-var KbDocumentListResponseSchema = import_zod12.z.object({
-  documents: import_zod12.z.array(KbDocumentSchema)
+var KbDocumentListResponseSchema = import_zod13.z.object({
+  documents: import_zod13.z.array(KbDocumentSchema)
 });
-var UpdateKbDocumentRequestSchema = import_zod12.z.object({
-  title: import_zod12.z.string().trim().min(1).max(200),
-  owner: import_zod12.z.string().trim().min(1).max(100),
-  markdown: import_zod12.z.string().trim().min(1).max(1e5)
+var UpdateKbDocumentRequestSchema = import_zod13.z.object({
+  title: import_zod13.z.string().trim().min(1).max(200),
+  owner: import_zod13.z.string().trim().min(1).max(100),
+  markdown: import_zod13.z.string().trim().min(1).max(1e5)
 });
-var SetKbStatusRequestSchema = import_zod12.z.object({ status: KbStatusEnum });
+var SetKbStatusRequestSchema = import_zod13.z.object({ status: KbStatusEnum });
 var KB_CATEGORY_INFO = {
   sales: { label: "Sales", description: "Inquiries, quotes, pricing and customer conversations" },
   trading: { label: "Trading", description: "Payment, price lock, hedging, limit orders and cancellations" },
@@ -1311,17 +1341,17 @@ var LINK_PATTERN = /\[\[([a-z0-9]+(?:-[a-z0-9]+)*)(?:#([a-z0-9-]+))?\]\]/g;
 function findLinks(markdown) {
   return [...textOutsideCode(markdown).matchAll(LINK_PATTERN)].map((m) => ({ slug: m[1] ?? "", anchor: m[2] ?? null }));
 }
-function kbArticlePath(slug, anchor) {
-  return `/knowledge/articles/${slug}${anchor ? `#${anchor}` : ""}`;
+function kbArticlePath(slug2, anchor) {
+  return `/knowledge/articles/${slug2}${anchor ? `#${anchor}` : ""}`;
 }
 var KB_UNRESOLVED_HREF_PREFIX = "#unresolved-sop:";
 function rewriteKbLinks(markdown, resolve) {
   return mapOutsideCode(
     markdown,
-    (text) => text.replace(LINK_PATTERN, (_raw, slug, anchor) => {
-      const ref = { slug, anchor: anchor ?? null };
+    (text) => text.replace(LINK_PATTERN, (_raw, slug2, anchor) => {
+      const ref = { slug: slug2, anchor: anchor ?? null };
       const resolved = resolve(ref);
-      return resolved ? `[${resolved.label}](${resolved.href})` : `[${slug}](${KB_UNRESOLVED_HREF_PREFIX}${slug})`;
+      return resolved ? `[${resolved.label}](${resolved.href})` : `[${slug2}](${KB_UNRESOLVED_HREF_PREFIX}${slug2})`;
     })
   );
 }
@@ -1365,7 +1395,7 @@ function findBrokenLinks(docs) {
 function toPlainText(markdown) {
   return mapOutsideCode(
     markdown,
-    (text) => text.replace(/\[\[([a-z0-9-]+)(?:#([a-z0-9-]+))?\]\]/g, (_m, slug, anchor) => anchor ? anchor.replace(/-/g, " ") : slug.replace(/-/g, " ")).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "").replace(/^\s*\|?\s*[-:| ]+\|[-:| ]*$/gm, "").replace(/\|/g, " ").replace(/[*_~]/g, "").replace(/^#{1,6}\s+/gm, "")
+    (text) => text.replace(/\[\[([a-z0-9-]+)(?:#([a-z0-9-]+))?\]\]/g, (_m, slug2, anchor) => anchor ? anchor.replace(/-/g, " ") : slug2.replace(/-/g, " ")).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "").replace(/^\s*\|?\s*[-:| ]+\|[-:| ]*$/gm, "").replace(/\|/g, " ").replace(/[*_~]/g, "").replace(/^#{1,6}\s+/gm, "")
   ).replace(/`/g, "").replace(/\s+/g, " ").trim();
 }
 function indexKbDocument(doc) {
@@ -1723,16 +1753,16 @@ function kbReviewStatus(contentUpdatedOn, now = /* @__PURE__ */ new Date()) {
 }
 
 // src/ai.schema.ts
-var import_zod13 = require("zod");
-var AiModeEnum = import_zod13.z.enum(["procedures", "email", "whatsapp"]);
+var import_zod14 = require("zod");
+var AiModeEnum = import_zod14.z.enum(["procedures", "email", "whatsapp"]);
 var AI_QUESTION_MAX_LENGTH = 500;
 var AI_MESSAGE_MAX_LENGTH = 4e3;
 function aiInputLimit(mode) {
   return mode === "procedures" ? AI_QUESTION_MAX_LENGTH : AI_MESSAGE_MAX_LENGTH;
 }
-var AskRequestSchema = import_zod13.z.object({
+var AskRequestSchema = import_zod14.z.object({
   /** A question (procedures) or the customer's pasted message (email, whatsapp). */
-  question: import_zod13.z.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
+  question: import_zod14.z.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
   mode: AiModeEnum.default("procedures"),
   /**
    * The spot the product table is quoting from, when the user has frozen or typed one — otherwise
@@ -1743,192 +1773,478 @@ var AskRequestSchema = import_zod13.z.object({
   path: ["question"],
   message: "That is too long for a question. Keep it under 500 characters."
 });
-var AiAnswerStatusEnum = import_zod13.z.enum(["answered", "refused", "uncited"]);
-var AiCitationSchema = import_zod13.z.object({
-  slug: import_zod13.z.string(),
-  anchor: import_zod13.z.string().nullable(),
-  title: import_zod13.z.string(),
-  heading: import_zod13.z.string().nullable()
+var AiAnswerStatusEnum = import_zod14.z.enum(["answered", "refused", "uncited"]);
+var AiCitationSchema = import_zod14.z.object({
+  slug: import_zod14.z.string(),
+  anchor: import_zod14.z.string().nullable(),
+  title: import_zod14.z.string(),
+  heading: import_zod14.z.string().nullable()
 });
-var AiUsageSchema = import_zod13.z.object({
-  inputTokens: import_zod13.z.number().int(),
+var AiUsageSchema = import_zod14.z.object({
+  inputTokens: import_zod14.z.number().int(),
   /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
-  cachedInputTokens: import_zod13.z.number().int(),
-  outputTokens: import_zod13.z.number().int()
+  cachedInputTokens: import_zod14.z.number().int(),
+  outputTokens: import_zod14.z.number().int()
 });
-var AskResponseSchema = import_zod13.z.object({
+var AiSpotNoteSchema = import_zod14.z.object({
+  tone: import_zod14.z.enum(["custom", "stale", "healthy"]),
+  message: import_zod14.z.string()
+});
+var AskResponseSchema = import_zod14.z.object({
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
-  answer: import_zod13.z.string(),
+  answer: import_zod14.z.string(),
   mode: AiModeEnum,
   status: AiAnswerStatusEnum,
-  citations: import_zod13.z.array(AiCitationSchema),
-  model: import_zod13.z.string(),
+  citations: import_zod14.z.array(AiCitationSchema),
+  model: import_zod14.z.string(),
   usage: AiUsageSchema,
-  latencyMs: import_zod13.z.number().int(),
+  latencyMs: import_zod14.z.number().int(),
   /** Which SOPs the answer was based on — the audit trail for "what did it know when it said that?". */
-  corpus: import_zod13.z.object({ documents: import_zod13.z.number().int(), hash: import_zod13.z.string() }),
+  corpus: import_zod14.z.object({ documents: import_zod14.z.number().int(), hash: import_zod14.z.string() }),
   /** Served from the answer cache: no model call, so usage is zero. */
-  cached: import_zod13.z.boolean(),
+  cached: import_zod14.z.boolean(),
   /** Email/WhatsApp only: notes for the staff member (what the reply assumes, what to check), apart from the message to send. `answer` is the message itself. */
-  notes: import_zod13.z.string().nullable(),
+  notes: import_zod14.z.string().nullable(),
   /** Things to check before relying on the answer, e.g. a figure that did not come from a price lookup, or prices that may be out of date. */
-  warnings: import_zod13.z.array(import_zod13.z.string()),
+  warnings: import_zod14.z.array(import_zod14.z.string()),
+  /** Present only when the answer used a price lookup. Shown to staff beside the answer, never written into it. */
+  spotNote: AiSpotNoteSchema.nullable(),
   /** Which live lookups the answer used (getSpot, findProductPrices). Empty for a pure SOP answer. */
-  toolsUsed: import_zod13.z.array(import_zod13.z.string())
+  toolsUsed: import_zod14.z.array(import_zod14.z.string())
 });
-var AiStatusSchema = import_zod13.z.object({
-  enabled: import_zod13.z.boolean(),
-  model: import_zod13.z.string()
+var AiStatusSchema = import_zod14.z.object({
+  enabled: import_zod14.z.boolean(),
+  model: import_zod14.z.string()
 });
-var AskStreamEventSchema = import_zod13.z.discriminatedUnion("type", [
-  import_zod13.z.object({ type: import_zod13.z.literal("delta"), text: import_zod13.z.string() }),
-  import_zod13.z.object({ type: import_zod13.z.literal("tool"), name: import_zod13.z.string() }),
-  import_zod13.z.object({ type: import_zod13.z.literal("done"), response: AskResponseSchema }),
-  import_zod13.z.object({ type: import_zod13.z.literal("error"), status: import_zod13.z.number().int(), message: import_zod13.z.string() })
+var AskStreamEventSchema = import_zod14.z.discriminatedUnion("type", [
+  import_zod14.z.object({ type: import_zod14.z.literal("delta"), text: import_zod14.z.string() }),
+  import_zod14.z.object({ type: import_zod14.z.literal("tool"), name: import_zod14.z.string() }),
+  import_zod14.z.object({ type: import_zod14.z.literal("done"), response: AskResponseSchema }),
+  import_zod14.z.object({ type: import_zod14.z.literal("error"), status: import_zod14.z.number().int(), message: import_zod14.z.string() })
 ]);
 
 // src/admin.schema.ts
-var import_zod14 = require("zod");
-var HealthStatusEnum = import_zod14.z.enum(["up", "degraded", "down"]);
-var HealthItemSchema = import_zod14.z.object({
-  key: import_zod14.z.string(),
-  label: import_zod14.z.string(),
+var import_zod15 = require("zod");
+var HealthStatusEnum = import_zod15.z.enum(["up", "degraded", "down"]);
+var HealthItemSchema = import_zod15.z.object({
+  key: import_zod15.z.string(),
+  label: import_zod15.z.string(),
   status: HealthStatusEnum,
   /** One plain-language line: a measurement, or the reason it is not healthy. */
-  detail: import_zod14.z.string()
+  detail: import_zod15.z.string()
 });
-var HourlyStatsSchema = import_zod14.z.object({
-  hour: import_zod14.z.string(),
-  requests: import_zod14.z.number(),
-  clientErrors: import_zod14.z.number(),
-  serverErrors: import_zod14.z.number(),
-  avgLatencyMs: import_zod14.z.number(),
-  logins: import_zod14.z.number(),
-  failedLogins: import_zod14.z.number()
+var HourlyStatsSchema = import_zod15.z.object({
+  hour: import_zod15.z.string(),
+  requests: import_zod15.z.number(),
+  clientErrors: import_zod15.z.number(),
+  serverErrors: import_zod15.z.number(),
+  avgLatencyMs: import_zod15.z.number(),
+  logins: import_zod15.z.number(),
+  failedLogins: import_zod15.z.number()
 });
-var RouteStatsSchema = import_zod14.z.object({
-  route: import_zod14.z.string(),
-  count: import_zod14.z.number(),
-  errors: import_zod14.z.number(),
-  avgLatencyMs: import_zod14.z.number()
+var RouteStatsSchema = import_zod15.z.object({
+  route: import_zod15.z.string(),
+  count: import_zod15.z.number(),
+  errors: import_zod15.z.number(),
+  avgLatencyMs: import_zod15.z.number()
 });
-var TableSizeSchema = import_zod14.z.object({
-  name: import_zod14.z.string(),
-  bytes: import_zod14.z.number(),
-  rows: import_zod14.z.number()
+var TableSizeSchema = import_zod15.z.object({
+  name: import_zod15.z.string(),
+  bytes: import_zod15.z.number(),
+  rows: import_zod15.z.number()
 });
-var AdminOverviewSchema = import_zod14.z.object({
-  generatedAt: import_zod14.z.string(),
-  uptimeSeconds: import_zod14.z.number(),
-  nodeVersion: import_zod14.z.string(),
-  environment: import_zod14.z.string(),
-  aiEnabled: import_zod14.z.boolean(),
-  health: import_zod14.z.array(HealthItemSchema),
+var AdminOverviewSchema = import_zod15.z.object({
+  generatedAt: import_zod15.z.string(),
+  uptimeSeconds: import_zod15.z.number(),
+  nodeVersion: import_zod15.z.string(),
+  environment: import_zod15.z.string(),
+  aiEnabled: import_zod15.z.boolean(),
+  health: import_zod15.z.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
-  metricsAvailable: import_zod14.z.boolean(),
-  hours: import_zod14.z.array(HourlyStatsSchema),
-  topRoutes: import_zod14.z.array(RouteStatsSchema),
-  databaseBytes: import_zod14.z.number(),
-  tables: import_zod14.z.array(TableSizeSchema),
-  usersByRole: import_zod14.z.array(import_zod14.z.object({ role: import_zod14.z.string(), count: import_zod14.z.number() })),
-  activeUsers: import_zod14.z.number(),
-  errorsByKind: import_zod14.z.array(import_zod14.z.object({ kind: import_zod14.z.string(), count: import_zod14.z.number() }))
+  metricsAvailable: import_zod15.z.boolean(),
+  hours: import_zod15.z.array(HourlyStatsSchema),
+  topRoutes: import_zod15.z.array(RouteStatsSchema),
+  databaseBytes: import_zod15.z.number(),
+  tables: import_zod15.z.array(TableSizeSchema),
+  usersByRole: import_zod15.z.array(import_zod15.z.object({ role: import_zod15.z.string(), count: import_zod15.z.number() })),
+  activeUsers: import_zod15.z.number(),
+  errorsByKind: import_zod15.z.array(import_zod15.z.object({ kind: import_zod15.z.string(), count: import_zod15.z.number() }))
 });
-var LogLevelEnum = import_zod14.z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
-var AdminLogEntrySchema = import_zod14.z.object({
-  id: import_zod14.z.number(),
+var LogLevelEnum = import_zod15.z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
+var AdminLogEntrySchema = import_zod15.z.object({
+  id: import_zod15.z.number(),
   /** Epoch milliseconds. */
-  time: import_zod14.z.number(),
+  time: import_zod15.z.number(),
   level: LogLevelEnum,
-  message: import_zod14.z.string(),
-  context: import_zod14.z.string().nullable(),
-  method: import_zod14.z.string().nullable(),
-  url: import_zod14.z.string().nullable(),
-  status: import_zod14.z.number().nullable(),
-  responseTimeMs: import_zod14.z.number().nullable(),
+  message: import_zod15.z.string(),
+  context: import_zod15.z.string().nullable(),
+  method: import_zod15.z.string().nullable(),
+  url: import_zod15.z.string().nullable(),
+  status: import_zod15.z.number().nullable(),
+  responseTimeMs: import_zod15.z.number().nullable(),
   /** Everything else pino recorded on the line, for the expanded view. */
-  extra: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())
+  extra: import_zod15.z.record(import_zod15.z.string(), import_zod15.z.unknown())
 });
-var AdminLogsResponseSchema = import_zod14.z.object({
-  entries: import_zod14.z.array(AdminLogEntrySchema),
-  capacity: import_zod14.z.number()
+var AdminLogsResponseSchema = import_zod15.z.object({
+  entries: import_zod15.z.array(AdminLogEntrySchema),
+  capacity: import_zod15.z.number()
 });
-var AuditEntrySchema = import_zod14.z.object({
-  at: import_zod14.z.string(),
-  user: import_zod14.z.string(),
-  action: import_zod14.z.string(),
-  detail: import_zod14.z.string()
+var AuditEntrySchema = import_zod15.z.object({
+  at: import_zod15.z.string(),
+  user: import_zod15.z.string(),
+  action: import_zod15.z.string(),
+  detail: import_zod15.z.string()
 });
-var AuditLogResponseSchema = import_zod14.z.object({
-  entries: import_zod14.z.array(AuditEntrySchema),
-  persisted: import_zod14.z.boolean()
+var AuditLogResponseSchema = import_zod15.z.object({
+  entries: import_zod15.z.array(AuditEntrySchema),
+  persisted: import_zod15.z.boolean()
 });
-var ApiEndpointParameterSchema = import_zod14.z.object({
-  name: import_zod14.z.string(),
-  in: import_zod14.z.enum(["path", "query", "header"]),
-  required: import_zod14.z.boolean(),
-  type: import_zod14.z.string(),
-  options: import_zod14.z.array(import_zod14.z.string()).optional(),
-  description: import_zod14.z.string().optional()
+var ApiEndpointParameterSchema = import_zod15.z.object({
+  name: import_zod15.z.string(),
+  in: import_zod15.z.enum(["path", "query", "header"]),
+  required: import_zod15.z.boolean(),
+  type: import_zod15.z.string(),
+  options: import_zod15.z.array(import_zod15.z.string()).optional(),
+  description: import_zod15.z.string().optional()
 });
-var ApiEndpointSchema = import_zod14.z.object({
-  method: import_zod14.z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-  path: import_zod14.z.string(),
-  summary: import_zod14.z.string(),
-  description: import_zod14.z.string().optional(),
-  tag: import_zod14.z.string(),
-  requiresAuth: import_zod14.z.boolean(),
-  parameters: import_zod14.z.array(ApiEndpointParameterSchema),
+var ApiEndpointSchema = import_zod15.z.object({
+  method: import_zod15.z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+  path: import_zod15.z.string(),
+  summary: import_zod15.z.string(),
+  description: import_zod15.z.string().optional(),
+  tag: import_zod15.z.string(),
+  requiresAuth: import_zod15.z.boolean(),
+  parameters: import_zod15.z.array(ApiEndpointParameterSchema),
   /** A starter JSON body built from the request schema; null when the route takes none. */
-  bodyExample: import_zod14.z.unknown().nullable()
+  bodyExample: import_zod15.z.unknown().nullable()
 });
-var ApiCatalogueSchema = import_zod14.z.object({
-  endpoints: import_zod14.z.array(ApiEndpointSchema)
+var ApiCatalogueSchema = import_zod15.z.object({
+  endpoints: import_zod15.z.array(ApiEndpointSchema)
 });
-var DbColumnSchema = import_zod14.z.object({
-  name: import_zod14.z.string(),
-  type: import_zod14.z.string(),
-  nullable: import_zod14.z.boolean(),
-  hasDefault: import_zod14.z.boolean(),
-  isPrimaryKey: import_zod14.z.boolean(),
+var DbColumnSchema = import_zod15.z.object({
+  name: import_zod15.z.string(),
+  type: import_zod15.z.string(),
+  nullable: import_zod15.z.boolean(),
+  hasDefault: import_zod15.z.boolean(),
+  isPrimaryKey: import_zod15.z.boolean(),
   /** Generated by the database, or never shown at all — cannot be set from the browser. */
-  readOnly: import_zod14.z.boolean(),
+  readOnly: import_zod15.z.boolean(),
   /** The allowed values when the column is a Postgres enum. */
-  enumValues: import_zod14.z.array(import_zod14.z.string()).optional()
+  enumValues: import_zod15.z.array(import_zod15.z.string()).optional()
 });
-var DbTableSummarySchema = import_zod14.z.object({
-  name: import_zod14.z.string(),
-  rows: import_zod14.z.number(),
-  bytes: import_zod14.z.number(),
-  writable: import_zod14.z.boolean()
+var DbTableSummarySchema = import_zod15.z.object({
+  name: import_zod15.z.string(),
+  rows: import_zod15.z.number(),
+  bytes: import_zod15.z.number(),
+  writable: import_zod15.z.boolean()
 });
-var DbTablesResponseSchema = import_zod14.z.object({
-  tables: import_zod14.z.array(DbTableSummarySchema)
+var DbTablesResponseSchema = import_zod15.z.object({
+  tables: import_zod15.z.array(DbTableSummarySchema)
 });
-var DbRowsResponseSchema = import_zod14.z.object({
-  table: import_zod14.z.string(),
-  writable: import_zod14.z.boolean(),
-  columns: import_zod14.z.array(DbColumnSchema),
-  rows: import_zod14.z.array(import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())),
-  total: import_zod14.z.number(),
-  page: import_zod14.z.number(),
-  pageSize: import_zod14.z.number()
+var DbRowsResponseSchema = import_zod15.z.object({
+  table: import_zod15.z.string(),
+  writable: import_zod15.z.boolean(),
+  columns: import_zod15.z.array(DbColumnSchema),
+  rows: import_zod15.z.array(import_zod15.z.record(import_zod15.z.string(), import_zod15.z.unknown())),
+  total: import_zod15.z.number(),
+  page: import_zod15.z.number(),
+  pageSize: import_zod15.z.number()
 });
-var DbValueSchema = import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number(), import_zod14.z.boolean(), import_zod14.z.null(), import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown()), import_zod14.z.array(import_zod14.z.unknown())]);
-var DbInsertRequestSchema = import_zod14.z.object({
-  values: import_zod14.z.record(import_zod14.z.string(), DbValueSchema)
+var DbValueSchema = import_zod15.z.union([import_zod15.z.string(), import_zod15.z.number(), import_zod15.z.boolean(), import_zod15.z.null(), import_zod15.z.record(import_zod15.z.string(), import_zod15.z.unknown()), import_zod15.z.array(import_zod15.z.unknown())]);
+var DbInsertRequestSchema = import_zod15.z.object({
+  values: import_zod15.z.record(import_zod15.z.string(), DbValueSchema)
 });
-var DbUpdateRequestSchema = import_zod14.z.object({
+var DbUpdateRequestSchema = import_zod15.z.object({
   /** The row's primary-key column(s) and current value(s). */
-  key: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number()])),
-  values: import_zod14.z.record(import_zod14.z.string(), DbValueSchema)
+  key: import_zod15.z.record(import_zod15.z.string(), import_zod15.z.union([import_zod15.z.string(), import_zod15.z.number()])),
+  values: import_zod15.z.record(import_zod15.z.string(), DbValueSchema)
 });
-var DbDeleteRequestSchema = import_zod14.z.object({
-  key: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.union([import_zod14.z.string(), import_zod14.z.number()]))
+var DbDeleteRequestSchema = import_zod15.z.object({
+  key: import_zod15.z.record(import_zod15.z.string(), import_zod15.z.union([import_zod15.z.string(), import_zod15.z.number()]))
 });
-var DbRowResponseSchema = import_zod14.z.object({
-  row: import_zod14.z.record(import_zod14.z.string(), import_zod14.z.unknown())
+var DbRowResponseSchema = import_zod15.z.object({
+  row: import_zod15.z.record(import_zod15.z.string(), import_zod15.z.unknown())
 });
+
+// src/roadmap.schema.ts
+var import_zod16 = require("zod");
+var RoadmapDocumentSchema = import_zod16.z.object({
+  markdown: import_zod16.z.string(),
+  version: import_zod16.z.number().int().nonnegative(),
+  updatedBy: import_zod16.z.string().nullable(),
+  updatedAt: import_zod16.z.iso.datetime().nullable()
+});
+var TaskText = import_zod16.z.string().trim().min(1, "Task text is required").max(500).refine((t) => !/[\r\n]/.test(t), "Task text must be one line");
+var Line = import_zod16.z.number().int().nonnegative();
+var RoadmapEditSchema = import_zod16.z.discriminatedUnion("type", [
+  import_zod16.z.object({ type: import_zod16.z.literal("toggle"), line: Line, text: import_zod16.z.string(), checked: import_zod16.z.boolean() }),
+  import_zod16.z.object({ type: import_zod16.z.literal("add"), sectionLine: Line, parentLine: Line.optional(), text: TaskText }),
+  import_zod16.z.object({ type: import_zod16.z.literal("delete"), line: Line, text: import_zod16.z.string() }),
+  import_zod16.z.object({ type: import_zod16.z.literal("edit"), line: Line, text: import_zod16.z.string(), newText: TaskText })
+]);
+var RoadmapEditRequestSchema = import_zod16.z.object({
+  /** The document version the edit was made against. */
+  version: import_zod16.z.number().int().nonnegative(),
+  edit: RoadmapEditSchema
+});
+
+// src/roadmap.ts
+var TASK_LINE = /^(\s*)- \[( |x|X)\] (.*)$/;
+var HEADING = /^(#{1,2}) (.+)$/;
+var PRIORITY_EMOJI = { "\u{1F534}": "P0", "\u{1F7E0}": "P1", "\u{1F7E1}": "P2", "\u26AA": "P3" };
+var indentOf = (line) => line.length - line.trimStart().length;
+var eolOf = (markdown) => markdown.includes("\r\n") ? "\r\n" : "\n";
+var linesOf = (markdown) => markdown.split(/\r?\n/);
+function slug(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+function parseHeading(raw, group, headingLine, taken) {
+  let text = raw.trim();
+  let priority = null;
+  for (const [emoji, level] of Object.entries(PRIORITY_EMOJI)) {
+    if (text.includes(emoji)) {
+      priority ??= level;
+      text = text.replace(emoji, "");
+    }
+  }
+  let depends = null;
+  const arrow = text.indexOf("\u2190");
+  if (arrow >= 0) {
+    depends = text.slice(arrow + 1).replace(/^\s*depends:\s*/i, "").trim() || null;
+    text = text.slice(0, arrow);
+  }
+  let note = null;
+  text = text.replace(/\*\(([^)]*)\)\*/, (_m, inner) => {
+    note = inner.trim();
+    return "";
+  });
+  text = text.replace(/`/g, "").replace(/\s*→\s*$/, "").replace(/\s+/g, " ").trim();
+  const idMatch = /^(\d+\.\d+)\s+(.*)$/.exec(text);
+  const id = idMatch ? idMatch[1] ?? null : null;
+  const title = idMatch ? idMatch[2] ?? text : text;
+  const phase = /^PHASE (\d+)/.exec(title);
+  let key = id ?? (phase ? `phase-${phase[1]}` : slug(title).slice(0, 30).replace(/-$/, ""));
+  while (taken.has(key)) key += "-2";
+  taken.add(key);
+  return { key, id, title, note, depends, priority, group, headingLine, body: "", tasks: [] };
+}
+function parseRoadmap(markdown) {
+  const lines = linesOf(markdown);
+  const sections = [];
+  const taken = /* @__PURE__ */ new Set();
+  let group = "";
+  let current = null;
+  let stack = [];
+  let body = [];
+  let inFence = false;
+  const close = () => {
+    if (current) current.body = body.join("\n").trim();
+    body = [];
+    stack = [];
+  };
+  lines.forEach((line, index) => {
+    if (line.trimStart().startsWith("```")) inFence = !inFence;
+    const heading = inFence ? null : HEADING.exec(line);
+    if (heading) {
+      close();
+      const level = heading[1].length;
+      const headingText = heading[2];
+      if (level === 1) group = headingText.trim();
+      current = parseHeading(headingText, level === 1 ? headingText.trim() : group, index, taken);
+      if (level === 1 && index === 0) current = null;
+      else sections.push(current);
+      return;
+    }
+    if (!current) return;
+    const task = inFence ? null : TASK_LINE.exec(line);
+    if (task) {
+      const indent = task[1].length;
+      const node = { line: index, checked: task[2] !== " ", text: task[3].trim(), notes: [], children: [] };
+      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+      (stack.length ? stack[stack.length - 1].task.children : current.tasks).push(node);
+      stack.push({ indent, task: node });
+      return;
+    }
+    const owner = line.trim() === "" ? void 0 : [...stack].reverse().find((entry) => indentOf(line) > entry.indent);
+    if (owner) owner.task.notes.push(line.trim().replace(/^- /, ""));
+    else {
+      if (line.trim() !== "") stack = [];
+      body.push(line);
+    }
+  });
+  close();
+  return sections.filter((s) => s.id !== null || s.body !== "" || s.tasks.length > 0 || s.group !== s.title);
+}
+function countTasks(tasks) {
+  let done = 0;
+  let total = 0;
+  for (const task of tasks) {
+    total += 1;
+    if (task.checked) done += 1;
+    const inner = countTasks(task.children);
+    done += inner.done;
+    total += inner.total;
+  }
+  return { done, total };
+}
+var RoadmapEditError = class extends Error {
+};
+function requireTask(lines, line, text) {
+  const match = TASK_LINE.exec(lines[line] ?? "");
+  if (!match) throw new RoadmapEditError(`Line ${line + 1} is not a task. Reload and try again.`);
+  if (match[3].trim() !== text.trim()) throw new RoadmapEditError("That task changed since you loaded the page. Reload and try again.");
+  return match;
+}
+function blockEnd(lines, line) {
+  const indent = indentOf(lines[line]);
+  let end = line;
+  for (let i = line + 1; i < lines.length; i++) {
+    if (lines[i].trim() === "") continue;
+    if (indentOf(lines[i]) <= indent) break;
+    end = i;
+  }
+  return end;
+}
+function applyRoadmapEdit(markdown, edit) {
+  const eol = eolOf(markdown);
+  const lines = linesOf(markdown);
+  switch (edit.type) {
+    case "toggle": {
+      const m = requireTask(lines, edit.line, edit.text);
+      lines[edit.line] = `${m[1]}- [${edit.checked ? "x" : " "}] ${m[3]}`;
+      break;
+    }
+    case "edit": {
+      const m = requireTask(lines, edit.line, edit.text);
+      lines[edit.line] = `${m[1]}- [${m[2]}] ${edit.newText}`;
+      break;
+    }
+    case "delete": {
+      requireTask(lines, edit.line, edit.text);
+      lines.splice(edit.line, blockEnd(lines, edit.line) - edit.line + 1);
+      break;
+    }
+    case "add": {
+      const heading = HEADING.exec(lines[edit.sectionLine] ?? "");
+      if (!heading && edit.parentLine === void 0) throw new RoadmapEditError("Section not found. Reload and try again.");
+      if (edit.parentLine !== void 0) {
+        const parent = TASK_LINE.exec(lines[edit.parentLine] ?? "");
+        if (!parent) throw new RoadmapEditError("Parent task not found. Reload and try again.");
+        const end = blockEnd(lines, edit.parentLine);
+        lines.splice(end + 1, 0, `${parent[1]}  - [ ] ${edit.text}`);
+        break;
+      }
+      let sectionEnd = lines.length;
+      for (let i = edit.sectionLine + 1; i < lines.length; i++) {
+        if (HEADING.test(lines[i])) {
+          sectionEnd = i;
+          break;
+        }
+      }
+      let lastTop = -1;
+      for (let i = edit.sectionLine + 1; i < sectionEnd; i++) if (TASK_LINE.test(lines[i]) && indentOf(lines[i]) === 0) lastTop = i;
+      if (lastTop >= 0) {
+        lines.splice(blockEnd(lines, lastTop) + 1, 0, `- [ ] ${edit.text}`);
+      } else {
+        let at = sectionEnd;
+        while (at > edit.sectionLine + 1 && lines[at - 1].trim() === "") at--;
+        lines.splice(at, 0, ...at === edit.sectionLine + 1 ? [""] : [], `- [ ] ${edit.text}`);
+      }
+      break;
+    }
+  }
+  return lines.join(eol);
+}
+
+// src/design-md.ts
+var unquote = (value) => value.trim().replace(/^"(.*)"$/s, "$1").replace(/\\"/g, '"');
+function splitDocSections(markdown) {
+  const sections = [];
+  let current = null;
+  let inFence = false;
+  for (const line of markdown.replace(/\r\n/g, "\n").split("\n")) {
+    if (line.trimStart().startsWith("```")) inFence = !inFence;
+    const heading = inFence ? null : /^## (.+)$/.exec(line);
+    if (heading) {
+      if (current) sections.push({ title: current.title, body: current.lines.join("\n").trim() });
+      current = { title: heading[1].trim(), lines: [] };
+    } else current?.lines.push(line);
+  }
+  if (current) sections.push({ title: current.title, body: current.lines.join("\n").trim() });
+  return sections;
+}
+function parseFrontMatter(raw) {
+  const text = raw.replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n?/.exec(text);
+  if (!match) return { data: {}, rest: text };
+  const data = {};
+  let top = null;
+  let sub = null;
+  for (const line of match[1].split("\n")) {
+    if (!line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    const pair = /^\s*([^:]+):\s*(.*)$/.exec(line);
+    if (!pair) continue;
+    const key = pair[1].trim();
+    const value = pair[2];
+    if (indent === 0) {
+      top = key;
+      sub = null;
+      if (value) data[key] = unquote(value);
+      else data[key] = {};
+    } else if (top && typeof data[top] === "object") {
+      const group = data[top];
+      if (indent <= 2) {
+        if (value) group[key] = unquote(value);
+        else {
+          group[key] = {};
+          sub = key;
+        }
+      } else if (sub && typeof group[sub] === "object") {
+        group[sub][key] = unquote(value);
+      }
+    }
+  }
+  return { data, rest: text.slice(match[0].length) };
+}
+var flat = (value) => typeof value === "object" && value ? Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === "string")) : {};
+var nested = (value) => typeof value === "object" && value ? Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === "object")) : {};
+function listItems(body, heading) {
+  const start = body.search(heading);
+  if (start < 0) return [];
+  const after = body.slice(start).split("\n").slice(1);
+  const items = [];
+  for (const line of after) {
+    if (/^###? /.test(line)) break;
+    const bullet = /^- (.+)$/.exec(line);
+    if (bullet) items.push(bullet[1]);
+    else if (items.length && line.startsWith("  ") && line.trim()) items[items.length - 1] += ` ${line.trim()}`;
+  }
+  return items;
+}
+function parseDesignDoc(markdown) {
+  const { data, rest } = parseFrontMatter(markdown);
+  const prose = rest.replace(/^# .+\n/, "");
+  const sections = splitDocSections(prose);
+  const rules = [];
+  for (const match of prose.matchAll(/\*\*(The [^*]+? Rule)\.\*\*\s+([^\n]+)/g)) rules.push({ name: match[1], text: match[2] });
+  const dosSection = sections.find((s) => /^Do's and Don'ts/i.test(s.title))?.body ?? "";
+  return {
+    name: typeof data.name === "string" ? data.name : "Design system",
+    description: typeof data.description === "string" ? data.description : "",
+    tokens: {
+      colors: flat(data.colors),
+      typography: nested(data.typography),
+      rounded: flat(data.rounded),
+      spacing: flat(data.spacing),
+      components: nested(data.components)
+    },
+    sections,
+    rules,
+    dos: listItems(dosSection, /^### Do:/m),
+    donts: listItems(dosSection, /^### Don't:/m)
+  };
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AI_MESSAGE_MAX_LENGTH,
@@ -1939,6 +2255,7 @@ var DbRowResponseSchema = import_zod14.z.object({
   AiAnswerStatusEnum,
   AiCitationSchema,
   AiModeEnum,
+  AiSpotNoteSchema,
   AiStatusSchema,
   AiUsageSchema,
   ApiCatalogueSchema,
@@ -2004,6 +2321,7 @@ var DbRowResponseSchema = import_zod14.z.object({
   LoginSchema,
   MELT_CATEGORIES,
   MarketDataResponseSchema,
+  MarketModeStateSchema,
   MeltCalculatorRequestSchema,
   MeltCalculatorResponseSchema,
   MeltCategoryDataSchema,
@@ -2034,7 +2352,12 @@ var DbRowResponseSchema = import_zod14.z.object({
   RecalculateOverridesSchema,
   RefreshResponseSchema,
   RegisterSchema,
+  RoadmapDocumentSchema,
+  RoadmapEditError,
+  RoadmapEditRequestSchema,
+  RoadmapEditSchema,
   RouteStatsSchema,
+  SPOT_STALE_AFTER_MS,
   SessionUserRoleEnum,
   SessionUserSchema,
   SetKbStatusRequestSchema,
@@ -2053,6 +2376,7 @@ var DbRowResponseSchema = import_zod14.z.object({
   TradeProductSchema,
   TradeTransactionTypeEnum,
   UpdateKbDocumentRequestSchema,
+  UpdateMarketModeRequestSchema,
   UpdateProductFullDtoSchema,
   UpdateStockRequestSchema,
   UserProfileSchema,
@@ -2060,12 +2384,14 @@ var DbRowResponseSchema = import_zod14.z.object({
   UserSchema,
   UserStatus,
   aiInputLimit,
+  applyRoadmapEdit,
   buildPortfolioStrategies,
   computeCurrentBuybackValue,
   computeMeltValue,
   computeProfit,
   computeRequiredSpotForTarget,
   computeTransactionPrice,
+  countTasks,
   createErrorReference,
   findBrokenLinks,
   findLinks,
@@ -2078,13 +2404,16 @@ var DbRowResponseSchema = import_zod14.z.object({
   kbReviewStatus,
   mapOutsideCode,
   normalizeProductName,
+  parseDesignDoc,
   parseKbDocument,
+  parseRoadmap,
   planAutolinks,
   rewriteKbLinks,
   roundBuyPrice,
   roundSellPrice,
   searchKb,
   solveMissingPurchaseField,
+  splitDocSections,
   splitFrontmatter,
   splitSections,
   termRegExp,

@@ -6,6 +6,7 @@ import {
     type ErrorLogSeverity,
 } from "@goldilocks/shared-types"
 import { API_URL } from "@/api/base"
+import { authorizedFetch, tokenStore } from "@/lib/session"
 
 /**
  * This browser's own error log. Kept in localStorage so a failure is still
@@ -108,8 +109,7 @@ let flushing = false
  */
 export async function flushClientErrors(): Promise<void> {
     if (flushing) return
-    const token = localStorage.getItem("token")
-    if (!token) return
+    if (!tokenStore.getAccess()) return
     const pending = read().filter((e) => e.reportable && !e.synced).slice(0, 50)
     if (pending.length === 0) return
 
@@ -127,10 +127,9 @@ export async function flushClientErrors(): Promise<void> {
             path: e.path ?? undefined,
             stack: e.stack ?? undefined,
         }))
-        const res = await fetch(`${API_URL}/errors/client`, {
+        const res = await authorizedFetch(`${API_URL}/errors/client`, {
             method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reports }),
         })
         if (!res.ok) return

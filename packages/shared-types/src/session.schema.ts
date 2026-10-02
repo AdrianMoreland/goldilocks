@@ -25,11 +25,19 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
+// `refreshToken` is null when the identity provider doesn't issue one. It defaults to null (not
+// required) so a web build that is deployed before the API still parses the old response shape.
 export const LoginResponseSchema = z.object({
   accessToken: z.string(),
+  refreshToken: z.string().nullable().default(null),
   user: SessionUserSchema,
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+
+export const RefreshRequestSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+export type RefreshRequest = z.infer<typeof RefreshRequestSchema>;
 
 // ============================================================================
 // ADMIN — creating a new staff account. This is a closed internal tool (no

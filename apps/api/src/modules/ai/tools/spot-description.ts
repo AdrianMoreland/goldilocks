@@ -1,7 +1,7 @@
+import { SPOT_STALE_AFTER_MS } from '@goldilocks/shared-types';
 import type { QuotedSpot } from '../../market-data/market-data.service';
 
-/** The cron refreshes spot every 10 minutes; a quote older than this has missed a refresh. */
-export const SPOT_STALE_AFTER_MS = 15 * 60 * 1000;
+export { SPOT_STALE_AFTER_MS };
 
 export interface SpotDescription {
     metal: string;

@@ -12,6 +12,7 @@ import type { AskResponse, AskStreamEvent } from '@goldilocks/shared-types';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { AiController } from './ai.controller';
+import { AskStreamResponder } from './ask-stream.responder';
 import { AskService, type AskEvent } from './ask.service';
 
 const RESPONSE: AskResponse = {
@@ -19,6 +20,7 @@ const RESPONSE: AskResponse = {
     mode: 'procedures',
     notes: null,
     warnings: [],
+    spotNote: null,
     toolsUsed: [],
     status: 'answered',
     citations: [],
@@ -47,6 +49,7 @@ describe('POST /ai/ask/stream over real HTTP', () => {
         const moduleRef = await Test.createTestingModule({
             controllers: [AiController],
             providers: [
+                AskStreamResponder,
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 {

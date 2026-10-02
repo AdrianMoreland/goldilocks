@@ -267,3 +267,30 @@ model AiAnswerCache {
   @@index([expiresAt])
   @@map("ai_answer_cache")
 }
+
+/// The company-wide market mode (Weekend / Volatile / Metal Shortage), shared by every user. A single
+/// row with id 1; no row means Standard. updatedBy is a display name, kept as text so a deleted user
+/// does not orphan it.
+model MarketModeState {
+  id        Int      @id
+  weekend   Boolean  @default(false)
+  volatile  Boolean  @default(false)
+  shortage  Boolean  @default(false)
+  updatedBy String?
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("market_mode_state")
+}
+
+/// docs/ROADMAP.md as stored for the Project Management page: one row (id 1) holding the whole Markdown.
+/// `version` is bumped on every save so two editors cannot silently overwrite each other. The file in
+/// the repo stays the reviewed copy: `pnpm --filter api roadmap:import` / `roadmap:export` move it either way.
+model RoadmapDocument {
+  id        Int      @id
+  markdown  String
+  version   Int      @default(1)
+  updatedBy String?
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("roadmap_document")
+}

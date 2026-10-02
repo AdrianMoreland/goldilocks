@@ -44,7 +44,7 @@ describe('searchKb', () => {
   });
 
   it('is case-insensitive and highlights the matched words in the snippet', () => {
-    const [top] = searchKb(docs, 'QUARTERLY');
+    const top = searchKb(docs, 'QUARTERLY')[0]!;
     const hit = top.snippet.find((part) => part.hit);
     expect(hit?.text.toLowerCase()).toBe('quarterly');
   });

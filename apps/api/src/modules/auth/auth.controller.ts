@@ -9,6 +9,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RequestMetricsService } from '../admin/request-metrics.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,6 +20,7 @@ import {
     CreateUserRequestDto,
     LoginRequestDto,
     LoginResponseDto,
+    RefreshRequestDto,
     SessionUserDto,
 } from '../../common/dto/dtos';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
@@ -31,7 +33,9 @@ export class AuthController {
         private readonly metrics: RequestMetricsService,
     ) {}
 
+    // The only public write endpoint: tight, per IP, to make password guessing impractical.
     @Public()
+    @Throttle({ default: { limit: 10, ttl: 60_000 } })
     @Post('login')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Login with email & password' })
@@ -47,6 +51,16 @@ export class AuthController {
             this.metrics.recordLogin(false);
             throw error;
         }
+    }
+
+    // Public because it is called when the access token has already expired; the refresh token is the credential.
+    @Public()
+    @Throttle({ default: { limit: 30, ttl: 60_000 } })
+    @Post('refresh')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Exchange a refresh token for a new session' })
+    async refresh(@Body() body: RefreshRequestDto): Promise<LoginResponseDto> {
+        return this.authService.refresh(body.refreshToken);
     }
 
     @Get('me')

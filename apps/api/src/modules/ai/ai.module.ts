@@ -7,6 +7,7 @@ import { RedisModule } from '../../redis/redis.module';
 import { AuthModule } from '../auth/auth.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { AiController } from './ai.controller';
+import { AskStreamResponder } from './ask-stream.responder';
 import { AiRetentionService } from './ai-retention.service';
 import { AiSettings } from './ai.settings';
 import { AnswerCacheService } from './answer-cache.service';
@@ -38,6 +39,7 @@ import { ToolRegistry } from './tools/tool.registry';
     controllers: [AiController],
     providers: [
         AskService,
+        AskStreamResponder,
         AiSettings,
         QuotaService,
         AnswerCacheService,
