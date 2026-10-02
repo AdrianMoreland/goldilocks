@@ -194,11 +194,11 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 
 ## 0.10 Testing, CI and docs 🟠
 
-- [ ] 🔴 **CI on every PR to `master`** (GitHub Actions) — S *(nothing runs on push today: there is no `.github/workflows`)*
+- [x] 🔴 **CI on every PR to `master`** (GitHub Actions) — S *(done 2026-10-02)*
   - [x] Steps: pnpm install → build `@goldilocks/shared-types` first (consumers read `dist/`) → `tsc` → ESLint from `apps/api` with `--no-fix` → API Jest → `shared-types` specs → web build
   - [x] Fail on any non-zero ESLint count (the baseline is 0); cache the pnpm store; mocks only, no real Supabase/OpenAI keys
-  - [ ] Branch protection on `master` requiring the CI check
-  - [ ] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(in repo: manual-only `ai-eval.yml`, needs `OPENAI_API_KEY` + `DATABASE_URL` secrets; still to do in the GitHub/Railway UIs: protect `master` requiring the `ci` check, and enable Railway "Wait for CI" on both services)*
+  - [x] Branch protection on `master` requiring the CI check
+  - [x] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(`master` ruleset requires a PR and the `ci` check; Railway "Wait for CI" is on for `api` and `web`; `ai-eval.yml` is manual-only and needs `OPENAI_API_KEY` + `DATABASE_URL` repo secrets)*
   - [x] `pnpm audit` / Dependabot in the same workflow (see 0.6) *(report-only: 127 findings today, so it is not a required check; Dependabot is configured)*
   - [ ] `shared-types` `check-types` fails on strict-null errors in `kb-markdown.spec.ts`, `kb-search.spec.ts`, `roadmap.spec.ts`; fix them, then add it to CI and make root `pnpm check-types` meaningful
 - [ ] 🔴 **Web test runner:** Vitest + MSW + Testing Library, first specs on the pure money/calculator functions (no DOM), then the Trade/Portfolio tabs and the copy output — M *(the web app has no tests and no `test` script)*
