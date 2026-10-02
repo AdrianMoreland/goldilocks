@@ -267,6 +267,7 @@ AI_PER_MINUTE_LIMIT=    # optional; 5 per user per minute
 AI_DAILY_BUDGET_USD=    # optional; 2 — company-wide daily ceiling, then the assistant pauses
 AI_LOG_RETENTION_DAYS=  # optional; 90
 LOG_LEVEL=              # optional; pino level, defaults to info
+TRUST_PROXY_HOPS=       # optional; proxies in front of the API (Railway: 1, the default). The rate limiter keys on the client IP, so a wrong value either throttles everyone together or lets a client forge its address
 SPOT_PRICE_RETENTION_DAYS= # optional; days of metal_spot_prices ticks kept (default 7)
 AI_CACHE_TTL_DAYS=      # optional; 7
 AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million tokens, for a model the price table doesn't know

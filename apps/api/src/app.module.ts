@@ -25,6 +25,8 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AiModule } from './modules/ai/ai.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 // pino-pretty is a dev-only dependency, so it is loaded only outside production.
 function prettyStream() {
@@ -35,6 +37,9 @@ function prettyStream() {
 
 @Module({
     imports: [
+        // In-memory counters: one API instance today. Move to a Redis-backed store when a second replica is added.
+        // The default is a generous per-user ceiling; sensitive routes tighten it with @Throttle.
+        ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 300 }] }),
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: '.env',
@@ -100,6 +105,8 @@ function prettyStream() {
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         // After JwtAuthGuard: makes every @Roles() effective, including on routes that forget @UseGuards(RolesGuard).
         { provide: APP_GUARD, useClass: RolesGuard },
+        // Last of the guards so the throttler can key on the signed-in user.
+        { provide: APP_GUARD, useClass: UserThrottlerGuard },
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },

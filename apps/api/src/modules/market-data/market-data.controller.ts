@@ -6,6 +6,7 @@ import {
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { MarketDataService } from './market-data.service';
 import {
     BackfillHistoryQueryDto,
@@ -71,6 +72,8 @@ export class MarketDataController {
     })
     // Any signed-in user (the desk's Refresh button) — the global JwtAuthGuard
     // already requires a token; this is deliberately not admin-only.
+    // Each call spends paid vendor quota, so it is limited far below the global ceiling.
+    @Throttle({ default: { limit: 6, ttl: 60_000 } })
     @Post('refresh')
     @ApiBearerAuth()
     async refresh(): Promise<MarketDataResponseDto> {

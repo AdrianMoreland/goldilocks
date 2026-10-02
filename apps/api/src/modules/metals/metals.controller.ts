@@ -15,6 +15,7 @@ import {
     ApiQuery,
 } from '@nestjs/swagger';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
+import { Throttle } from '@nestjs/throttler';
 import { UseInterceptors } from '@nestjs/common';
 import { MetalTypeEnum, type MetalType } from '@goldilocks/shared-types';
 import { MetalsProvider } from './metals.provider';
@@ -47,6 +48,8 @@ export class MetalsController {
         private readonly fetchAttempts: FetchAttemptService,
     ) {}
 
+    // Spends paid vendor quota: limited far below the global ceiling.
+    @Throttle({ default: { limit: 6, ttl: 60_000 } })
     @Post('refresh')
     @ApiOperation({
         summary: 'Force a manual spot-price refresh (admin)',
