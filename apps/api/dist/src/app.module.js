@@ -29,6 +29,8 @@ const metal_price_api_module_1 = require("./infrastructure/metal-price-api/metal
 const trade_module_1 = require("./modules/trade/trade.module");
 const portfolio_module_1 = require("./modules/portfolio/portfolio.module");
 const branches_module_1 = require("./modules/branches/branches.module");
+const market_mode_module_1 = require("./modules/market-mode/market-mode.module");
+const roadmap_module_1 = require("./modules/roadmap/roadmap.module");
 const prisma_module_1 = require("./infrastructure/prisma/prisma.module");
 const redis_module_1 = require("./redis/redis.module");
 const all_exceptions_filter_1 = require("./common/filters/all-exceptions.filter");
@@ -93,6 +95,8 @@ exports.AppModule = AppModule = __decorate([
             trade_module_1.TradeModule,
             portfolio_module_1.PortfolioModule,
             branches_module_1.BranchesModule,
+            market_mode_module_1.MarketModeModule,
+            roadmap_module_1.RoadmapModule,
             prisma_module_1.PrismaModule,
             redis_module_1.RedisModule,
             error_log_module_1.ErrorLogModule,

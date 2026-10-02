@@ -739,6 +739,14 @@ declare const AskResponseDto_base: import("nestjs-zod").ZodDto<import("zod").Zod
     cached: import("zod").ZodBoolean;
     notes: import("zod").ZodNullable<import("zod").ZodString>;
     warnings: import("zod").ZodArray<import("zod").ZodString>;
+    spotNote: import("zod").ZodNullable<import("zod").ZodObject<{
+        tone: import("zod").ZodEnum<{
+            custom: "custom";
+            stale: "stale";
+            healthy: "healthy";
+        }>;
+        message: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>>;
     toolsUsed: import("zod").ZodArray<import("zod").ZodString>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class AskResponseDto extends AskResponseDto_base {
@@ -764,6 +772,55 @@ declare const DbDeleteRequestDto_base: import("nestjs-zod").ZodDto<import("zod")
     key: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber]>>;
 }, import("zod/v4/core").$strip>, false>;
 export declare class DbDeleteRequestDto extends DbDeleteRequestDto_base {
+}
+declare const MarketModeStateDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    weekend: import("zod").ZodBoolean;
+    volatile: import("zod").ZodBoolean;
+    shortage: import("zod").ZodBoolean;
+    updatedBy: import("zod").ZodNullable<import("zod").ZodString>;
+    updatedAt: import("zod").ZodNullable<import("zod").ZodISODateTime>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class MarketModeStateDto extends MarketModeStateDto_base {
+}
+declare const UpdateMarketModeRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    weekend: import("zod").ZodBoolean;
+    volatile: import("zod").ZodBoolean;
+    shortage: import("zod").ZodBoolean;
+}, import("zod/v4/core").$strip>, false>;
+export declare class UpdateMarketModeRequestDto extends UpdateMarketModeRequestDto_base {
+}
+declare const RoadmapDocumentDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    markdown: import("zod").ZodString;
+    version: import("zod").ZodNumber;
+    updatedBy: import("zod").ZodNullable<import("zod").ZodString>;
+    updatedAt: import("zod").ZodNullable<import("zod").ZodISODateTime>;
+}, import("zod/v4/core").$strip>, false>;
+export declare class RoadmapDocumentDto extends RoadmapDocumentDto_base {
+}
+declare const RoadmapEditRequestDto_base: import("nestjs-zod").ZodDto<import("zod").ZodObject<{
+    version: import("zod").ZodNumber;
+    edit: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+        type: import("zod").ZodLiteral<"toggle">;
+        line: import("zod").ZodNumber;
+        text: import("zod").ZodString;
+        checked: import("zod").ZodBoolean;
+    }, import("zod/v4/core").$strip>, import("zod").ZodObject<{
+        type: import("zod").ZodLiteral<"add">;
+        sectionLine: import("zod").ZodNumber;
+        parentLine: import("zod").ZodOptional<import("zod").ZodNumber>;
+        text: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>, import("zod").ZodObject<{
+        type: import("zod").ZodLiteral<"delete">;
+        line: import("zod").ZodNumber;
+        text: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>, import("zod").ZodObject<{
+        type: import("zod").ZodLiteral<"edit">;
+        line: import("zod").ZodNumber;
+        text: import("zod").ZodString;
+        newText: import("zod").ZodString;
+    }, import("zod/v4/core").$strip>], "type">;
+}, import("zod/v4/core").$strip>, false>;
+export declare class RoadmapEditRequestDto extends RoadmapEditRequestDto_base {
 }
 export {};
 //# sourceMappingURL=dtos.d.ts.map

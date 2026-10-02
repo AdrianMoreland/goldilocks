@@ -5,6 +5,8 @@ export const queryKeys = {
     marketData: {
         all: ['market-data'] as const,
     },
+    marketMode: ['market-mode'] as const,
+    roadmap: ['roadmap'] as const,
     trade: {
         // Shared by the Trade tab and Portfolio's P/L subtab — same key on
         // purpose (see usePortfolioPL), so opening both doesn't double the

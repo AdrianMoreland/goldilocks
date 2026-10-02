@@ -4,7 +4,7 @@ import { useTradeApi } from '@/api/trade.api';
 import { usePortfolioApi } from '@/api/portfolio.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MetalType } from '@/lib/types';
-import { useSpotPrices } from '@/app/dashboard/context/spot-prices-context';
+import { useToolSpot } from '@/app/dashboard/context/tool-spots-context';
 import { findDefaultProduct } from '@/lib/default-product';
 import type {
     ProfitAnalysisMissingFieldDto,
@@ -27,7 +27,7 @@ type PurchaseMode = 'premium' | 'price';
 export function usePortfolioPL(metal: MetalType) {
     const tradeApi = useTradeApi();
     const portfolioApi = usePortfolioApi();
-    const { displayPrices, setSpot: setMetalSpot } = useSpotPrices();
+    const { spot: currentSpot, setSpot: setCurrentSpot } = useToolSpot('portfolio', metal);
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -36,15 +36,8 @@ export function usePortfolioPL(metal: MetalType) {
 
     const products = useMemo(() => bootstrapQuery.data?.products ?? [], [bootstrapQuery.data]);
 
-    // The current spot is the card's spot (override included), never a copy
-    // taken at first load — so editing a card re-runs the analysis.
-    const currentSpot = displayPrices[metal] > 0 ? displayPrices[metal] : null;
-    const setCurrentSpot = useCallback(
-        (value: number) => {
-            if (value > 0) setMetalSpot(metal, value);
-        },
-        [metal, setMetalSpot],
-    );
+    // The current spot is this tool's own: the card's spot until edited, then
+    // held here — never written back to the card.
 
     const [productId, setProductId] = useState<number | null>(null);
     const [purchMode, setPurchMode] = useState<PurchaseMode>('premium');
@@ -189,8 +182,8 @@ export function usePortfolioScenario() {
 export function usePortfolioBuilder(metal: MetalType) {
     const tradeApi = useTradeApi();
     const portfolioApi = usePortfolioApi();
-    const { displayPrices } = useSpotPrices();
-    const customSpot = displayPrices[metal] > 0 ? displayPrices[metal] : undefined;
+    const { spot } = useToolSpot('portfolio', metal);
+    const customSpot = spot !== null && spot > 0 ? spot : undefined;
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),

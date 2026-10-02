@@ -11,6 +11,13 @@ import type { TradeTransactionType } from './trade.schema';
 export const GRAMS_PER_TROY_OUNCE = 31.1034768;
 
 /**
+ * How old a live spot snapshot can be before prices may be out of date. The
+ * cron refreshes every 10 minutes, so 15 survives one missed run without
+ * flagging a healthy snapshot. Read by the dashboard cards and the assistant.
+ */
+export const SPOT_STALE_AFTER_MS = 15 * 60 * 1000;
+
+/**
  * Whole-euro rounding for quoted product prices, always in the dealer's
  * favour: a price we charge rounds UP, a buyback we pay rounds DOWN. The
  * value is snapped to cents first so float noise (2948.0000000004) doesn't
@@ -38,10 +45,10 @@ export function computeTransactionPrice(
   percent: number,
 ): number {
   if (transactionType === 'buying') {
-    return Math.ceil(basePrice * (1 + percent / 100));
+    return roundSellPrice(basePrice * (1 + percent / 100));
   }
 
-  return Math.floor(basePrice * (1 - percent / 100));
+  return roundBuyPrice(basePrice * (1 - percent / 100));
 }
 
 export function computeMeltValue(
