@@ -1,8 +1,8 @@
 # Goldilocks Super Roadmap
 
-Single source of truth for what to build and in what order. Merges three earlier roadmaps and idea lists. Paste-ready for Notion (nested `- [ ]` checklists).
+Single source of truth for what to build and in what order. Merges three earlier roadmaps and idea lists, plus the 2026-10-01 code-health review (safety net, defects, money, market-data flow, refactors). Paste-ready for Notion (nested `- [ ]` checklists).
 
-**Last consolidated:** 2026-09-30 · statuses re-checked against the code 2026-10-01
+**Last consolidated:** 2026-10-01 · statuses re-checked against the code 2026-10-01
 
 ## How to read this
 
@@ -11,7 +11,8 @@ Single source of truth for what to build and in what order. Merges three earlier
 - **Effort:** S (≤ 1 day) · M (2–5 days) · L (1+ week) · XL (multi-week, needs a plan first).
 - **`← depends: X`** = do not start before X. **`[BC]`** = needs Business Central access. **`[LEGAL]`** = needs a legal/compliance decision first.
 - `[x]` = done as of the consolidation date (taken from the source roadmaps + git history). **Verify in code before claiming something is done or missing** — this file can lag the repo.
-- Work inside a phase in numeric order unless a dependency says otherwise. Do not start Phase 2 build work before its 2.0 prerequisites are closed.
+- An item can carry its own priority emoji when it differs from its section (e.g. CI inside 0.10). **Work in the order given by "Suggested sequencing" at the bottom**, not section number; section IDs are stable labels, not a queue. Do not start Phase 2 build work before its 2.0 prerequisites are closed.
+- `*(confirm)*` = a claim from the code-health review that was not re-checked in the code; verify before starting the item.
 
 ## Ground rules (apply to every phase)
 
@@ -33,6 +34,12 @@ Single source of truth for what to build and in what order. Merges three earlier
 | Workbook retirement | Marked done in Roadmap 1; keep as done. |
 | Price fetch job | Roadmap 1 wants BullMQ; Roadmap 2's "Tier 3" wants a worker app. Do **BullMQ in-process first (0.7)**, extract `apps/worker` only when a trigger fires. |
 | Palladium | Decided (done). |
+| Persistence boundary (should services get repository classes before 1.8/1.9?) | **No new repository layer.** `ProductsProvider` already is the product repository (all product reads/writes + cache refresh) and the spot-price write path is `MetalsProvider`. The real gaps are (a) a write, its audit row and its cache refresh are not one transaction, (b) the admin DB browser writes products behind the provider's back, (c) `MetalsProvider` mixes vendor fetching with storing. Fixed in 0.6 (transactional audit) and 0.14 (provider clean-up). Ports (interface + DI token) only at genuinely swappable external seams: BC, Open Banking, hedge platform. |
+| Query-param validation | **Shared Zod query schemas** in `shared-types` (one validation system). No `ParseBoundedIntPipe`; `ParseIntPipe` stays for numeric path params. |
+| Live price updates | The app has no SSE for prices (SSE exists only for the AI stream). **Poll now (spot `refetchInterval`), SSE + Redis pub/sub later** as one conditional item under the multi-replica / Phase 2 trigger. |
+| Splitting `AskService` | Default is **do not split**; kept as a conditional ⚪ item in 0.14, taken up only when the service has to change (new mode or tool), with characterisation tests first. |
+| Pruning the unused template pages | Kept in the Icebox, **only on explicit request** (scope rule in `docs/ENGINEERING.md` §1). |
+| Test runner wording | API uses **Jest**, `shared-types` uses **Vitest**; the web app gets Vitest + MSW + Testing Library (0.10). |
 
 ---
 
@@ -49,17 +56,27 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] Stale-price handling: serve last good price from Redis
 - [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) — M *(used by the history seed and the 5-year backfill)*
 - [x] Redis cache on `ProductsRepository.findAllActive`, invalidated on admin edit — S *(5-min TTL; `ProductsProvider` rewrites it after every write, and the admin database editor clears it too)*
-- [ ] Timeout, retry and circuit breaker in `MarketDataModule` — M
-- [ ] Central config validation: Zod-parse `process.env` at boot — S *(partly there: `main.ts` fails fast on a list of required variables, but it is not a Zod schema and does not check formats)*
+- [ ] 🔴 Timeout, retry and circuit breaker around the metal-price API client — M *(confirmed: `infrastructure/metal-price-api` sets no timeout or retry, unlike the OpenAI client's 30 s / 3 retries. A failing vendor is re-called on every launch-cascade miss and burns paid quota. Add a breaker that serves last-known-good)*
+- [ ] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats — S *(partly there: `main.ts` fails fast on a list of required variables)*
 - [ ] Remove dead code/unused deps, resolve TODO/FIXME — S
+  - [ ] `apps/web/src/api/api.ts`: redefines `ProductSchema`/`MetalTypeEnum` for a backend shape that no longer exists and nothing imports it — delete
+  - [ ] Commented-out `toRawMetalSpotPrice` block in `pricing.util.ts`; orphaned JSDoc on `market-data.service.ts` (seed-history) and above `AssistantToggle`
+  - [ ] One `ALL_METALS` (defined in `market-data.service.ts` and `pricing.util.ts`, again as the keys of `SYMBOL_MAP`) — derive from the shared-types `MetalType` enum; same for `METALS` in `use-pricing-workbook.hook.ts`
+  - [ ] The one explicit `any` in `apps/api/src` (`redis.service.ts` `set(value: any)`) → `unknown`
+  - [ ] Redundant `@@index([sku])` on `Product` (`sku` is already `@unique`) — one migration
+  - [ ] Unused no-op `onNavigate={() => undefined}` prop through `ExchangeView`/`Citations`
 
 ## 0.2 Money correctness 🔴
 
-- [ ] `decimal.js` in all pricing services (`calcSellPrice`, `calcBuyPrice`, tools); round only at output — M
-- [ ] Prisma `Decimal` for **all** money fields (audit remaining `Float`s) — M
+- [x] Rounding guards float noise: `roundSellPrice`/`roundBuyPrice` snap to cents before `ceil`/`floor`, so a whole-euro price is not pushed up by €1 *(checked in `pricing-math.ts`)*
+- [ ] Characterisation tests for the current rounding before any change: values around `.00` and `.5`, negative spreads, zero spot — S
+- [ ] 🔴 **One pricing engine:** move `calculateProductPrice` (+ `mergeMetalPrices`, `enrichSpotPrices`) from `apps/api/src/common/utils/pricing.util.ts` into `packages/shared-types`; Prisma-row mapping stays in the API as an adapter; keep an API re-export so imports don't all change at once; golden-file specs — M *(ground rule 4; prerequisite for 0.13)*
+- [ ] `decimal.js` in all pricing code (shared pricing functions, `TradeService.calculateCart` totals and `averagePerGram`, tools); round only at output; `number` stays at the JSON boundary — M *(`decimal.js` is not yet a dependency of the API or `shared-types`; `toNumber()` in `pricing.util.ts` drops to float immediately)*
+- [x] Prisma `Decimal` for all money fields — S *(no `Float` columns remain in `schema.prisma`; the float risk is in the JS layer above)*
+- [ ] Web calculators (CGT / VAT / percent): decide exact (`Decimal`) or label "approximate reference"; extract the pure functions to `shared-types` with tests — S
 - [ ] Snapshot full pricing context on any committed price (spot, premium, discount, VAT, FX, totals) — M
 - [ ] Consistent number formatting (€, thousands separators, decimals) across cards, table and copy output — S
-- [x] Test coverage: `calcSellPrice`, `calcBuyPrice`, VAT/gold-exemption/discount edge cases — S *(Jest, not Vitest: `pricing-math.spec.ts`, `pricing.util.spec.ts`; the ported tools' math is covered by the portfolio/trade specs. 471 API tests plus the shared-types specs pass)*
+- [x] Test coverage: `calcSellPrice`, `calcBuyPrice`, VAT/gold-exemption/discount edge cases — S *(Jest, not Vitest: `pricing-math.spec.ts`, `pricing.util.spec.ts`; the ported tools' math is covered by the portfolio/trade specs. 483 API tests plus the shared-types specs pass, re-run 2026-10-01)*
 
 ## 0.3 Data freshness and feed resilience 🟠
 
@@ -70,19 +87,19 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] "Stale since HH:MM" badge
 - [x] Admin cron control (pause/resume) and fetch-time toast
 - [x] Admin error log / system status panel (first version)
-- [ ] Distinct toast on fetch **failure** (vs. stale data) — S
-- [ ] Explicit "serving last-known-good" fallback indicator — S
-- [ ] Retry button per failed metal fetch — S
-- [ ] SSE connection indicator (live / reconnecting / disconnected) — M
-- [ ] SSE auto-reconnect with backoff + heartbeats — M
-- [ ] Loading skeletons + empty states for cards, chart, table — S
+- [x] Distinct toast on fetch **failure** (vs. stale data) — S *(`use-market-data.hook.ts`: "Live price fetch failed — showing the last known prices from the database", plus separate refresh-failed and fetch-error toasts)*
+- [ ] Explicit "serving last-known-good" fallback indicator on the cards — S *(the toast and the stale-prices notice say it; no persistent per-card marker)*
+- [ ] Retry button per failed metal fetch on the dashboard cards — S *(the API route `POST /metals/:metal/retry` and an admin Overview retry exist; the cards have no button)*
+- [ ] 🟠 **Spot polling:** `refetchInterval` (60 s – 5 min) on the spot query so prices update without a reload or Refresh — S *(today only the admin tabs and a few tool queries poll; the dashboard's market data does not. Part of 0.13)*
+- [ ] Polling indicator (live / retrying / offline) and backoff on repeated failures — M *(replaces the earlier SSE indicator and auto-reconnect items; SSE is now a conditional item in 0.7)*
+- [ ] Loading skeletons + empty states for cards, chart, table — S *(none exist today)*
 - [ ] Customer-facing display mode: fullscreen, hides premiums/margins, sell prices only — M
 
 ## 0.4 Table and UX polish 🟠
 
 - [x] Keyboard shortcuts (Esc closes dialogs, arrow-key row nav, `/` focuses search)
 - [x] Table filters and column customization
-- [ ] Sticky header + sticky first column (mobile included) — S
+- [ ] Sticky first column (mobile included) — S *(the header is already sticky; the first column is not)*
 - [x] Column sorting + persisted sort/filter state per user — S
 - [ ] Inline search/filter (name, weight, premium range) — S
 - [ ] Fuzzy product search with aliases ("brit", "krug", "1oz bar", "10g"), `/` or Cmd+K — M
@@ -104,8 +121,8 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 
 - [ ] Copy button becomes a popover with three formats — S
   - [x] Table (HTML for Outlook)
-  - [ ] Email: template with `{greeting}`, `{items}`, `{validity}`, `{signature}` — M
-  - [ ] WhatsApp: plain text, one line per product, `*bold*` — S
+  - [ ] Email: template with `{greeting}`, `{items}`, `{validity}`, `{signature}` — M *(partly there: the Trade tab's "Message customer" button already builds an Email and a WhatsApp reply from the quote (channel → stock → price scope). Still missing: the placeholder template, `{validity}`/`{signature}`, and offering it from the table's copy button)*
+  - [ ] WhatsApp: plain text, one line per product, `*bold*` — S *(same button; confirm it matches this format, then tick)*
 - [ ] Shared placeholder/template renderer used by all formats — M
 - [ ] Choose columns to include (sell / buy / premium / discount) — S
 - [ ] "Prices valid until HH:MM / subject to spot movement" line — S
@@ -121,37 +138,45 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [x] Roles in DB (`User.role`, `User.admin`); server-side admin guard (verified 403)
 - [x] Every route guarded server-side (audit all controllers) — S *(global `JwtAuthGuard` + `@Public()` opt-out; `route-auth.spec.ts` fails if a route is added unguarded)*
 - [ ] Microsoft Entra ID SSO (Supabase Azure provider), behind the existing `AuthProviderPort` — M
-- [ ] `@nestjs/throttler` on auth endpoints (Redis-backed once multi-instance) — S
+- [ ] 🔴 `@nestjs/throttler` (Redis-backed once multi-instance) — S
+  - [ ] Tight limit on `POST /auth/login`, the only public write endpoint
+  - [ ] A modest global limit, tighter on `POST /market-data/refresh` (spends paid vendor quota) and `POST /errors/client`
+  - [ ] Confirm the AI quota and daily budget hold under concurrent requests
 - [x] CORS from `FRONTEND_URL` env, not hardcoded — S
-- [ ] Helmet security headers — S
+- [ ] 🔴 Helmet security headers — S
 - [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check — S
-- [ ] **Audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M *(started: edits made in the admin Database tab are logged with the admin's email in Redis, capped at 500 and without old → new values. Product, premium and role changes through the normal screens are not logged yet)*
+- [ ] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
+  - [ ] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
+  - [ ] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
+  - [ ] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
+  - *(started: edits made in the admin Database tab are logged with the admin's email in Redis, capped at 500 and without old → new values. Product, premium and role changes through the normal screens are not logged yet)*
 - [ ] Per-user admin trail (no blanket admin flag) — part of the audit log
 - [ ] Supabase RLS reviewed — S
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders — S
-- [ ] Dependency audit (`pnpm audit`, Renovate/Dependabot) — S
+- [ ] Dependency audit (`pnpm audit`, Renovate/Dependabot) — S *(wire into CI, 0.10)*
 
 ## 0.7 Reliability and scalability baseline 🟠
 
 - [ ] Move the 10-min price fetch to a BullMQ repeatable job — M
-- [ ] SSE fan-out through Redis pub/sub — M
-- [ ] Remove shared in-memory state (multi-instance safe) — M
+- [ ] ⚪ Conditional: push updates over SSE with Redis pub/sub fan-out — M ← only when a second replica is planned or Phase 2 needs push *(spot polling in 0.3/0.13 is the default until then)*
+- [ ] Remove shared in-memory state (multi-instance safe) — M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; the audit-log memory fallback)*
+- [ ] Prove the Redis-down path: a test that simulates an outage and asserts every `CacheAsideStore.get` falls through to the source — S
 - [x] Pino structured logging + request IDs; log cache hit/miss, DB fallback, external call + duration — S *(`nestjs-pino`: JSON in production, request lines with duration, secrets redacted, an in-memory tail in the admin Logs tab. Request IDs are generated but not yet written to the log line)*
-- [ ] Sentry on API and web; breadcrumbs on the pricing cascade — S
+- [ ] 🟠 Sentry on API and web; breadcrumbs on the pricing cascade — S
 - [x] `/health` (`@nestjs/terminus`): DB, Redis, MetalsAPI, last successful fetch — S *(public `/health` for uptime monitors; the admin Overview runs the same checks through Terminus, plus memory and event-loop lag)*
 - [ ] Railway metrics + crash/restart/uptime alerts — S
 - [ ] Prisma migration workflow (no manual DB changes) — S
 - [ ] Database backup + **tested** restore — S
-- [ ] Staging environment on Railway — M
+- [ ] Staging environment on Railway — M *(where the 0.13/0.14 changes get tried first; wire it behind the CI deploy gate in 0.10)*
 - [ ] Redis deployment for production (local `127.0.0.1` will not work on Railway) — S
 
 ## 0.8 Multi-branch data model 🟠
 
-- [ ] `Branch` table: address, phone, opening hours — S
+- [ ] `Branch` table: address, phone, opening hours — S *(partly there: the table has `name`, `address`, `currency`; phone, opening hours and `region` (needed by the AI's `getBranch`, 1.5) are missing)*
 - [ ] `branchId` + `currency` on products, prices, orders — M
 - [ ] VAT rules table (per country and metal) instead of hardcoded logic — M
 - [ ] Spot per currency (EUR, GBP) — M
-- [ ] RBAC per role **and** branch — M
+- [ ] RBAC per role **and** branch — M *(today only `admin` and `manager` are enforced; `SALES`, `ACCOUNTING`, `AUDITOR` exist in the enum but gate nothing. Fail-closed gating is in 0.12)*
 
 ## 0.9 Health and monitoring panel (admin) 🟡
 
@@ -159,7 +184,7 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 
 - [x] `FetchLog` (timestamp, trigger, metal, source, status, durationMs, httpStatus, error, priceReturned) — M *(built as `FetchAttempt`: trigger, duration, success, error, metals resolved; one row per vendor call)*
 - [ ] `HealthCheck` (timestamp, dependency, ok, latencyMs, detail) — S
-- [ ] **Live status:** per-metal age/source/dot, next-fetch countdown, pause state, SSE state + reconnect count, overall banner (good / degraded / failed) — M
+- [ ] **Live status:** per-metal age/source/dot, next-fetch countdown, pause state, polling state + failure count, overall banner (good / degraded / failed) — M
 - [ ] **Dependency health:** Postgres latency + pool use, Redis latency/hit ratio/TTLs, MetalsAPI latency + status, **quota used vs plan + projected monthly**, process uptime + commit SHA + env — M
 - [ ] **Fetch history table:** last 50–100 attempts, filter by metal/outcome, expandable failure snippet, per-row retry, CSV export, summary (success rate 24h/7d, avg + p95 latency, longest gap) — M
 - [ ] **Data sanity:** sudden-move flag (optionally reject), gold/silver ratio band, zero/null/stale-timestamp rejection, **currency check (EUR not USD)**, market-open-aware staleness — M
@@ -169,18 +194,135 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 
 ## 0.10 Testing, CI and docs 🟠
 
-- [ ] Vitest: pricing utils (see 0.2), repository cascade (Redis → Prisma → API), ported tools — M
-- [ ] Frontend component tests with MSW — M
+- [ ] 🔴 **CI on every PR to `master`** (GitHub Actions) — S *(nothing runs on push today: there is no `.github/workflows`)*
+  - [x] Steps: pnpm install → build `@goldilocks/shared-types` first (consumers read `dist/`) → `tsc` → ESLint from `apps/api` with `--no-fix` → API Jest → `shared-types` specs → web build
+  - [x] Fail on any non-zero ESLint count (the baseline is 0); cache the pnpm store; mocks only, no real Supabase/OpenAI keys
+  - [ ] Branch protection on `master` requiring the CI check
+  - [ ] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(in repo: manual-only `ai-eval.yml`, needs `OPENAI_API_KEY` + `DATABASE_URL` secrets; still to do in the GitHub/Railway UIs: protect `master` requiring the `ci` check, and enable Railway "Wait for CI" on both services)*
+  - [x] `pnpm audit` / Dependabot in the same workflow (see 0.6) *(report-only: 127 findings today, so it is not a required check; Dependabot is configured)*
+  - [ ] `shared-types` `check-types` fails on strict-null errors in `kb-markdown.spec.ts`, `kb-search.spec.ts`, `roadmap.spec.ts`; fix them, then add it to CI and make root `pnpm check-types` meaningful
+- [ ] 🔴 **Web test runner:** Vitest + MSW + Testing Library, first specs on the pure money/calculator functions (no DOM), then the Trade/Portfolio tabs and the copy output — M *(the web app has no tests and no `test` script)*
+- [ ] 🔴 **`TradeService` and `PortfolioService` specs** — M *(neither has a spec file; the shared-types math is covered, the service-layer validation is not)*
+  - [ ] `calculateCart`: product not found, wrong metal, bad percent (buying vs selling), quantity coercion, `customSpot`
+  - [ ] `calculateProfitAnalysis` / `buildPortfolio`: error mapping to `BadRequestException`
+- [ ] Vitest for the pricing utils and the repository cascade (Redis → Prisma → API) — M *(the API already tests these with Jest: `pricing-math.spec.ts`, `pricing.util.spec.ts`; extend rather than add a second runner)*
 - [ ] One e2e smoke test (load → select → copy) — M
-- [ ] CI (GitHub Actions + Turborepo): lint, typecheck, test on PR — S
-- [ ] Strict TypeScript and consistent ESLint/Prettier — S
-- [ ] README (what / setup / scripts / env vars) — S
-- [ ] Architecture doc (module map, data flow, pricing formulas, SSE flow) — M
+- [ ] Strict TypeScript and consistent ESLint/Prettier — S *(API ESLint is at 0 problems; the web app's baseline is unmeasured)*
+- [ ] README (what / setup / scripts / env vars) — S *(a short README exists; add `/health`, CI status, test commands)*
+- [ ] Architecture doc (module map, data flow, pricing formulas, price-polling flow) — M
 - [ ] Swagger complete + grouped — S
-- [ ] ADRs (SSE over WS, no response envelope, runtime-derived prices, BC as source of truth) — S
+  - [ ] POST calculation routes (`trade/cart`, `trade/melt`, `portfolio/*`, `market-data/recalculate`, `market-data/refresh`, `metals/refresh`) document 200 but Nest returns 201 by default, and only two `@HttpCode` exist *(confirm each with a request, then add `@HttpCode(200)` or document 201)*
+  - [ ] Add the missing `addTag` entries: `knowledge`, `ai`, `branches`, `errors`; `@ApiQuery` on admin routes; document 401/403/429; `type` on `GET /products/:id`; one convention for action responses (`{ message }` or 204)
+  - [ ] Redo after the 0.13 route renames
+- [ ] ADRs (price polling over SSE/WS, no response envelope, runtime-derived prices, BC as source of truth, client-side pricing, three-query market data, `Decimal` at the boundary) — S
 - [ ] Desk user guide with screenshots — M
-- [ ] CHANGELOG + semver tags — S
+- [ ] CHANGELOG + semver tags — S *(no `CHANGELOG.md` and no tags yet)*
+- [ ] Fix stale statements in `docs/ENGINEERING.md`: it says there is no root `.gitignore` (there is one) and that CORS is hardcoded to `localhost:5173` (`main.ts` reads `FRONTEND_URL`); refresh the test counts — S
 - [ ] Management one-pager (time saved per quote, error reduction, fetch success rate) — M
+
+## 0.11 Spot isolation, rounding and shared market mode 🟠
+
+Vocabulary is in `GLOSSARY.md`; the isolation decision is `docs/adr/0001-tool-spots-are-isolated-from-the-card-spot.md`.
+
+- [x] One staleness limit (15 min) in `shared-types`, read by the cards and the assistant — S
+- [x] Offered prices round in the dealer's favour (Sell up, Buyback down) through one shared rule; unit prices such as €/g keep cents — S
+- [x] Tool spots: Trade, Melt and Portfolio each hold their own spot, following the Card spot until edited; editing never freezes a card or moves the table — M
+  - [x] Per-tool "Reset" re-attaches the tool to the Card spot; helper text "Following the app's main spot price"; banner "Frozen — live market €Y" (+ " · Card frozen at €Z" when the card is frozen)
+  - [x] Tool spots survive tab switches, are lost on reload, and are not touched by Ctrl+Z
+  - [x] Melt gets a spot editor + slider like Price/Buyback
+  - [x] Easy Copy and Message customer price from the Trade tool spot
+- [x] AI assistant staff note (not part of the reply, only on replies with a price): custom/frozen spot, stale live spot, or healthy, with the snapshot time in Irish time — S
+- [x] Market mode held on the server and shared by every user; Admin and Manager can change it; banner shows the mode; last-changed (who, when) in the Admin Console audit log — M *(needs `prisma migrate deploy` for `market_mode_state`; percentages still local to each browser)*
+- [ ] Apply market-mode adjustments to the product table and portfolio builder (today only the Trade tab applies them) — M *(parked by the owner; modes are rarely used)*
+- [ ] Market modes as one `PricingStrategy` per mode (buy vs sell; the opposite-direction Shortage rule in one place), once the pricing engine is shared — M ← depends: 0.2 shared pricing engine *(the mode logic currently lives client-side in `pricing-settings-context.tsx`)*
+
+## 0.12 Defects, hardening and validation 🔴
+
+Found by the 2026-10-01 code review. Do these right after CI (0.10) and before the money and market-data rework; they are small and several are security. Items marked *(confirm)* were not re-checked in the code.
+
+- [ ] **Dead `/auth/refresh` call** — S. The web app POSTs to `/auth/refresh` from two places (`hooks/useApi.ts`, `api/base.ts`), but `AuthController` only has `login`, `me` and `admin/users`. An expired session costs a wasted 404, then a generic error; it never recovers or logs out.
+  - [ ] Decide: implement refresh behind `AuthProviderPort` (compatible with Entra SSO, 0.6) **or** delete it and send a final 401 to sign-in (clear the token, call `logout`)
+  - [ ] If refresh is kept, fix the racy `refreshPromise.finally(() => refreshPromise = null)`
+- [ ] **Two parallel HTTP clients** (`api/base.ts` and `hooks/useApi.ts`) — find which has live callers and consolidate into one — S/M
+  - [ ] One `tokenStore` (get/set/clear): the `"token"` key is hard-coded in `auth-context.tsx`, `useApi.ts` and `base.ts`
+  - [ ] Remove the CSRF-cookie sniffing in `base.ts` and the `credentials: "include"` that only served the refresh cookie (the API uses Bearer tokens)
+  - [ ] Token storage decision: `localStorage` is readable by any XSS; accept and document, or move to an httpOnly cookie — M ← depends: Entra SSO decision (0.6)
+  - [ ] Confirm the Knowledge Center Markdown renderer escapes HTML (`react-markdown` ignores raw HTML by default; check no `rehype-raw` is added) *(confirm)*
+- [ ] **Fail-closed admin gating** — S/M. `RolesGuard` returns `true` for any signed-in user when a route has no `@Roles`, so one forgotten annotation exposes an admin route.
+  - [ ] `@Roles('admin')` at class level for admin-only controllers (`metals`, `errors`); this also removes the per-route `@UseGuards(...) @Roles('admin') @ApiBearerAuth()` repetition in `MetalsController`
+  - [ ] Split mixed controllers into `*.admin.controller.ts` (`products`, `market-data`, `knowledge`)
+  - [ ] Extend `route-auth.spec.ts` so a write route without `@Roles` fails, as an allow-list (trade, portfolio and ai are legitimately non-admin)
+- [ ] **Shared Zod query schemas** (`PaginationQuery`, `LimitQuery`, `LogLevelQuery`) in `shared-types`, wrapped in `dtos.ts` — S
+  - [ ] Replace the hand-written parsing in `admin/logs`, `admin/audit`, `errors`, `metals/fetch-log`, `market-data/backfill-history` (`Math.min(Math.max(Number(x) || n, a), b)` appears 3× in `AdminController`; `Number(page) || 1` silently accepts garbage)
+  - [ ] `metals/:metal/retry`: validate with `ZodValidationPipe(MetalTypeEnum)` like `trade`
+  - [ ] Audit every numeric `@Param` for a missing `ParseIntPipe`
+  - [ ] Move the quantity coercion `Math.max(1, Math.floor(q) || 1)` in `TradeService.calculateCart` into the Zod schema (it silently rewrites bad input)
+- [ ] **Web number inputs:** one shared `NumberInput` that keeps the string while editing; `Number(e.target.value) || 0` snaps a field to `0` on every empty edit, so you cannot clear it and type `0.5` — S
+- [ ] **`DbBrowserService` spec + hardening** — M. Raw SQL is used in 10 places (`$queryRawUnsafe`/`$executeRawUnsafe`); table and column names are checked against the catalogue and values are bound — keep it that way and comment why `quote()` is safe.
+  - [ ] Spec: unknown table → 404, read-only table → 403, hidden column never returned, identifiers only from the catalogue, **hostile table/column names are rejected**
+  - [ ] Extend `CACHE_KEYS_BY_TABLE` beyond `products` for any table that is actually cached (check `branches`, the history table and knowledge reads); the new history cache from 0.13 must be registered, or an admin edit serves stale data
+  - [ ] Move the DELETE row key into a query param or a POST (some proxies strip DELETE bodies)
+- [ ] **Characterisation tests before each big refactor** — M each ← depends: the refactor it protects: `KnowledgeService.importDocuments`, `useTradeTools` cart behaviour, `AskService` (only if taken up)
+
+## 0.13 Market-data flow rework 🟠 ← depends: 0.2 shared pricing engine
+
+**Today:** one bundled `GET /market-data` (spot + ~5 years of thinned history + ~150 priced products), plus `POST /market-data/recalculate` on every spot-override change (300 ms debounce) and `POST /market-data/refresh`, all writing one query-cache key (`marketData.all`) that 8 call sites invalidate.
+**Problems:**
+1. History is re-read from the DB with no cache and resent on every load, Refresh and product edit *(size is an estimate; measure it first)*.
+2. A Refresh or any refetch can overwrite recalculated products while overrides are unchanged, so the cards show the frozen spot and the table shows live prices *(confirm by reproducing)*.
+3. Recalc responses are unordered (the last to finish wins).
+4. No spot `refetchInterval`: prices update only on reload or Refresh.
+5. `/recalculate` is a server round trip for pure arithmetic the client can do.
+6. Three near-copies of the composition on the server: `composeMarketData`, `recalculate`, `getPricedCatalogue`.
+
+**Plan:** three queries (spot, products, history) plus client-side pricing. Note the Trade/Melt/Portfolio tool spots stay isolated from the card spot (`docs/adr/0001-tool-spots-are-isolated-from-the-card-spot.md`); client-side pricing must not change that.
+
+- [ ] Reproduce problem 2 (freeze a spot → Refresh → compare a card with a table row; also a product edit while frozen) and measure the real payload and the history share — S
+- [ ] `GET /market-data/history` with a `HistoryCacheStore extends CacheAsideStore` (Redis, TTL of hours, busted by the daily close job); coordinate with 1.3 — M
+- [ ] `GET /market-data/spot` (cards, freshness, `isFallback`, `degradedMetals`) — S
+- [ ] Web: `useSpotQuery` (poll 60 s – 5 min), `useProductsQuery` (staleTime ~5 min), `useHistoryQuery` (staleTime of hours); `useMarketData()` stays as a thin composite so consumers barely change — M
+- [ ] Client-side pricing: `pricedProducts = useMemo(() => products.map(p => calculateProductPrice(p, displayPrices)))` — M
+- [ ] Targeted invalidation: a product edit/delete/restore invalidates products only; Refresh invalidates spot only; one `invalidateProducts()` helper for the 8 call sites — S
+- [ ] Remove `/market-data/recalculate`, `useDebouncedRecalc` and `recalcMutation`; make `getPricedCatalogue` the single server-side "priced catalogue" entry point for Trade, Portfolio and the AI tools — M ← depends: the four items above
+- [ ] Optional: keep `GET /market-data` as a first-paint bundle if three parallel requests prove noticeable — S
+- [ ] **Normalise the products routes** in the same PR as the web `products.api.ts` change — M. Today: `GET /products/products`, `POST /products/admin/products`, `PATCH /products/admin/products/:id`, `PATCH …/:id/stock`, `GET …/deleted`, `POST …/:id/restore`, `GET /products/:id`, `DELETE /products/:id`. Target: `GET/POST /products`, `PATCH/DELETE /products/:id`, admin by `@Roles`. Declare literal routes before `:id` (a shadowed `deleted` would become a 400 from `ParseIntPipe`). Redo the Swagger pass afterwards (0.10).
+- [ ] Consolidate the two refresh endpoints: `POST /metals/refresh` (admin) and `POST /market-data/refresh` (any signed-in user) — decide one route, role, response shape and throttle — S
+- **Not recommended:** pagination (~150 rows), websockets, per-product or per-metal endpoints, GraphQL.
+
+## 0.14 Backend and frontend refactors 🟡 ← depends: 0.12 tests, 0.2
+
+Structural clean-up, ordered by risk (cheap first). Keep the existing architecture: Zod via `nestjs-zod`, modular monolith, Prisma used directly in services. Every item needs the characterisation tests from 0.12 first. A refactor is taken up when it unblocks a feature or the code is being changed anyway, not on a calendar.
+
+**Quick wins (any time, low risk, covered by existing tests):**
+- [ ] `ProductsProvider.requireById()`: the "get, else `NotFoundException`" block repeats in `ProductsService.update/delete/updateStock` and in trade/portfolio — S
+- [ ] One `resolveSpot(metal, customSpot?)` helper: `customSpot > 0 ? customSpot : live` appears 3× and "No spot price available for X" 4× in `trade.service.ts` and `portfolio.service.ts` — S
+- [ ] `dayWindow(date)` helper for the `T00:00:00.000Z`/`T23:59:59.999Z` pair repeated 3× in `historic-spot.service.ts` — S
+- [ ] `queryKeys.admin.db()` for the literal `["admin","db"]` in `database-tab.tsx`; add `setSelectedMetal` to the deps of `toggleSelectedMetal` in `use-pricing-workbook.hook.ts` — S
+
+**Backend:**
+- [ ] `AllExceptionsFilter` → exception mappers (`ExceptionMapper { supports(e); map(e) }` for HttpException, Prisma known/init/panic/validation, fallback); the ~140-line if-ladder becomes unit-testable pieces — M
+- [ ] **Provider clean-up** (the repository question): `ProductsProvider` stays the product write path — M
+  - [ ] Make the provider the only writer: route the admin DB browser's product edits through the same cache refresh via a shared constant/hook instead of the hard-coded `'products:all'`
+  - [ ] Split `MetalsProvider` (407 lines): `PriceSourceStrategy` (`CacheFirst` for launch reads, `LiveFirst` for refresh) over a shared `resolveFromDb()`; one `recordAttempt()` in `fetchFromExternalApi` (3 near-identical calls); extract a `SpotPriceWriter` so "the only writer of `metalSpotPrice`" is structural, not a comment; put the circuit breaker (0.1) in the same area
+- [ ] `DbBrowserService` split (357 lines) ← depends: its spec in 0.12 — M: one `TablePolicy { writable, hiddenColumns, cacheKeys }` registry replacing `WRITABLE_TABLES`/`HIDDEN_COLUMNS`/`CACHE_KEYS_BY_TABLE`; `SchemaCatalogue` (cached, not re-queried per call); `SqlBuilder`; fix the N+1 `count(*)` in `listTables`
+- [ ] `KnowledgeService` split (516 lines) ← depends: its characterisation tests — L: `KbImporter` of pure steps (`parseFiles`, `rejectDuplicateSlugs`, `findLinkProblems`, `decideAction`, `buildWrites`), `KbApprovalService` for `updateDocument`/`setStatus`, shared `toLinkNode(row)`. Code only; SOP content stays the owners' to edit
+- [ ] `OpenAiLlmClient`: extract `LlmErrorTranslator` (testable without the SDK); share content-filter and empty-answer checks between `generate` and `stream` — S
+- [ ] `TradeService`/`PortfolioService` tidy ← depends: their specs (0.10) — S: `for…of` instead of throwing inside `.forEach`; bar-vs-coin classification (`/bar/i.test(name)`) belongs with the product model
+- [ ] Split `pricing.util.ts` (mappers, pricing, metal constants, history thinning, enrichment) into `mappers/`, `pricing/`, `history-thinning.ts` after the pricing move (0.2); let the admin controller call `HistoricSpotService` directly instead of the pass-throughs on `MarketDataService` — S
+- [ ] Verify and decide: why `AdminModule` is `@Global()` (`ErrorLogModule` is justified by the exception filter); whether `lib/db/prisma.ts` reading `process.env` directly is intentional for seed scripts; whether `ProductsService.getRawProducts` (a one-line pass-through) is used — S
+- [ ] ⚪ Conditional: split the `AskService.askStream` pipeline (~330-line method) into `QuestionPreparer`, `ToolLoopRunner`, `AnswerValidator`, `AskRecorder`, `AnswerCachePolicy`; draft vs procedures as two mode handlers — L ← only when the service has to change (new mode or tool)
+
+**Frontend:**
+- [ ] **Stabilise the API client** — M: the `request`/`get`/`post` helpers are redeclared every render and every `useXApi()` returns a fresh object, so `AuthProvider.login` changes every render and every `useAuth()` consumer re-renders. Use a module-level client (or `useMemo`), type `request<T = unknown>`, then remove the `exhaustive-deps` suppressions this unlocks (9 in scope). Do it with the HTTP-client consolidation in 0.12
+- [ ] Break up `useTradeTools` (358 lines, 5 effects) — L: pure `cartReducer` with `useReducer`, `useCartSelectionSync`, `useDebouncedValue`, event-like effects become dispatches, replace the `initializedMetals` once-guard ref, one `priceDefault(productId)` closure (repeated 6×)
+- [ ] Split `PricingToolsContext` (22 members) into panel and selection contexts; replace `focusTradeQuantity`'s `document.getElementById` polling with a ref or counter; replace the mutable `tableCopySource` ref-in-context with explicit registration — M
+- [ ] `useMarketData` notifications ← depends: 0.13 — S: one `usePriceToasts` with a single dedupe map instead of three hand-rolled "fire once" refs; `loading: isLoading || isFetching` marks the dashboard loading on every background refetch (probably only `isLoading` is wanted); shared `useNow(intervalMs)`
+- [ ] `usePricingWorkbook`: `toMetalCard(spot, override, now)` instead of the 10-field options bag; drop `recalc({})` on mount (goes with 0.13) — S
+- [ ] Data-fetching convention: components call `useXQuery()` hooks, only those hooks know the API object; reset `page` in the handlers that change `q`/`sort`/`dir` instead of `useEffect(() => setPage(1), …)` in `database-tab.tsx` — M
+- [ ] `calculators-tab.tsx` (547 lines, five components) ← depends: web tests (0.10) — M: pure `computeCgt`/`convertVat`/percent result with tests, `PercentVisual` renderers in the `PERCENT_MODES` table, one file per calculator
+- [ ] `AssistantDock` split into `ModeTabs`, `Composer`, `StartScreen` — S
+- [ ] Small a11y and correctness: `PillField`'s `Label` has no `htmlFor`/`id`; `key={index}` in `knowledge/components/search-results.tsx`; `useLocalStorageState` calls `setState` during render under an `eslint-disable` — S
+- [ ] Naming per `docs/ENGINEERING.md` §3: `useApi.ts` → `use-api.hook.ts`; `use-product-table.ts` and `use-theme-manager.ts` → `.hook.ts` — S
 
 ---
 
@@ -223,12 +365,13 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Competitor price notes (price + date checked) — S
 - [ ] Daily end-of-day price snapshot per product ("what did we charge on date X") — M
 - [ ] Dealer margin monitor (admin only) and margin-leakage flags — M
+- [x] **Project Management page** (admin only, `/project`): three views: **Roadmap** (browse by section with icons and progress, tick/untick, add, edit and delete tasks), **Engineering** (the project guide plus architecture, SOLID, patterns, runtime and operations topics with diagrams) and **Design system** (colour swatches, type scale, shapes and live component mockups from `DESIGN.md`) — M *(the Markdown is stored in the `roadmap_document` table so it works on Railway; the Engineering and Design views read `docs/ENGINEERING.md` and `DESIGN.md` at build time; edits are written back to `docs/ROADMAP.md` when run from a local checkout. `pnpm --filter api roadmap:import` after editing the file by hand, `roadmap:export` after editing in the deployed app)*
 - [ ] Bulk product importer — M
 - [ ] Role tiers enforced in UI (sales can log quotes but not edit premiums) — S
 
 ## 1.3 Historic spot and market analytics 🟠 *(quick win; feeds charts, AI, customer site)*
 
-- [ ] `SpotPriceDaily` (metalId, date, open/high/low/close, currency), index `(metalId, date)` — S
+- [ ] `SpotPriceDaily` (metalId, date, open/high/low/close, currency), index `(metalId, date)` — S *(partly there: `historic_spot_prices` stores one EUR and GBP close per metal per `recordedAt`, unique on `(metalType, recordedAt)`; no open/high/low. Decide whether to extend it or keep closes only)*
 - [x] Backfill script batched by year within API quota; daily job appends closes — M *(`POST /market-data/backfill-history?years=5`, admin-only, skips windows already stored. Done for 5 years on 2026-10-01; the table holds daily closes, not full open/high/low/close)*
 - [ ] Chart ranges 1D/1W/1M/1Y/5Y/Max + Redis cache for history queries — M *(1W, 1M, 3M, 6M, 1Y and 5Y are built; 1D, Max and the Redis cache are not. Data older than a year is sent weekly to keep the payload small)*
 - [ ] Daily change (€ and %) per metal; intraday high/low — S
@@ -265,7 +408,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Rules: answer only from SOPs, always cite section link, never answer from a TODO — S *(enforced in code and unit-tested; `pnpm --filter api ai:eval` passes 13–15 of 15 cases per run on gpt-4o-mini — the failures move around run to run — so tick once a model passes reliably, several runs in a row)*
 - [ ] Branch `region`, `phone`, `openingHours` columns + admin form, so `getBranch` reads the database (overlaps 0.8; don't duplicate) — S
 - [ ] Tools: `getSpot`, `getProductPrice`, `getBranch` — M *(`getSpot` and `findProductPrices` are built and pass the real-model evaluation against a fixture catalogue, with a figure check that flags any euro amount no lookup supplied; `getBranch` waits for the branch columns above. Not yet checked end to end in the running app with a live spot)*
-- [ ] Chat panel with clickable citations; thumbs up/down — M
+- [ ] Chat panel with clickable citations; thumbs up/down — M *(partly there: `knowledge/components/assistant-panel.tsx` exists and renders citations; no thumbs up/down found)*
 - [ ] Question log + "unanswered questions" report — S *(the log is built: scrubbed question, status, citations, tokens, cost, 90-day retention; the admin report is phase 5)*
 - [x] Per-user daily quota, cost log, throttling — S *(Redis limiter that fails closed: one open question, 5 a minute, 50 a day; exact-integer cost log; company-wide daily spend breaker; all verified against the real database and model)*
 - [ ] Later: RAG (chunking + pgvector) behind a `KbRetriever` interface — L
@@ -291,7 +434,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Exceptions queue: partial, overpaid, unknown reference — M
 - [ ] Payment is still recorded in BC by the broker
 
-## 1.8 Hedge control 🟠 ← depends: 1.0 `[BC]`
+## 1.8 Hedge control 🟠 ← depends: 1.0 `[BC]`, 0.6 transactional audit log
 
 - [ ] `Order` (lockedSpotPrice, lockedAt, metalId, weightGrams, premiumRate, hedgedAt, expectedDelivery, status PAID → HEDGED → COLLECTED) + migration — M
 - [ ] Exposure dashboard `(currentSpot − lockedSpot) × weightOz`, live over SSE — M
@@ -299,7 +442,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Supplier cost comparison (API or manual) — S
 - [ ] End-of-day exposure report — S
 
-## 1.9 Audit and reconciliation hub 🟠 ← depends: 1.0 `[BC]`, 0.6 audit log
+## 1.9 Audit and reconciliation hub 🟠 ← depends: 1.0 `[BC]`, 0.6 transactional audit log
 
 - [ ] UI for quotes, invoices, hedged orders, collection status with advanced filters — L
 - [ ] Manual export (Excel/CSV) + scheduled export of the current month (e.g. hourly) — M
@@ -365,7 +508,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Sanctions/PEP screening integration — M
 - [ ] Record retention rules — S
 
-## 1.18 Multi-branch rollout 🟠
+## 1.18 Multi-branch rollout 🟠 ← depends: 0.6 SSO + audit log, 0.8
 
 - [ ] Branch data, users, roles for Ireland, Scotland, UK — M
 - [ ] Training per branch; onboarding SOP in the Knowledge Center — M
@@ -536,7 +679,7 @@ packages/
 
 # Scaling triggers (act only when they happen)
 
-- [ ] More than one Railway replica → Redis pub/sub for SSE, BullMQ for jobs, Redis-backed throttler
+- [ ] More than one Railway replica → BullMQ for jobs, Redis-backed throttler, remove in-memory state; Redis pub/sub + SSE if push is wanted
 - [ ] Other branches onboard → RBAC per role and branch, audit log review
 - [ ] AI features live → per-user quotas, cost monitoring
 - [ ] Anything customer-facing → real rate limiting, public response caching, CDN, separate endpoints from internal tools
@@ -546,12 +689,19 @@ packages/
 
 # Suggested sequencing (what to do next)
 
-1. **Now (Phase 0 quick wins):** Vitest for pricing math (0.2) → `decimal.js` migration → table polish (0.4) → multi-format copy (0.5) → audit log + route-guard pass (0.6) → Sentry/Pino/`/health` (0.7).
-2. **In parallel, non-code:** start every 1.0 prerequisite conversation (BC read access, GDPR sign-off, bank, hedge APIs) — they gate most of Phase 1 and all of Phase 2.
-3. **Then:** historic spot (1.3) → desk tools + price-lock log (1.1) → inquiry hub (1.6) → funds-landed + hedge control (1.7/1.8) → audit hub (1.9).
-4. **Branch rollout (1.18)** once SSO, multi-branch model and audit log are live.
-5. **Phase 2** only after 2.0 is closed; launch read-only (2.1) before accounts, assisted checkout, then automation.
+**Next 5 actions:** (1) CI on every PR + branch protection (0.10) → (2) `TradeService`/`PortfolioService` specs and the web test runner (0.10) → (3) throttler, Helmet and the dead `/auth/refresh` fix (0.6, 0.12) → (4) timeout/retry/breaker on the metal-price client (0.1) → (5) start the 1.0 prerequisite conversations (non-code, in parallel).
+
+1. **Safety net first (🔴):** CI + branch protection + deploy gate (0.10) → web test runner, `TradeService`/`PortfolioService` and `DbBrowserService` specs (0.10, 0.12). Everything after this refactors a money system; without CI and tests it is not safe.
+2. **Close defects and cheap exposure (🔴):** throttler, Helmet (0.6) → dead `/auth/refresh` and the two HTTP clients, fail-closed admin gating, Zod query schemas, vendor timeout/breaker (0.12, 0.1) → Sentry, staging, backup/restore, production Redis (0.7).
+3. **Money you can trust (🔴):** rounding characterisation tests → one pricing engine in `shared-types` → `decimal.js` → transactional audit log (0.2, 0.6). The audit log gates 1.8 and 1.9.
+4. **Market-data rework (🟠):** spot polling and the three-query split with client-side pricing, products route clean-up (0.13). Fold in the 0.3 resilience items (fallback marker, card retry, skeletons).
+5. **Desk polish (🟠):** table polish (0.4) → multi-format copy and the template renderer (0.5) → monitoring panel (0.9) → remaining 0.10 docs. These can interleave with steps 3–4 when a stakeholder needs a visible win.
+6. **Refactors (🟡, 0.14):** only when a feature needs the area or the code is changing anyway; quick wins any time.
+7. **In parallel, non-code, start now:** every 1.0 prerequisite conversation (BC read access, GDPR sign-off, bank, hedge APIs). They gate most of Phase 1 and all of Phase 2.
+8. **Then Phase 1:** historic spot (1.3, coordinate with the 0.13 history endpoint) → desk tools + price-lock log (1.1) → inquiry hub (1.6) → funds-landed + hedge control (1.7/1.8) → audit hub (1.9). **1.8 and 1.9 do not start before the transactional audit log.** A port (interface + DI token) is added for BC, Open Banking and the hedge platform when those start.
+9. **Branch rollout (1.18)** once SSO, the multi-branch model and the audit log are live.
+10. **Phase 2** only after 2.0 is closed; launch read-only (2.1) before accounts, assisted checkout, then automation. Before anything customer-facing: real rate limiting, public response caching and the 2.0 prerequisites.
 
 # Icebox — ideas captured, unscheduled
 
-Mapped to where they would land if promoted: multi-store support (0.8) · advanced inventory intelligence (1.12) · smart price simulator (1.16) · customer loyalty (2.9) · scrap gold module (2.9) · demand forecasting (2.10) · business KPI dashboard (1.16) · export API for accounting (2.14) · bulk importer (1.2) · public price widget (2.1) · dynamic pricing (2.10) · price freeze / price lock (1.1) · market event indicator (1.3) · metal correlation (1.3) · customer demand indicator (1.6).
+Mapped to where they would land if promoted: multi-store support (0.8) · advanced inventory intelligence (1.12) · smart price simulator (1.16) · customer loyalty (2.9) · scrap gold module (2.9) · demand forecasting (2.10) · business KPI dashboard (1.16) · export API for accounting (2.14) · bulk importer (1.2) · public price widget (2.1) · dynamic pricing (2.10) · price freeze / price lock (1.1) · market event indicator (1.3) · metal correlation (1.3) · customer demand indicator (1.6). · template-page pruning (`apps/web` landing, settings, calendar, chat, tasks, dashboard-2, mail, users, faqs, errors, pricing and the old `admin/` scaffold: ≈ 12.9k lines vs ≈ 10.2k product lines) — **only on explicit request**; first check which routes are registered in `routes.tsx`, then drop dependencies only the template used · gold/silver and metal-ratio card variants (1.3) · persistence-boundary ports beyond BC/Open Banking/hedge (0.14 decision).

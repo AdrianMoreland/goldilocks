@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # One job on purpose: branch protection requires a single, stable check name ("ci").
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # `prisma generate` (API postinstall) reads prisma.config.ts, which expects this; it never connects.
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Consumers read packages/shared-types/dist, so it must be built before anything else.
+      - name: Build shared-types
+        run: pnpm --filter @goldilocks/shared-types build
+
+      - name: Type-check API
+        run: pnpm --filter api exec tsc --noEmit --pretty false --incremental false
+
+      # Baseline is 0 problems; any finding fails the run. Never the `lint` script (it passes --fix).
+      - name: ESLint (API)
+        working-directory: apps/api
+        run: node node_modules/eslint/bin/eslint.js src --no-fix --no-cache --max-warnings 0
+
+      - name: API tests
+        run: pnpm --filter api exec jest --ci
+
+      - name: shared-types tests
+        run: pnpm --filter @goldilocks/shared-types test
+
+      # Includes `tsc -b`, so this is also the web type-check.
+      - name: Build web
+        run: pnpm --filter web build

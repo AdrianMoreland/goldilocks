@@ -86,7 +86,7 @@ async function bootstrap() {
 
     // Railway hosts the API and the web app on different origins, so the
     // allowed origin has to come from an env var rather than being hardcoded
-    // to the local dev server — see CLAUDE.md §13.
+    // to the local dev server — see docs/ENGINEERING.md §13.
     const frontendUrl = config.get<string>(
         'FRONTEND_URL',
         'http://localhost:5173',

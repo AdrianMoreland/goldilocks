@@ -19,7 +19,7 @@ import type { User } from '../../../prisma/generated/client';
 
 // Never select the password hash for anything that ends up on request.user —
 // it has no business leaving the DB query, let alone sitting in memory on
-// every authenticated request. See CLAUDE.md §6 "Secrets".
+// every authenticated request. See docs/ENGINEERING.md §6 "Secrets".
 const SAFE_USER_SELECT = {
     id: true,
     email: true,

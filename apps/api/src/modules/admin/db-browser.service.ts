@@ -29,7 +29,7 @@ const HIDDEN_COLUMNS: Record<string, string[]> = { users: ['password'] };
 // Raw SQL skips Prisma's client-side `@updatedAt`, so it is set here.
 const UPDATED_AT = 'updatedAt';
 
-// Raw writes bypass the API's Redis caches (CLAUDE.md §8); this is the key a
+// Raw writes bypass the API's Redis caches (docs/ENGINEERING.md §8); this is the key a
 // product write must drop so the dashboard doesn't show stale rows.
 const CACHE_KEYS_BY_TABLE: Record<string, string[]> = {
     products: ['products:all'],

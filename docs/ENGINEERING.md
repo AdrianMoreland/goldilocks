@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Engineering Guide
 
-Project guide for Claude (and anyone else) working in this repository — code organization, conventions, security practices, and the current deployment setup. Adapted from a general best-practices guide to match what this project actually is and actually uses; where the two disagree, this file wins.
+Project guide for anyone working in this repository — code organization, conventions, security practices, and the current deployment setup. Adapted from a general best-practices guide to match what this project actually is and actually uses; where the two disagree, this file wins.
 
 ---
 
@@ -219,7 +219,7 @@ refactor(auth): extract AuthProviderPort so Supabase is swappable
 
 Branches: `feature/<name>`, `fix/<name>`, `docs/<name>`, off `master` (this repo's default branch — there is no separate `main`).
 
-Prefer atomic commits — one logical change per commit — over one large "fixed stuff" commit. Only commit when the user asks; this repo's working agreement (see the session history) is that Claude does not commit proactively.
+Prefer atomic commits — one logical change per commit — over one large "fixed stuff" commit. Commit only when asked.
 
 ---
 
@@ -299,7 +299,7 @@ This must read from an env var (e.g. `FRONTEND_URL`) before the Railway-hosted f
 
 ## 14. Future hardening (not needed yet — revisit if this becomes customer-facing)
 
-Listed so Claude doesn't add these prematurely, and so they're easy to pick up later:
+Listed so they aren't added prematurely, and so they're easy to pick up later:
 
 - **Helmet** (`app.use(helmet())`) for security headers.
 - **Rate limiting** (`@nestjs/throttler`) on `/auth/login` at minimum.
@@ -349,48 +349,3 @@ The full, merged roadmap (Phase 0 harden/polish → Phase 1 internal features + 
 - **Statuses can lag the repo.** Verify in code before saying an item is done or missing; when you finish or discover a finished item, tick it (`[x]`) in `docs/ROADMAP.md` in the same change and mention it. Do not reorder phases or re-prioritise without the user's say-so.
 - New ideas go in the matching section (or the Icebox) with priority + effort tags; keep the Notion-pasteable nested-checkbox format.
 
----
-
-## 18. NestJS engineering skills (`.claude/skills/nestjs-*`)
-
-Six skills from [amirtaherkhani/nestjs-agent-skills](https://github.com/amirtaherkhani/nestjs-agent-skills) v2.1.0 (MIT) are installed, unmodified except that their `evals/` and Codex-only `agents/` folders were dropped. **`.claude/` is gitignored, so they are local-only** — reinstall with `npx skills add amirtaherkhani/nestjs-agent-skills` (then delete `nestjs-git-commit-pr-message`, see below). Don't edit the skill files; put project-specific overrides here so upstream updates stay clean.
-
-### Which skill owns what
-
-| Task | Skill |
-|---|---|
-| Implement / fix / refactor anything in `apps/api` or `packages/shared-types` (default lead) | `nestjs-professional-software-engineering` |
-| Module boundaries, dependency direction, data/transaction ownership, BC/port boundaries, "should this be a service/worker?" | `nestjs-architecture-principles` |
-| Class/provider responsibilities, SOLID, choosing a pattern (strategy, adapter…) | `nestjs-oop-design-patterns` |
-| Guards/pipes/filters, error contracts, security, caching, queues (BullMQ), SSE, observability, performance, deployment | `nestjs-features-performance` |
-| Read-only whole-API review | `nestjs-code-audit` |
-| "Is feature X done per the roadmap?" | `nestjs-feature-audit` |
-
-Typical mapping to the roadmap: 0.6/0.7 (security, reliability) → features-performance; 1.8/1.9 (hedge, audit hub, BC integration) → architecture first, then implementation; Phase 2 `apps/site` and any extraction of `apps/worker` → architecture-principles **before** any code.
-
-### Not installed, on purpose
-
-`nestjs-git-commit-pr-message` conflicts with §11 (Conventional Commits, and Claude commits/pushes **only when asked**). Do not add it back without changing §11.
-
-### Project rules that override skill defaults (CLAUDE.md wins)
-
-- **Validation is Zod via `nestjs-zod` (§4), error handling per §5.** Ignore any skill suggestion of `class-validator`, `class-transformer`, or a different DTO system. Numeric route params still need `ParseIntPipe`.
-- **Architecture baseline is the existing modular monolith (§3):** feature modules, Prisma used directly in services, one `AuthProviderPort`-style port only where a third-party integration is genuinely swappable (§15, e.g. BC, Open Banking, hedge platform). Do **not** introduce repositories, CQRS, Clean-Architecture layers or microservices because a skill lists them; the skills' own rule is to justify each from a real constraint, and the roadmap's "Scaling triggers" already define when to split.
-- **Scope (§1) still applies:** audits and refactors cover `apps/api`, `packages/shared-types`, and the `/dashboard` frontend only — never the template pages.
-- **Business Central is the system of record** (`docs/ROADMAP.md` ground rules): skills must not propose local invoice/customer ledgers.
-- **The default branch is `master`**, not `main`. `nestjs-feature-audit` defaults to `main` — always pass `--branch master` (or the branch under review), e.g. `$nestjs-feature-audit "hedge control" --branch master`.
-- **Roadmap source for feature audits is `docs/ROADMAP.md`.** It satisfies the skill's roadmap gate; name the section (e.g. `1.8`) so the audit scopes to it. The skill will stop on a dirty worktree instead of switching branches — commit or ask before auditing; it must never stash or reset.
-- Audits are **read-only**; fixing findings needs a separate request, and ticking roadmap checkboxes follows §17.
-
-### Running `nestjs-code-audit` here (Windows + pnpm monorepo)
-
-- Target `apps/api`: `node .claude/skills/nestjs-code-audit/scripts/collect-quality-evidence.mjs --root apps/api --run`.
-- **The collector cannot launch `eslint.cmd`/`tsc.cmd` on Windows** (Node `EINVAL`), so both gates report "not run". Run them directly instead and report the exact commands/results, both read-only:
-  ```
-  pnpm --filter api exec tsc --noEmit --pretty false --incremental false
-  node apps/api/node_modules/.bin/eslint apps/api/src --no-fix --no-cache
-  ```
-  Never use the `lint` script for auditing — it passes `--fix`.
-- **Baseline when installed (2026-09-30, working tree at that time):** `tsc` passed; ESLint reported ~2,870 problems, ~2,830 of them `prettier/prettier` and ~45 real `@typescript-eslint` findings. The Prettier noise was mostly indentation (code is 4-space, Prettier defaulted to 2), not CRLF. **Resolved the same day:** `apps/api/.prettierrc` now sets `tabWidth: 4` / `endOfLine: auto`, the tree was formatted once, and ESLint reports 0 problems. Any non-zero count is a regression.
-- **Run ESLint from `apps/api`** (`cd apps/api && node node_modules/eslint/bin/eslint.js src --no-fix --no-cache`): the flat config lives there, and `node_modules/.bin/eslint` is a shell shim that Node can't execute directly.
-- Heuristic candidates seen by the collector (to verify, not findings): 6× `HttpException` imports, 2× `@Global()`, 2× `process.on(uncaughtException|unhandledRejection)`.

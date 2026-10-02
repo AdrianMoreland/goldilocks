@@ -10,7 +10,7 @@ import type {
  * new class + one binding change, see metal-price-api.module.ts) or faked in
  * tests without touching MetalsProvider. Scoped to only the three calls
  * MetalsProvider actually makes; the full vendor SDK surface stays on
- * MetalPriceApiClient. Mirrors AuthProviderPort's shape (see CLAUDE.md §15).
+ * MetalPriceApiClient. Mirrors AuthProviderPort's shape (see docs/ENGINEERING.md §15).
  */
 export interface MetalPriceApiPort {
     livePrices(): Promise<LiveResponse>;
