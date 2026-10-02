@@ -1,0 +1,29 @@
+name: AI assistant eval
+
+# Manual only. Spends a few cents against the real model and reads the approved SOPs from the database,
+# so it needs the OPENAI_API_KEY and DATABASE_URL repository secrets (use a read-only database role).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AI_ENABLED: "true"
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DIRECT_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @goldilocks/shared-types build
+      - run: pnpm --filter api ai:eval

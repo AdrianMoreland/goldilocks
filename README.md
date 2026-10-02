@@ -28,7 +28,22 @@ Each app reads its own `.env` — see `apps/api/.env.example` for the required v
 
 - `pnpm dev` — run both apps in watch mode
 - `pnpm build` — build all packages/apps
-- `pnpm check-types` — type-check the whole workspace
+- `pnpm check-types` — type-check the workspace (`shared-types` is not clean yet: its spec files have strict-null errors)
+- `pnpm --filter api exec jest` — API tests
+- `pnpm --filter @goldilocks/shared-types test` — shared-types tests
+
+## CI
+
+`.github/workflows/ci.yml` runs on every pull request to `master`: install, build `shared-types`, API type-check, API ESLint (any problem fails), API Jest, `shared-types` tests, web build. It needs no secrets. `audit.yml` (dependency audit, report-only) and `dependabot.yml` run alongside it; `ai-eval.yml` is manual-only and spends a few cents. Run the same gates locally from the repo root:
+
+```bash
+pnpm --filter @goldilocks/shared-types build
+pnpm --filter api exec tsc --noEmit
+(cd apps/api && node node_modules/eslint/bin/eslint.js src --no-fix --no-cache --max-warnings 0)
+pnpm --filter api exec jest --ci
+pnpm --filter @goldilocks/shared-types test
+pnpm --filter web build
+```
 
 ## Deployment
 
