@@ -24,6 +24,10 @@ import { AiController } from '../../modules/ai/ai.controller';
 import { AskService } from '../../modules/ai/ask.service';
 import { KnowledgeController } from '../../modules/knowledge/knowledge.controller';
 import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
+import { MarketModeController } from '../../modules/market-mode/market-mode.controller';
+import { MarketModeService } from '../../modules/market-mode/market-mode.service';
+import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
+import { RoadmapService } from '../../modules/roadmap/roadmap.service';
 import { MarketDataController } from '../../modules/market-data/market-data.controller';
 import { MarketDataService } from '../../modules/market-data/market-data.service';
 import { FetchAttemptService } from '../../modules/metals/fetch-attempt.service';
@@ -46,9 +50,11 @@ const CONTROLLERS: Type<unknown>[] = [
     KnowledgeController,
     AiController,
     MarketDataController,
+    MarketModeController,
     MetalsController,
     PortfolioController,
     ProductsController,
+    RoadmapController,
     TradeController,
 ];
 
@@ -156,10 +162,12 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: KnowledgeService, useValue: {} },
                 { provide: AskService, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
+                { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
                 { provide: MetalsCron, useValue: {} },
                 { provide: FetchAttemptService, useValue: {} },
                 { provide: PortfolioService, useValue: {} },
+                { provide: RoadmapService, useValue: {} },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },
             ],

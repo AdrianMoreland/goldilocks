@@ -838,7 +838,7 @@ describe('AskService figure check', () => {
         expect(response.warnings).toEqual([]);
     });
 
-    it('warns when the spot behind a price may be out of date, saying when it was taken', async () => {
+    it('tells staff the spot may be out of date, saying when it was taken, without adding it to the warnings', async () => {
         const stale = {
             ...PRICE_DATA,
             spot: [
@@ -856,9 +856,72 @@ describe('AskService figure check', () => {
 
         const response = await service.ask(input('100g gold bar?'), ACTOR);
 
-        expect(response.warnings).toEqual([
-            expect.stringMatching(/may be out of date \(taken 01 Oct, 09:00\)/),
-        ]);
+        expect(response.warnings).toEqual([]);
+        expect(response.spotNote).toEqual({
+            tone: 'stale',
+            message:
+                'The spot price may be out of date (taken 01 Oct, 09:00). Refresh prices or review them before sending',
+        });
+    });
+
+    it('tells staff a frozen or typed spot was used, even when the live feed is stale', async () => {
+        const custom = {
+            ...PRICE_DATA,
+            spot: [
+                {
+                    source: 'manual',
+                    mayBeOutOfDate: true,
+                    asOfIrishTime: '01 Oct, 09:00',
+                    eurPerTroyOunce: 3000,
+                },
+            ],
+        };
+        const { service } = build({
+            replies: [toolRound(CALL_PRICE), result('€10,120.')],
+            toolData: { findProductPrices: custom },
+        });
+
+        const response = await service.ask(input('100g gold bar?'), ACTOR);
+
+        expect(response.spotNote).toEqual({
+            tone: 'custom',
+            message: 'Custom Spot price used! Review before sending',
+        });
+    });
+
+    it('tells staff a fresh live spot looks healthy, with when it was taken', async () => {
+        const healthy = {
+            ...PRICE_DATA,
+            spot: [
+                {
+                    source: 'live',
+                    mayBeOutOfDate: false,
+                    asOfIrishTime: '01 Oct, 22:14',
+                    eurPerTroyOunce: 3000,
+                },
+            ],
+        };
+        const { service } = build({
+            replies: [toolRound(CALL_PRICE), result('€10,120.')],
+            toolData: { findProductPrices: healthy },
+        });
+
+        const response = await service.ask(input('100g gold bar?'), ACTOR);
+
+        expect(response.spotNote).toEqual({
+            tone: 'healthy',
+            message: 'The spot price seems healthy (taken 01 Oct, 22:14)',
+        });
+    });
+
+    it('adds no spot note to an answer that used no price lookup', async () => {
+        const { service } = build({
+            replies: [result('Silver has 23% VAT [[pricing#vat]].')],
+        });
+
+        const response = await service.ask(input('VAT on silver?'), ACTOR);
+
+        expect(response.spotNote).toBeNull();
     });
 
     it('does not cache an SOP answer that carries a warning', async () => {

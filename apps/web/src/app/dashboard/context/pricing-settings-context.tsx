@@ -1,8 +1,16 @@
 import * as React from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import type { MarketModeState } from "@goldilocks/shared-types"
+import { useMarketModeApi } from "@/api/market-mode.api"
+import { useAuth } from "@/contexts/auth-context"
+import { queryKeys } from "@/lib/query-keys"
 import type { MetalType } from "@/lib/types"
 
 /**
- * Market-condition modes + per-metal-group adjustment percentages — ported
+ * Market-condition modes (held on the server and shared by every user, set by
+ * an admin or manager) + per-metal-group adjustment percentages (local to this
+ * browser) — ported
  * from the pricing workbook's SETTINGS sheet ("Merrion Gold — Pricing
  * Control Centre"). Modes stack additively, matching the sheet's own note:
  * "Weekend + Shortage ON = both adjustments active simultaneously."
@@ -48,6 +56,11 @@ export function metalGroupFor(metal: MetalType): MetalGroup {
 
 interface PricingSettingsContextValue {
     modes: Record<MarketMode, boolean>
+    /** Only admins and managers may change the shared mode; the server enforces it too. */
+    canChangeModes: boolean
+    /** Who last changed the shared mode and when, for the banner and Settings tab. Null until it has ever been set. */
+    modeChangedBy: string | null
+    modeChangedAt: string | null
     toggleMode: (mode: MarketMode) => void
     adjustments: Record<MetalGroup, GroupAdjustment>
     updateAdjustment: (group: MetalGroup, field: keyof GroupAdjustment, value: number) => void
@@ -60,16 +73,38 @@ interface PricingSettingsContextValue {
 const PricingSettingsContext = React.createContext<PricingSettingsContextValue | null>(null)
 
 export function PricingSettingsProvider({ children }: { children: React.ReactNode }) {
-    const [modes, setModes] = React.useState<Record<MarketMode, boolean>>({
-        weekend: false,
-        volatile: false,
-        shortage: false,
+    const api = useMarketModeApi()
+    const queryClient = useQueryClient()
+    const { isAdmin, user } = useAuth()
+    const canChangeModes = isAdmin || user?.role === "MANAGER"
+
+    // Polled so a manager's change reaches every open dashboard within a minute without a reload.
+    const modeQuery = useQuery({
+        queryKey: queryKeys.marketMode,
+        queryFn: api.getMarketMode,
+        refetchInterval: 30_000,
     })
+    const state = modeQuery.data
+    const modes = React.useMemo<Record<MarketMode, boolean>>(
+        () => ({ weekend: state?.weekend ?? false, volatile: state?.volatile ?? false, shortage: state?.shortage ?? false }),
+        [state?.weekend, state?.volatile, state?.shortage],
+    )
+
+    const setModesMutation = useMutation({
+        mutationFn: api.setMarketMode,
+        onSuccess: (saved: MarketModeState) => queryClient.setQueryData(queryKeys.marketMode, saved),
+        onError: () => toast.error("Couldn't change the market mode. It stays as it was."),
+    })
+
     const [adjustments, setAdjustments] = React.useState<Record<MetalGroup, GroupAdjustment>>(DEFAULT_ADJUSTMENTS)
 
-    const toggleMode = React.useCallback((mode: MarketMode) => {
-        setModes((prev) => ({ ...prev, [mode]: !prev[mode] }))
-    }, [])
+    const toggleMode = React.useCallback(
+        (mode: MarketMode) => {
+            if (!canChangeModes) return
+            setModesMutation.mutate({ ...modes, [mode]: !modes[mode] })
+        },
+        [canChangeModes, modes, setModesMutation],
+    )
 
     const updateAdjustment = React.useCallback((group: MetalGroup, field: keyof GroupAdjustment, value: number) => {
         setAdjustments((prev) => ({ ...prev, [group]: { ...prev[group], [field]: value } }))
@@ -96,8 +131,8 @@ export function PricingSettingsProvider({ children }: { children: React.ReactNod
     )
 
     const value = React.useMemo<PricingSettingsContextValue>(
-        () => ({ modes, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel, getAdjustmentDelta }),
-        [modes, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel, getAdjustmentDelta],
+        () => ({ modes, canChangeModes, modeChangedBy: state?.updatedBy ?? null, modeChangedAt: state?.updatedAt ?? null, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel, getAdjustmentDelta }),
+        [modes, canChangeModes, state?.updatedBy, state?.updatedAt, toggleMode, adjustments, updateAdjustment, resetAdjustments, activeStatusLabel, getAdjustmentDelta],
     )
 
     return <PricingSettingsContext.Provider value={value}>{children}</PricingSettingsContext.Provider>

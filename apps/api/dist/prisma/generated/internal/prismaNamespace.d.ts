@@ -166,6 +166,8 @@ export declare const ModelName: {
     readonly KbDocument: "KbDocument";
     readonly AiQuestionLog: "AiQuestionLog";
     readonly AiAnswerCache: "AiAnswerCache";
+    readonly MarketModeState: "MarketModeState";
+    readonly RoadmapDocument: "RoadmapDocument";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export interface TypeMapCb<GlobalOmitOptions = {}> extends runtime.Types.Utils.Fn<{
@@ -178,7 +180,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         omit: GlobalOmitOptions;
     };
     meta: {
-        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch" | "fetchAttempt" | "kbDocument" | "aiQuestionLog" | "aiAnswerCache";
+        modelProps: "user" | "product" | "metalSpotPrice" | "historicSpotPrice" | "branch" | "fetchAttempt" | "kbDocument" | "aiQuestionLog" | "aiAnswerCache" | "marketModeState" | "roadmapDocument";
         txIsolationLevel: TransactionIsolationLevel;
     };
     model: {
@@ -848,6 +850,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
                 };
             };
         };
+        MarketModeState: {
+            payload: Prisma.$MarketModeStatePayload<ExtArgs>;
+            fields: Prisma.MarketModeStateFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.MarketModeStateFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.MarketModeStateFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                findFirst: {
+                    args: Prisma.MarketModeStateFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.MarketModeStateFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                findMany: {
+                    args: Prisma.MarketModeStateFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>[];
+                };
+                create: {
+                    args: Prisma.MarketModeStateCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                createMany: {
+                    args: Prisma.MarketModeStateCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.MarketModeStateCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>[];
+                };
+                delete: {
+                    args: Prisma.MarketModeStateDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                update: {
+                    args: Prisma.MarketModeStateUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                deleteMany: {
+                    args: Prisma.MarketModeStateDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.MarketModeStateUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.MarketModeStateUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>[];
+                };
+                upsert: {
+                    args: Prisma.MarketModeStateUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketModeStatePayload>;
+                };
+                aggregate: {
+                    args: Prisma.MarketModeStateAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateMarketModeState>;
+                };
+                groupBy: {
+                    args: Prisma.MarketModeStateGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.MarketModeStateGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.MarketModeStateCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.MarketModeStateCountAggregateOutputType> | number;
+                };
+            };
+        };
+        RoadmapDocument: {
+            payload: Prisma.$RoadmapDocumentPayload<ExtArgs>;
+            fields: Prisma.RoadmapDocumentFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.RoadmapDocumentFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.RoadmapDocumentFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                findFirst: {
+                    args: Prisma.RoadmapDocumentFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.RoadmapDocumentFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                findMany: {
+                    args: Prisma.RoadmapDocumentFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>[];
+                };
+                create: {
+                    args: Prisma.RoadmapDocumentCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                createMany: {
+                    args: Prisma.RoadmapDocumentCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.RoadmapDocumentCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>[];
+                };
+                delete: {
+                    args: Prisma.RoadmapDocumentDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                update: {
+                    args: Prisma.RoadmapDocumentUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                deleteMany: {
+                    args: Prisma.RoadmapDocumentDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.RoadmapDocumentUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.RoadmapDocumentUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>[];
+                };
+                upsert: {
+                    args: Prisma.RoadmapDocumentUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapDocumentPayload>;
+                };
+                aggregate: {
+                    args: Prisma.RoadmapDocumentAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateRoadmapDocument>;
+                };
+                groupBy: {
+                    args: Prisma.RoadmapDocumentGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.RoadmapDocumentGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.RoadmapDocumentCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.RoadmapDocumentCountAggregateOutputType> | number;
+                };
+            };
+        };
     };
 } & {
     other: {
@@ -999,6 +1149,23 @@ export declare const AiAnswerCacheScalarFieldEnum: {
     readonly expiresAt: "expiresAt";
 };
 export type AiAnswerCacheScalarFieldEnum = (typeof AiAnswerCacheScalarFieldEnum)[keyof typeof AiAnswerCacheScalarFieldEnum];
+export declare const MarketModeStateScalarFieldEnum: {
+    readonly id: "id";
+    readonly weekend: "weekend";
+    readonly volatile: "volatile";
+    readonly shortage: "shortage";
+    readonly updatedBy: "updatedBy";
+    readonly updatedAt: "updatedAt";
+};
+export type MarketModeStateScalarFieldEnum = (typeof MarketModeStateScalarFieldEnum)[keyof typeof MarketModeStateScalarFieldEnum];
+export declare const RoadmapDocumentScalarFieldEnum: {
+    readonly id: "id";
+    readonly markdown: "markdown";
+    readonly version: "version";
+    readonly updatedBy: "updatedBy";
+    readonly updatedAt: "updatedAt";
+};
+export type RoadmapDocumentScalarFieldEnum = (typeof RoadmapDocumentScalarFieldEnum)[keyof typeof RoadmapDocumentScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
@@ -1089,6 +1256,8 @@ export type GlobalOmitConfig = {
     kbDocument?: Prisma.KbDocumentOmit;
     aiQuestionLog?: Prisma.AiQuestionLogOmit;
     aiAnswerCache?: Prisma.AiAnswerCacheOmit;
+    marketModeState?: Prisma.MarketModeStateOmit;
+    roadmapDocument?: Prisma.RoadmapDocumentOmit;
 };
 export type LogLevel = 'info' | 'query' | 'warn' | 'error';
 export type LogDefinition = {

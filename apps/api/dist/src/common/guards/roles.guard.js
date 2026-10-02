@@ -25,9 +25,11 @@ let RolesGuard = class RolesGuard {
         if (!user)
             throw new common_1.ForbiddenException('No user found on request');
         const isAdmin = user.admin === true;
-        if (requiredRoles.includes('admin') && !isAdmin) {
+        const isManager = isAdmin || user.role === 'MANAGER';
+        const allowed = (requiredRoles.includes('admin') && isAdmin) ||
+            (requiredRoles.includes('manager') && isManager);
+        if (!allowed)
             throw new common_1.ForbiddenException('Insufficient permissions');
-        }
         return true;
     }
 };

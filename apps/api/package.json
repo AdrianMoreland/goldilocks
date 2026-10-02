@@ -14,6 +14,8 @@
     "seed:pricing-update": "tsx prisma/seed-pricing-update.ts",
     "provision:users": "tsx prisma/provision-users.ts",
     "kb:import": "ts-node --transpile-only prisma/import-sops.ts",
+    "roadmap:import": "ts-node --transpile-only prisma/roadmap-sync.ts import",
+    "roadmap:export": "ts-node --transpile-only prisma/roadmap-sync.ts export",
     "ai:eval": "ts-node --transpile-only prisma/ai-eval.ts",
     "docs": "compodoc -p tsconfig.json -s --theme material",
     "docs:dev": "compodoc -p tsconfig.json -s -w --disableSourceCode",

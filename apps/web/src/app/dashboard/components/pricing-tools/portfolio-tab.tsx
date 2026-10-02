@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { MetalType } from "@/lib/types"
 import type { PortfolioProductTypeFilter, PriorityStrength, PortfolioStrategyResultDto } from "@goldilocks/shared-types"
 import { usePricingTools } from "../../context/pricing-tools-context"
+import { ToolSpotEditor } from "./tool-spot-editor"
 import { usePortfolioPL, usePortfolioScenario, usePortfolioBuilder } from "@/hooks/use-portfolio-tools.hook"
 import { formatEuro, formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
@@ -111,14 +112,8 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
 
             <SectionLabel>TODAY</SectionLabel>
             <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Spot</Label>
-                    <Input
-                        type="number"
-                        step="0.01"
-                        value={pl.currentSpot ?? ""}
-                        onChange={(e) => pl.setCurrentSpot(parseFloat(e.target.value) || 0)}
-                    />
+                <div className="col-span-2">
+                    <ToolSpotEditor tool="portfolio" metal={metal} label="Spot" />
                 </div>
                 <div className="flex flex-col gap-1">
                     <Label className="text-xs">Buyback (%)</Label>
@@ -259,6 +254,8 @@ function BuilderPanel({ metal }: { metal: MetalType }) {
 
     return (
         <div className="flex flex-col gap-4">
+            <ToolSpotEditor tool="portfolio" metal={metal} label="Spot" slider={false} />
+
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Budget (€)</Label>
                 <Input

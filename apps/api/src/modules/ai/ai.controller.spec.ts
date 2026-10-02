@@ -15,6 +15,7 @@ const RESPONSE: AskResponse = {
     mode: 'procedures',
     notes: null,
     warnings: [],
+    spotNote: null,
     toolsUsed: [],
     status: 'answered',
     citations: [],

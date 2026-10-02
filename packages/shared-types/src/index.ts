@@ -50,6 +50,7 @@ export * from './pricing-math';
 export * from './portfolio-builder-math';
 export * from './session.schema';
 export * from './branch.schema';
+export * from './market-mode.schema';
 export * from './fetch-attempt.schema';
 export * from './error-log.schema';
 
@@ -61,3 +62,6 @@ export * from './kb-terms';
 export * from './kb-review';
 export * from './ai.schema';
 export * from './admin.schema';
+export * from './roadmap.schema';
+export * from './roadmap';
+export * from './design-md';
