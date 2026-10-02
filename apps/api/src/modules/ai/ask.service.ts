@@ -34,7 +34,7 @@ import { QuotaService } from './quota.service';
 import { RefusalGate } from './refusal-gate';
 import { SOP_CONTEXT, type SopContextProvider } from './sop-context.provider';
 import type { AiToolContext } from './tools/ai-tool.port';
-import { collectFacts } from './tools/tool-facts';
+import { collectFacts, describeSpotNote } from './tools/tool-facts';
 import { ToolRegistry } from './tools/tool.registry';
 
 const NO_PROCEDURES =
@@ -175,6 +175,7 @@ export class AskService {
                 notes?: string | null;
                 warnings?: string[];
                 toolsUsed?: string[];
+                spotNote?: AskResponse['spotNote'];
             }): Promise<AskResponse> => {
                 const latencyMs = Date.now() - started;
                 const cached = result.cached ?? false;
@@ -222,6 +223,7 @@ export class AskService {
                     cached,
                     notes: result.notes ?? null,
                     warnings: result.warnings ?? [],
+                    spotNote: result.spotNote ?? null,
                     toolsUsed,
                 };
             };
@@ -358,13 +360,10 @@ export class AskService {
                         `${unverified.join(', ')} ${unverified.length > 1 ? 'were' : 'was'} not given by a price lookup. Check ${unverified.length > 1 ? 'them' : 'it'} before relying on it.`,
                     );
                 }
-                if (facts.mayBeOutOfDate) {
-                    warnings.push(
-                        `The spot price may be out of date${facts.asOfIrishTime ? ` (taken ${facts.asOfIrishTime})` : ''}. Refresh prices on the dashboard before sending.`,
-                    );
-                }
                 return warnings;
             };
+
+            const spotNote = describeSpotNote(facts);
 
             if (isDraft) {
                 const draft = interpretDraft(result.text, prompt);
@@ -379,6 +378,7 @@ export class AskService {
                         `${draft.message}\n${draft.notes ?? ''}`,
                     ),
                     toolsUsed,
+                    spotNote,
                 });
                 yield { type: 'done', response };
                 return;
@@ -419,6 +419,7 @@ export class AskService {
                 retried,
                 warnings,
                 toolsUsed,
+                spotNote,
             });
 
             // Only clean, settled, SOP-only answers are kept: nothing that used a live lookup (prices move), nothing

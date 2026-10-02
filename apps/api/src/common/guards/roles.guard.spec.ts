@@ -11,6 +11,13 @@ class AdminOnlyController {
     }
 }
 
+class AdminOrManagerController {
+    @Roles('admin', 'manager')
+    set() {
+        return [];
+    }
+}
+
 class MixedController {
     open() {
         return [];
@@ -25,7 +32,7 @@ class MixedController {
 function contextFor(
     controller: new () => object,
     method: string,
-    user: { admin: boolean } | undefined,
+    user: { admin: boolean; role?: string } | undefined,
 ): ExecutionContext {
     return {
         getClass: () => controller,
@@ -67,6 +74,30 @@ describe('RolesGuard', () => {
                 contextFor(MixedController, 'open', { admin: false }),
             ),
         ).toBe(true);
+    });
+
+    it("lets a manager or an admin through a route listing 'manager', and refuses everyone else", () => {
+        const run = (user: { admin: boolean; role?: string }) =>
+            guard.canActivate(
+                contextFor(AdminOrManagerController, 'set', user),
+            );
+
+        expect(run({ admin: false, role: 'MANAGER' })).toBe(true);
+        expect(run({ admin: true, role: 'ADMIN' })).toBe(true);
+        expect(() => run({ admin: false, role: 'SALES' })).toThrow(
+            ForbiddenException,
+        );
+    });
+
+    it('does not let a manager into an admin-only route', () => {
+        expect(() =>
+            guard.canActivate(
+                contextFor(AdminOnlyController, 'list', {
+                    admin: false,
+                    role: 'MANAGER',
+                }),
+            ),
+        ).toThrow(ForbiddenException);
     });
 
     it('refuses when there is no user on the request', () => {

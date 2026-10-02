@@ -417,6 +417,7 @@ var PortfolioBuildResponseSchema = z7.object({
 
 // src/pricing-math.ts
 var GRAMS_PER_TROY_OUNCE = 31.1034768;
+var SPOT_STALE_AFTER_MS = 15 * 60 * 1e3;
 function roundSellPrice(value) {
   return Math.ceil(Math.round(value * 100) / 100);
 }
@@ -425,9 +426,9 @@ function roundBuyPrice(value) {
 }
 function computeTransactionPrice(basePrice, transactionType, percent) {
   if (transactionType === "buying") {
-    return Math.ceil(basePrice * (1 + percent / 100));
+    return roundSellPrice(basePrice * (1 + percent / 100));
   }
-  return Math.floor(basePrice * (1 - percent / 100));
+  return roundBuyPrice(basePrice * (1 - percent / 100));
 }
 function computeMeltValue(spotPerGram, meltFactor, purity, weight) {
   return spotPerGram * meltFactor * purity * weight;
@@ -925,66 +926,82 @@ var CreateBranchRequestSchema = z9.object({
   currency: CurrencyEnum.default("EUR")
 });
 
-// src/fetch-attempt.schema.ts
+// src/market-mode.schema.ts
 import { z as z10 } from "zod";
-var FetchTriggerEnum = z10.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
-var FetchAttemptSchema = z10.object({
-  id: z10.string(),
-  attemptedAt: z10.iso.datetime(),
-  durationMs: z10.number(),
-  success: z10.boolean(),
-  errorMessage: z10.string().nullable(),
-  metalsResolved: z10.array(MetalTypeEnum),
+var MarketModeStateSchema = z10.object({
+  weekend: z10.boolean(),
+  volatile: z10.boolean(),
+  shortage: z10.boolean(),
+  /** Who last changed it (display name); null if it has never been changed. */
+  updatedBy: z10.string().nullable(),
+  updatedAt: z10.iso.datetime().nullable()
+});
+var UpdateMarketModeRequestSchema = z10.object({
+  weekend: z10.boolean(),
+  volatile: z10.boolean(),
+  shortage: z10.boolean()
+});
+
+// src/fetch-attempt.schema.ts
+import { z as z11 } from "zod";
+var FetchTriggerEnum = z11.enum(["CRON", "REFRESH", "RETRY", "LAUNCH_FALLBACK"]);
+var FetchAttemptSchema = z11.object({
+  id: z11.string(),
+  attemptedAt: z11.iso.datetime(),
+  durationMs: z11.number(),
+  success: z11.boolean(),
+  errorMessage: z11.string().nullable(),
+  metalsResolved: z11.array(MetalTypeEnum),
   triggeredBy: FetchTriggerEnum
 });
-var FetchMetricsSchema = z10.object({
+var FetchMetricsSchema = z11.object({
   /** Fraction (0-1) of external API calls in the last 24h that succeeded. 1 when there were none to judge. */
-  successRate24h: z10.number(),
-  totalAttempts24h: z10.number(),
-  failureCount24h: z10.number(),
-  avgLatencyMs: z10.number(),
+  successRate24h: z11.number(),
+  totalAttempts24h: z11.number(),
+  failureCount24h: z11.number(),
+  avgLatencyMs: z11.number(),
   /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
-  cacheHitRatio: z10.number()
+  cacheHitRatio: z11.number()
 });
 
 // src/error-log.schema.ts
-import { z as z11 } from "zod";
-var ErrorLogSourceEnum = z11.enum(["server", "client"]);
-var ErrorLogSeverityEnum = z11.enum(["error", "warning"]);
-var ErrorLogKindEnum = z11.enum(["database", "http", "network", "external-api", "response", "crash"]);
-var ErrorLogEntrySchema = z11.object({
-  id: z11.string(),
+import { z as z12 } from "zod";
+var ErrorLogSourceEnum = z12.enum(["server", "client"]);
+var ErrorLogSeverityEnum = z12.enum(["error", "warning"]);
+var ErrorLogKindEnum = z12.enum(["database", "http", "network", "external-api", "response", "crash"]);
+var ErrorLogEntrySchema = z12.object({
+  id: z12.string(),
   /** Short code shown to staff in the error toast ("ref E-7F3K2"), to find the matching entry. */
-  reference: z11.string(),
-  at: z11.string(),
+  reference: z12.string(),
+  at: z12.string(),
   source: ErrorLogSourceEnum,
   severity: ErrorLogSeverityEnum,
   kind: ErrorLogKindEnum,
-  message: z11.string(),
-  detail: z11.string().nullable().optional(),
-  statusCode: z11.number().nullable().optional(),
-  method: z11.string().nullable().optional(),
-  path: z11.string().nullable().optional(),
+  message: z12.string(),
+  detail: z12.string().nullable().optional(),
+  statusCode: z12.number().nullable().optional(),
+  method: z12.string().nullable().optional(),
+  path: z12.string().nullable().optional(),
   /** Vendor/driver error code, e.g. Prisma's "P1001". */
-  code: z11.string().nullable().optional(),
-  stack: z11.string().nullable().optional(),
-  user: z11.string().nullable().optional(),
-  userAgent: z11.string().nullable().optional()
+  code: z12.string().nullable().optional(),
+  stack: z12.string().nullable().optional(),
+  user: z12.string().nullable().optional(),
+  userAgent: z12.string().nullable().optional()
 });
-var ClientErrorReportSchema = z11.object({
-  reference: z11.string().max(20),
-  occurredAt: z11.string().max(40),
+var ClientErrorReportSchema = z12.object({
+  reference: z12.string().max(20),
+  occurredAt: z12.string().max(40),
   severity: ErrorLogSeverityEnum,
   kind: ErrorLogKindEnum,
-  message: z11.string().max(500),
-  detail: z11.string().max(4e3).optional(),
-  statusCode: z11.number().int().optional(),
-  method: z11.string().max(10).optional(),
-  path: z11.string().max(500).optional(),
-  stack: z11.string().max(4e3).optional()
+  message: z12.string().max(500),
+  detail: z12.string().max(4e3).optional(),
+  statusCode: z12.number().int().optional(),
+  method: z12.string().max(10).optional(),
+  path: z12.string().max(500).optional(),
+  stack: z12.string().max(4e3).optional()
 });
-var ClientErrorReportBatchSchema = z11.object({
-  reports: z11.array(ClientErrorReportSchema).max(50)
+var ClientErrorReportBatchSchema = z12.object({
+  reports: z12.array(ClientErrorReportSchema).max(50)
 });
 function createErrorReference() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -994,7 +1011,7 @@ function createErrorReference() {
 }
 
 // src/kb.schema.ts
-import { z as z12 } from "zod";
+import { z as z13 } from "zod";
 var KB_CATEGORIES = [
   "sales",
   "trading",
@@ -1005,41 +1022,41 @@ var KB_CATEGORIES = [
   "directory",
   "meta"
 ];
-var KbCategoryEnum = z12.enum(KB_CATEGORIES);
-var KbJurisdictionEnum = z12.enum(["all", "IE", "UK", "ES"]);
-var KbStatusEnum = z12.enum(["draft", "approved", "retired"]);
-var KbSlugSchema = z12.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase, hyphenated");
-var isoDay = z12.iso.date();
-var KbFrontmatterSchema = z12.object({
+var KbCategoryEnum = z13.enum(KB_CATEGORIES);
+var KbJurisdictionEnum = z13.enum(["all", "IE", "UK", "ES"]);
+var KbStatusEnum = z13.enum(["draft", "approved", "retired"]);
+var KbSlugSchema = z13.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase, hyphenated");
+var isoDay = z13.iso.date();
+var KbFrontmatterSchema = z13.object({
   slug: KbSlugSchema,
-  title: z12.string().trim().min(1),
+  title: z13.string().trim().min(1),
   category: KbCategoryEnum,
   jurisdiction: KbJurisdictionEnum,
-  owner: z12.string().trim().min(1),
+  owner: z13.string().trim().min(1),
   status: KbStatusEnum,
-  version: z12.coerce.number().int().positive(),
+  version: z13.coerce.number().int().positive(),
   updatedAt: isoDay
 });
-var KbDocumentSchema = z12.object({
+var KbDocumentSchema = z13.object({
   slug: KbSlugSchema,
-  title: z12.string(),
+  title: z13.string(),
   category: KbCategoryEnum,
   jurisdiction: KbJurisdictionEnum,
-  owner: z12.string(),
+  owner: z13.string(),
   status: KbStatusEnum,
-  version: z12.number().int(),
+  version: z13.number().int(),
   contentUpdatedOn: isoDay,
-  markdown: z12.string()
+  markdown: z13.string()
 });
-var KbDocumentListResponseSchema = z12.object({
-  documents: z12.array(KbDocumentSchema)
+var KbDocumentListResponseSchema = z13.object({
+  documents: z13.array(KbDocumentSchema)
 });
-var UpdateKbDocumentRequestSchema = z12.object({
-  title: z12.string().trim().min(1).max(200),
-  owner: z12.string().trim().min(1).max(100),
-  markdown: z12.string().trim().min(1).max(1e5)
+var UpdateKbDocumentRequestSchema = z13.object({
+  title: z13.string().trim().min(1).max(200),
+  owner: z13.string().trim().min(1).max(100),
+  markdown: z13.string().trim().min(1).max(1e5)
 });
-var SetKbStatusRequestSchema = z12.object({ status: KbStatusEnum });
+var SetKbStatusRequestSchema = z13.object({ status: KbStatusEnum });
 var KB_CATEGORY_INFO = {
   sales: { label: "Sales", description: "Inquiries, quotes, pricing and customer conversations" },
   trading: { label: "Trading", description: "Payment, price lock, hedging, limit orders and cancellations" },
@@ -1128,17 +1145,17 @@ var LINK_PATTERN = /\[\[([a-z0-9]+(?:-[a-z0-9]+)*)(?:#([a-z0-9-]+))?\]\]/g;
 function findLinks(markdown) {
   return [...textOutsideCode(markdown).matchAll(LINK_PATTERN)].map((m) => ({ slug: m[1] ?? "", anchor: m[2] ?? null }));
 }
-function kbArticlePath(slug, anchor) {
-  return `/knowledge/articles/${slug}${anchor ? `#${anchor}` : ""}`;
+function kbArticlePath(slug2, anchor) {
+  return `/knowledge/articles/${slug2}${anchor ? `#${anchor}` : ""}`;
 }
 var KB_UNRESOLVED_HREF_PREFIX = "#unresolved-sop:";
 function rewriteKbLinks(markdown, resolve) {
   return mapOutsideCode(
     markdown,
-    (text) => text.replace(LINK_PATTERN, (_raw, slug, anchor) => {
-      const ref = { slug, anchor: anchor ?? null };
+    (text) => text.replace(LINK_PATTERN, (_raw, slug2, anchor) => {
+      const ref = { slug: slug2, anchor: anchor ?? null };
       const resolved = resolve(ref);
-      return resolved ? `[${resolved.label}](${resolved.href})` : `[${slug}](${KB_UNRESOLVED_HREF_PREFIX}${slug})`;
+      return resolved ? `[${resolved.label}](${resolved.href})` : `[${slug2}](${KB_UNRESOLVED_HREF_PREFIX}${slug2})`;
     })
   );
 }
@@ -1182,7 +1199,7 @@ function findBrokenLinks(docs) {
 function toPlainText(markdown) {
   return mapOutsideCode(
     markdown,
-    (text) => text.replace(/\[\[([a-z0-9-]+)(?:#([a-z0-9-]+))?\]\]/g, (_m, slug, anchor) => anchor ? anchor.replace(/-/g, " ") : slug.replace(/-/g, " ")).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "").replace(/^\s*\|?\s*[-:| ]+\|[-:| ]*$/gm, "").replace(/\|/g, " ").replace(/[*_~]/g, "").replace(/^#{1,6}\s+/gm, "")
+    (text) => text.replace(/\[\[([a-z0-9-]+)(?:#([a-z0-9-]+))?\]\]/g, (_m, slug2, anchor) => anchor ? anchor.replace(/-/g, " ") : slug2.replace(/-/g, " ")).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "").replace(/^\s*\|?\s*[-:| ]+\|[-:| ]*$/gm, "").replace(/\|/g, " ").replace(/[*_~]/g, "").replace(/^#{1,6}\s+/gm, "")
   ).replace(/`/g, "").replace(/\s+/g, " ").trim();
 }
 function indexKbDocument(doc) {
@@ -1540,16 +1557,16 @@ function kbReviewStatus(contentUpdatedOn, now = /* @__PURE__ */ new Date()) {
 }
 
 // src/ai.schema.ts
-import { z as z13 } from "zod";
-var AiModeEnum = z13.enum(["procedures", "email", "whatsapp"]);
+import { z as z14 } from "zod";
+var AiModeEnum = z14.enum(["procedures", "email", "whatsapp"]);
 var AI_QUESTION_MAX_LENGTH = 500;
 var AI_MESSAGE_MAX_LENGTH = 4e3;
 function aiInputLimit(mode) {
   return mode === "procedures" ? AI_QUESTION_MAX_LENGTH : AI_MESSAGE_MAX_LENGTH;
 }
-var AskRequestSchema = z13.object({
+var AskRequestSchema = z14.object({
   /** A question (procedures) or the customer's pasted message (email, whatsapp). */
-  question: z13.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
+  question: z14.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
   mode: AiModeEnum.default("procedures"),
   /**
    * The spot the product table is quoting from, when the user has frozen or typed one — otherwise
@@ -1560,192 +1577,478 @@ var AskRequestSchema = z13.object({
   path: ["question"],
   message: "That is too long for a question. Keep it under 500 characters."
 });
-var AiAnswerStatusEnum = z13.enum(["answered", "refused", "uncited"]);
-var AiCitationSchema = z13.object({
-  slug: z13.string(),
-  anchor: z13.string().nullable(),
-  title: z13.string(),
-  heading: z13.string().nullable()
+var AiAnswerStatusEnum = z14.enum(["answered", "refused", "uncited"]);
+var AiCitationSchema = z14.object({
+  slug: z14.string(),
+  anchor: z14.string().nullable(),
+  title: z14.string(),
+  heading: z14.string().nullable()
 });
-var AiUsageSchema = z13.object({
-  inputTokens: z13.number().int(),
+var AiUsageSchema = z14.object({
+  inputTokens: z14.number().int(),
   /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
-  cachedInputTokens: z13.number().int(),
-  outputTokens: z13.number().int()
+  cachedInputTokens: z14.number().int(),
+  outputTokens: z14.number().int()
 });
-var AskResponseSchema = z13.object({
+var AiSpotNoteSchema = z14.object({
+  tone: z14.enum(["custom", "stale", "healthy"]),
+  message: z14.string()
+});
+var AskResponseSchema = z14.object({
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
-  answer: z13.string(),
+  answer: z14.string(),
   mode: AiModeEnum,
   status: AiAnswerStatusEnum,
-  citations: z13.array(AiCitationSchema),
-  model: z13.string(),
+  citations: z14.array(AiCitationSchema),
+  model: z14.string(),
   usage: AiUsageSchema,
-  latencyMs: z13.number().int(),
+  latencyMs: z14.number().int(),
   /** Which SOPs the answer was based on — the audit trail for "what did it know when it said that?". */
-  corpus: z13.object({ documents: z13.number().int(), hash: z13.string() }),
+  corpus: z14.object({ documents: z14.number().int(), hash: z14.string() }),
   /** Served from the answer cache: no model call, so usage is zero. */
-  cached: z13.boolean(),
+  cached: z14.boolean(),
   /** Email/WhatsApp only: notes for the staff member (what the reply assumes, what to check), apart from the message to send. `answer` is the message itself. */
-  notes: z13.string().nullable(),
+  notes: z14.string().nullable(),
   /** Things to check before relying on the answer, e.g. a figure that did not come from a price lookup, or prices that may be out of date. */
-  warnings: z13.array(z13.string()),
+  warnings: z14.array(z14.string()),
+  /** Present only when the answer used a price lookup. Shown to staff beside the answer, never written into it. */
+  spotNote: AiSpotNoteSchema.nullable(),
   /** Which live lookups the answer used (getSpot, findProductPrices). Empty for a pure SOP answer. */
-  toolsUsed: z13.array(z13.string())
+  toolsUsed: z14.array(z14.string())
 });
-var AiStatusSchema = z13.object({
-  enabled: z13.boolean(),
-  model: z13.string()
+var AiStatusSchema = z14.object({
+  enabled: z14.boolean(),
+  model: z14.string()
 });
-var AskStreamEventSchema = z13.discriminatedUnion("type", [
-  z13.object({ type: z13.literal("delta"), text: z13.string() }),
-  z13.object({ type: z13.literal("tool"), name: z13.string() }),
-  z13.object({ type: z13.literal("done"), response: AskResponseSchema }),
-  z13.object({ type: z13.literal("error"), status: z13.number().int(), message: z13.string() })
+var AskStreamEventSchema = z14.discriminatedUnion("type", [
+  z14.object({ type: z14.literal("delta"), text: z14.string() }),
+  z14.object({ type: z14.literal("tool"), name: z14.string() }),
+  z14.object({ type: z14.literal("done"), response: AskResponseSchema }),
+  z14.object({ type: z14.literal("error"), status: z14.number().int(), message: z14.string() })
 ]);
 
 // src/admin.schema.ts
-import { z as z14 } from "zod";
-var HealthStatusEnum = z14.enum(["up", "degraded", "down"]);
-var HealthItemSchema = z14.object({
-  key: z14.string(),
-  label: z14.string(),
+import { z as z15 } from "zod";
+var HealthStatusEnum = z15.enum(["up", "degraded", "down"]);
+var HealthItemSchema = z15.object({
+  key: z15.string(),
+  label: z15.string(),
   status: HealthStatusEnum,
   /** One plain-language line: a measurement, or the reason it is not healthy. */
-  detail: z14.string()
+  detail: z15.string()
 });
-var HourlyStatsSchema = z14.object({
-  hour: z14.string(),
-  requests: z14.number(),
-  clientErrors: z14.number(),
-  serverErrors: z14.number(),
-  avgLatencyMs: z14.number(),
-  logins: z14.number(),
-  failedLogins: z14.number()
+var HourlyStatsSchema = z15.object({
+  hour: z15.string(),
+  requests: z15.number(),
+  clientErrors: z15.number(),
+  serverErrors: z15.number(),
+  avgLatencyMs: z15.number(),
+  logins: z15.number(),
+  failedLogins: z15.number()
 });
-var RouteStatsSchema = z14.object({
-  route: z14.string(),
-  count: z14.number(),
-  errors: z14.number(),
-  avgLatencyMs: z14.number()
+var RouteStatsSchema = z15.object({
+  route: z15.string(),
+  count: z15.number(),
+  errors: z15.number(),
+  avgLatencyMs: z15.number()
 });
-var TableSizeSchema = z14.object({
-  name: z14.string(),
-  bytes: z14.number(),
-  rows: z14.number()
+var TableSizeSchema = z15.object({
+  name: z15.string(),
+  bytes: z15.number(),
+  rows: z15.number()
 });
-var AdminOverviewSchema = z14.object({
-  generatedAt: z14.string(),
-  uptimeSeconds: z14.number(),
-  nodeVersion: z14.string(),
-  environment: z14.string(),
-  aiEnabled: z14.boolean(),
-  health: z14.array(HealthItemSchema),
+var AdminOverviewSchema = z15.object({
+  generatedAt: z15.string(),
+  uptimeSeconds: z15.number(),
+  nodeVersion: z15.string(),
+  environment: z15.string(),
+  aiEnabled: z15.boolean(),
+  health: z15.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
-  metricsAvailable: z14.boolean(),
-  hours: z14.array(HourlyStatsSchema),
-  topRoutes: z14.array(RouteStatsSchema),
-  databaseBytes: z14.number(),
-  tables: z14.array(TableSizeSchema),
-  usersByRole: z14.array(z14.object({ role: z14.string(), count: z14.number() })),
-  activeUsers: z14.number(),
-  errorsByKind: z14.array(z14.object({ kind: z14.string(), count: z14.number() }))
+  metricsAvailable: z15.boolean(),
+  hours: z15.array(HourlyStatsSchema),
+  topRoutes: z15.array(RouteStatsSchema),
+  databaseBytes: z15.number(),
+  tables: z15.array(TableSizeSchema),
+  usersByRole: z15.array(z15.object({ role: z15.string(), count: z15.number() })),
+  activeUsers: z15.number(),
+  errorsByKind: z15.array(z15.object({ kind: z15.string(), count: z15.number() }))
 });
-var LogLevelEnum = z14.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
-var AdminLogEntrySchema = z14.object({
-  id: z14.number(),
+var LogLevelEnum = z15.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
+var AdminLogEntrySchema = z15.object({
+  id: z15.number(),
   /** Epoch milliseconds. */
-  time: z14.number(),
+  time: z15.number(),
   level: LogLevelEnum,
-  message: z14.string(),
-  context: z14.string().nullable(),
-  method: z14.string().nullable(),
-  url: z14.string().nullable(),
-  status: z14.number().nullable(),
-  responseTimeMs: z14.number().nullable(),
+  message: z15.string(),
+  context: z15.string().nullable(),
+  method: z15.string().nullable(),
+  url: z15.string().nullable(),
+  status: z15.number().nullable(),
+  responseTimeMs: z15.number().nullable(),
   /** Everything else pino recorded on the line, for the expanded view. */
-  extra: z14.record(z14.string(), z14.unknown())
+  extra: z15.record(z15.string(), z15.unknown())
 });
-var AdminLogsResponseSchema = z14.object({
-  entries: z14.array(AdminLogEntrySchema),
-  capacity: z14.number()
+var AdminLogsResponseSchema = z15.object({
+  entries: z15.array(AdminLogEntrySchema),
+  capacity: z15.number()
 });
-var AuditEntrySchema = z14.object({
-  at: z14.string(),
-  user: z14.string(),
-  action: z14.string(),
-  detail: z14.string()
+var AuditEntrySchema = z15.object({
+  at: z15.string(),
+  user: z15.string(),
+  action: z15.string(),
+  detail: z15.string()
 });
-var AuditLogResponseSchema = z14.object({
-  entries: z14.array(AuditEntrySchema),
-  persisted: z14.boolean()
+var AuditLogResponseSchema = z15.object({
+  entries: z15.array(AuditEntrySchema),
+  persisted: z15.boolean()
 });
-var ApiEndpointParameterSchema = z14.object({
-  name: z14.string(),
-  in: z14.enum(["path", "query", "header"]),
-  required: z14.boolean(),
-  type: z14.string(),
-  options: z14.array(z14.string()).optional(),
-  description: z14.string().optional()
+var ApiEndpointParameterSchema = z15.object({
+  name: z15.string(),
+  in: z15.enum(["path", "query", "header"]),
+  required: z15.boolean(),
+  type: z15.string(),
+  options: z15.array(z15.string()).optional(),
+  description: z15.string().optional()
 });
-var ApiEndpointSchema = z14.object({
-  method: z14.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-  path: z14.string(),
-  summary: z14.string(),
-  description: z14.string().optional(),
-  tag: z14.string(),
-  requiresAuth: z14.boolean(),
-  parameters: z14.array(ApiEndpointParameterSchema),
+var ApiEndpointSchema = z15.object({
+  method: z15.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+  path: z15.string(),
+  summary: z15.string(),
+  description: z15.string().optional(),
+  tag: z15.string(),
+  requiresAuth: z15.boolean(),
+  parameters: z15.array(ApiEndpointParameterSchema),
   /** A starter JSON body built from the request schema; null when the route takes none. */
-  bodyExample: z14.unknown().nullable()
+  bodyExample: z15.unknown().nullable()
 });
-var ApiCatalogueSchema = z14.object({
-  endpoints: z14.array(ApiEndpointSchema)
+var ApiCatalogueSchema = z15.object({
+  endpoints: z15.array(ApiEndpointSchema)
 });
-var DbColumnSchema = z14.object({
-  name: z14.string(),
-  type: z14.string(),
-  nullable: z14.boolean(),
-  hasDefault: z14.boolean(),
-  isPrimaryKey: z14.boolean(),
+var DbColumnSchema = z15.object({
+  name: z15.string(),
+  type: z15.string(),
+  nullable: z15.boolean(),
+  hasDefault: z15.boolean(),
+  isPrimaryKey: z15.boolean(),
   /** Generated by the database, or never shown at all — cannot be set from the browser. */
-  readOnly: z14.boolean(),
+  readOnly: z15.boolean(),
   /** The allowed values when the column is a Postgres enum. */
-  enumValues: z14.array(z14.string()).optional()
+  enumValues: z15.array(z15.string()).optional()
 });
-var DbTableSummarySchema = z14.object({
-  name: z14.string(),
-  rows: z14.number(),
-  bytes: z14.number(),
-  writable: z14.boolean()
+var DbTableSummarySchema = z15.object({
+  name: z15.string(),
+  rows: z15.number(),
+  bytes: z15.number(),
+  writable: z15.boolean()
 });
-var DbTablesResponseSchema = z14.object({
-  tables: z14.array(DbTableSummarySchema)
+var DbTablesResponseSchema = z15.object({
+  tables: z15.array(DbTableSummarySchema)
 });
-var DbRowsResponseSchema = z14.object({
-  table: z14.string(),
-  writable: z14.boolean(),
-  columns: z14.array(DbColumnSchema),
-  rows: z14.array(z14.record(z14.string(), z14.unknown())),
-  total: z14.number(),
-  page: z14.number(),
-  pageSize: z14.number()
+var DbRowsResponseSchema = z15.object({
+  table: z15.string(),
+  writable: z15.boolean(),
+  columns: z15.array(DbColumnSchema),
+  rows: z15.array(z15.record(z15.string(), z15.unknown())),
+  total: z15.number(),
+  page: z15.number(),
+  pageSize: z15.number()
 });
-var DbValueSchema = z14.union([z14.string(), z14.number(), z14.boolean(), z14.null(), z14.record(z14.string(), z14.unknown()), z14.array(z14.unknown())]);
-var DbInsertRequestSchema = z14.object({
-  values: z14.record(z14.string(), DbValueSchema)
+var DbValueSchema = z15.union([z15.string(), z15.number(), z15.boolean(), z15.null(), z15.record(z15.string(), z15.unknown()), z15.array(z15.unknown())]);
+var DbInsertRequestSchema = z15.object({
+  values: z15.record(z15.string(), DbValueSchema)
 });
-var DbUpdateRequestSchema = z14.object({
+var DbUpdateRequestSchema = z15.object({
   /** The row's primary-key column(s) and current value(s). */
-  key: z14.record(z14.string(), z14.union([z14.string(), z14.number()])),
-  values: z14.record(z14.string(), DbValueSchema)
+  key: z15.record(z15.string(), z15.union([z15.string(), z15.number()])),
+  values: z15.record(z15.string(), DbValueSchema)
 });
-var DbDeleteRequestSchema = z14.object({
-  key: z14.record(z14.string(), z14.union([z14.string(), z14.number()]))
+var DbDeleteRequestSchema = z15.object({
+  key: z15.record(z15.string(), z15.union([z15.string(), z15.number()]))
 });
-var DbRowResponseSchema = z14.object({
-  row: z14.record(z14.string(), z14.unknown())
+var DbRowResponseSchema = z15.object({
+  row: z15.record(z15.string(), z15.unknown())
 });
+
+// src/roadmap.schema.ts
+import { z as z16 } from "zod";
+var RoadmapDocumentSchema = z16.object({
+  markdown: z16.string(),
+  version: z16.number().int().nonnegative(),
+  updatedBy: z16.string().nullable(),
+  updatedAt: z16.iso.datetime().nullable()
+});
+var TaskText = z16.string().trim().min(1, "Task text is required").max(500).refine((t) => !/[\r\n]/.test(t), "Task text must be one line");
+var Line = z16.number().int().nonnegative();
+var RoadmapEditSchema = z16.discriminatedUnion("type", [
+  z16.object({ type: z16.literal("toggle"), line: Line, text: z16.string(), checked: z16.boolean() }),
+  z16.object({ type: z16.literal("add"), sectionLine: Line, parentLine: Line.optional(), text: TaskText }),
+  z16.object({ type: z16.literal("delete"), line: Line, text: z16.string() }),
+  z16.object({ type: z16.literal("edit"), line: Line, text: z16.string(), newText: TaskText })
+]);
+var RoadmapEditRequestSchema = z16.object({
+  /** The document version the edit was made against. */
+  version: z16.number().int().nonnegative(),
+  edit: RoadmapEditSchema
+});
+
+// src/roadmap.ts
+var TASK_LINE = /^(\s*)- \[( |x|X)\] (.*)$/;
+var HEADING = /^(#{1,2}) (.+)$/;
+var PRIORITY_EMOJI = { "\u{1F534}": "P0", "\u{1F7E0}": "P1", "\u{1F7E1}": "P2", "\u26AA": "P3" };
+var indentOf = (line) => line.length - line.trimStart().length;
+var eolOf = (markdown) => markdown.includes("\r\n") ? "\r\n" : "\n";
+var linesOf = (markdown) => markdown.split(/\r?\n/);
+function slug(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+function parseHeading(raw, group, headingLine, taken) {
+  let text = raw.trim();
+  let priority = null;
+  for (const [emoji, level] of Object.entries(PRIORITY_EMOJI)) {
+    if (text.includes(emoji)) {
+      priority ??= level;
+      text = text.replace(emoji, "");
+    }
+  }
+  let depends = null;
+  const arrow = text.indexOf("\u2190");
+  if (arrow >= 0) {
+    depends = text.slice(arrow + 1).replace(/^\s*depends:\s*/i, "").trim() || null;
+    text = text.slice(0, arrow);
+  }
+  let note = null;
+  text = text.replace(/\*\(([^)]*)\)\*/, (_m, inner) => {
+    note = inner.trim();
+    return "";
+  });
+  text = text.replace(/`/g, "").replace(/\s*→\s*$/, "").replace(/\s+/g, " ").trim();
+  const idMatch = /^(\d+\.\d+)\s+(.*)$/.exec(text);
+  const id = idMatch ? idMatch[1] ?? null : null;
+  const title = idMatch ? idMatch[2] ?? text : text;
+  const phase = /^PHASE (\d+)/.exec(title);
+  let key = id ?? (phase ? `phase-${phase[1]}` : slug(title).slice(0, 30).replace(/-$/, ""));
+  while (taken.has(key)) key += "-2";
+  taken.add(key);
+  return { key, id, title, note, depends, priority, group, headingLine, body: "", tasks: [] };
+}
+function parseRoadmap(markdown) {
+  const lines = linesOf(markdown);
+  const sections = [];
+  const taken = /* @__PURE__ */ new Set();
+  let group = "";
+  let current = null;
+  let stack = [];
+  let body = [];
+  let inFence = false;
+  const close = () => {
+    if (current) current.body = body.join("\n").trim();
+    body = [];
+    stack = [];
+  };
+  lines.forEach((line, index) => {
+    if (line.trimStart().startsWith("```")) inFence = !inFence;
+    const heading = inFence ? null : HEADING.exec(line);
+    if (heading) {
+      close();
+      const level = heading[1].length;
+      const headingText = heading[2];
+      if (level === 1) group = headingText.trim();
+      current = parseHeading(headingText, level === 1 ? headingText.trim() : group, index, taken);
+      if (level === 1 && index === 0) current = null;
+      else sections.push(current);
+      return;
+    }
+    if (!current) return;
+    const task = inFence ? null : TASK_LINE.exec(line);
+    if (task) {
+      const indent = task[1].length;
+      const node = { line: index, checked: task[2] !== " ", text: task[3].trim(), notes: [], children: [] };
+      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+      (stack.length ? stack[stack.length - 1].task.children : current.tasks).push(node);
+      stack.push({ indent, task: node });
+      return;
+    }
+    const owner = line.trim() === "" ? void 0 : [...stack].reverse().find((entry) => indentOf(line) > entry.indent);
+    if (owner) owner.task.notes.push(line.trim().replace(/^- /, ""));
+    else {
+      if (line.trim() !== "") stack = [];
+      body.push(line);
+    }
+  });
+  close();
+  return sections.filter((s) => s.id !== null || s.body !== "" || s.tasks.length > 0 || s.group !== s.title);
+}
+function countTasks(tasks) {
+  let done = 0;
+  let total = 0;
+  for (const task of tasks) {
+    total += 1;
+    if (task.checked) done += 1;
+    const inner = countTasks(task.children);
+    done += inner.done;
+    total += inner.total;
+  }
+  return { done, total };
+}
+var RoadmapEditError = class extends Error {
+};
+function requireTask(lines, line, text) {
+  const match = TASK_LINE.exec(lines[line] ?? "");
+  if (!match) throw new RoadmapEditError(`Line ${line + 1} is not a task. Reload and try again.`);
+  if (match[3].trim() !== text.trim()) throw new RoadmapEditError("That task changed since you loaded the page. Reload and try again.");
+  return match;
+}
+function blockEnd(lines, line) {
+  const indent = indentOf(lines[line]);
+  let end = line;
+  for (let i = line + 1; i < lines.length; i++) {
+    if (lines[i].trim() === "") continue;
+    if (indentOf(lines[i]) <= indent) break;
+    end = i;
+  }
+  return end;
+}
+function applyRoadmapEdit(markdown, edit) {
+  const eol = eolOf(markdown);
+  const lines = linesOf(markdown);
+  switch (edit.type) {
+    case "toggle": {
+      const m = requireTask(lines, edit.line, edit.text);
+      lines[edit.line] = `${m[1]}- [${edit.checked ? "x" : " "}] ${m[3]}`;
+      break;
+    }
+    case "edit": {
+      const m = requireTask(lines, edit.line, edit.text);
+      lines[edit.line] = `${m[1]}- [${m[2]}] ${edit.newText}`;
+      break;
+    }
+    case "delete": {
+      requireTask(lines, edit.line, edit.text);
+      lines.splice(edit.line, blockEnd(lines, edit.line) - edit.line + 1);
+      break;
+    }
+    case "add": {
+      const heading = HEADING.exec(lines[edit.sectionLine] ?? "");
+      if (!heading && edit.parentLine === void 0) throw new RoadmapEditError("Section not found. Reload and try again.");
+      if (edit.parentLine !== void 0) {
+        const parent = TASK_LINE.exec(lines[edit.parentLine] ?? "");
+        if (!parent) throw new RoadmapEditError("Parent task not found. Reload and try again.");
+        const end = blockEnd(lines, edit.parentLine);
+        lines.splice(end + 1, 0, `${parent[1]}  - [ ] ${edit.text}`);
+        break;
+      }
+      let sectionEnd = lines.length;
+      for (let i = edit.sectionLine + 1; i < lines.length; i++) {
+        if (HEADING.test(lines[i])) {
+          sectionEnd = i;
+          break;
+        }
+      }
+      let lastTop = -1;
+      for (let i = edit.sectionLine + 1; i < sectionEnd; i++) if (TASK_LINE.test(lines[i]) && indentOf(lines[i]) === 0) lastTop = i;
+      if (lastTop >= 0) {
+        lines.splice(blockEnd(lines, lastTop) + 1, 0, `- [ ] ${edit.text}`);
+      } else {
+        let at = sectionEnd;
+        while (at > edit.sectionLine + 1 && lines[at - 1].trim() === "") at--;
+        lines.splice(at, 0, ...at === edit.sectionLine + 1 ? [""] : [], `- [ ] ${edit.text}`);
+      }
+      break;
+    }
+  }
+  return lines.join(eol);
+}
+
+// src/design-md.ts
+var unquote = (value) => value.trim().replace(/^"(.*)"$/s, "$1").replace(/\\"/g, '"');
+function splitDocSections(markdown) {
+  const sections = [];
+  let current = null;
+  let inFence = false;
+  for (const line of markdown.replace(/\r\n/g, "\n").split("\n")) {
+    if (line.trimStart().startsWith("```")) inFence = !inFence;
+    const heading = inFence ? null : /^## (.+)$/.exec(line);
+    if (heading) {
+      if (current) sections.push({ title: current.title, body: current.lines.join("\n").trim() });
+      current = { title: heading[1].trim(), lines: [] };
+    } else current?.lines.push(line);
+  }
+  if (current) sections.push({ title: current.title, body: current.lines.join("\n").trim() });
+  return sections;
+}
+function parseFrontMatter(raw) {
+  const text = raw.replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n?/.exec(text);
+  if (!match) return { data: {}, rest: text };
+  const data = {};
+  let top = null;
+  let sub = null;
+  for (const line of match[1].split("\n")) {
+    if (!line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    const pair = /^\s*([^:]+):\s*(.*)$/.exec(line);
+    if (!pair) continue;
+    const key = pair[1].trim();
+    const value = pair[2];
+    if (indent === 0) {
+      top = key;
+      sub = null;
+      if (value) data[key] = unquote(value);
+      else data[key] = {};
+    } else if (top && typeof data[top] === "object") {
+      const group = data[top];
+      if (indent <= 2) {
+        if (value) group[key] = unquote(value);
+        else {
+          group[key] = {};
+          sub = key;
+        }
+      } else if (sub && typeof group[sub] === "object") {
+        group[sub][key] = unquote(value);
+      }
+    }
+  }
+  return { data, rest: text.slice(match[0].length) };
+}
+var flat = (value) => typeof value === "object" && value ? Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === "string")) : {};
+var nested = (value) => typeof value === "object" && value ? Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === "object")) : {};
+function listItems(body, heading) {
+  const start = body.search(heading);
+  if (start < 0) return [];
+  const after = body.slice(start).split("\n").slice(1);
+  const items = [];
+  for (const line of after) {
+    if (/^###? /.test(line)) break;
+    const bullet = /^- (.+)$/.exec(line);
+    if (bullet) items.push(bullet[1]);
+    else if (items.length && line.startsWith("  ") && line.trim()) items[items.length - 1] += ` ${line.trim()}`;
+  }
+  return items;
+}
+function parseDesignDoc(markdown) {
+  const { data, rest } = parseFrontMatter(markdown);
+  const prose = rest.replace(/^# .+\n/, "");
+  const sections = splitDocSections(prose);
+  const rules = [];
+  for (const match of prose.matchAll(/\*\*(The [^*]+? Rule)\.\*\*\s+([^\n]+)/g)) rules.push({ name: match[1], text: match[2] });
+  const dosSection = sections.find((s) => /^Do's and Don'ts/i.test(s.title))?.body ?? "";
+  return {
+    name: typeof data.name === "string" ? data.name : "Design system",
+    description: typeof data.description === "string" ? data.description : "",
+    tokens: {
+      colors: flat(data.colors),
+      typography: nested(data.typography),
+      rounded: flat(data.rounded),
+      spacing: flat(data.spacing),
+      components: nested(data.components)
+    },
+    sections,
+    rules,
+    dos: listItems(dosSection, /^### Do:/m),
+    donts: listItems(dosSection, /^### Don't:/m)
+  };
+}
 export {
   AI_MESSAGE_MAX_LENGTH,
   AI_QUESTION_MAX_LENGTH,
@@ -1755,6 +2058,7 @@ export {
   AiAnswerStatusEnum,
   AiCitationSchema,
   AiModeEnum,
+  AiSpotNoteSchema,
   AiStatusSchema,
   AiUsageSchema,
   ApiCatalogueSchema,
@@ -1820,6 +2124,7 @@ export {
   LoginSchema,
   MELT_CATEGORIES,
   MarketDataResponseSchema,
+  MarketModeStateSchema,
   MeltCalculatorRequestSchema,
   MeltCalculatorResponseSchema,
   MeltCategoryDataSchema,
@@ -1850,7 +2155,12 @@ export {
   RecalculateOverridesSchema,
   RefreshResponseSchema,
   RegisterSchema,
+  RoadmapDocumentSchema,
+  RoadmapEditError,
+  RoadmapEditRequestSchema,
+  RoadmapEditSchema,
   RouteStatsSchema,
+  SPOT_STALE_AFTER_MS,
   SessionUserRoleEnum,
   SessionUserSchema,
   SetKbStatusRequestSchema,
@@ -1869,6 +2179,7 @@ export {
   TradeProductSchema,
   TradeTransactionTypeEnum,
   UpdateKbDocumentRequestSchema,
+  UpdateMarketModeRequestSchema,
   UpdateProductFullDtoSchema,
   UpdateStockRequestSchema,
   UserProfileSchema,
@@ -1876,12 +2187,14 @@ export {
   UserSchema,
   UserStatus,
   aiInputLimit,
+  applyRoadmapEdit,
   buildPortfolioStrategies,
   computeCurrentBuybackValue,
   computeMeltValue,
   computeProfit,
   computeRequiredSpotForTarget,
   computeTransactionPrice,
+  countTasks,
   createErrorReference,
   findBrokenLinks,
   findLinks,
@@ -1894,13 +2207,16 @@ export {
   kbReviewStatus,
   mapOutsideCode,
   normalizeProductName,
+  parseDesignDoc,
   parseKbDocument,
+  parseRoadmap,
   planAutolinks,
   rewriteKbLinks,
   roundBuyPrice,
   roundSellPrice,
   searchKb,
   solveMissingPurchaseField,
+  splitDocSections,
   splitFrontmatter,
   splitSections,
   termRegExp,

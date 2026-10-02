@@ -2,7 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SPOT_STALE_AFTER_MS = void 0;
 exports.describeSpot = describeSpot;
-exports.SPOT_STALE_AFTER_MS = 15 * 60 * 1000;
+const shared_types_1 = require("@goldilocks/shared-types");
+Object.defineProperty(exports, "SPOT_STALE_AFTER_MS", { enumerable: true, get: function () { return shared_types_1.SPOT_STALE_AFTER_MS; } });
 function irishTime(iso) {
     return new Date(iso).toLocaleString('en-IE', {
         timeZone: 'Europe/Dublin',
@@ -26,7 +27,7 @@ function describeSpot(spot, now) {
         asOfIrishTime: spot.timestamp ? irishTime(spot.timestamp) : null,
         ageMinutes: ageMs === null ? null : Math.max(0, Math.round(ageMs / 60_000)),
         mayBeOutOfDate: !spot.overridden &&
-            (spot.isFallback || ageMs === null || ageMs > exports.SPOT_STALE_AFTER_MS),
+            (spot.isFallback || ageMs === null || ageMs > shared_types_1.SPOT_STALE_AFTER_MS),
     };
 }
 //# sourceMappingURL=spot-description.js.map

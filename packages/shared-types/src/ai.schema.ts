@@ -68,6 +68,16 @@ export const AiUsageSchema = z.object({
 });
 export type AiUsage = z.infer<typeof AiUsageSchema>;
 
+/**
+ * What the spot behind a priced answer was, for the staff member only (it is not part of the reply):
+ * `custom` = a frozen or typed spot, `stale` = a live spot that may be out of date, `healthy` = a fresh live spot.
+ */
+export const AiSpotNoteSchema = z.object({
+  tone: z.enum(['custom', 'stale', 'healthy']),
+  message: z.string(),
+});
+export type AiSpotNote = z.infer<typeof AiSpotNoteSchema>;
+
 export const AskResponseSchema = z.object({
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
   answer: z.string(),
@@ -85,6 +95,8 @@ export const AskResponseSchema = z.object({
   notes: z.string().nullable(),
   /** Things to check before relying on the answer, e.g. a figure that did not come from a price lookup, or prices that may be out of date. */
   warnings: z.array(z.string()),
+  /** Present only when the answer used a price lookup. Shown to staff beside the answer, never written into it. */
+  spotNote: AiSpotNoteSchema.nullable(),
   /** Which live lookups the answer used (getSpot, findProductPrices). Empty for a pure SOP answer. */
   toolsUsed: z.array(z.string()),
 });

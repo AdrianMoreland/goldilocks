@@ -20,6 +20,8 @@ export declare const ModelName: {
     readonly KbDocument: "KbDocument";
     readonly AiQuestionLog: "AiQuestionLog";
     readonly AiAnswerCache: "AiAnswerCache";
+    readonly MarketModeState: "MarketModeState";
+    readonly RoadmapDocument: "RoadmapDocument";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export declare const TransactionIsolationLevel: {
@@ -149,6 +151,23 @@ export declare const AiAnswerCacheScalarFieldEnum: {
     readonly expiresAt: "expiresAt";
 };
 export type AiAnswerCacheScalarFieldEnum = (typeof AiAnswerCacheScalarFieldEnum)[keyof typeof AiAnswerCacheScalarFieldEnum];
+export declare const MarketModeStateScalarFieldEnum: {
+    readonly id: "id";
+    readonly weekend: "weekend";
+    readonly volatile: "volatile";
+    readonly shortage: "shortage";
+    readonly updatedBy: "updatedBy";
+    readonly updatedAt: "updatedAt";
+};
+export type MarketModeStateScalarFieldEnum = (typeof MarketModeStateScalarFieldEnum)[keyof typeof MarketModeStateScalarFieldEnum];
+export declare const RoadmapDocumentScalarFieldEnum: {
+    readonly id: "id";
+    readonly markdown: "markdown";
+    readonly version: "version";
+    readonly updatedBy: "updatedBy";
+    readonly updatedAt: "updatedAt";
+};
+export type RoadmapDocumentScalarFieldEnum = (typeof RoadmapDocumentScalarFieldEnum)[keyof typeof RoadmapDocumentScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
