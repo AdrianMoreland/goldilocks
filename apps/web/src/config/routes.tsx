@@ -7,6 +7,7 @@ const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
+const Project = lazy(() => import('@/app/project/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeArticle = lazy(() => import('@/app/knowledge/article/page'))
@@ -73,6 +74,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/admin",
     element: <RequireAdmin><Admin /></RequireAdmin>
+  },
+  // Project Management (the roadmap) — admins only; the API enforces the same on every call
+  {
+    path: "/project",
+    element: <RequireAdmin><Project /></RequireAdmin>
   },
   // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
   {

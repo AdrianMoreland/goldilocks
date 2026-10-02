@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { API_URL } from "@/api/base"
+import { tokenStore } from "@/lib/session"
 import { useAdminApi } from "@/api/admin.api"
 import { queryKeys } from "@/lib/query-keys"
 import { cn } from "@/lib/utils"
@@ -178,12 +179,11 @@ function RequestPanel({ endpoint }: { endpoint: ApiEndpoint }) {
     const send = async () => {
         setArmed(false)
         setSending(true)
-        const token = localStorage.getItem("token")
+        const token = tokenStore.getAccess()
         const startedAt = performance.now()
         try {
             const res = await fetch(url, {
                 method: endpoint.method,
-                credentials: "include",
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     ...(hasBody ? { "Content-Type": "application/json" } : {}),

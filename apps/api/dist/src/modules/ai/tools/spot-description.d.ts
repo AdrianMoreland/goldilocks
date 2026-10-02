@@ -1,5 +1,6 @@
+import { SPOT_STALE_AFTER_MS } from '@goldilocks/shared-types';
 import type { QuotedSpot } from '../../market-data/market-data.service';
-export declare const SPOT_STALE_AFTER_MS: number;
+export { SPOT_STALE_AFTER_MS };
 export interface SpotDescription {
     metal: string;
     available: boolean;

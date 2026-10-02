@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+    CircleCheck,
     ArrowUp,
     BadgeCheck,
     BookOpen,
@@ -17,7 +18,7 @@ import {
     X,
     type LucideIcon,
 } from 'lucide-react';
-import { aiInputLimit, kbArticlePath, type AiAnswerStatus, type AiCitation, type AiMode } from '@goldilocks/shared-types';
+import { aiInputLimit, kbArticlePath, type AiAnswerStatus, type AiCitation, type AiMode, type AskResponse } from '@goldilocks/shared-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DockedPanel, RIGHT_PANEL_WIDTH } from '@/components/docked-panel';
@@ -327,6 +328,7 @@ function ExchangeView({ exchange, library, onNavigate }: { exchange: Exchange; l
                         <MarkdownView markdown={response.answer} fromSlug="" library={library} className="text-sm [&_li]:text-sm [&_p]:text-sm" />
                     )}
 
+                    {response.spotNote && <SpotNote note={response.spotNote} />}
                     {response.warnings.length > 0 && <Warnings warnings={response.warnings} />}
 
                     {response.notes && (
@@ -371,6 +373,23 @@ function DraftBlock({ message, label }: { message: string; label: string }) {
                 {copied ? 'Reply copied to the clipboard' : ''}
             </span>
         </div>
+    );
+}
+
+/** Staff-only: which spot the prices came from. Not part of the reply, so it is never copied with it. */
+function SpotNote({ note }: { note: NonNullable<AskResponse['spotNote']> }) {
+    const healthy = note.tone === 'healthy';
+    return (
+        <p
+            className={
+                healthy
+                    ? 'text-muted-foreground flex gap-2 rounded-md border px-3 py-2 text-sm'
+                    : 'flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-300'
+            }
+        >
+            {healthy ? <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden /> : <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
+            {note.message}
+        </p>
     );
 }
 

@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { computeMeltValue, computeTransactionPrice, roundBuyPrice, roundSellPrice } from './pricing-math';
 
+describe('computeTransactionPrice float noise', () => {
+  it('does not push a whole-euro Sell price up by €1', () => {
+    // 2948.0000000004 is a whole-euro price in exact arithmetic.
+    expect(computeTransactionPrice(2948.0000000004, 'buying', 0)).toBe(2948);
+  });
+
+  it('does not push a whole-euro Buyback price down by €1', () => {
+    expect(computeTransactionPrice(2947.9999999996, 'selling', 0)).toBe(2948);
+  });
+});
+
 describe('computeTransactionPrice', () => {
   describe('buying (dealer sells to customer — rounds UP, favors the dealer)', () => {
     it('adds the premium on top of the base price', () => {

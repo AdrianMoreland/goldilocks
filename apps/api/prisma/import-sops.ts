@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../src/infrastructure/prisma/prisma.service';
@@ -33,10 +33,15 @@ async function main() {
             : join(__dirname, '../../../docs/sops'),
     );
 
-    const files = readdirSync(dir)
+    const names = (await readdir(dir))
         .filter((name) => name.endsWith('.md'))
-        .sort()
-        .map((name) => ({ name, raw: readFileSync(join(dir, name), 'utf8') }));
+        .sort();
+    const files = await Promise.all(
+        names.map(async (name) => ({
+            name,
+            raw: await readFile(join(dir, name), 'utf8'),
+        })),
+    );
 
     if (files.length === 0) {
         console.error(`No .md files found in ${dir}`);

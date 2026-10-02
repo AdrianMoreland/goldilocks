@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, LayoutDashboard, ShieldCheck } from "lucide-react"
+import { BookOpen, KanbanSquare, LayoutDashboard, ShieldCheck } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
@@ -46,6 +46,11 @@ const adminGroup = {
       title: "Admin Console",
       url: "/admin",
       icon: ShieldCheck,
+    },
+    {
+      title: "Project Management",
+      url: "/project",
+      icon: KanbanSquare,
     },
   ],
 }

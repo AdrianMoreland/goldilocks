@@ -6,11 +6,13 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 import { AppController } from '../../app.controller';
 import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
 import { ApiCatalogueService } from '../../modules/admin/api-catalogue.service';
 import { AuditLogService } from '../../modules/admin/audit-log.service';
+import { AppLogsService } from '../../modules/admin/app-logs.service';
 import { DbBrowserService } from '../../modules/admin/db-browser.service';
 import { RequestMetricsService } from '../../modules/admin/request-metrics.service';
 import { AppService } from '../../app.service';
@@ -22,8 +24,13 @@ import { ErrorLogController } from '../../modules/error-log/error-log.controller
 import { ErrorLogService } from '../../modules/error-log/error-log.service';
 import { AiController } from '../../modules/ai/ai.controller';
 import { AskService } from '../../modules/ai/ask.service';
+import { AskStreamResponder } from '../../modules/ai/ask-stream.responder';
 import { KnowledgeController } from '../../modules/knowledge/knowledge.controller';
 import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
+import { MarketModeController } from '../../modules/market-mode/market-mode.controller';
+import { MarketModeService } from '../../modules/market-mode/market-mode.service';
+import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
+import { RoadmapService } from '../../modules/roadmap/roadmap.service';
 import { MarketDataController } from '../../modules/market-data/market-data.controller';
 import { MarketDataService } from '../../modules/market-data/market-data.service';
 import { FetchAttemptService } from '../../modules/metals/fetch-attempt.service';
@@ -46,14 +53,22 @@ const CONTROLLERS: Type<unknown>[] = [
     KnowledgeController,
     AiController,
     MarketDataController,
+    MarketModeController,
     MetalsController,
     PortfolioController,
     ProductsController,
+    RoadmapController,
     TradeController,
 ];
 
 /** Routes that are intentionally reachable without a token. Adding to this list is a security decision. */
-const PUBLIC_ROUTES = new Set(['GET /', 'GET /health', 'POST /auth/login']);
+const PUBLIC_ROUTES = new Set([
+    'GET /',
+    'GET /health',
+    'POST /auth/login',
+    // Called after the access token has expired; the refresh token in the body is the credential.
+    'POST /auth/refresh',
+]);
 
 const METHOD_NAMES: Record<number, string> = {
     [RequestMethod.GET]: 'GET',
@@ -69,6 +84,8 @@ interface RouteInfo {
     url: string;
     /** Same path as declared, used as the allow-list key, e.g. GET /products/:id */
     key: string;
+    /** @Roles on the handler, else on the controller; undefined when neither declares any. */
+    roles: string[] | undefined;
 }
 
 function joinPath(...parts: string[]): string {
@@ -103,6 +120,13 @@ function listRoutes(): RouteInfo[] {
                     .replace(/:id/g, '1')
                     .replace(/:table/g, 'products'),
                 key: `${verb} ${declared}`,
+                roles:
+                    (Reflect.getMetadata('roles', handler) as
+                        | string[]
+                        | undefined) ??
+                    (Reflect.getMetadata('roles', controller) as
+                        | string[]
+                        | undefined),
             });
         }
     }
@@ -137,6 +161,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             controllers: CONTROLLERS,
             providers: [
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
+                { provide: APP_GUARD, useClass: RolesGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 { provide: AuthService, useValue: authService },
                 {
@@ -146,6 +171,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: AdminOverviewService, useValue: {} },
                 { provide: ApiCatalogueService, useValue: {} },
                 { provide: AuditLogService, useValue: {} },
+                { provide: AppLogsService, useValue: {} },
                 { provide: DbBrowserService, useValue: {} },
                 {
                     provide: RequestMetricsService,
@@ -155,11 +181,14 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: ErrorLogService, useValue: {} },
                 { provide: KnowledgeService, useValue: {} },
                 { provide: AskService, useValue: {} },
+                { provide: AskStreamResponder, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
+                { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
                 { provide: MetalsCron, useValue: {} },
                 { provide: FetchAttemptService, useValue: {} },
                 { provide: PortfolioService, useValue: {} },
+                { provide: RoadmapService, useValue: {} },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },
             ],
@@ -215,6 +244,45 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
         const res = await send({ method: 'GET', url: '/branches' }, 'staff');
         expect(res.status).toBe(403);
         expect(authService.validateToken).toHaveBeenCalledTimes(1);
+    });
+
+    // A write route that forgets @Roles is open to every signed-in user. Adding a route to this list is a
+    // decision that it is meant for non-admin staff; anything else must declare its roles.
+    describe('write routes declare who may call them', () => {
+        const NON_ADMIN_WRITES = new Set([
+            'POST /portfolio/build',
+            'POST /portfolio/profit-analysis',
+            'POST /trade/cart',
+            'POST /trade/melt',
+            'POST /market-data/recalculate',
+            'POST /market-data/refresh',
+            'POST /errors/client',
+            'POST /ai/ask',
+            'POST /ai/ask/stream',
+        ]);
+
+        const writeRoutes = listRoutes().filter(
+            (r) => r.method !== 'GET' && !PUBLIC_ROUTES.has(r.key),
+        );
+
+        it('finds the write routes it is meant to check', () => {
+            expect(writeRoutes.length).toBeGreaterThan(15);
+            const keys = new Set(listRoutes().map((r) => r.key));
+            for (const allowed of NON_ADMIN_WRITES)
+                expect(keys).toContain(allowed);
+        });
+
+        it.each(writeRoutes.map((r) => [r.key, r] as const))(
+            '%s has @Roles or is on the non-admin allow-list',
+            (_key, route) => {
+                if (NON_ADMIN_WRITES.has(route.key)) {
+                    // Allow-listed routes must not quietly become admin-only without the list being updated.
+                    expect(route.roles ?? []).toEqual([]);
+                } else {
+                    expect(route.roles).toBeDefined();
+                }
+            },
+        );
     });
 
     describe('vendor-quota and write endpoints', () => {
@@ -282,6 +350,47 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             ['POST', '/knowledge/documents/pricing/status'],
         ])('%s %s is admin-only', async (method, url) => {
             await send({ method, url }, 'staff').send({}).expect(403);
+        });
+    });
+
+    describe('class-level admin gating', () => {
+        it.each([
+            ['GET', '/metals/cron-status'],
+            ['POST', '/metals/clear-cache'],
+            ['GET', '/metals/fetch-log'],
+            ['GET', '/errors'],
+            ['DELETE', '/errors'],
+        ])(
+            '%s %s is admin-only without a per-route decorator',
+            async (method, url) => {
+                await send({ method, url }, 'staff').expect(403);
+            },
+        );
+
+        it('POST /errors/client stays open to every signed-in user inside the admin-only controller', async () => {
+            const res = await send(
+                { method: 'POST', url: '/errors/client' },
+                'staff',
+            ).send({ reports: [] });
+            // The ErrorLogService is a stub here, so the handler may fail; it must not be an auth refusal.
+            expect([401, 403]).not.toContain(res.status);
+        });
+    });
+
+    describe('query parameters are validated, not defaulted (0.12)', () => {
+        it.each([
+            ['GET', '/errors?limit=abc'],
+            ['GET', '/errors?limit=501'],
+            ['GET', '/admin/audit?limit=0'],
+            ['GET', '/admin/logs?level=loud'],
+            ['GET', '/admin/db/tables/products/rows?page=0'],
+            ['GET', '/admin/db/tables/products/rows?pageSize=999'],
+            ['GET', '/admin/db/tables/products/rows?dir=sideways'],
+            ['GET', '/metals/fetch-log?limit=-1'],
+            ['POST', '/market-data/backfill-history?years=11'],
+            ['POST', '/metals/COPPER/retry'],
+        ])('%s %s is a 400 for an admin', async (method, url) => {
+            await send({ method, url }, 'admin').expect(400);
         });
     });
 

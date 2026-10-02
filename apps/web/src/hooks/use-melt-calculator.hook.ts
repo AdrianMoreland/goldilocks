@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTradeApi } from '@/api/trade.api';
 import { queryKeys } from '@/lib/query-keys';
-import type { MetalType } from '@/lib/types';
+import { useToolSpot } from '@/app/dashboard/context/tool-spots-context';
 import type { MeltCategoryKey } from '@goldilocks/shared-types';
 import { GRAMS_PER_TROY_OUNCE, MELT_CATEGORIES } from '@goldilocks/shared-types';
 
@@ -16,17 +16,18 @@ const DEBOUNCE_MS = 150;
  *
  * `enabled` gates the debounced calculation — the Trade tab only shows this
  * panel while selling, and only actually queries while it's visible.
- * `spots` is the spot each metal is currently quoted at (the cards' values,
- * overrides included) — the category's own metal picks which one applies.
+ * The spot is Melt's own tool spot for the category's metal: it follows the
+ * card until edited, and is independent of the Trade tab's spot.
  */
-export function useMeltCalculator(enabled: boolean, spots: Record<MetalType, number>) {
+export function useMeltCalculator(enabled: boolean) {
     const api = useTradeApi();
 
     const [meltCategory, setMeltCategory] = useState<MeltCategoryKey>('24ct');
     const [meltWeight, setMeltWeight] = useState(GRAMS_PER_TROY_OUNCE);
     const [meltPayload, setMeltPayload] = useState<{ category: MeltCategoryKey; weight: number; customSpot?: number } | null>(null);
 
-    const meltSpot = spots[MELT_CATEGORIES[meltCategory].metal];
+    const meltMetal = MELT_CATEGORIES[meltCategory].metal;
+    const { spot: meltSpot } = useToolSpot('melt', meltMetal);
 
     useEffect(() => {
         if (!enabled || !meltWeight || meltWeight <= 0) {
@@ -34,7 +35,7 @@ export function useMeltCalculator(enabled: boolean, spots: Record<MetalType, num
             return;
         }
         const handle = setTimeout(
-            () => setMeltPayload({ category: meltCategory, weight: meltWeight, customSpot: meltSpot > 0 ? meltSpot : undefined }),
+            () => setMeltPayload({ category: meltCategory, weight: meltWeight, customSpot: meltSpot !== null && meltSpot > 0 ? meltSpot : undefined }),
             DEBOUNCE_MS,
         );
         return () => clearTimeout(handle);
@@ -49,6 +50,7 @@ export function useMeltCalculator(enabled: boolean, spots: Record<MetalType, num
 
     return {
         meltCategory,
+        meltMetal,
         setMeltCategory,
         meltWeight,
         setMeltWeight,

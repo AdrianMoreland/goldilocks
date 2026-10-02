@@ -1,19 +1,18 @@
-import { useEffect, useState } from "react"
-import { MELT_CATEGORIES } from "@goldilocks/shared-types"
-import { useMarketData } from "@/hooks/use-market-data.hook"
-import type { MetalType } from "@/lib/types"
-import { ArrowLeftRight, Flame, Snowflake, Table2, X, Plus } from "lucide-react"
+import { toast } from "sonner"
+import { useMarketDataApi } from "@/api/market-data.api"
+import { ArrowLeftRight, Flame, Table2, X, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TRADE_FIRST_QTY_ID, usePricingTools } from "../../context/pricing-tools-context"
 import { useSpotPrices } from "../../context/spot-prices-context"
 import { MELT_CATEGORY_OPTIONS, useTradeTools } from "@/hooks/use-trade-tools.hook"
-import { formatEuro, formatGrams, formatMetalName, formatPrice, formatSpot, roundSpot } from "../../utils/formatters"
+import { formatEuro, formatGrams, formatMetalName, formatPrice } from "../../utils/formatters"
 import { describeApiError } from "../../utils/describe-error"
 import { CustomerMessageButton } from "./customer-message-button"
 import { copyRowsToClipboard } from "../table/copy-rows-button"
+import { buildDisplayProducts } from "../table/product-grouping"
+import { ToolSpotEditor } from "./tool-spot-editor"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
@@ -90,94 +89,19 @@ export function TradeTab() {
 
 type TradeTools = ReturnType<typeof useTradeTools>
 
-/** The spot for the active metal — the same number as its card, so typing here re-prices the card and everything else too. Keeps its own draft text so clearing the field mid-edit doesn't push a €0 spot. */
-function SpotField({ metal, trade, frozen }: { metal: MetalType; trade: TradeTools; frozen: boolean }) {
-    const rounded = trade.spot !== null ? roundSpot(metal, trade.spot) : ""
-    const [draft, setDraft] = useState(String(rounded))
-    const [focused, setFocused] = useState(false)
-
-    useEffect(() => {
-        if (!focused) setDraft(String(rounded))
-    }, [rounded, focused])
-
-    return (
-        <div className="flex items-center gap-2">
-            <Input
-                id="trade-spot"
-                type="number"
-                step="0.01"
-                value={draft}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                onChange={(e) => {
-                    setDraft(e.target.value)
-                    const value = parseFloat(e.target.value)
-                    if (value > 0) trade.setSpot(value)
-                }}
-                className="h-10 w-28 shrink-0 rounded-xl"
-                aria-label={`${formatMetalName(metal)} spot price`}
-            />
-            <Slider
-                value={trade.spot ?? trade.minSpot}
-                min={trade.minSpot}
-                max={trade.maxSpot}
-                step={0.01}
-                onValueChange={trade.setSpot}
-                className="flex-1 accent-[var(--tab-accent)]"
-                aria-label="Adjust spot price"
-            />
-            {frozen && (
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            type="button"
-                            onClick={trade.resetSpot}
-                            className="border-border bg-background hover:bg-muted shrink-0 cursor-pointer rounded-full border px-3 py-2 text-xs font-bold transition-colors"
-                        >
-                            Back to live
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Drop your spot and follow the live market price again</TooltipContent>
-                </Tooltip>
-            )}
-        </div>
-    )
-}
-
-function SpotSourceNote({ metal, frozen, marketSpot }: { metal: MetalType; frozen: boolean; marketSpot?: number }) {
-    return (
-        <p className="text-muted-foreground text-[11px]">
-            {frozen ? (
-                <>
-                    <span className="inline-flex items-center gap-1 font-bold text-[var(--tab-accent-text)]">
-                        <Snowflake className="size-3" aria-hidden /> Frozen at your spot
-                    </span>
-                    {marketSpot ? <> — live market is {formatSpot(metal, marketSpot)}</> : null}. Same as the {formatMetalName(metal)} card.
-                </>
-            ) : (
-                <>Following the live {formatMetalName(metal)} price. Edit it here or on the card to quote from your own spot.</>
-            )}
-        </p>
-    )
-}
-
 function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectProductId: (id: number) => void }) {
     const { activeMetal, tableCopySource, selectedProductIds } = usePricingTools()
-    const { overriddenMetals } = useSpotPrices()
-    const { spotPrices } = useMarketData()
+    const { recalculate } = useMarketDataApi()
+    const { displayPrices } = useSpotPrices()
     const percentLabel = trade.transactionType === "buying" ? "Premium %" : "Discount %"
-    const frozen = overriddenMetals.includes(activeMetal)
-    const marketSpot = spotPrices.find((p) => p.metalType === activeMetal)?.priceEur
     const cartError = trade.cartError ? describeApiError(trade.cartError, "calculate this order") : null
     const totalLabel = trade.transactionType === "buying" ? "Total price to customer" : "Total buyback to customer"
 
     return (
         <div className="flex flex-col gap-4">
             {/* ── Spot price card ─────────────────────────────────────────── */}
-            <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
-                <FieldLabel>Spot price</FieldLabel>
-                <SpotField metal={activeMetal} trade={trade} frozen={frozen} />
-                <SpotSourceNote metal={activeMetal} frozen={frozen} marketSpot={marketSpot} />
+            <div className="bg-card rounded-3xl border p-3.5">
+                <ToolSpotEditor tool="trade" metal={activeMetal} id="trade-spot" />
             </div>
 
             {/* ── Items — one card per line: product / qty / %. ──────────── */}
@@ -302,7 +226,20 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 disabled={selectedProductIds.length === 0}
                                 onClick={() => {
                                     const source = tableCopySource.current
-                                    if (source) void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds)
+                                    if (!source) return
+                                    // The copy prices from the Trade tool spot. When it still follows the card, the table's own rows are already right.
+                                    if (!trade.spotDetached || trade.spot === null) {
+                                        void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds)
+                                        return
+                                    }
+                                    const overrides = { ...displayPrices, [activeMetal]: trade.spot }
+                                    void recalculate(overrides)
+                                        .then((priced) => {
+                                            const byId = new Map(buildDisplayProducts(priced).map((p) => [p.id, p]))
+                                            const rows = source.selectedProducts.map((row) => byId.get(row.id) ?? row)
+                                            return copyRowsToClipboard(rows, source.visibleColumnIds)
+                                        })
+                                        .catch(() => toast.error("Couldn't price the copy at your spot"))
                                 }}
                                 className="border-border bg-card hover:bg-muted flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -324,9 +261,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
 }
 
 function MeltPanel({ trade }: { trade: TradeTools }) {
-    const { overriddenMetals } = useSpotPrices()
-    const meltMetal = MELT_CATEGORIES[trade.meltCategory].metal
-    const frozen = overriddenMetals.includes(meltMetal)
+    const meltMetal = trade.meltMetal
     const meltError = trade.meltError ? describeApiError(trade.meltError, "calculate the melt value") : null
 
     return (
@@ -355,11 +290,10 @@ function MeltPanel({ trade }: { trade: TradeTools }) {
                         ))}
                     </SelectContent>
                 </Select>
-                <p className="text-muted-foreground text-[11px]">
-                    {frozen
-                        ? `Using your frozen ${formatMetalName(meltMetal)} spot from its card.`
-                        : `Using the live ${formatMetalName(meltMetal)} spot. Freeze or edit it on its card to quote from your own.`}
-                </p>
+            </div>
+
+            <div className="bg-card rounded-3xl border p-3.5">
+                <ToolSpotEditor tool="melt" metal={meltMetal} id="melt-spot" label={`${formatMetalName(meltMetal)} spot price`} />
             </div>
 
             {meltError && <ErrorBanner message={meltError.message} next={meltError.next} />}

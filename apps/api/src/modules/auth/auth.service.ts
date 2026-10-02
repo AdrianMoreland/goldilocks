@@ -64,6 +64,22 @@ export class AuthService {
 
         return {
             accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            user: this.toSessionUser(user),
+        };
+    }
+
+    /**
+     * Trades a refresh token for a new session. The account is re-checked, so a user deactivated since
+     * they signed in cannot keep renewing their session.
+     */
+    async refresh(refreshToken: string): Promise<LoginResponse> {
+        const session = await this.authProvider.refreshSession(refreshToken);
+        const user = await this.loadActiveUser(session.identity);
+
+        return {
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
             user: this.toSessionUser(user),
         };
     }

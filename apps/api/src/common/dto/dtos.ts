@@ -3,9 +3,20 @@ import {
     RawSpotPriceSchema,
     LoginRequestSchema,
     LoginResponseSchema,
+    RefreshRequestSchema,
+    AdminLogsQuerySchema,
+    AuditQuerySchema,
+    ErrorLogQuerySchema,
+    FetchLogQuerySchema,
+    DbRowsQuerySchema,
+    BackfillHistoryQuerySchema,
     SessionUserSchema,
     CreateUserRequestSchema,
     BranchSchema,
+    MarketModeStateSchema,
+    RoadmapDocumentSchema,
+    RoadmapEditRequestSchema,
+    UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
@@ -136,6 +147,41 @@ export class MarketDataResponseDto extends createDto(
 export class RecalculateOverridesDto extends createDto(
     RecalculateOverridesSchema,
     'RecalculateOverridesDto',
+) {}
+
+export class RefreshRequestDto extends createDto(
+    RefreshRequestSchema,
+    'RefreshRequestDto',
+) {}
+
+export class AdminLogsQueryDto extends createDto(
+    AdminLogsQuerySchema,
+    'AdminLogsQueryDto',
+) {}
+
+export class AuditQueryDto extends createDto(
+    AuditQuerySchema,
+    'AuditQueryDto',
+) {}
+
+export class ErrorLogQueryDto extends createDto(
+    ErrorLogQuerySchema,
+    'ErrorLogQueryDto',
+) {}
+
+export class FetchLogQueryDto extends createDto(
+    FetchLogQuerySchema,
+    'FetchLogQueryDto',
+) {}
+
+export class DbRowsQueryDto extends createDto(
+    DbRowsQuerySchema,
+    'DbRowsQueryDto',
+) {}
+
+export class BackfillHistoryQueryDto extends createDto(
+    BackfillHistoryQuerySchema,
+    'BackfillHistoryQueryDto',
 ) {}
 
 export class HistoricCloseQueryDto extends createDto(
@@ -290,4 +336,24 @@ export class DbUpdateRequestDto extends createDto(
 export class DbDeleteRequestDto extends createDto(
     DbDeleteRequestSchema,
     'DbDeleteRequestDto',
+) {}
+
+export class MarketModeStateDto extends createDto(
+    MarketModeStateSchema,
+    'MarketModeStateDto',
+) {}
+
+export class UpdateMarketModeRequestDto extends createDto(
+    UpdateMarketModeRequestSchema,
+    'UpdateMarketModeRequestDto',
+) {}
+
+export class RoadmapDocumentDto extends createDto(
+    RoadmapDocumentSchema,
+    'RoadmapDocumentDto',
+) {}
+
+export class RoadmapEditRequestDto extends createDto(
+    RoadmapEditRequestSchema,
+    'RoadmapEditRequestDto',
 ) {}

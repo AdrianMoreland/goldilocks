@@ -22,6 +22,7 @@ import {StalePricesNotice} from './components/stale-prices-notice';
 import {summarizeFetchSource} from './utils/fetch-source';
 import {MarketModeBanner} from './components/market-mode-banner';
 import {SpotPricesProvider} from './context/spot-prices-context';
+import {ToolSpotsProvider} from './context/tool-spots-context';
 import type {MetalType} from '@/lib/types';
 
 export default function Page() {
@@ -44,15 +45,17 @@ function DashboardShell() {
     const spotPrices = useMemo(
         () => ({
             displayPrices: workbook.displayPrices,
+            marketPrices: Object.fromEntries(workbook.prices.map((p) => [p.metalType, p.priceEur])) as Partial<Record<MetalType, number>>,
             overriddenMetals: Object.keys(workbook.spotOverrides) as MetalType[],
             setSpot: workbook.handleSpotOverride,
             clearSpot: workbook.clearSpotOverride,
         }),
-        [workbook.displayPrices, workbook.spotOverrides, workbook.handleSpotOverride, workbook.clearSpotOverride],
+        [workbook.displayPrices, workbook.prices, workbook.spotOverrides, workbook.handleSpotOverride, workbook.clearSpotOverride],
     );
 
     return (
         <SpotPricesProvider value={spotPrices}>
+            <ToolSpotsProvider>
             <div className="flex h-svh flex-col overflow-hidden">
                 <MarketModeBanner/>
                 <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-hidden">
@@ -63,6 +66,7 @@ function DashboardShell() {
                     <AssistantDock/>
                 </div>
             </div>
+            </ToolSpotsProvider>
         </SpotPricesProvider>
     );
 }

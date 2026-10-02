@@ -8,7 +8,7 @@ Project guide for anyone working in this repository — code organization, conve
 
 **Merrion Gold Pricing Workbook** — an internal pricing/trading dashboard for an Irish bullion dealer, ported from a Google Apps Script tool the business used previously. It shows live metal spot prices, a per-product pricing table (premiums/discounts/VAT), a trade calculator, a portfolio builder, tax reference calculators, and an admin-gated pricing editor.
 
-**⚠️ Scope rule — read this first:** `apps/web` was bootstrapped from a generic shadcn-store admin dashboard template. Only the **`/dashboard`** route (`apps/web/src/app/dashboard/**`), the **Knowledge Center** (`/knowledge`, `apps/web/src/app/knowledge/**`) and the admin-only **Admin Console** (`/admin`, `apps/web/src/app/admin/**`) are this project. Every other page under `apps/web/src/app/*` (mail, tasks, chat, calendar, users, FAQs, pricing, all the `/auth/sign-in-2`/`-3` variants, `/dashboard-2`, the old `apps/web/src/admin/` scaffold, etc.) is unused template filler. **Do not read, "fix", or refactor those pages unless the user explicitly asks about one by name.** Assume the real product is Dashboard + everything it renders (header, cards, chart, product table, the right-hand Pricing Tools panel, and the auth pages that actually gate it: `/auth/sign-in`).
+**⚠️ Scope rule — read this first:** `apps/web` was bootstrapped from a generic shadcn-store admin dashboard template. Only the **`/dashboard`** route (`apps/web/src/app/dashboard/**`), the **Knowledge Center** (`/knowledge`, `apps/web/src/app/knowledge/**`) and the admin-only **Admin Console** (`/admin`, `apps/web/src/app/admin/**`) and **Project Management** page (`/project`, `apps/web/src/app/project/**`) are this project. Every other page under `apps/web/src/app/*` (mail, tasks, chat, calendar, users, FAQs, pricing, all the `/auth/sign-in-2`/`-3` variants, `/dashboard-2`, the old `apps/web/src/admin/` scaffold, etc.) is unused template filler. **Do not read, "fix", or refactor those pages unless the user explicitly asks about one by name.** Assume the real product is Dashboard + everything it renders (header, cards, chart, product table, the right-hand Pricing Tools panel, and the auth pages that actually gate it: `/auth/sign-in`).
 
 ---
 
@@ -267,6 +267,7 @@ AI_PER_MINUTE_LIMIT=    # optional; 5 per user per minute
 AI_DAILY_BUDGET_USD=    # optional; 2 — company-wide daily ceiling, then the assistant pauses
 AI_LOG_RETENTION_DAYS=  # optional; 90
 LOG_LEVEL=              # optional; pino level, defaults to info
+TRUST_PROXY_HOPS=       # optional; proxies in front of the API (Railway: 1, the default). The rate limiter keys on the client IP, so a wrong value either throttles everyone together or lets a client forge its address
 SPOT_PRICE_RETENTION_DAYS= # optional; days of metal_spot_prices ticks kept (default 7)
 AI_CACHE_TTL_DAYS=      # optional; 7
 AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million tokens, for a model the price table doesn't know

@@ -18,7 +18,6 @@ import type {
     AuditEntry,
     DbRowsResponse,
     DbTableSummary,
-    LogLevel,
 } from '@goldilocks/shared-types';
 import {
     JwtAuthGuard,
@@ -27,24 +26,18 @@ import {
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
+    AdminLogsQueryDto,
+    AuditQueryDto,
     DbDeleteRequestDto,
     DbInsertRequestDto,
+    DbRowsQueryDto,
     DbUpdateRequestDto,
 } from '../../common/dto/dtos';
+import { AppLogsService } from './app-logs.service';
 import { AdminOverviewService } from './admin-overview.service';
 import { ApiCatalogueService } from './api-catalogue.service';
 import { AuditLogService } from './audit-log.service';
 import { DbBrowserService } from './db-browser.service';
-import { logBuffer } from './log-buffer';
-
-const LEVEL_ORDER: LogLevel[] = [
-    'trace',
-    'debug',
-    'info',
-    'warn',
-    'error',
-    'fatal',
-];
 
 /** The admin console API. Class-level guards: every route here needs an admin, and a new route can't forget it. */
 @ApiTags('admin')
@@ -55,6 +48,7 @@ const LEVEL_ORDER: LogLevel[] = [
 export class AdminController {
     constructor(
         private readonly overview: AdminOverviewService,
+        private readonly appLogs: AppLogsService,
         private readonly logs: AuditLogService,
         private readonly catalogue: ApiCatalogueService,
         private readonly db: DbBrowserService,
@@ -72,37 +66,19 @@ export class AdminController {
     @ApiOperation({
         summary: 'Recent application log lines (pino), newest first',
     })
-    getLogs(
-        @Query('limit') limit?: string,
-        @Query('level') level?: string,
-        @Query('q') q?: string,
-    ): { entries: AdminLogEntry[]; capacity: number } {
-        const min = LEVEL_ORDER.indexOf((level as LogLevel) ?? 'info');
-        const term = q?.trim().toLowerCase();
-        const n = Math.min(Math.max(Number(limit) || 200, 1), 1000);
-
-        const entries = logBuffer
-            .recent(logBuffer.capacity)
-            .filter((e) => LEVEL_ORDER.indexOf(e.level) >= Math.max(min, 0))
-            .filter(
-                (e) =>
-                    !term ||
-                    [e.message, e.context, e.url, e.method].some((v) =>
-                        v?.toLowerCase().includes(term),
-                    ),
-            )
-            .slice(0, n);
-        return { entries, capacity: logBuffer.capacity };
+    getLogs(@Query() { limit, level, q }: AdminLogsQueryDto): {
+        entries: AdminLogEntry[];
+        capacity: number;
+    } {
+        return this.appLogs.search({ limit, level, q });
     }
 
     @Get('audit')
     @ApiOperation({ summary: 'Recent changes made from the admin console' })
     getAudit(
-        @Query('limit') limit?: string,
+        @Query() { limit }: AuditQueryDto,
     ): Promise<{ entries: AuditEntry[]; persisted: boolean }> {
-        return this.logs.getRecent(
-            Math.min(Math.max(Number(limit) || 100, 1), 500),
-        );
+        return this.logs.getRecent(limit);
     }
 
     @Get('endpoints')
@@ -123,17 +99,13 @@ export class AdminController {
     @ApiOperation({ summary: 'One page of rows from a table' })
     getRows(
         @Param('table') table: string,
-        @Query('page') page?: string,
-        @Query('pageSize') pageSize?: string,
-        @Query('sort') sort?: string,
-        @Query('dir') dir?: string,
-        @Query('q') q?: string,
+        @Query() { page, pageSize, sort, dir, q }: DbRowsQueryDto,
     ): Promise<DbRowsResponse> {
         return this.db.getRows(table, {
-            page: Number(page) || 1,
-            pageSize: Number(pageSize) || 50,
+            page,
+            pageSize,
             sort,
-            dir: dir === 'asc' ? 'asc' : 'desc',
+            dir,
             search: q,
         });
     }

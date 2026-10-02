@@ -56,7 +56,7 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] Stale-price handling: serve last good price from Redis
 - [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) — M *(used by the history seed and the 5-year backfill)*
 - [x] Redis cache on `ProductsRepository.findAllActive`, invalidated on admin edit — S *(5-min TTL; `ProductsProvider` rewrites it after every write, and the admin database editor clears it too)*
-- [ ] 🔴 Timeout, retry and circuit breaker around the metal-price API client — M *(confirmed: `infrastructure/metal-price-api` sets no timeout or retry, unlike the OpenAI client's 30 s / 3 retries. A failing vendor is re-called on every launch-cascade miss and burns paid quota. Add a breaker that serves last-known-good)*
+- [x] 🔴 Timeout, retry and circuit breaker around the metal-price API client — M *(confirmed: `infrastructure/metal-price-api` sets no timeout or retry, unlike the OpenAI client's 30 s / 3 retries. A failing vendor is re-called on every launch-cascade miss and burns paid quota. Add a breaker that serves last-known-good)* *(done 2026-10-02: `ResilientMetalPriceApi` behind `METAL_PRICE_API` — 10 s timeout, circuit opens after 3 failures incl. `success=false` quota bodies, 60 s cooldown, falls back to the last stored price; deliberately no automatic retry, each call spends paid quota)*
 - [ ] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats — S *(partly there: `main.ts` fails fast on a list of required variables)*
 - [ ] Remove dead code/unused deps, resolve TODO/FIXME — S
   - [ ] `apps/web/src/api/api.ts`: redefines `ProductSchema`/`MetalTypeEnum` for a backend shape that no longer exists and nothing imports it — delete
@@ -139,11 +139,11 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [x] Every route guarded server-side (audit all controllers) — S *(global `JwtAuthGuard` + `@Public()` opt-out; `route-auth.spec.ts` fails if a route is added unguarded)*
 - [ ] Microsoft Entra ID SSO (Supabase Azure provider), behind the existing `AuthProviderPort` — M
 - [ ] 🔴 `@nestjs/throttler` (Redis-backed once multi-instance) — S
-  - [ ] Tight limit on `POST /auth/login`, the only public write endpoint
-  - [ ] A modest global limit, tighter on `POST /market-data/refresh` (spends paid vendor quota) and `POST /errors/client`
+  - [x] Tight limit on `POST /auth/login`, the only public write endpoint
+  - [x] A modest global limit, tighter on `POST /market-data/refresh` (spends paid vendor quota) and `POST /errors/client` *(global 300/min per user, login 10/min, refresh 30/min, market-data and metals refresh 6/min, client errors 20/min; in-memory counters, switch to Redis with a second replica)*
   - [ ] Confirm the AI quota and daily budget hold under concurrent requests
 - [x] CORS from `FRONTEND_URL` env, not hardcoded — S
-- [ ] 🔴 Helmet security headers — S
+- [x] 🔴 Helmet security headers — S *(`helmet()`; CSP dropped only while Swagger is on; needs `TRUST_PROXY_HOPS` correct behind Railway — verify after deploy)*
 - [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check — S
 - [ ] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
   - [ ] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
@@ -240,23 +240,23 @@ Vocabulary is in `GLOSSARY.md`; the isolation decision is `docs/adr/0001-tool-sp
 
 Found by the 2026-10-01 code review. Do these right after CI (0.10) and before the money and market-data rework; they are small and several are security. Items marked *(confirm)* were not re-checked in the code.
 
-- [ ] **Dead `/auth/refresh` call** — S. The web app POSTs to `/auth/refresh` from two places (`hooks/useApi.ts`, `api/base.ts`), but `AuthController` only has `login`, `me` and `admin/users`. An expired session costs a wasted 404, then a generic error; it never recovers or logs out.
-  - [ ] Decide: implement refresh behind `AuthProviderPort` (compatible with Entra SSO, 0.6) **or** delete it and send a final 401 to sign-in (clear the token, call `logout`)
-  - [ ] If refresh is kept, fix the racy `refreshPromise.finally(() => refreshPromise = null)`
-- [ ] **Two parallel HTTP clients** (`api/base.ts` and `hooks/useApi.ts`) — find which has live callers and consolidate into one — S/M
-  - [ ] One `tokenStore` (get/set/clear): the `"token"` key is hard-coded in `auth-context.tsx`, `useApi.ts` and `base.ts`
-  - [ ] Remove the CSRF-cookie sniffing in `base.ts` and the `credentials: "include"` that only served the refresh cookie (the API uses Bearer tokens)
-  - [ ] Token storage decision: `localStorage` is readable by any XSS; accept and document, or move to an httpOnly cookie — M ← depends: Entra SSO decision (0.6)
-  - [ ] Confirm the Knowledge Center Markdown renderer escapes HTML (`react-markdown` ignores raw HTML by default; check no `rehype-raw` is added) *(confirm)*
+- [x] **Dead `/auth/refresh` call** — S. The web app POSTs to `/auth/refresh` from two places (`hooks/useApi.ts`, `api/base.ts`), but `AuthController` only has `login`, `me` and `admin/users`. An expired session costs a wasted 404, then a generic error; it never recovers or logs out. *(done: real refresh implemented, see below)*
+  - [x] Decide: implement refresh behind `AuthProviderPort` (compatible with Entra SSO, 0.6) **or** delete it and send a final 401 to sign-in (clear the token, call `logout`) *(implemented: `POST /auth/refresh` behind `AuthProviderPort`; the account is re-checked on every refresh)*
+  - [x] If refresh is kept, fix the racy `refreshPromise.finally(() => refreshPromise = null)` *(`lib/session.ts`: one in-flight refresh, reuses a token another tab renewed, signs out only on a definite 401)*
+- [ ] **Two parallel HTTP clients** (`api/base.ts` and `hooks/useApi.ts`) — find which has live callers and consolidate into one — S/M *(`api/base.ts` helpers had no callers and were removed; `hooks/useApi.ts` is the one client)*
+  - [x] One `tokenStore` (get/set/clear): the `"token"` key is hard-coded in `auth-context.tsx`, `useApi.ts` and `base.ts`
+  - [x] Remove the CSRF-cookie sniffing in `base.ts` and the `credentials: "include"` that only served the refresh cookie (the API uses Bearer tokens)
+  - [ ] Token storage decision: `localStorage` is readable by any XSS; accept and document, or move to an httpOnly cookie — M ← depends: Entra SSO decision (0.6) *(interim: accepted and documented in `lib/session.ts`; a refresh token in `localStorage` is a longer-lived credential than the access token, so revisit with the Entra SSO decision)*
+  - [x] Confirm the Knowledge Center Markdown renderer escapes HTML (`react-markdown` ignores raw HTML by default; check no `rehype-raw` is added) *(confirm)* *(confirmed: `react-markdown` 10 with no `rehype-raw` anywhere)*
 - [ ] **Fail-closed admin gating** — S/M. `RolesGuard` returns `true` for any signed-in user when a route has no `@Roles`, so one forgotten annotation exposes an admin route.
-  - [ ] `@Roles('admin')` at class level for admin-only controllers (`metals`, `errors`); this also removes the per-route `@UseGuards(...) @Roles('admin') @ApiBearerAuth()` repetition in `MetalsController`
+  - [x] `@Roles('admin')` at class level for admin-only controllers (`metals`, `errors`); this also removes the per-route `@UseGuards(...) @Roles('admin') @ApiBearerAuth()` repetition in `MetalsController`
   - [ ] Split mixed controllers into `*.admin.controller.ts` (`products`, `market-data`, `knowledge`)
-  - [ ] Extend `route-auth.spec.ts` so a write route without `@Roles` fails, as an allow-list (trade, portfolio and ai are legitimately non-admin)
-- [ ] **Shared Zod query schemas** (`PaginationQuery`, `LimitQuery`, `LogLevelQuery`) in `shared-types`, wrapped in `dtos.ts` — S
-  - [ ] Replace the hand-written parsing in `admin/logs`, `admin/audit`, `errors`, `metals/fetch-log`, `market-data/backfill-history` (`Math.min(Math.max(Number(x) || n, a), b)` appears 3× in `AdminController`; `Number(page) || 1` silently accepts garbage)
-  - [ ] `metals/:metal/retry`: validate with `ZodValidationPipe(MetalTypeEnum)` like `trade`
-  - [ ] Audit every numeric `@Param` for a missing `ParseIntPipe`
-  - [ ] Move the quantity coercion `Math.max(1, Math.floor(q) || 1)` in `TradeService.calculateCart` into the Zod schema (it silently rewrites bad input)
+  - [x] Extend `route-auth.spec.ts` so a write route without `@Roles` fails, as an allow-list (trade, portfolio and ai are legitimately non-admin) *(allow-list of non-admin writes in `route-auth.spec.ts`; `RolesGuard` is now global so `@Roles` can never be inert)*
+- [x] **Shared Zod query schemas** (`PaginationQuery`, `LimitQuery`, `LogLevelQuery`) in `shared-types`, wrapped in `dtos.ts` — S
+  - [x] Replace the hand-written parsing in `admin/logs`, `admin/audit`, `errors`, `metals/fetch-log`, `market-data/backfill-history` (`Math.min(Math.max(Number(x) || n, a), b)` appears 3× in `AdminController`; `Number(page) || 1` silently accepts garbage)
+  - [x] `metals/:metal/retry`: validate with `ZodValidationPipe(MetalTypeEnum)` like `trade`
+  - [x] Audit every numeric `@Param` for a missing `ParseIntPipe` *(only `products` has numeric params and all use `ParseIntPipe`; `:table` and `:slug` are validated by the DB browser and a Zod slug pipe)*
+  - [x] Move the quantity coercion `Math.max(1, Math.floor(q) || 1)` in `TradeService.calculateCart` into the Zod schema (it silently rewrites bad input) *(the schema already enforced whole numbers >= 1; the silent rewrite in the service is gone)*
 - [ ] **Web number inputs:** one shared `NumberInput` that keeps the string while editing; `Number(e.target.value) || 0` snaps a field to `0` on every empty edit, so you cannot clear it and type `0.5` — S
 - [ ] **`DbBrowserService` spec + hardening** — M. Raw SQL is used in 10 places (`$queryRawUnsafe`/`$executeRawUnsafe`); table and column names are checked against the catalogue and values are bound — keep it that way and comment why `quote()` is safe.
   - [ ] Spec: unknown table → 404, read-only table → 403, hidden column never returned, identifiers only from the catalogue, **hostile table/column names are rejected**

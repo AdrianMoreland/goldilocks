@@ -13,6 +13,8 @@ import { ConfigService } from '@nestjs/config';
 export class SupabaseService {
     private supabase: SupabaseClient;
     private supabaseAdmin: SupabaseClient | null = null;
+    private readonly supabaseUrl: string;
+    private readonly supabaseKey: string;
 
     constructor(private configService: ConfigService) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
@@ -21,6 +23,9 @@ export class SupabaseService {
         if (!supabaseUrl || !supabaseKey) {
             throw new Error('Supabase env variables not set');
         }
+
+        this.supabaseUrl = supabaseUrl;
+        this.supabaseKey = supabaseKey;
 
         // The SDK's untyped-schema client is generic over `any`; we use none of the typed-table API.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -70,6 +75,22 @@ export class SupabaseService {
         const { data, error } = await this.supabase.auth.signInWithPassword({
             email,
             password,
+        });
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Exchanges a refresh token for a new session. Supabase rotates refresh tokens, so the caller must
+     * store the one returned here. Uses a fresh stateless client per call so one user's session never
+     * lingers inside a client shared with other users.
+     */
+    async refreshSession(refreshToken: string) {
+        const client = createClient(this.supabaseUrl, this.supabaseKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data, error } = await client.auth.refreshSession({
+            refresh_token: refreshToken,
         });
         if (error) throw error;
         return data;

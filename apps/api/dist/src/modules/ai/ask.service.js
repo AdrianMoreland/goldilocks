@@ -131,6 +131,7 @@ let AskService = AskService_1 = class AskService {
                     cached,
                     notes: result.notes ?? null,
                     warnings: result.warnings ?? [],
+                    spotNote: result.spotNote ?? null,
                     toolsUsed,
                 };
             };
@@ -245,11 +246,9 @@ let AskService = AskService_1 = class AskService {
                 if (unverified.length > 0) {
                     warnings.push(`${unverified.join(', ')} ${unverified.length > 1 ? 'were' : 'was'} not given by a price lookup. Check ${unverified.length > 1 ? 'them' : 'it'} before relying on it.`);
                 }
-                if (facts.mayBeOutOfDate) {
-                    warnings.push(`The spot price may be out of date${facts.asOfIrishTime ? ` (taken ${facts.asOfIrishTime})` : ''}. Refresh prices on the dashboard before sending.`);
-                }
                 return warnings;
             };
+            const spotNote = (0, tool_facts_1.describeSpotNote)(facts);
             if (isDraft) {
                 const draft = (0, draft_interpreter_1.interpretDraft)(result.text, prompt);
                 const response = await finish({
@@ -261,6 +260,7 @@ let AskService = AskService_1 = class AskService {
                     notes: draft.notes,
                     warnings: checkFigures(`${draft.message}\n${draft.notes ?? ''}`),
                     toolsUsed,
+                    spotNote,
                 });
                 yield { type: 'done', response };
                 return;
@@ -296,6 +296,7 @@ let AskService = AskService_1 = class AskService {
                 retried,
                 warnings,
                 toolsUsed,
+                spotNote,
             });
             if (cacheKey &&
                 toolsUsed.length === 0 &&

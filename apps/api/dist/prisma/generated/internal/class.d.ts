@@ -57,6 +57,12 @@ export interface PrismaClient<in LogOpts extends Prisma.LogLevel = never, in out
     get aiAnswerCache(): Prisma.AiAnswerCacheDelegate<ExtArgs, {
         omit: OmitOpts;
     }>;
+    get marketModeState(): Prisma.MarketModeStateDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
+    get roadmapDocument(): Prisma.RoadmapDocumentDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
 }
 export declare function getPrismaClientClass(): PrismaClientConstructor;
 //# sourceMappingURL=class.d.ts.map
