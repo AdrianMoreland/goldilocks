@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { ApiError } from "@/hooks/useApi"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -24,6 +25,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+
+/** Only a 400/401 means the credentials were wrong; an unreachable or failing server must not look like a bad password. */
+function loginErrorMessage(err: unknown): string {
+  const status = err instanceof ApiError ? err.status : undefined
+  if (status === null) return "Can't reach the server. Check your connection, then try again."
+  if (status === 429) return "Too many sign-in attempts. Wait a minute, then try again."
+  if (typeof status === "number" && status >= 500) return "The server had a problem. Try again shortly."
+  return "Invalid email or password."
+}
 
 const loginFormSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -63,8 +73,8 @@ export function LoginForm1({
     try {
       await login(values.email, values.password)
       navigate("/dashboard", { replace: true })
-    } catch {
-      setError("Invalid email or password.")
+    } catch (err) {
+      setError(loginErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
