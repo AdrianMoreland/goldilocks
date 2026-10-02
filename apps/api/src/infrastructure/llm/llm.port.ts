@@ -3,7 +3,7 @@
  * boiled down to one call. AskService depends on this interface and the
  * LLM_PROVIDER token, never on a vendor SDK, so changing model vendor means
  * writing one new class and changing one binding in llm.module.ts — the same
- * shape as AUTH_PROVIDER and METAL_PRICE_API (CLAUDE.md §15).
+ * shape as AUTH_PROVIDER and METAL_PRICE_API (docs/ENGINEERING.md §15).
  *
  * A tool is a read-only lookup the model may ask for (a price, a spot). The
  * model never runs it: it replies with a tool call, the application runs it

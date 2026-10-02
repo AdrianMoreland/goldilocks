@@ -43,7 +43,7 @@ async function main() {
     console.log(`Updated ${changes.length} products.`);
 
     // The API caches the product list for 5 minutes and a raw script write
-    // doesn't invalidate it (CLAUDE.md §8) — drop the key so the change shows now.
+    // doesn't invalidate it (docs/ENGINEERING.md §8) — drop the key so the change shows now.
     if (process.env.REDIS_URL) {
         const redis = new Redis(process.env.REDIS_URL);
         try {

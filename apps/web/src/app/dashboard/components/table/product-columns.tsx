@@ -121,7 +121,7 @@ function SpreadBadge({ value, tone }: { value: number; tone: keyof typeof PRICE_
 }
 
 /**
- * Per-row "…" menu — only rendered for admins (see CLAUDE.md §6: this is a
+ * Per-row "…" menu — only rendered for admins (see docs/ENGINEERING.md §6: this is a
  * discoverability convenience, not the security boundary — the server-side
  * RolesGuard is). Everyone else gets no menu at all, not just a disabled
  * one, so pricing edits aren't discoverable by non-admins.
