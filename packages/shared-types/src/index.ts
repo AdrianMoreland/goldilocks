@@ -49,6 +49,7 @@ export * from './portfolio.schema';
 export * from './pricing-math';
 export * from './portfolio-builder-math';
 export * from './session.schema';
+export * from './query.schema';
 export * from './branch.schema';
 export * from './fetch-attempt.schema';
 export * from './error-log.schema';

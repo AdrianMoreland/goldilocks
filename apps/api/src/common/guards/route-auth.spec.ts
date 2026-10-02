@@ -6,6 +6,7 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 import { AppController } from '../../app.controller';
 import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
@@ -53,7 +54,13 @@ const CONTROLLERS: Type<unknown>[] = [
 ];
 
 /** Routes that are intentionally reachable without a token. Adding to this list is a security decision. */
-const PUBLIC_ROUTES = new Set(['GET /', 'GET /health', 'POST /auth/login']);
+const PUBLIC_ROUTES = new Set([
+    'GET /',
+    'GET /health',
+    'POST /auth/login',
+    // Called after the access token has expired; the refresh token in the body is the credential.
+    'POST /auth/refresh',
+]);
 
 const METHOD_NAMES: Record<number, string> = {
     [RequestMethod.GET]: 'GET',
@@ -69,6 +76,8 @@ interface RouteInfo {
     url: string;
     /** Same path as declared, used as the allow-list key, e.g. GET /products/:id */
     key: string;
+    /** @Roles on the handler, else on the controller; undefined when neither declares any. */
+    roles: string[] | undefined;
 }
 
 function joinPath(...parts: string[]): string {
@@ -103,6 +112,13 @@ function listRoutes(): RouteInfo[] {
                     .replace(/:id/g, '1')
                     .replace(/:table/g, 'products'),
                 key: `${verb} ${declared}`,
+                roles:
+                    (Reflect.getMetadata('roles', handler) as
+                        | string[]
+                        | undefined) ??
+                    (Reflect.getMetadata('roles', controller) as
+                        | string[]
+                        | undefined),
             });
         }
     }
@@ -137,6 +153,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             controllers: CONTROLLERS,
             providers: [
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
+                { provide: APP_GUARD, useClass: RolesGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 { provide: AuthService, useValue: authService },
                 {
@@ -217,6 +234,45 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
         expect(authService.validateToken).toHaveBeenCalledTimes(1);
     });
 
+    // A write route that forgets @Roles is open to every signed-in user. Adding a route to this list is a
+    // decision that it is meant for non-admin staff; anything else must declare its roles.
+    describe('write routes declare who may call them', () => {
+        const NON_ADMIN_WRITES = new Set([
+            'POST /portfolio/build',
+            'POST /portfolio/profit-analysis',
+            'POST /trade/cart',
+            'POST /trade/melt',
+            'POST /market-data/recalculate',
+            'POST /market-data/refresh',
+            'POST /errors/client',
+            'POST /ai/ask',
+            'POST /ai/ask/stream',
+        ]);
+
+        const writeRoutes = listRoutes().filter(
+            (r) => r.method !== 'GET' && !PUBLIC_ROUTES.has(r.key),
+        );
+
+        it('finds the write routes it is meant to check', () => {
+            expect(writeRoutes.length).toBeGreaterThan(15);
+            const keys = new Set(listRoutes().map((r) => r.key));
+            for (const allowed of NON_ADMIN_WRITES)
+                expect(keys).toContain(allowed);
+        });
+
+        it.each(writeRoutes.map((r) => [r.key, r] as const))(
+            '%s has @Roles or is on the non-admin allow-list',
+            (_key, route) => {
+                if (NON_ADMIN_WRITES.has(route.key)) {
+                    // Allow-listed routes must not quietly become admin-only without the list being updated.
+                    expect(route.roles ?? []).toEqual([]);
+                } else {
+                    expect(route.roles).toBeDefined();
+                }
+            },
+        );
+    });
+
     describe('vendor-quota and write endpoints', () => {
         it('POST /market-data/seed-history is admin-only', async () => {
             await send(
@@ -282,6 +338,47 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             ['POST', '/knowledge/documents/pricing/status'],
         ])('%s %s is admin-only', async (method, url) => {
             await send({ method, url }, 'staff').send({}).expect(403);
+        });
+    });
+
+    describe('class-level admin gating', () => {
+        it.each([
+            ['GET', '/metals/cron-status'],
+            ['POST', '/metals/clear-cache'],
+            ['GET', '/metals/fetch-log'],
+            ['GET', '/errors'],
+            ['DELETE', '/errors'],
+        ])(
+            '%s %s is admin-only without a per-route decorator',
+            async (method, url) => {
+                await send({ method, url }, 'staff').expect(403);
+            },
+        );
+
+        it('POST /errors/client stays open to every signed-in user inside the admin-only controller', async () => {
+            const res = await send(
+                { method: 'POST', url: '/errors/client' },
+                'staff',
+            ).send({ reports: [] });
+            // The ErrorLogService is a stub here, so the handler may fail; it must not be an auth refusal.
+            expect([401, 403]).not.toContain(res.status);
+        });
+    });
+
+    describe('query parameters are validated, not defaulted (0.12)', () => {
+        it.each([
+            ['GET', '/errors?limit=abc'],
+            ['GET', '/errors?limit=501'],
+            ['GET', '/admin/audit?limit=0'],
+            ['GET', '/admin/logs?level=loud'],
+            ['GET', '/admin/db/tables/products/rows?page=0'],
+            ['GET', '/admin/db/tables/products/rows?pageSize=999'],
+            ['GET', '/admin/db/tables/products/rows?dir=sideways'],
+            ['GET', '/metals/fetch-log?limit=-1'],
+            ['POST', '/market-data/backfill-history?years=11'],
+            ['POST', '/metals/COPPER/retry'],
+        ])('%s %s is a 400 for an admin', async (method, url) => {
+            await send({ method, url }, 'admin').expect(400);
         });
     });
 

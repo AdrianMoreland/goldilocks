@@ -1,12 +1,4 @@
-import {
-    BadRequestException,
-    Body,
-    Controller,
-    Get,
-    Post,
-    Query,
-    UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import {
     ApiBearerAuth,
     ApiOperation,
@@ -16,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { MarketDataService } from './market-data.service';
 import {
+    BackfillHistoryQueryDto,
     HistoricCloseQueryDto,
     MarketDataResponseDto,
     ProductResponseDto,
@@ -118,14 +111,8 @@ export class MarketDataController {
             'Fetches up to 10 years of daily closes from the vendor, a year per window (2 vendor requests each). Windows already in the database are skipped. Returns what happened to each window.',
     })
     @ApiQuery({ name: 'years', required: false, type: Number })
-    backfillHistory(@Query('years') years?: string) {
-        const n = years === undefined ? 5 : Number(years);
-        if (!Number.isInteger(n) || n < 1 || n > 10) {
-            throw new BadRequestException(
-                'years must be a whole number from 1 to 10.',
-            );
-        }
-        return this.marketDataService.backfillHistory(n);
+    backfillHistory(@Query() { years }: BackfillHistoryQueryDto) {
+        return this.marketDataService.backfillHistory(years);
     }
 
     @Post('seed-history')
