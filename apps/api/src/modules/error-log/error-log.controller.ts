@@ -8,6 +8,7 @@ import {
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import {
     AnySignedInUser,
@@ -44,6 +45,8 @@ export class ErrorLogController {
 
     // Any signed-in user — the failures worth knowing about happen on every
     // clerk's screen, not just admins'. The body schema caps size and count.
+    // Anyone can post here, so cap it: a broken screen in a render loop must not flood the error log.
+    @Throttle({ default: { limit: 20, ttl: 60_000 } })
     @Post('client')
     @AnySignedInUser()
     @ApiOperation({

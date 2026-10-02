@@ -1,7 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ErrorLogService } from './modules/error-log/error-log.service';
@@ -46,7 +48,9 @@ function validateEnv(config: ConfigService): void {
 
 async function bootstrap() {
     // bufferLogs holds Nest's own startup lines until pino is attached, so none go to the default logger.
-    const app = await NestFactory.create(AppModule, { bufferLogs: true });
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+        bufferLogs: true,
+    });
     app.useLogger(app.get(PinoLogger));
     const config = app.get(ConfigService);
     validateEnv(config);
@@ -79,6 +83,12 @@ async function bootstrap() {
             .finally(() => process.exit(1));
     });
 
+    // Behind Railway's proxy every request would otherwise appear to come from the proxy's address, and
+    // the rate limiter would treat all users as one client. Raise this only if more proxies are added in
+    // front: trusting too many hops lets a client forge its own address.
+    // Number(): an env var is a string, and Express reads a string here as an address list, not a hop count.
+    app.set('trust proxy', Number(config.get('TRUST_PROXY_HOPS', 1)));
+
     app.use(app.get(RequestMetricsService).middleware());
 
     // Enable global validation with Zod
@@ -103,6 +113,12 @@ async function bootstrap() {
             'SWAGGER_ENABLED',
             config.get('NODE_ENV') === 'production' ? 'false' : 'true',
         ) === 'true';
+    // Standard security headers (HSTS, no MIME sniffing, no framing). Helmet's default Content-Security-Policy
+    // blocks Swagger UI's inline scripts, so it is dropped only while /docs is switched on.
+    app.use(
+        helmet({ contentSecurityPolicy: swaggerEnabled ? false : undefined }),
+    );
+
     const swaggerConfig = new DocumentBuilder()
         .setTitle('Merrion Gold API')
         .setDescription(
