@@ -4,7 +4,7 @@ import { useTradeApi } from '@/api/trade.api';
 import { queryKeys } from '@/lib/query-keys';
 import type { MetalType } from '@/lib/types';
 import { usePricingSettings } from '@/app/dashboard/context/pricing-settings-context';
-import { useSpotPrices } from '@/app/dashboard/context/spot-prices-context';
+import { useToolSpot } from '@/app/dashboard/context/tool-spots-context';
 import { usePricingTools } from '@/app/dashboard/context/pricing-tools-context';
 import { useMeltCalculator } from './use-melt-calculator.hook';
 import { findDefaultProduct } from '@/lib/default-product';
@@ -48,11 +48,9 @@ function defaultPercentFor(
  * scoped to a single metal mode. Ported from the Merrion Gold Apps Script
  * tool's Scripts.Trade.html + Api.Trade.gs/Api.Melt.gs.
  *
- * The spot here is the same number the metal's card shows — the user's
- * override if they froze or typed one, otherwise the live price. Editing it
- * in this tab edits the card, so Trade, Melt, Portfolio and the cards can
- * never quote different spots. (The old per-tab "Freeze" is now the card's
- * own freeze control.)
+ * The spot here is this tool's own: it follows the metal's card until edited,
+ * then it is held here and the card, the table and the other tools are left
+ * alone (see tool-spots-context). Reset re-attaches it to the card.
  */
 export function useTradeTools(
     metal: MetalType,
@@ -62,7 +60,7 @@ export function useTradeTools(
 ) {
     const api = useTradeApi();
     const { getAdjustmentDelta } = usePricingSettings();
-    const { displayPrices, setSpot: setMetalSpot, clearSpot } = useSpotPrices();
+    const { spot, detached: spotDetached, setSpot, reset: resetSpot } = useToolSpot('trade', metal);
     const { transactionType, setTransactionType: setTransactionTypeState } = usePricingTools();
 
     // Cart + spot are kept per metal, not reset on every switch — leaving
@@ -73,7 +71,6 @@ export function useTradeTools(
     const initializedMetals = useRef<Set<MetalType>>(new Set());
 
     const items = cartsByMetal[metal] ?? [];
-    const spot = displayPrices[metal] > 0 ? displayPrices[metal] : null;
 
     // A ref rather than state: syncing the product-table selection can add
     // several items in one pass (see the effect below), which needs several
@@ -88,16 +85,8 @@ export function useTradeTools(
         [metal],
     );
 
-    const setSpot = useCallback(
-        (value: number) => {
-            // A blank or zero field mid-typing must not become a €0 override.
-            if (value > 0) setMetalSpot(metal, value);
-        },
-        [metal, setMetalSpot],
-    );
-
     const [subTab, setSubTab] = useState<'products' | 'melt'>('products');
-    const melt = useMeltCalculator(subTab === 'melt', displayPrices);
+    const melt = useMeltCalculator(subTab === 'melt');
 
     const bootstrapQuery = useQuery({
         queryKey: queryKeys.trade.bootstrap(metal),
@@ -208,9 +197,6 @@ export function useTradeTools(
     }, [transactionType, products, adjustmentDeltaPct, setItemsForMetal]);
 
     const setTransactionType = setTransactionTypeState;
-
-    /** Back to the live market price (drops this metal's override). */
-    const resetSpot = useCallback(() => clearSpot(metal), [clearSpot, metal]);
 
     const addItem = useCallback(() => {
         const lastProductId = items.length ? items[items.length - 1].productId : (products[0]?.id ?? null);
@@ -332,6 +318,7 @@ export function useTradeTools(
         setTransactionType,
 
         spot,
+        spotDetached,
         setSpot,
         resetSpot,
         minSpot: bootstrapQuery.data?.minSpot ?? 0,

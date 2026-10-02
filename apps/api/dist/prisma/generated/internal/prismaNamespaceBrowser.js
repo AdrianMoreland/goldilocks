@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.JsonNullValueInput = exports.SortOrder = exports.AiAnswerCacheScalarFieldEnum = exports.AiQuestionLogScalarFieldEnum = exports.KbDocumentScalarFieldEnum = exports.FetchAttemptScalarFieldEnum = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.JsonNullValueInput = exports.SortOrder = exports.RoadmapDocumentScalarFieldEnum = exports.MarketModeStateScalarFieldEnum = exports.AiAnswerCacheScalarFieldEnum = exports.AiQuestionLogScalarFieldEnum = exports.KbDocumentScalarFieldEnum = exports.FetchAttemptScalarFieldEnum = exports.BranchScalarFieldEnum = exports.HistoricSpotPriceScalarFieldEnum = exports.MetalSpotPriceScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -53,7 +53,9 @@ exports.ModelName = {
     FetchAttempt: 'FetchAttempt',
     KbDocument: 'KbDocument',
     AiQuestionLog: 'AiQuestionLog',
-    AiAnswerCache: 'AiAnswerCache'
+    AiAnswerCache: 'AiAnswerCache',
+    MarketModeState: 'MarketModeState',
+    RoadmapDocument: 'RoadmapDocument'
 };
 exports.TransactionIsolationLevel = runtime.makeStrictEnum({
     ReadUncommitted: 'ReadUncommitted',
@@ -171,6 +173,21 @@ exports.AiAnswerCacheScalarFieldEnum = {
     hits: 'hits',
     createdAt: 'createdAt',
     expiresAt: 'expiresAt'
+};
+exports.MarketModeStateScalarFieldEnum = {
+    id: 'id',
+    weekend: 'weekend',
+    volatile: 'volatile',
+    shortage: 'shortage',
+    updatedBy: 'updatedBy',
+    updatedAt: 'updatedAt'
+};
+exports.RoadmapDocumentScalarFieldEnum = {
+    id: 'id',
+    markdown: 'markdown',
+    version: 'version',
+    updatedBy: 'updatedBy',
+    updatedAt: 'updatedAt'
 };
 exports.SortOrder = {
     asc: 'asc',

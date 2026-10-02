@@ -1000,6 +1000,12 @@ type PortfolioBuildResponse = z.infer<typeof PortfolioBuildResponseSchema>;
 
 declare const GRAMS_PER_TROY_OUNCE = 31.1034768;
 /**
+ * How old a live spot snapshot can be before prices may be out of date. The
+ * cron refreshes every 10 minutes, so 15 survives one missed run without
+ * flagging a healthy snapshot. Read by the dashboard cards and the assistant.
+ */
+declare const SPOT_STALE_AFTER_MS: number;
+/**
  * Whole-euro rounding for quoted product prices, always in the dealer's
  * favour: a price we charge rounds UP, a buyback we pay rounds DOWN. The
  * value is snapped to cents first so float noise (2948.0000000004) doesn't
@@ -1181,6 +1187,26 @@ declare const CreateBranchRequestSchema: z.ZodObject<{
 }, z.core.$strip>;
 type Branch = z.infer<typeof BranchSchema>;
 type CreateBranchRequest = z.infer<typeof CreateBranchRequestSchema>;
+
+/**
+ * The company-wide market condition. Standard is "no mode on"; Volatile is the
+ * only one used much, Weekend and Shortage rarely. One shared value, set by an
+ * Admin or Manager, that every user's dashboard follows.
+ */
+declare const MarketModeStateSchema: z.ZodObject<{
+    weekend: z.ZodBoolean;
+    volatile: z.ZodBoolean;
+    shortage: z.ZodBoolean;
+    updatedBy: z.ZodNullable<z.ZodString>;
+    updatedAt: z.ZodNullable<z.ZodISODateTime>;
+}, z.core.$strip>;
+declare const UpdateMarketModeRequestSchema: z.ZodObject<{
+    weekend: z.ZodBoolean;
+    volatile: z.ZodBoolean;
+    shortage: z.ZodBoolean;
+}, z.core.$strip>;
+type MarketModeState = z.infer<typeof MarketModeStateSchema>;
+type UpdateMarketModeRequest = z.infer<typeof UpdateMarketModeRequestSchema>;
 
 /** What triggered a call to the external metal-price vendor API. */
 declare const FetchTriggerEnum: z.ZodEnum<{
@@ -1798,6 +1824,19 @@ declare const AiUsageSchema: z.ZodObject<{
     outputTokens: z.ZodNumber;
 }, z.core.$strip>;
 type AiUsage = z.infer<typeof AiUsageSchema>;
+/**
+ * What the spot behind a priced answer was, for the staff member only (it is not part of the reply):
+ * `custom` = a frozen or typed spot, `stale` = a live spot that may be out of date, `healthy` = a fresh live spot.
+ */
+declare const AiSpotNoteSchema: z.ZodObject<{
+    tone: z.ZodEnum<{
+        custom: "custom";
+        stale: "stale";
+        healthy: "healthy";
+    }>;
+    message: z.ZodString;
+}, z.core.$strip>;
+type AiSpotNote = z.infer<typeof AiSpotNoteSchema>;
 declare const AskResponseSchema: z.ZodObject<{
     answer: z.ZodString;
     mode: z.ZodEnum<{
@@ -1830,6 +1869,14 @@ declare const AskResponseSchema: z.ZodObject<{
     cached: z.ZodBoolean;
     notes: z.ZodNullable<z.ZodString>;
     warnings: z.ZodArray<z.ZodString>;
+    spotNote: z.ZodNullable<z.ZodObject<{
+        tone: z.ZodEnum<{
+            custom: "custom";
+            stale: "stale";
+            healthy: "healthy";
+        }>;
+        message: z.ZodString;
+    }, z.core.$strip>>;
     toolsUsed: z.ZodArray<z.ZodString>;
 }, z.core.$strip>;
 type AskResponse = z.infer<typeof AskResponseSchema>;
@@ -1885,6 +1932,14 @@ declare const AskStreamEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         cached: z.ZodBoolean;
         notes: z.ZodNullable<z.ZodString>;
         warnings: z.ZodArray<z.ZodString>;
+        spotNote: z.ZodNullable<z.ZodObject<{
+            tone: z.ZodEnum<{
+                custom: "custom";
+                stale: "stale";
+                healthy: "healthy";
+            }>;
+            message: z.ZodString;
+        }, z.core.$strip>>;
         toolsUsed: z.ZodArray<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
@@ -2180,4 +2235,144 @@ type DbInsertRequest = z.infer<typeof DbInsertRequestSchema>;
 type DbUpdateRequest = z.infer<typeof DbUpdateRequestSchema>;
 type DbDeleteRequest = z.infer<typeof DbDeleteRequestSchema>;
 
-export { AI_MESSAGE_MAX_LENGTH, AI_QUESTION_MAX_LENGTH, type AdminLogEntry, AdminLogEntrySchema, AdminLogsResponseSchema, type AdminOverview, AdminOverviewSchema, type AiAnswerStatus, AiAnswerStatusEnum, type AiCitation, AiCitationSchema, type AiMode, AiModeEnum, type AiStatus, AiStatusSchema, type AiUsage, AiUsageSchema, ApiCatalogueSchema, type ApiEndpoint, type ApiEndpointParameter, ApiEndpointParameterSchema, ApiEndpointSchema, type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AskRequest, type AskRequestInput, AskRequestSchema, type AskResponse, AskResponseSchema, type AskStreamEvent, AskStreamEventSchema, type AuditEntry, AuditEntrySchema, AuditLogResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type BrokenKbLink, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type DbColumn, DbColumnSchema, type DbDeleteRequest, DbDeleteRequestSchema, type DbInsertRequest, DbInsertRequestSchema, DbRowResponseSchema, type DbRowsResponse, DbRowsResponseSchema, type DbTableSummary, DbTableSummarySchema, DbTablesResponseSchema, type DbUpdateRequest, DbUpdateRequestSchema, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HealthItem, HealthItemSchema, type HealthStatus, HealthStatusEnum, type HistoricCloseQuery, HistoricCloseQuerySchema, type HistoricSpot, HistoricSpotSchema, type HourlyStats, HourlyStatsSchema, KB_CATEGORIES, KB_CATEGORY_INFO, KB_GUIDE, KB_REVIEW_MONTHS, KB_REVIEW_WARNING_DAYS, KB_TERMS, KB_UNRESOLVED_HREF_PREFIX, type KbCategory, KbCategoryEnum, type KbDocument, type KbDocumentListResponse, KbDocumentListResponseSchema, KbDocumentSchema, type KbFrontmatter, KbFrontmatterSchema, type KbGuide, type KbGuideBranch, type KbGuideIcon, type KbGuideLink, type KbGuideShortcut, type KbGuideStep, type KbGuideTarget, type KbIndexedDocument, type KbIndexedSection, type KbJurisdiction, KbJurisdictionEnum, type KbLinkRef, type KbReviewState, type KbReviewStatus, type KbSearchHit, type KbSection, KbSlugSchema, type KbSnippetPart, type KbStatus, KbStatusEnum, type KbTerm, type LogLevel, LogLevelEnum, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, type ParseKbResult, type ParsedKbDocument, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawKbFile, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RecalculateOverrides, RecalculateOverridesSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type ResolvedKbLink, type RouteStats, RouteStatsSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SetKbStatusRequest, SetKbStatusRequestSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, TableSizeSchema, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateKbDocumentRequest, UpdateKbDocumentRequestSchema, type UpdateProductFullDto, UpdateProductFullDtoSchema, type UpdateStockRequest, UpdateStockRequestSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, aiInputLimit, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, createErrorReference, findBrokenLinks, findLinks, findTodos, guideLibraryTargets, headingAnchor, indexKbDocument, kbArticlePath, kbReviewDueOn, kbReviewStatus, mapOutsideCode, normalizeProductName, parseKbDocument, planAutolinks, rewriteKbLinks, roundBuyPrice, roundSellPrice, searchKb, solveMissingPurchaseField, splitFrontmatter, splitSections, termRegExp, toPlainText };
+/** The roadmap Markdown as stored in the database. `version` is bumped on every save (optimistic locking). */
+declare const RoadmapDocumentSchema: z.ZodObject<{
+    markdown: z.ZodString;
+    version: z.ZodNumber;
+    updatedBy: z.ZodNullable<z.ZodString>;
+    updatedAt: z.ZodNullable<z.ZodISODateTime>;
+}, z.core.$strip>;
+/**
+ * One change to the roadmap. Lines are 0-based indexes into the version the client is looking at;
+ * `text` repeats the task's current text so a stale index is refused instead of hitting the wrong task.
+ */
+declare const RoadmapEditSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    type: z.ZodLiteral<"toggle">;
+    line: z.ZodNumber;
+    text: z.ZodString;
+    checked: z.ZodBoolean;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"add">;
+    sectionLine: z.ZodNumber;
+    parentLine: z.ZodOptional<z.ZodNumber>;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"delete">;
+    line: z.ZodNumber;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"edit">;
+    line: z.ZodNumber;
+    text: z.ZodString;
+    newText: z.ZodString;
+}, z.core.$strip>], "type">;
+declare const RoadmapEditRequestSchema: z.ZodObject<{
+    version: z.ZodNumber;
+    edit: z.ZodDiscriminatedUnion<[z.ZodObject<{
+        type: z.ZodLiteral<"toggle">;
+        line: z.ZodNumber;
+        text: z.ZodString;
+        checked: z.ZodBoolean;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"add">;
+        sectionLine: z.ZodNumber;
+        parentLine: z.ZodOptional<z.ZodNumber>;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"delete">;
+        line: z.ZodNumber;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"edit">;
+        line: z.ZodNumber;
+        text: z.ZodString;
+        newText: z.ZodString;
+    }, z.core.$strip>], "type">;
+}, z.core.$strip>;
+type RoadmapDocument = z.infer<typeof RoadmapDocumentSchema>;
+type RoadmapEdit = z.infer<typeof RoadmapEditSchema>;
+type RoadmapEditRequest = z.infer<typeof RoadmapEditRequestSchema>;
+
+/**
+ * Pure helpers for docs/ROADMAP.md, shared by the API (which applies edits) and the web page (which
+ * reads the structure). Everything works on lines, so an edit touches only the line it means to and the
+ * rest of the file, wording and spacing included, comes back untouched.
+ */
+interface RoadmapTask {
+    /** 0-based line in the Markdown. */
+    line: number;
+    checked: boolean;
+    text: string;
+    /** Indented non-checkbox lines under the task (evidence, caveats). */
+    notes: string[];
+    children: RoadmapTask[];
+}
+interface RoadmapSection {
+    /** `0.12`, or a slug for headings without an ID (`icebox`). Unique in the file. */
+    key: string;
+    /** The ID as written (`0.12`), or null. */
+    id: string | null;
+    title: string;
+    /** Section note from the heading, e.g. "quick win; feeds charts". */
+    note: string | null;
+    /** `← depends: …` from the heading. */
+    depends: string | null;
+    priority: 'P0' | 'P1' | 'P2' | 'P3' | null;
+    /** The `# ` heading this section sits under. */
+    group: string;
+    /** 0-based line of the heading. */
+    headingLine: number;
+    /** Prose, tables and plain bullets that are not tasks. */
+    body: string;
+    tasks: RoadmapTask[];
+}
+interface RoadmapProgress {
+    done: number;
+    total: number;
+}
+/** Splits the roadmap into its `#`/`##` sections, each with its task tree. */
+declare function parseRoadmap(markdown: string): RoadmapSection[];
+declare function countTasks(tasks: RoadmapTask[]): RoadmapProgress;
+declare class RoadmapEditError extends Error {
+}
+/** Applies one edit and returns the new Markdown. Throws RoadmapEditError when the edit does not fit the file. */
+declare function applyRoadmapEdit(markdown: string, edit: RoadmapEdit): string;
+
+/**
+ * Pure readers for the two reference documents the Project Management page shows: DESIGN.md (YAML
+ * front matter of design tokens, then prose) and docs/ENGINEERING.md (numbered `##` sections).
+ * Kept dependency-free so the page can read the Markdown as-is, with no second copy to keep in step.
+ */
+interface DocSection {
+    /** The `## ` heading text. */
+    title: string;
+    /** Everything under it up to the next `## `, trimmed. */
+    body: string;
+}
+interface DesignTokens {
+    colors: Record<string, string>;
+    typography: Record<string, Record<string, string>>;
+    rounded: Record<string, string>;
+    spacing: Record<string, string>;
+    components: Record<string, Record<string, string>>;
+}
+interface DesignRule {
+    name: string;
+    text: string;
+}
+interface DesignDoc {
+    name: string;
+    description: string;
+    tokens: DesignTokens;
+    /** The prose after the front matter, split on `## `. */
+    sections: DocSection[];
+    /** "The X Rule." paragraphs from anywhere in the prose. */
+    rules: DesignRule[];
+    dos: string[];
+    donts: string[];
+}
+/** Splits on `## ` headings, ignoring any inside code fences. Text before the first heading is dropped. */
+declare function splitDocSections(markdown: string): DocSection[];
+declare function parseDesignDoc(markdown: string): DesignDoc;
+
+export { AI_MESSAGE_MAX_LENGTH, AI_QUESTION_MAX_LENGTH, type AdminLogEntry, AdminLogEntrySchema, AdminLogsResponseSchema, type AdminOverview, AdminOverviewSchema, type AiAnswerStatus, AiAnswerStatusEnum, type AiCitation, AiCitationSchema, type AiMode, AiModeEnum, type AiSpotNote, AiSpotNoteSchema, type AiStatus, AiStatusSchema, type AiUsage, AiUsageSchema, ApiCatalogueSchema, type ApiEndpoint, type ApiEndpointParameter, ApiEndpointParameterSchema, ApiEndpointSchema, type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AskRequest, type AskRequestInput, AskRequestSchema, type AskResponse, AskResponseSchema, type AskStreamEvent, AskStreamEventSchema, type AuditEntry, AuditEntrySchema, AuditLogResponseSchema, type AuthResponse, AuthResponseSchema, type Branch, BranchSchema, type BrokenKbLink, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type CreateBranchRequest, CreateBranchRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, type DbColumn, DbColumnSchema, type DbDeleteRequest, DbDeleteRequestSchema, type DbInsertRequest, DbInsertRequestSchema, DbRowResponseSchema, type DbRowsResponse, DbRowsResponseSchema, type DbTableSummary, DbTableSummarySchema, DbTablesResponseSchema, type DbUpdateRequest, DbUpdateRequestSchema, type DesignDoc, type DesignRule, type DesignTokens, type DocSection, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type FetchAttempt, FetchAttemptSchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, GRAMS_PER_TROY_OUNCE, type HealthCheck, HealthCheckSchema, type HealthItem, HealthItemSchema, type HealthStatus, HealthStatusEnum, type HistoricCloseQuery, HistoricCloseQuerySchema, type HistoricSpot, HistoricSpotSchema, type HourlyStats, HourlyStatsSchema, KB_CATEGORIES, KB_CATEGORY_INFO, KB_GUIDE, KB_REVIEW_MONTHS, KB_REVIEW_WARNING_DAYS, KB_TERMS, KB_UNRESOLVED_HREF_PREFIX, type KbCategory, KbCategoryEnum, type KbDocument, type KbDocumentListResponse, KbDocumentListResponseSchema, KbDocumentSchema, type KbFrontmatter, KbFrontmatterSchema, type KbGuide, type KbGuideBranch, type KbGuideIcon, type KbGuideLink, type KbGuideShortcut, type KbGuideStep, type KbGuideTarget, type KbIndexedDocument, type KbIndexedSection, type KbJurisdiction, KbJurisdictionEnum, type KbLinkRef, type KbReviewState, type KbReviewStatus, type KbSearchHit, type KbSection, KbSlugSchema, type KbSnippetPart, type KbStatus, KbStatusEnum, type KbTerm, type LogLevel, LogLevelEnum, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, MELT_CATEGORIES, type MarketDataResponse, MarketDataResponseSchema, type MarketModeState, MarketModeStateSchema, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, type Pagination, PaginationSchema, type ParseKbResult, type ParsedKbDocument, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductMapDTO, ProductMapSchema, ProductSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type RawKbFile, type RawProduct, RawProductSchema, type RawSpotPrice, RawSpotPriceSchema, type RecalculateOverrides, RecalculateOverridesSchema, type RefreshResponse, RefreshResponseSchema, type RegisterInput, RegisterSchema, type ResolvedKbLink, type RoadmapDocument, RoadmapDocumentSchema, type RoadmapEdit, RoadmapEditError, type RoadmapEditRequest, RoadmapEditRequestSchema, RoadmapEditSchema, type RoadmapProgress, type RoadmapSection, type RoadmapTask, type RouteStats, RouteStatsSchema, SPOT_STALE_AFTER_MS, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SetKbStatusRequest, SetKbStatusRequestSchema, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, TRADE_METAL_SLIDER_BOUNDS, TableSizeSchema, type TaskQueryParams, TaskQueryParamsSchema, type TaskStatus, TaskStatusSchema, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeProduct, TradeProductSchema, type TradeTransactionType, TradeTransactionTypeEnum, type UpdateKbDocumentRequest, UpdateKbDocumentRequestSchema, type UpdateMarketModeRequest, UpdateMarketModeRequestSchema, type UpdateProductFullDto, UpdateProductFullDtoSchema, type UpdateStockRequest, UpdateStockRequestSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, aiInputLimit, applyRoadmapEdit, buildPortfolioStrategies, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, countTasks, createErrorReference, findBrokenLinks, findLinks, findTodos, guideLibraryTargets, headingAnchor, indexKbDocument, kbArticlePath, kbReviewDueOn, kbReviewStatus, mapOutsideCode, normalizeProductName, parseDesignDoc, parseKbDocument, parseRoadmap, planAutolinks, rewriteKbLinks, roundBuyPrice, roundSellPrice, searchKb, solveMissingPurchaseField, splitDocSections, splitFrontmatter, splitSections, termRegExp, toPlainText };

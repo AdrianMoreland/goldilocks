@@ -62,7 +62,7 @@ describe('splitSections', () => {
   it('splits at level-2 headings and keeps deeper headings inside their section', () => {
     const sections = splitSections('## One\nfirst\n### Sub\nnested\n## Two\nsecond');
     expect(sections.map((s) => s.anchor)).toEqual(['one', 'two']);
-    expect(sections[0].markdown).toContain('### Sub');
+    expect(sections[0]!.markdown).toContain('### Sub');
   });
 
   it('keeps anchors unique when a heading repeats', () => {
@@ -76,13 +76,13 @@ describe('splitSections', () => {
   });
 
   it('flags a section with an unconfirmed fact and records what needs confirming', () => {
-    const [section] = splitSections('## Payment\n3. Take payment. [TODO: amount required before the order goes live]');
+    const [section] = splitSections('## Payment\n3. Take payment. [TODO: amount required before the order goes live]') as [NonNullable<ReturnType<typeof splitSections>[number]>];
     expect(section.hasTodo).toBe(true);
     expect(section.todos).toEqual(['amount required before the order goes live']);
   });
 
   it('marks proposed-controls sections', () => {
-    const [section] = splitSections('## Proposed controls (not yet in force)\n1. A log');
+    const [section] = splitSections('## Proposed controls (not yet in force)\n1. A log') as [NonNullable<ReturnType<typeof splitSections>[number]>];
     expect(section.isProposed).toBe(true);
   });
 

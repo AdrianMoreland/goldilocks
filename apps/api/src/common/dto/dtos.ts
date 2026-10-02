@@ -13,6 +13,10 @@ import {
     SessionUserSchema,
     CreateUserRequestSchema,
     BranchSchema,
+    MarketModeStateSchema,
+    RoadmapDocumentSchema,
+    RoadmapEditRequestSchema,
+    UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
@@ -332,4 +336,24 @@ export class DbUpdateRequestDto extends createDto(
 export class DbDeleteRequestDto extends createDto(
     DbDeleteRequestSchema,
     'DbDeleteRequestDto',
+) {}
+
+export class MarketModeStateDto extends createDto(
+    MarketModeStateSchema,
+    'MarketModeStateDto',
+) {}
+
+export class UpdateMarketModeRequestDto extends createDto(
+    UpdateMarketModeRequestSchema,
+    'UpdateMarketModeRequestDto',
+) {}
+
+export class RoadmapDocumentDto extends createDto(
+    RoadmapDocumentSchema,
+    'RoadmapDocumentDto',
+) {}
+
+export class RoadmapEditRequestDto extends createDto(
+    RoadmapEditRequestSchema,
+    'RoadmapEditRequestDto',
 ) {}

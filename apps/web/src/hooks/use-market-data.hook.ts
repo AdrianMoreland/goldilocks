@@ -7,9 +7,10 @@ import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.ap
 import { queryKeys } from '@/lib/query-keys';
 import { formatMinutesAgo } from '@/app/dashboard/utils/formatters';
 import type { MarketDataResponse } from '../lib/types.ts';
+import { SPOT_STALE_AFTER_MS } from '@goldilocks/shared-types';
 
-/** How old the vendor's price snapshot can be before we tell the user prices might be wrong. Set to 5 minutes by the owner — note the cron only refreshes every 10, so a healthy snapshot can read stale for up to half of each cycle. */
-export const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+/** Shared with the assistant (see shared-types), so the cards and the assistant never disagree about whether a price is stale. */
+export const STALE_THRESHOLD_MS = SPOT_STALE_AFTER_MS;
 
 /** To-the-second timestamp for the "prices fetched at" toast — deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
 function formatFetchedAtTime(fetchedAt?: string | null): string | null {
@@ -84,7 +85,7 @@ export function useMarketData() {
     }, [data?.fetchedAt]);
 
     // Ages are computed from Date.now(), so without a tick they'd freeze at
-    // whatever they were when the snapshot last changed — and with a 5-minute
+    // whatever they were when the snapshot last changed — and with a short
     // stale threshold, that would leave a price looking fresh long after it isn't.
     const [nowTick, setNowTick] = useState(0);
     useEffect(() => {
