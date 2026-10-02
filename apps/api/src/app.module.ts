@@ -24,6 +24,7 @@ import { ErrorLogModule } from './modules/error-log/error-log.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AiModule } from './modules/ai/ai.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 // pino-pretty is a dev-only dependency, so it is loaded only outside production.
 function prettyStream() {
@@ -97,6 +98,8 @@ function prettyStream() {
         AppService,
         // Fail-closed: every route needs a signed-in user unless marked @Public().
         { provide: APP_GUARD, useClass: JwtAuthGuard },
+        // After JwtAuthGuard: makes every @Roles() effective, including on routes that forget @UseGuards(RolesGuard).
+        { provide: APP_GUARD, useClass: RolesGuard },
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },

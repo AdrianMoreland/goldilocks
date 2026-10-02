@@ -19,6 +19,7 @@ import {
     CreateUserRequestDto,
     LoginRequestDto,
     LoginResponseDto,
+    RefreshRequestDto,
     SessionUserDto,
 } from '../../common/dto/dtos';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
@@ -47,6 +48,15 @@ export class AuthController {
             this.metrics.recordLogin(false);
             throw error;
         }
+    }
+
+    // Public because it is called when the access token has already expired; the refresh token is the credential.
+    @Public()
+    @Post('refresh')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Exchange a refresh token for a new session' })
+    async refresh(@Body() body: RefreshRequestDto): Promise<LoginResponseDto> {
+        return this.authService.refresh(body.refreshToken);
     }
 
     @Get('me')

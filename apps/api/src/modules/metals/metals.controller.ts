@@ -1,12 +1,10 @@
 import {
-    BadRequestException,
     Controller,
     Get,
     NotFoundException,
     Param,
     Post,
     Query,
-    UseGuards,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -16,31 +14,20 @@ import {
     ApiParam,
     ApiQuery,
 } from '@nestjs/swagger';
-import { ZodSerializerInterceptor } from 'nestjs-zod';
+import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { UseInterceptors } from '@nestjs/common';
-import type { MetalType } from '@goldilocks/shared-types';
+import { MetalTypeEnum, type MetalType } from '@goldilocks/shared-types';
 import { MetalsProvider } from './metals.provider';
 import { MetalsCron } from './metals.cron';
 import { FetchAttemptService } from './fetch-attempt.service';
 import { ALL_METALS } from '../../common/utils/pricing.util';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
     FetchAttemptResponseDto,
+    FetchLogQueryDto,
     FetchMetricsResponseDto,
     RawSpotPriceResponseDto,
 } from '../../common/dto/dtos';
-
-function parseMetal(value: string): MetalType {
-    const metal = value.toUpperCase();
-    if (!ALL_METALS.includes(metal as MetalType)) {
-        throw new BadRequestException(
-            `Unknown metal "${value}" — expected one of ${ALL_METALS.join(', ')}`,
-        );
-    }
-    return metal as MetalType;
-}
 
 /**
  * Ops-only controller. The frontend gets spot prices via GET /market-data —
@@ -50,6 +37,8 @@ function parseMetal(value: string): MetalType {
  */
 @ApiTags('metals')
 @Controller('metals')
+@Roles('admin')
+@ApiBearerAuth()
 @UseInterceptors(ZodSerializerInterceptor)
 export class MetalsController {
     constructor(
@@ -59,9 +48,6 @@ export class MetalsController {
     ) {}
 
     @Post('refresh')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiOperation({
         summary: 'Force a manual spot-price refresh (admin)',
         description:
@@ -74,9 +60,6 @@ export class MetalsController {
     }
 
     @Get('cron-status')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiOperation({
         summary:
             'Whether the 10-minute price-refresh cron is currently running (admin)',
@@ -86,9 +69,6 @@ export class MetalsController {
     }
 
     @Post('cron-toggle')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiOperation({
         summary: 'Pause or resume the 10-minute price-refresh cron (admin)',
         description:
@@ -102,9 +82,6 @@ export class MetalsController {
     }
 
     @Post('clear-cache')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiOperation({
         summary: 'Clear the spot-price cache (admin)',
         description:
@@ -116,9 +93,6 @@ export class MetalsController {
     }
 
     @Post(':metal/retry')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiParam({ name: 'metal', enum: ALL_METALS })
     @ApiOperation({
         summary: 'Retry a live fetch for one metal (admin)',
@@ -127,9 +101,8 @@ export class MetalsController {
     })
     @ApiResponse({ status: 200, type: RawSpotPriceResponseDto })
     async retryMetal(
-        @Param('metal') metalParam: string,
+        @Param('metal', new ZodValidationPipe(MetalTypeEnum)) metal: MetalType,
     ): Promise<RawSpotPriceResponseDto> {
-        const metal = parseMetal(metalParam);
         const result = await this.metalsProvider.retryMetal(metal);
 
         if (!result) {
@@ -142,27 +115,18 @@ export class MetalsController {
     }
 
     @Get('fetch-log')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiQuery({ name: 'limit', required: false, type: Number })
     @ApiOperation({
         summary: 'Recent external-API fetch attempts, newest first (admin)',
     })
     @ApiResponse({ status: 200, type: [FetchAttemptResponseDto] })
     async getFetchLog(
-        @Query('limit') limit?: string,
+        @Query() { limit }: FetchLogQueryDto,
     ): Promise<FetchAttemptResponseDto[]> {
-        const parsed = limit ? Number(limit) : 20;
-        const take =
-            Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 100) : 20;
-        return this.fetchAttempts.getRecent(take);
+        return this.fetchAttempts.getRecent(limit);
     }
 
     @Get('fetch-metrics')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    @ApiBearerAuth()
     @ApiOperation({
         summary:
             '24h fetch success rate, avg latency, and cache hit ratio (admin)',

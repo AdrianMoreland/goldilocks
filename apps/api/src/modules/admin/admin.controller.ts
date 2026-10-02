@@ -27,8 +27,11 @@ import {
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
+    AdminLogsQueryDto,
+    AuditQueryDto,
     DbDeleteRequestDto,
     DbInsertRequestDto,
+    DbRowsQueryDto,
     DbUpdateRequestDto,
 } from '../../common/dto/dtos';
 import { AdminOverviewService } from './admin-overview.service';
@@ -72,18 +75,16 @@ export class AdminController {
     @ApiOperation({
         summary: 'Recent application log lines (pino), newest first',
     })
-    getLogs(
-        @Query('limit') limit?: string,
-        @Query('level') level?: string,
-        @Query('q') q?: string,
-    ): { entries: AdminLogEntry[]; capacity: number } {
-        const min = LEVEL_ORDER.indexOf((level as LogLevel) ?? 'info');
+    getLogs(@Query() { limit, level, q }: AdminLogsQueryDto): {
+        entries: AdminLogEntry[];
+        capacity: number;
+    } {
+        const min = LEVEL_ORDER.indexOf(level);
         const term = q?.trim().toLowerCase();
-        const n = Math.min(Math.max(Number(limit) || 200, 1), 1000);
 
         const entries = logBuffer
             .recent(logBuffer.capacity)
-            .filter((e) => LEVEL_ORDER.indexOf(e.level) >= Math.max(min, 0))
+            .filter((e) => LEVEL_ORDER.indexOf(e.level) >= min)
             .filter(
                 (e) =>
                     !term ||
@@ -91,18 +92,16 @@ export class AdminController {
                         v?.toLowerCase().includes(term),
                     ),
             )
-            .slice(0, n);
+            .slice(0, limit);
         return { entries, capacity: logBuffer.capacity };
     }
 
     @Get('audit')
     @ApiOperation({ summary: 'Recent changes made from the admin console' })
     getAudit(
-        @Query('limit') limit?: string,
+        @Query() { limit }: AuditQueryDto,
     ): Promise<{ entries: AuditEntry[]; persisted: boolean }> {
-        return this.logs.getRecent(
-            Math.min(Math.max(Number(limit) || 100, 1), 500),
-        );
+        return this.logs.getRecent(limit);
     }
 
     @Get('endpoints')
@@ -123,17 +122,13 @@ export class AdminController {
     @ApiOperation({ summary: 'One page of rows from a table' })
     getRows(
         @Param('table') table: string,
-        @Query('page') page?: string,
-        @Query('pageSize') pageSize?: string,
-        @Query('sort') sort?: string,
-        @Query('dir') dir?: string,
-        @Query('q') q?: string,
+        @Query() { page, pageSize, sort, dir, q }: DbRowsQueryDto,
     ): Promise<DbRowsResponse> {
         return this.db.getRows(table, {
-            page: Number(page) || 1,
-            pageSize: Number(pageSize) || 50,
+            page,
+            pageSize,
             sort,
-            dir: dir === 'asc' ? 'asc' : 'desc',
+            dir,
             search: q,
         });
     }

@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { AuthProviderPort } from './auth-provider.port';
 import type { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -17,6 +17,7 @@ function build() {
     const provider = {
         signInWithPassword: jest.fn(),
         verifyToken: jest.fn(),
+        refreshSession: jest.fn(),
         createIdentity: jest
             .fn()
             .mockResolvedValue({ id: 'id-1', email: dto.email }),
@@ -86,5 +87,83 @@ describe('AuthService.createUser', () => {
         );
         expect(prisma.user.create).not.toHaveBeenCalled();
         expect(provider.deleteIdentity).not.toHaveBeenCalled();
+    });
+});
+
+describe('AuthService.refresh', () => {
+    const session = {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        identity: { id: 'id-1', email: 'staff@example.com' },
+    };
+    const row = {
+        id: 'id-1',
+        email: 'staff@example.com',
+        firstName: 'Staff',
+        lastName: 'Member',
+        role: 'SALES',
+        admin: false,
+        isActive: true,
+    };
+
+    it('returns the rotated tokens together with the current user', async () => {
+        const { service, provider, prisma } = build();
+        provider.refreshSession.mockResolvedValue(session);
+        prisma.user.findUnique.mockResolvedValue(row);
+
+        const result = await service.refresh('old-refresh');
+
+        expect(provider.refreshSession).toHaveBeenCalledWith('old-refresh');
+        expect(result).toMatchObject({
+            accessToken: 'new-access',
+            refreshToken: 'new-refresh',
+            user: { id: 'id-1', email: 'staff@example.com', admin: false },
+        });
+    });
+
+    it('refuses to renew the session of an account deactivated since sign-in', async () => {
+        const { service, provider, prisma } = build();
+        provider.refreshSession.mockResolvedValue(session);
+        prisma.user.findUnique.mockResolvedValue({ ...row, isActive: false });
+
+        await expect(service.refresh('old-refresh')).rejects.toBeInstanceOf(
+            UnauthorizedException,
+        );
+    });
+
+    it('lets the provider rejection through when the refresh token is no longer valid', async () => {
+        const { service, provider } = build();
+        provider.refreshSession.mockRejectedValue(
+            new UnauthorizedException('expired'),
+        );
+
+        await expect(service.refresh('stale')).rejects.toBeInstanceOf(
+            UnauthorizedException,
+        );
+    });
+});
+
+describe('AuthService.login', () => {
+    it('hands back the provider refresh token so the web app can renew the session', async () => {
+        const { service, provider, prisma } = build();
+        provider.signInWithPassword.mockResolvedValue({
+            accessToken: 'a',
+            refreshToken: 'r',
+            identity: { id: 'id-1', email: 'staff@example.com' },
+        });
+        prisma.user.findUnique.mockResolvedValue({
+            id: 'id-1',
+            email: 'staff@example.com',
+            firstName: 'S',
+            lastName: 'M',
+            role: 'SALES',
+            admin: false,
+            isActive: true,
+        });
+
+        const result = await service.login('staff@example.com', 'pw');
+
+        expect(result.accessToken).toBe('a');
+        expect(result.refreshToken).toBe('r');
     });
 });

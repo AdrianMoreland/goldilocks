@@ -61,6 +61,40 @@ export class SupabaseAuthProvider implements AuthProviderPort {
         };
     }
 
+    async refreshSession(refreshToken: string): Promise<AuthSession> {
+        let data: Awaited<ReturnType<SupabaseService['refreshSession']>>;
+        try {
+            data = await this.supabase.refreshSession(refreshToken);
+        } catch (error) {
+            // Same rule as sign-in: only a definite "no" ends the session. An outage or rate limit must not
+            // sign people out; the web app keeps the refresh token and tries again.
+            if (isRejectedCredentials(error)) {
+                throw new UnauthorizedException(
+                    'Your session has expired. Please sign in again.',
+                );
+            }
+            this.logger.error(
+                'Supabase session refresh failed',
+                error instanceof Error ? error.stack : String(error),
+            );
+            throw new ServiceUnavailableException(
+                'Sign-in is temporarily unavailable. Please try again shortly.',
+            );
+        }
+
+        if (!data.session || !data.user?.email) {
+            throw new UnauthorizedException(
+                'Your session has expired. Please sign in again.',
+            );
+        }
+
+        return {
+            accessToken: data.session.access_token,
+            refreshToken: data.session.refresh_token ?? null,
+            identity: { id: data.user.id, email: data.user.email },
+        };
+    }
+
     async verifyToken(token: string): Promise<AuthIdentity> {
         const user = await this.supabase.getUserFromToken(token);
         if (!user?.email) {

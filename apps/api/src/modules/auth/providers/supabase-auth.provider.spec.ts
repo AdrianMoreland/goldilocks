@@ -14,6 +14,7 @@ function build() {
     const supabase = {
         signIn: jest.fn(),
         getUserFromToken: jest.fn(),
+        refreshSession: jest.fn(),
         adminCreateUser: jest.fn(),
         adminDeleteUser: jest.fn(),
     };
@@ -103,5 +104,59 @@ describe('SupabaseAuthProvider identity management', () => {
         supabase.adminDeleteUser.mockResolvedValue(undefined);
         await provider.deleteIdentity('u2');
         expect(supabase.adminDeleteUser).toHaveBeenCalledWith('u2');
+    });
+});
+
+describe('SupabaseAuthProvider.refreshSession', () => {
+    const sessionData = {
+        session: { access_token: 'acc', refresh_token: 'ref' },
+        user: { id: 'u1', email: 'a@b.c' },
+    };
+
+    it('returns the new tokens and the identity', async () => {
+        const { provider, supabase } = build();
+        supabase.refreshSession.mockResolvedValue(sessionData);
+
+        await expect(provider.refreshSession('old')).resolves.toEqual({
+            accessToken: 'acc',
+            refreshToken: 'ref',
+            identity: { id: 'u1', email: 'a@b.c' },
+        });
+        expect(supabase.refreshSession).toHaveBeenCalledWith('old');
+    });
+
+    it.each([400, 401, 403])(
+        'maps a %i (token invalid or already used) to Unauthorized so the user signs in again',
+        async (status) => {
+            const { provider, supabase } = build();
+            supabase.refreshSession.mockRejectedValue(
+                sdkError(status, 'refresh_token_not_found'),
+            );
+            await expect(provider.refreshSession('old')).rejects.toBeInstanceOf(
+                UnauthorizedException,
+            );
+        },
+    );
+
+    it.each([[500], [429], [undefined]])(
+        'reports an outage (status %s) as 503 so a blip does not sign anyone out',
+        async (status) => {
+            const { provider, supabase } = build();
+            supabase.refreshSession.mockRejectedValue(sdkError(status));
+            await expect(provider.refreshSession('old')).rejects.toBeInstanceOf(
+                ServiceUnavailableException,
+            );
+        },
+    );
+
+    it('treats a response without a session as an expired session', async () => {
+        const { provider, supabase } = build();
+        supabase.refreshSession.mockResolvedValue({
+            session: null,
+            user: null,
+        });
+        await expect(provider.refreshSession('old')).rejects.toBeInstanceOf(
+            UnauthorizedException,
+        );
     });
 });
