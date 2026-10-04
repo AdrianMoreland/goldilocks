@@ -48,12 +48,12 @@ export class ProductsService {
         return raw;
     }
 
-    async create(dto: CreateProductDto) {
+    async create(dto: CreateProductDto, actor: string) {
         await this.assertSkuAvailable(dto.sku);
-        return this.productsProvider.create(dto);
+        return this.productsProvider.create(dto, actor);
     }
 
-    async update(id: number, dto: Partial<UpdateProductDto>) {
+    async update(id: number, dto: Partial<UpdateProductDto>, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
@@ -76,48 +76,52 @@ export class ProductsService {
             category,
             description,
         } = dto;
-        return this.productsProvider.update(id, {
-            name,
-            sku,
-            metalType,
-            weight,
-            spreadSell,
-            spreadBuy,
-            vatRate,
-            stock,
-            isActive,
-            category,
-            description,
-        });
+        return this.productsProvider.update(
+            id,
+            {
+                name,
+                sku,
+                metalType,
+                weight,
+                spreadSell,
+                spreadBuy,
+                vatRate,
+                stock,
+                isActive,
+                category,
+                description,
+            },
+            actor,
+        );
     }
 
     /** Soft delete — the row is kept (and can be restored), just hidden everywhere. */
-    async delete(id: number) {
+    async delete(id: number, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.softDelete(id);
+        return this.productsProvider.softDelete(id, actor);
     }
 
     async getDeleted() {
         return this.productsProvider.getDeleted();
     }
 
-    async restore(id: number) {
+    async restore(id: number, actor: string) {
         const existing = await this.productsProvider.getDeletedById(id);
         if (!existing) {
             throw new NotFoundException('Deleted product not found');
         }
-        return this.productsProvider.restore(id);
+        return this.productsProvider.restore(id, actor);
     }
 
-    async updateStock(id: number, stockQuantity: number) {
+    async updateStock(id: number, stockQuantity: number, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.updateStock(id, stockQuantity);
+        return this.productsProvider.updateStock(id, stockQuantity, actor);
     }
 
     private async assertSkuAvailable(sku: string) {
