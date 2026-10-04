@@ -5,6 +5,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { AuditLogService } from '../admin/audit-log.service';
 import {
     AUTH_PROVIDER,
     type AuthIdentity,
@@ -53,6 +54,7 @@ export class AuthService {
     constructor(
         @Inject(AUTH_PROVIDER) private readonly authProvider: AuthProviderPort,
         private readonly prisma: PrismaService,
+        private readonly audit: AuditLogService,
     ) {}
 
     async login(email: string, password: string): Promise<LoginResponse> {
@@ -91,25 +93,39 @@ export class AuthService {
     }
 
     /** Admin-only: provisions a new staff account (identity at the auth provider + matching Prisma User row, same id — see prisma/provision-users.ts for the reference pattern). */
-    async createUser(dto: CreateUserRequest): Promise<SessionUser> {
+    async createUser(
+        dto: CreateUserRequest,
+        actor: string,
+    ): Promise<SessionUser> {
         const identity = await this.authProvider.createIdentity(
             dto.email,
             dto.password,
         );
 
         try {
-            const user = await this.prisma.user.create({
-                data: {
-                    id: identity.id,
-                    email: dto.email,
-                    firstName: dto.firstName,
-                    lastName: dto.lastName,
-                    password: '', // the auth provider owns the real credential
-                    role: dto.role,
-                    admin: dto.admin,
-                    isActive: true,
-                },
-                select: SAFE_USER_SELECT,
+            // The row and its audit entry share a transaction; the identity above cannot, which is
+            // why a failure here deletes it again below.
+            const user = await this.prisma.$transaction(async (tx) => {
+                const created = await tx.user.create({
+                    data: {
+                        id: identity.id,
+                        email: dto.email,
+                        firstName: dto.firstName,
+                        lastName: dto.lastName,
+                        password: '', // the auth provider owns the real credential
+                        role: dto.role,
+                        admin: dto.admin,
+                        isActive: true,
+                    },
+                    select: SAFE_USER_SELECT,
+                });
+                await this.audit.record(
+                    actor,
+                    'user',
+                    `created ${dto.email} (${dto.role}${dto.admin ? ', admin' : ''})`,
+                    tx,
+                );
+                return created;
             });
 
             return this.toSessionUser(user);

@@ -16,9 +16,12 @@ describe('KnowledgeService.listApproved', () => {
 
     it('asks only for approved SOPs, in slug order, so the assistant never sees a draft or a retired one', async () => {
         const findMany = jest.fn().mockResolvedValue([row('a'), row('b')]);
-        const service = new KnowledgeService({
-            kbDocument: { findMany },
-        } as unknown as PrismaService);
+        const service = new KnowledgeService(
+            {
+                kbDocument: { findMany },
+            } as unknown as PrismaService,
+            {} as never,
+        );
 
         const docs = await service.listApproved();
 

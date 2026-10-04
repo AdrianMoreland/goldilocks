@@ -41,7 +41,10 @@ function build(
         $transaction: jest.fn().mockResolvedValue([]),
     };
     return {
-        service: new KnowledgeService(prisma as unknown as PrismaService),
+        service: new KnowledgeService(
+            prisma as unknown as PrismaService,
+            {} as never,
+        ),
         prisma,
     };
 }

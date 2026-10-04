@@ -19,6 +19,7 @@ import {
 } from '@goldilocks/shared-types';
 import type { KbDocument as KbDocumentRow } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { AuditLogService } from '../admin/audit-log.service';
 
 export interface KbImportFile {
     /** File name, used only to tell the operator which file a problem belongs to. */
@@ -102,7 +103,10 @@ function todayUtc(): Date {
 export class KnowledgeService {
     private readonly logger = new Logger(KnowledgeService.name);
 
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly audit: AuditLogService,
+    ) {}
 
     /**
      * Every SOP the caller may read. Draft SOPs are included — the reader shows
@@ -194,23 +198,28 @@ export class KnowledgeService {
             existing.status === 'approved' && contentChanged
                 ? 'draft'
                 : existing.status;
-        const updated = await this.prisma.kbDocument.update({
-            where: { slug },
-            data: {
-                title: dto.title,
-                owner: dto.owner,
-                markdown,
-                status,
-                editedInApp: contentChanged || existing.editedInApp,
-                contentHash: contentChanged
-                    ? `app:${contentHash(markdown)}`
-                    : existing.contentHash,
-            },
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data: {
+                    title: dto.title,
+                    owner: dto.owner,
+                    markdown,
+                    status,
+                    editedInApp: contentChanged || existing.editedInApp,
+                    contentHash: contentChanged
+                        ? `app:${contentHash(markdown)}`
+                        : existing.contentHash,
+                },
+            });
+            await this.audit.record(
+                actor,
+                'sop',
+                `edited "${slug}"${status !== existing.status ? ` (${existing.status} → ${status})` : ''}`,
+                tx,
+            );
+            return row;
         });
-
-        this.logger.log(
-            `[audit] ${actor} edited SOP "${slug}"${status !== existing.status ? ` (approved → ${status})` : ''}`,
-        );
         return toDocument(updated);
     }
 
@@ -249,21 +258,26 @@ export class KnowledgeService {
             }
         }
 
-        const updated = await this.prisma.kbDocument.update({
-            where: { slug },
-            data:
-                next === 'approved'
-                    ? {
-                          status: next,
-                          version: existing.version + 1,
-                          contentUpdatedOn: todayUtc(),
-                      }
-                    : { status: next },
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data:
+                    next === 'approved'
+                        ? {
+                              status: next,
+                              version: existing.version + 1,
+                              contentUpdatedOn: todayUtc(),
+                          }
+                        : { status: next },
+            });
+            await this.audit.record(
+                actor,
+                'sop',
+                `moved "${slug}" ${existing.status} → ${next}`,
+                tx,
+            );
+            return row;
         });
-
-        this.logger.log(
-            `[audit] ${actor} moved SOP "${slug}" ${existing.status} → ${next}`,
-        );
         return toDocument(updated);
     }
 
