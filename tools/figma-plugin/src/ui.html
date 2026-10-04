@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Merrion Gold design system</title>
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #fff);
+    --bg2: var(--figma-color-bg-secondary, #f5f5f5);
+    --bgh: var(--figma-color-bg-hover, #eee);
+    --text: var(--figma-color-text, #111);
+    --text2: var(--figma-color-text-secondary, #666);
+    --text3: var(--figma-color-text-tertiary, #6b6b6b);
+    --border: var(--figma-color-border, #e3e3e3);
+    --brand: var(--figma-color-bg-brand, #0a6fbf);
+    --onbrand: var(--figma-color-text-onbrand, #fff);
+    --warn: var(--figma-color-text-warning, #b45309);
+    --danger: var(--figma-color-text-danger, #c0392b);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 12px/1.45 Inter, system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+  header h1 { margin: 0; font-size: 13px; font-weight: 600; flex: 1; }
+  .icon-btn { border: 0; background: none; color: var(--text2); cursor: pointer; padding: 4px 6px; border-radius: 5px; font: inherit; }
+  .icon-btn:hover { background: var(--bgh); color: var(--text); }
+  .intro { margin: 0 16px 8px; color: var(--text2); }
+  details { margin: 0 16px 8px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 6px; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0; }
+  .field select { font: inherit; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 6px; }
+  .field small { display: block; color: var(--text3); }
+  .field.check { justify-content: flex-start; }
+  nav { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--border); }
+  nav button { position: relative; border: 0; background: none; color: var(--text2); font: inherit; font-weight: 500; padding: 8px 8px 9px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  nav button:hover { color: var(--text); }
+  nav button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  nav .count { margin-left: 4px; background: var(--brand); color: var(--onbrand); border-radius: 8px; padding: 0 5px; font-size: 10px; }
+  .blurb { margin: 10px 16px 6px; color: var(--text2); }
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
+  .toolbar input[type=search] { flex: 1; font: inherit; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; min-width: 0; }
+  .link { border: 0; background: none; color: var(--text2); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+  .link:hover { color: var(--text); }
+  ul { list-style: none; margin: 0; padding: 0 8px; overflow: auto; flex: 1; min-height: 0; }
+  li label { display: flex; gap: 10px; align-items: flex-start; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+  li label:hover { background: var(--bgh); }
+  li.disabled label { cursor: not-allowed; opacity: .55; }
+  li input { margin: 2px 0 0; accent-color: var(--brand); }
+  .t { font-weight: 500; }
+  .d { color: var(--text2); }
+  .meta { color: var(--text2); font-size: 11px; margin-top: 1px; word-break: break-word; }
+  .tag { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 4px; background: var(--bg2); color: var(--text2); margin-left: 6px; }
+  .tag.warn { color: var(--warn); }
+  .empty { padding: 24px 16px; color: var(--text3); text-align: center; }
+  footer { border-top: 1px solid var(--border); padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row .count-text { flex: 1; color: var(--text2); }
+  #import { border: 0; background: var(--brand); color: var(--onbrand); font: inherit; font-weight: 600; padding: 7px 16px; border-radius: 6px; cursor: pointer; }
+  #import:disabled { opacity: .45; cursor: not-allowed; }
+  #status { max-height: 110px; overflow: auto; color: var(--text2); }
+  #status .line { margin: 1px 0; }
+  #status .ok { color: var(--text); }
+  #status .warn { color: var(--warn); }
+  #status .err { color: var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Merrion Gold design system</h1>
+  <button class="icon-btn" id="close" title="Close the plugin">✕</button>
+</header>
+<p class="intro">Pick a group, tick what to bring in, then Import. It builds real Figma components, variables and text styles from the repo's design tokens and UI code.</p>
+
+<details id="settings">
+  <summary>Settings and how it works</summary>
+  <div class="field">
+    <span>Theme for what you import<small>Light or dark colour mode on new frames</small></span>
+    <select id="mode"><option value="light">Light</option><option value="dark">Dark</option></select>
+  </div>
+  <div class="field">
+    <span>Put items on<small>A "Design system" page, or the page you are on</small></span>
+    <select id="page"><option value="design">"Design system" page</option><option value="current">Current page</option></select>
+  </div>
+  <div class="field check">
+    <label><input type="checkbox" id="replace" /> Replace an item that was imported before (keeps its position)</label>
+  </div>
+  <p class="meta">Variables and text styles are always created or updated first, because everything else binds to them. Layouts are built from instances of components and blocks; any that are missing are created automatically. Items marked "no builder yet" exist in the code but are not drawn by this plugin.</p>
+</details>
+
+<nav id="tabs" role="tablist"></nav>
+<p class="blurb" id="blurb"></p>
+<div class="toolbar">
+  <input type="search" id="filter" placeholder="Filter…" />
+  <button class="link" id="all">All</button>
+  <button class="link" id="none">None</button>
+</div>
+<ul id="list"><li><div class="empty">Waiting for the plugin to send its list…</div></li></ul>
+
+<footer>
+  <div class="row">
+    <span class="count-text" id="count">Nothing selected</span>
+    <button id="import" disabled>Import</button>
+  </div>
+  <div id="status"></div>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id)
+  const state = { groups: [], catalogue: [], active: 'variables', selected: {}, settings: { mode: 'light', page: 'design', replace: true }, busy: false }
+
+  const post = (message) => parent.postMessage({ pluginMessage: message }, '*')
+
+  const byId = () => Object.fromEntries(state.catalogue.map((e) => [e.id, e]))
+  const buildable = (e) => e.builder
+  const itemsOf = (group) => state.catalogue.filter((e) => e.group === group)
+
+  /** Everything an entry pulls in, transitively, for the "also builds" hint. */
+  function dependencies(entry, map, seen = new Set()) {
+    for (const id of entry.needs || []) {
+      if (seen.has(id) || !map[id]) continue
+      seen.add(id)
+      dependencies(map[id], map, seen)
+    }
+    return [...seen]
+  }
+
+  function renderTabs() {
+    const tabs = $('tabs')
+    tabs.innerHTML = ''
+    for (const g of state.groups) {
+      const b = document.createElement('button')
+      b.setAttribute('role', 'tab')
+      b.setAttribute('aria-selected', String(g.key === state.active))
+      b.textContent = g.label
+      const n = (state.selected[g.key] || new Set()).size
+      if (n) {
+        const c = document.createElement('span')
+        c.className = 'count'
+        c.textContent = n
+        b.appendChild(c)
+      }
+      b.onclick = () => { state.active = g.key; $('filter').value = ''; render() }
+      tabs.appendChild(b)
+    }
+  }
+
+  function renderList() {
+    const map = byId()
+    const list = $('list')
+    list.innerHTML = ''
+    const filter = $('filter').value.trim().toLowerCase()
+    const sel = state.selected[state.active] || (state.selected[state.active] = new Set())
+    const items = itemsOf(state.active).filter((e) => !filter || (e.label + ' ' + e.desc).toLowerCase().includes(filter))
+    if (!items.length) {
+      const empty = document.createElement('div')
+      empty.className = 'empty'
+      empty.textContent = 'Nothing matches.'
+      list.appendChild(empty)
+      return
+    }
+    for (const e of items) {
+      const li = document.createElement('li')
+      if (!buildable(e)) li.className = 'disabled'
+      const label = document.createElement('label')
+      const box = document.createElement('input')
+      box.type = 'checkbox'
+      box.disabled = !buildable(e) || state.busy
+      box.checked = sel.has(e.id)
+      box.onchange = () => { box.checked ? sel.add(e.id) : sel.delete(e.id); renderTabs(); renderFooter() }
+      const body = document.createElement('div')
+      const title = document.createElement('div')
+      title.className = 't'
+      title.textContent = e.label
+      if (!buildable(e)) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'no builder yet'; title.appendChild(t) }
+      if (e.missing && e.missing.length) { const t = document.createElement('span'); t.className = 'tag warn'; t.textContent = 'source moved'; t.title = e.missing.join('\n'); title.appendChild(t) }
+      const desc = document.createElement('div')
+      desc.className = 'd'
+      desc.textContent = e.desc
+      body.append(title, desc)
+      const meta = document.createElement('div')
+      meta.className = 'meta'
+      meta.textContent = (e.covers || []).map((p) => p.replace(/^apps\/web\/src\//, '')).join(' · ')
+      body.appendChild(meta)
+      const deps = dependencies(e, map).map((id) => map[id].label)
+      if (deps.length) {
+        const need = document.createElement('div')
+        need.className = 'meta'
+        need.textContent = 'Also builds if missing: ' + deps.join(', ')
+        body.appendChild(need)
+      }
+      label.append(box, body)
+      li.appendChild(label)
+      list.appendChild(li)
+    }
+  }
+
+  function renderFooter() {
+    const sel = state.selected[state.active] || new Set()
+    const group = state.groups.find((g) => g.key === state.active)
+    $('count').textContent = sel.size ? sel.size + ' selected in ' + group.label : 'Nothing selected in ' + group.label
+    $('import').disabled = state.busy || sel.size === 0
+    $('import').textContent = state.busy ? 'Importing…' : 'Import' + (sel.size ? ' ' + sel.size : '')
+  }
+
+  function render() {
+    renderTabs()
+    const group = state.groups.find((g) => g.key === state.active)
+    $('blurb').textContent = group.blurb
+    renderList()
+    renderFooter()
+  }
+
+  function log(text, kind) {
+    const line = document.createElement('div')
+    line.className = 'line ' + (kind || '')
+    line.textContent = text
+    const box = $('status')
+    box.appendChild(line)
+    box.scrollTop = box.scrollHeight
+  }
+
+  function setAll(on) {
+    const sel = state.selected[state.active] || (state.selected[state.active] = new Set())
+    const filter = $('filter').value.trim().toLowerCase()
+    for (const e of itemsOf(state.active)) {
+      if (!buildable(e) || (filter && !(e.label + ' ' + e.desc).toLowerCase().includes(filter))) continue
+      on ? sel.add(e.id) : sel.delete(e.id)
+    }
+    render()
+  }
+
+  function saveSettings() {
+    state.settings = { mode: $('mode').value, page: $('page').value, replace: $('replace').checked }
+    post({ type: 'settings', settings: state.settings })
+  }
+
+  $('all').onclick = () => setAll(true)
+  $('none').onclick = () => setAll(false)
+  $('filter').oninput = renderList
+  for (const id of ['mode', 'page', 'replace']) $(id).onchange = saveSettings
+  $('close').onclick = () => post({ type: 'close' })
+  $('import').onclick = () => {
+    const ids = [...(state.selected[state.active] || [])]
+    if (!ids.length) return
+    state.busy = true
+    $('status').innerHTML = ''
+    log('Starting…')
+    render()
+    post({ type: 'import', ids, settings: state.settings })
+  }
+
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage
+    if (!msg) return
+    if (msg.type === 'init') {
+      state.groups = msg.groups
+      state.catalogue = msg.catalogue
+      state.settings = msg.settings
+      $('title').textContent = msg.name
+      $('mode').value = msg.settings.mode
+      $('page').value = msg.settings.page
+      $('replace').checked = msg.settings.replace
+      render()
+    } else if (msg.type === 'progress') {
+      log(msg.text)
+    } else if (msg.type === 'done') {
+      state.busy = false
+      log('Imported ' + msg.built + ' of ' + msg.total + ' (' + msg.mode + ' theme).', 'ok')
+      for (const f of msg.failed) log('Failed: ' + f.label + ': ' + f.error, 'err')
+      for (const n of msg.notes) log(n, 'warn')
+      render()
+    } else if (msg.type === 'error') {
+      state.busy = false
+      log('Import failed: ' + msg.message, 'err')
+      render()
+    }
+  }
+
+  window.addEventListener('error', (e) => log('Panel error: ' + e.message, 'err'))
+  window.addEventListener('unhandledrejection', (e) => log('Panel error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason), 'err'))
+
+  // Ask for the list, and keep asking for a few seconds: a request sent before the plugin side is listening is lost.
+  let tries = 0
+  post({ type: 'ready' })
+  const retry = setInterval(() => {
+    if (state.groups.length) return clearInterval(retry)
+    if (++tries > 8) {
+      clearInterval(retry)
+      $('list').innerHTML = ''
+      const msg = document.createElement('div')
+      msg.className = 'empty'
+      msg.textContent = 'The plugin did not send its list. Open Plugins → Development → Open console in Figma and look for a red error.'
+      $('list').appendChild(msg)
+      return
+    }
+    post({ type: 'ready' })
+  }, 600)
+</script>
+</body>
+</html>
