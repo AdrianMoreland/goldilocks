@@ -9,6 +9,7 @@ import type {
     DbRowsResponse,
     DbTableSummary,
 } from '@goldilocks/shared-types';
+import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AuditLogService } from './audit-log.service';
@@ -181,11 +182,12 @@ export class DbBrowserService {
                VALUES (${placeholders.join(', ')}) RETURNING to_jsonb(t) AS row`
             : `INSERT INTO ${quote(table)} AS t DEFAULT VALUES RETURNING to_jsonb(t) AS row`;
 
-        const [{ row }] = await this.prisma.$queryRawUnsafe<{ row: Json }[]>(
-            sql,
-            ...params,
+        const [{ row }] = await this.audited(
+            table,
+            actor,
+            'inserted a row into',
+            (tx) => tx.$queryRawUnsafe<{ row: Json }[]>(sql, ...params),
         );
-        await this.afterWrite(table, actor, 'inserted a row into', row);
         return row;
     }
 
@@ -214,14 +216,13 @@ export class DbBrowserService {
         }
         const where = this.keyClause(columns, key, params);
 
-        const rows = await this.prisma.$queryRawUnsafe<{ row: Json }[]>(
-            `UPDATE ${quote(table)} AS t SET ${assignments.join(', ')}
-             WHERE ${where} RETURNING to_jsonb(t) AS row`,
-            ...params,
+        const rows = await this.audited(table, actor, 'edited a row in', (tx) =>
+            tx.$queryRawUnsafe<{ row: Json }[]>(
+                `UPDATE ${quote(table)} AS t SET ${assignments.join(', ')}
+                 WHERE ${where} RETURNING to_jsonb(t) AS row`,
+                ...params,
+            ),
         );
-        if (rows.length === 0) throw new NotFoundException('Row not found.');
-
-        await this.afterWrite(table, actor, 'edited a row in', rows[0].row);
         return rows[0].row;
     }
 
@@ -230,13 +231,12 @@ export class DbBrowserService {
         const params: (string | null)[] = [];
         const where = this.keyClause(columns, key, params);
 
-        const rows = await this.prisma.$queryRawUnsafe<{ row: Json }[]>(
-            `DELETE FROM ${quote(table)} AS t WHERE ${where} RETURNING to_jsonb(t) AS row`,
-            ...params,
+        await this.audited(table, actor, 'deleted a row from', (tx) =>
+            tx.$queryRawUnsafe<{ row: Json }[]>(
+                `DELETE FROM ${quote(table)} AS t WHERE ${where} RETURNING to_jsonb(t) AS row`,
+                ...params,
+            ),
         );
-        if (rows.length === 0) throw new NotFoundException('Row not found.');
-
-        await this.afterWrite(table, actor, 'deleted a row from', rows[0].row);
     }
 
     // ── internals ──────────────────────────────────────────────────────────
@@ -335,23 +335,38 @@ export class DbBrowserService {
             .join(' AND ');
     }
 
-    private async afterWrite(
+    /**
+     * Runs a write and its audit entry in one transaction, so a committed edit always has its entry
+     * (and a failed audit insert undoes the edit). The cache is cleared only after the commit,
+     * otherwise a rolled-back write would still have evicted good data.
+     */
+    private async audited(
         table: string,
         actor: string,
         verb: string,
-        row: Json,
-    ): Promise<void> {
+        write: (tx: Prisma.TransactionClient) => Promise<{ row: Json }[]>,
+    ): Promise<{ row: Json }[]> {
+        const rows = await this.prisma.$transaction(async (tx) => {
+            const written = await write(tx);
+            if (written.length === 0)
+                throw new NotFoundException('Row not found.');
+
+            const { row } = written[0];
+            const id = [row.id, row.sku, row.slug].find(
+                (v): v is string | number =>
+                    typeof v === 'string' || typeof v === 'number',
+            );
+            await this.audit.record(
+                actor,
+                'db',
+                `${verb} ${table}${id !== undefined ? ` (${id})` : ''}`,
+                tx,
+            );
+            return written;
+        });
+
         const cacheKeys = CACHE_KEYS_BY_TABLE[table];
         if (cacheKeys) await this.redis.del(...cacheKeys);
-
-        const id = [row.id, row.sku, row.slug].find(
-            (v): v is string | number =>
-                typeof v === 'string' || typeof v === 'number',
-        );
-        await this.audit.record(
-            actor,
-            'db',
-            `${verb} ${table}${id !== undefined ? ` (${id})` : ''}`,
-        );
+        return rows;
     }
 }
