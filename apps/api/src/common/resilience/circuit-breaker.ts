@@ -91,6 +91,8 @@ export class CircuitBreaker {
         isFailure: (result: T) => boolean = () => false,
     ): Promise<T> {
         const before = this.state;
+        // Only the trial call (or any call while closed) may change the state; see settle().
+        let isTrial = false;
         if (before === 'open') {
             throw new CircuitOpenError(
                 this.options.cooldownMs - (this.now() - (this.openedAt ?? 0)),
@@ -102,20 +104,34 @@ export class CircuitBreaker {
                 throw new CircuitOpenError(this.options.cooldownMs, this.what);
             }
             this.trialInFlight = true;
+            isTrial = true;
             this.report('half-open');
         }
 
         try {
             const result = await call();
-            if (isFailure(result)) this.recordFailure(before);
-            else this.recordSuccess();
+            this.settle(isFailure(result), before, isTrial);
             return result;
         } catch (error) {
-            this.recordFailure(before);
+            this.settle(true, before, isTrial);
             throw error;
         } finally {
-            this.trialInFlight = false;
+            // Only the trial owns this flag: a call that began while closed and finishes later must
+            // not clear it, or a second trial would be let through while the first is still running.
+            if (isTrial) this.trialInFlight = false;
         }
+    }
+
+    /**
+     * A call that started before the circuit opened can finish at any time. Its outcome describes the
+     * dependency as it was then, so it is ignored unless the circuit is closed now; otherwise a late
+     * success would close an open circuit, or a late failure would restart the cooldown. The trial
+     * call is the one result that is always allowed to decide.
+     */
+    private settle(failed: boolean, before: BreakerState, isTrial: boolean) {
+        if (!isTrial && this.openedAt !== null) return;
+        if (failed) this.recordFailure(before);
+        else this.recordSuccess();
     }
 
     private recordSuccess(): void {

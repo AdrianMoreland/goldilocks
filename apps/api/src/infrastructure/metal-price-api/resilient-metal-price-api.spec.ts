@@ -76,6 +76,20 @@ describe('ResilientMetalPriceApi', () => {
         expect(client.livePrices).toHaveBeenCalledTimes(3);
     });
 
+    it('does not open the circuit on success=false from calls with caller-chosen parameters', async () => {
+        const { api, client } = build();
+        const refused = { success: false, error: 'bad date' };
+        client.timeframePrices.mockResolvedValue(refused);
+        client.ohlcPrices.mockResolvedValue(refused);
+
+        for (let i = 0; i < 5; i++) {
+            await expect(api.timeframePrices('x', 'y')).resolves.toBe(refused);
+            await expect(api.ohlcPrices('x')).resolves.toBe(refused);
+        }
+        client.livePrices.mockResolvedValue({ success: true });
+        await expect(api.livePrices()).resolves.toEqual({ success: true });
+    });
+
     it('rejects a request that takes longer than ten seconds', async () => {
         jest.useFakeTimers();
         const { api, client } = build();
