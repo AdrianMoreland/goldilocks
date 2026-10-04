@@ -1,7 +1,6 @@
 import * as React from "react"
 import { ArrowLeftRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +14,7 @@ import { usePortfolioPL, usePortfolioScenario, usePortfolioBuilder } from "@/hoo
 import { formatEuro, formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { SectionLabel, ResultHighlight, ErrorBanner, SubtabRow } from "./tab-widgets"
+import { NumberInput } from "@/components/number-input"
 
 type PortfolioSubTab = "pl" | "scenario" | "builder"
 
@@ -71,12 +71,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
             <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                     <Label className="text-xs">Spot</Label>
-                    <Input
-                        type="number"
-                        step="0.01"
-                        value={pl.purchaseSpot ?? ""}
-                        onChange={(e) => pl.setPurchaseSpot(parseFloat(e.target.value) || 0)}
-                    />
+                    <NumberInput step="0.01" value={pl.purchaseSpot} onValueChange={pl.setPurchaseSpot} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
@@ -93,19 +88,9 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
                         </Button>
                     </div>
                     {pl.purchMode === "premium" ? (
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={pl.purchasePremium}
-                            onChange={(e) => pl.setPurchasePremium(Number(e.target.value))}
-                        />
+                        <NumberInput step="0.01" value={pl.purchasePremium} onValueChange={pl.setPurchasePremium} />
                     ) : (
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={pl.purchasePrice}
-                            onChange={(e) => pl.setPurchasePrice(Number(e.target.value))}
-                        />
+                        <NumberInput step="0.01" value={pl.purchasePrice} onValueChange={pl.setPurchasePrice} />
                     )}
                 </div>
             </div>
@@ -117,12 +102,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
                 </div>
                 <div className="flex flex-col gap-1">
                     <Label className="text-xs">Buyback (%)</Label>
-                    <Input
-                        type="number"
-                        step="0.01"
-                        value={pl.currentDiscount}
-                        onChange={(e) => pl.setCurrentDiscount(Number(e.target.value))}
-                    />
+                    <NumberInput step="0.01" value={pl.currentDiscount} onValueChange={pl.setCurrentDiscount} />
                 </div>
             </div>
 
@@ -148,12 +128,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
 
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Target profit (€)</Label>
-                <Input
-                    type="number"
-                    step="1"
-                    value={pl.targetProfit}
-                    onChange={(e) => pl.setTargetProfit(Number(e.target.value))}
-                />
+                <NumberInput step="1" value={pl.targetProfit} onValueChange={pl.setTargetProfit} />
             </div>
 
             <div className="flex items-center justify-between text-sm">
@@ -184,7 +159,7 @@ function ScenarioPanel({ metal }: { metal: MetalType }) {
         <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Portfolio value</Label>
-                <Input type="number" step="100" value={sc.value} onChange={(e) => sc.setValue(Number(e.target.value) || 0)} />
+                <NumberInput step="100" value={sc.value} onValueChange={sc.setValue} />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -207,7 +182,7 @@ function ScenarioPanel({ metal }: { metal: MetalType }) {
 
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Custom % change</Label>
-                <Input type="number" step="1" value={sc.pct} onChange={(e) => sc.setPct(Number(e.target.value) || 0)} />
+                <NumberInput step="1" value={sc.pct} onValueChange={sc.setPct} />
             </div>
 
             <Separator />
@@ -258,12 +233,7 @@ function BuilderPanel({ metal }: { metal: MetalType }) {
 
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Budget (€)</Label>
-                <Input
-                    type="number"
-                    step="100"
-                    value={builder.budget}
-                    onChange={(e) => builder.setBudget(Number(e.target.value) || 0)}
-                />
+                <NumberInput step="100" value={builder.budget} onValueChange={builder.setBudget} />
             </div>
 
             <div className="flex flex-col gap-1.5">

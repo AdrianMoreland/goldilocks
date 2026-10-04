@@ -5,12 +5,12 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { usePricingSettings, type MetalGroup, type GroupAdjustment, type MarketMode } from "../../context/pricing-settings-context"
 import { tabThemeStyle } from "./tab-theme"
 import { SectionLabel } from "./tab-widgets"
 import { useAuth } from "@/contexts/auth-context"
 import { AdminActions } from "@/app/admin/components/admin-actions"
+import { NumberInput } from "@/components/number-input"
 
 const MODE_INFO: { key: MarketMode; label: string; description: string }[] = [
     { key: "weekend", label: "Weekend", description: "Wider spread for closed markets" },
@@ -163,13 +163,7 @@ function PercentField({
         <div className="flex flex-col gap-1">
             {label && <span className="text-muted-foreground text-xs">{label}</span>}
             <div className="relative">
-                <Input
-                    type="number"
-                    step="0.01"
-                    value={Number((value * 100).toFixed(3))}
-                    onChange={(e) => onChange((Number(e.target.value) || 0) / 100)}
-                    className="h-8 pr-6 text-sm"
-                />
+                <NumberInput step="0.01" scale={100} value={value} onValueChange={onChange} className="h-8 pr-6 text-sm" />
                 <span className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs">%</span>
             </div>
         </div>
