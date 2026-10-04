@@ -50,6 +50,10 @@ interface ColumnRow {
     is_pk: boolean;
 }
 
+// Identifiers cannot be bound parameters, so they are quoted instead. This is safe only because every
+// name reaching it came out of the Postgres catalogue (a request value is looked up there first, see
+// columnsOf), and doubling the quote character leaves no way to close the quoted identifier early.
+// The spec feeds it hostile names to keep that true.
 const quote = (identifier: string) => `"${identifier.replace(/"/g, '""')}"`;
 
 /** Everything is sent as text and cast server-side, so one code path covers numeric, enum, timestamptz and jsonb columns. */
