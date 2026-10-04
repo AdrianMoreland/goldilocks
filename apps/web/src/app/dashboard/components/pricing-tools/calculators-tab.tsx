@@ -4,13 +4,13 @@ import {
     ArrowLeftRight, ArrowRight, ChevronDown, CircleX, Divide, Percent as PercentIcon,
     TrendingDown, TrendingUp, type LucideIcon,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { formatEuro, formatPercent } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 import { ResultHighlight, SectionLabel, SubtabRow } from "./tab-widgets"
 import { cn } from "@/lib/utils"
+import { NumberInput, useNumberField } from "@/components/number-input"
 
 type CalcSubTab = "percentage" | "weight" | "cgt" | "vat"
 
@@ -200,15 +200,14 @@ function ModeListItem({ info, active, onClick }: { info: ModeInfo; active: boole
 
 /** A label + rounded "pill" input with an inline clear button, and an optional unit suffix outside the pill. */
 function PillField({ label, value, onChange, suffix }: { label: string; value: number; onChange: (value: number) => void; suffix?: string }) {
+    const numberField = useNumberField({ value, onValueChange: onChange })
     return (
         <div className="flex items-center gap-3">
             <Label className="text-muted-foreground w-28 shrink-0 text-sm font-normal">{label}</Label>
             <div className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-3 py-2">
                 <input
-                    type="number"
                     step="any"
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value) || 0)}
+                    {...numberField}
                     className="w-full min-w-0 bg-transparent text-right text-base font-semibold outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
@@ -414,13 +413,7 @@ function WeightField({
     return (
         <div className="flex flex-col gap-1">
             <Label className="text-xs">{label}</Label>
-            <Input
-                type="number"
-                step="any"
-                value={Number.isFinite(value) ? Number(value.toFixed(6)) : 0}
-                onChange={(e) => onChange(Number(e.target.value))}
-                className="h-8 text-sm"
-            />
+            <NumberInput step="any" value={value} onValueChange={onChange} className="h-8 text-sm" />
         </div>
     )
 }
@@ -458,7 +451,7 @@ function CgtPanel() {
 
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">CGT rate (%)</Label>
-                <Input type="number" step="0.1" value={rate} onChange={(e) => setRate(Number(e.target.value) || 0)} />
+                <NumberInput step="0.1" value={rate} onValueChange={setRate} />
             </div>
 
             <Separator />
@@ -530,7 +523,7 @@ function TaxNumberField({
     return (
         <div className="flex flex-col gap-1">
             <Label className="text-xs">{label}</Label>
-            <Input type="number" step={step} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />
+            <NumberInput step={step} value={value} onValueChange={onChange} />
         </div>
     )
 }
