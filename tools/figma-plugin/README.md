@@ -1,0 +1,73 @@
+# Figma plugin: Merrion Gold design system
+
+A local Figma development plugin that builds the design system into a Figma file from `DESIGN.md` and the web app's
+source. It needs no API quota and no paid plan. Run it and a panel opens with five lists; tick what you want and press
+**Import**.
+
+| List | What it brings in |
+|---|---|
+| **Variables** | Colors (light and dark), Typography, Radius, Spacing, drawn as reference frames |
+| **Molecules** | Everything in `apps/web/src/components/ui`: button, badge, input, checkbox, switch, tabs, card, table, dialog, select, command, calendar ... as Figma components with their variants |
+| **Components** | Logo, app sidebar, site header, user menu, command search, generic form, admin panel |
+| **Blocks** | Spot price card, spot chart, product table (8 sample rows), filter bar, market mode banner, price freshness, trade tab, melt calculator, pricing tools panel, sign-in form, system health, add and delete product dialogs |
+| **Layouts** | Sign-in page, Dashboard, Admin console, assembled from instances of the components and blocks |
+
+## Use
+
+```bash
+pnpm --filter @goldilocks/shared-types build   # only if packages/shared-types/dist is missing
+pnpm figma:build                               # writes tools/figma-plugin/dist/
+```
+
+In the Figma **desktop app**, open a design file, then *Plugins → Development → Import plugin from manifest…* and pick
+`tools/figma-plugin/manifest.json`. Run it from *Plugins → Development → Merrion Gold design system*. Re-run
+`pnpm figma:build` after changing `DESIGN.md` or any builder, then run the plugin again.
+
+## How it stays tied to the code
+
+- **Tokens** come from the front matter of `DESIGN.md`, read with the same parser the Design tab uses. Variables and text
+  styles are always created or updated first, and everything else binds to them, so recolouring a variable in Figma
+  restyles every component.
+- **The list is checked against the repo at build time.** Each entry in `src/catalogue.mjs` names the source files it is
+  drawn from. `pnpm figma:build` flags an entry whose file has moved, and lists any file in `components/ui` that no entry
+  covers (shown in the panel as "no builder yet").
+- **Icons and the logo** are read from `lucide-react` and `components/logo.tsx`, so they match the app.
+- **Builders** (`src/molecules.js`, `components.js`, `blocks.js`, `layouts.js`) are hand-written from the Tailwind classes
+  in the components. They are a faithful drawing of the code, not an automatic conversion, so when a component's markup
+  changes, update its builder.
+
+## Behaviour worth knowing
+
+- **Safe to re-run.** Collections, variables and text styles are matched by name and updated. An item imported before is
+  replaced in place (the setting can be turned off). Frames are named `Merrion · <group> / <item>`; nothing else on the
+  page is touched. A failed item is removed so it never leaves half-built layers.
+- **Layouts build their own dependencies.** Importing only the Dashboard also builds the sidebar, header, spot cards,
+  chart, table and tools panel it uses, if they are not in the file yet.
+- **Replacing a component** deletes the old main component, so instances of it elsewhere in the file detach. Re-import
+  the layouts after re-importing a component they use.
+- **Theme.** The panel setting picks Light or Dark colour mode for what you import now. Components keep the mode they
+  were built in on plans without multiple variable modes.
+- **Free plan.** Figma's free plan allows one mode per variable collection. If adding a Dark mode is refused, dark values
+  go into a second `Colors (Dark)` collection and the panel says so. The free plan also limits pages per file; if a
+  `Design system` page cannot be added, items go on the current page.
+- **Fonts.** The family comes from the tokens (Inter). A missing weight falls back to the nearest one and is reported.
+- **Not carried over.** Tabular figures (`tnum`), hover and focus states, animations, and anything driven by live data.
+  Sample values are placeholders.
+- **Role mapping.** The light and dark role assignments in `build.mjs` mirror `buildPalette()` in
+  `apps/web/src/app/project/design/palette.ts` and the Colors section of `DESIGN.md`. Change them in both places.
+
+## Layout of this folder
+
+```
+build.mjs            reads DESIGN.md + source, checks the catalogue, writes dist/code.js and dist/ui.html
+manifest.json        the Figma plugin manifest (main: dist/code.js, ui: dist/ui.html)
+src/catalogue.mjs    what the panel lists, and the source files each entry covers
+src/ui.html          the panel
+src/core.js          drawing helpers: F (frame), T (text), I (icon), variantSet, use (instance), place
+src/variables.js     variable collections, text styles, reference frames
+src/molecules.js     components/ui
+src/components.js    shared composed components
+src/blocks.js        feature blocks with sample data
+src/layouts.js       full pages
+src/main.js          panel messages and the import loop
+```
