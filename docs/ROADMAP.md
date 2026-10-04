@@ -149,7 +149,7 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
   - [ ] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
   - [ ] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
   - [ ] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
-  - *(started: edits made in the admin Database tab are logged with the admin's email in Redis, capped at 500 and without old → new values. Product, premium and role changes through the normal screens are not logged yet)*
+  - *(started: the `audit_log` table and a shared `AuditLogService.record(…, tx)` exist, and the admin Database tab, market mode and roadmap edits write their entry inside the same `$transaction` as the change; the Audit tab reads the table and the Redis list is gone. Still to do: pass `tx` from `ProductsService`, KB status/edit (still logger-only), user creation and role changes; old → new values for product and premium edits; apply the migration to the live database)*
 - [ ] Per-user admin trail (no blanket admin flag) — part of the audit log
 - [ ] Supabase RLS reviewed — S
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders — S
