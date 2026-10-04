@@ -1,10 +1,12 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import {StrictMode} from 'react'
+import {createRoot} from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import { ErrorBoundary } from '@/components/error-boundary'
-import { recordClientError } from '@/lib/error-log'
+import {ErrorBoundary} from '@/components/error-boundary'
+import {recordClientError} from '@/lib/error-log'
+import {DevSupport} from "@react-buddy/ide-toolbox";
+import {ComponentPreviews, useInitial} from "@/dev";
 
 // Anything that escapes React (event handlers, timers, unawaited promises)
 // goes to the error log too. ApiErrors are skipped: useApi already logged
@@ -43,7 +45,11 @@ createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
-                <App />
+                <DevSupport ComponentPreviews={ComponentPreviews}
+                            useInitialHook={useInitial}
+                >
+                    <App/>
+                </DevSupport>
             </QueryClientProvider>
         </ErrorBoundary>
     </StrictMode>,
