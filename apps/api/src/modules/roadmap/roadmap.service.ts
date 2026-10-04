@@ -79,7 +79,7 @@ export class RoadmapService {
         const current = await this.get();
         if (current.version === 0) {
             throw new NotFoundException(
-                'The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import`.',
+                'The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import --apply`.',
             );
         }
         if (request.version !== current.version) {
@@ -98,7 +98,7 @@ export class RoadmapService {
                 normalizeRoadmap(current.markdown)
         ) {
             throw new ConflictException(
-                'docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins), then retry.',
+                'docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins) to see the differences, add `--apply` to overwrite, then retry.',
             );
         }
 
