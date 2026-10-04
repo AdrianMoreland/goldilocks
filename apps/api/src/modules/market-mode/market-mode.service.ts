@@ -50,7 +50,6 @@ export class MarketModeService {
         next: UpdateMarketModeRequest,
         actor: { firstName: string; lastName: string; email: string },
     ): Promise<MarketModeState> {
-        const before = await this.get();
         const name =
             `${actor.firstName} ${actor.lastName}`.trim() || actor.email;
         const data = {
@@ -59,16 +58,25 @@ export class MarketModeService {
             shortage: next.shortage,
             updatedBy: name,
         };
-        const row = await this.prisma.marketModeState.upsert({
-            where: { id: ROW_ID },
-            create: { id: ROW_ID, ...data },
-            update: data,
+        // Read, write and audit share one transaction so the "before" in the entry is the state
+        // that was actually replaced, and no change exists without its entry.
+        const row = await this.prisma.$transaction(async (tx) => {
+            const previous = await tx.marketModeState.findUnique({
+                where: { id: ROW_ID },
+            });
+            const saved = await tx.marketModeState.upsert({
+                where: { id: ROW_ID },
+                create: { id: ROW_ID, ...data },
+                update: data,
+            });
+            await this.audit.record(
+                actor.email,
+                'market-mode',
+                `${label(previous ?? STANDARD)} → ${label(next)}`,
+                tx,
+            );
+            return saved;
         });
-        await this.audit.record(
-            actor.email,
-            'market-mode',
-            `${label(before)} → ${label(next)}`,
-        );
         return {
             weekend: row.weekend,
             volatile: row.volatile,

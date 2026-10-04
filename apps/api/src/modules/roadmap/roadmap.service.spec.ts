@@ -29,6 +29,7 @@ describe('RoadmapService', () => {
             create: jest.fn(),
             updateMany: jest.fn(),
         },
+        $transaction: jest.fn(),
     };
     const audit = { record: jest.fn() };
     const actor = { email: 'boss@example.com' };
@@ -44,6 +45,9 @@ describe('RoadmapService', () => {
 
     beforeEach(async () => {
         jest.resetAllMocks();
+        prisma.$transaction.mockImplementation(
+            (run: (tx: unknown) => unknown) => run(prisma),
+        );
         (file.roadmapFilePath as jest.Mock).mockReturnValue(null);
         const module = await Test.createTestingModule({
             providers: [
@@ -89,6 +93,7 @@ describe('RoadmapService', () => {
             'boss@example.com',
             'roadmap',
             'check: First task',
+            prisma,
         );
     });
 

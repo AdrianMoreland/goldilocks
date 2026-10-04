@@ -16,9 +16,12 @@ function build(row: Record<string, unknown> | null) {
             upsert,
         },
     };
+    Object.assign(prisma, {
+        $transaction: (run: (tx: unknown) => unknown) => run(prisma),
+    });
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new MarketModeService(prisma as never, audit as never);
-    return { service, upsert, audit };
+    return { service, upsert, audit, prisma };
 }
 
 describe('MarketModeService', () => {
@@ -53,7 +56,7 @@ describe('MarketModeService', () => {
     });
 
     it('stores the new mode against the actor and audits the change', async () => {
-        const { service, upsert, audit } = build(null);
+        const { service, upsert, audit, prisma } = build(null);
 
         const state = await service.set(
             { weekend: false, volatile: true, shortage: false },
@@ -75,6 +78,7 @@ describe('MarketModeService', () => {
             'ann@example.com',
             'market-mode',
             'standard → volatile',
+            prisma,
         );
     });
 });
