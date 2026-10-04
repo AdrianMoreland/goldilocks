@@ -468,7 +468,11 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             )
                 .send({ stock_quantity: 7 })
                 .expect(200);
-            expect(productsService.updateStock).toHaveBeenCalledWith(1, 7);
+            expect(productsService.updateStock).toHaveBeenCalledWith(
+                1,
+                7,
+                'boss@example.com',
+            );
         });
     });
 });

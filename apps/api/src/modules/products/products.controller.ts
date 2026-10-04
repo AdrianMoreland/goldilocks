@@ -8,6 +8,7 @@ import {
     UseGuards,
     Delete,
     ParseIntPipe,
+    Req,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -16,7 +17,10 @@ import {
     ApiResponse,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import {
+    JwtAuthGuard,
+    type RequestWithUser,
+} from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
@@ -64,8 +68,11 @@ export class ProductsController {
     @Roles('admin')
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Create a product (admin)' })
-    async createProduct(@Body() body: CreateProductDto) {
-        return this.service.create(body);
+    async createProduct(
+        @Body() body: CreateProductDto,
+        @Req() req: RequestWithUser,
+    ) {
+        return this.service.create(body, req.user.email);
     }
 
     @Patch('admin/products/:id')
@@ -76,8 +83,9 @@ export class ProductsController {
     async updateProduct(
         @Param('id', ParseIntPipe) id: number,
         @Body() body: UpdateProductDto,
+        @Req() req: RequestWithUser,
     ) {
-        return this.service.update(id, body);
+        return this.service.update(id, body, req.user.email);
     }
 
     // Was guarded by JwtAuthGuard only — any signed-in user could change
@@ -90,8 +98,13 @@ export class ProductsController {
     async updateStock(
         @Param('id', ParseIntPipe) id: number,
         @Body() body: UpdateStockRequestDto,
+        @Req() req: RequestWithUser,
     ) {
-        return this.service.updateStock(id, body.stock_quantity);
+        return this.service.updateStock(
+            id,
+            body.stock_quantity,
+            req.user.email,
+        );
     }
 
     @Get('admin/products/deleted')
@@ -108,8 +121,11 @@ export class ProductsController {
     @Roles('admin')
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Restore a soft-deleted product (admin)' })
-    async restore(@Param('id', ParseIntPipe) id: number) {
-        return this.service.restore(id);
+    async restore(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: RequestWithUser,
+    ) {
+        return this.service.restore(id, req.user.email);
     }
 
     @ApiOperation({
@@ -120,11 +136,14 @@ export class ProductsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
     @ApiBearerAuth()
-    async delete(@Param('id', ParseIntPipe) id: number) {
+    async delete(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: RequestWithUser,
+    ) {
         // service.delete() already throws NotFoundException for a missing
         // product, and the global PrismaExceptionFilter handles any raw
         // Prisma error — nothing left for this handler to catch.
-        await this.service.delete(id);
+        await this.service.delete(id, req.user.email);
         return { message: `Product ${id} deleted` };
     }
 }
