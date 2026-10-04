@@ -145,11 +145,11 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [x] CORS from `FRONTEND_URL` env, not hardcoded — S
 - [x] 🔴 Helmet security headers — S *(`helmet()`; CSP dropped only while Swagger is on; needs `TRUST_PROXY_HOPS` correct behind Railway — verify after deploy)*
 - [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check — S
-- [ ] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
-  - [ ] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
-  - [ ] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
-  - [ ] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
-  - *(started: the `audit_log` table and a shared `AuditLogService.record(…, tx)` exist, and the admin Database tab, market mode and roadmap edits write their entry inside the same `$transaction` as the change; the Audit tab reads the table and the Redis list is gone. Still to do: pass `tx` from `ProductsService`, KB status/edit (still logger-only), user creation and role changes; old → new values for product and premium edits; apply the migration to the live database)*
+- [x] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
+  - [x] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
+  - [x] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
+  - [x] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
+  - *(done: `audit_log` table and `AuditLogService.record(…, tx)`. Product create/edit/stock/delete/restore (old → new per field), market mode, roadmap edits, SOP edit and status changes, user creation and the admin Database tab all write their entry in the same `$transaction`; the cache is refreshed after the commit. `createUser` cannot join its identity call to a transaction, so the User row and its entry commit together and a failure deletes the identity (commented in the code). Not covered because they do not exist yet: role changes (no endpoint) and branches (0.8) — add `record(…, tx)` when they are built.)*
 - [ ] Per-user admin trail (no blanket admin flag) — part of the audit log
 - [ ] Supabase RLS reviewed — S
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders — S
@@ -159,7 +159,7 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 
 - [ ] Move the 10-min price fetch to a BullMQ repeatable job — M
 - [ ] ⚪ Conditional: push updates over SSE with Redis pub/sub fan-out — M ← only when a second replica is planned or Phase 2 needs push *(spot polling in 0.3/0.13 is the default until then)*
-- [ ] Remove shared in-memory state (multi-instance safe) — M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; the audit-log memory fallback)*
+- [ ] Remove shared in-memory state (multi-instance safe) — M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; ~~the audit-log memory fallback~~ gone with the Redis audit list)*
 - [ ] Prove the Redis-down path: a test that simulates an outage and asserts every `CacheAsideStore.get` falls through to the source — S
 - [x] Pino structured logging + request IDs; log cache hit/miss, DB fallback, external call + duration — S *(`nestjs-pino`: JSON in production, request lines with duration, secrets redacted, an in-memory tail in the admin Logs tab. Request IDs are generated but not yet written to the log line)*
 - [ ] 🟠 Sentry on API and web; breadcrumbs on the pricing cascade — S
