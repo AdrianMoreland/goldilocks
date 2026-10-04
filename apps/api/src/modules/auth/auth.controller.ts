@@ -78,7 +78,8 @@ export class AuthController {
     @ApiOperation({ summary: 'Create a new staff account (admin)' })
     async createUser(
         @Body() body: CreateUserRequestDto,
+        @Req() req: RequestWithUser,
     ): Promise<SessionUserDto> {
-        return this.authService.createUser(body);
+        return this.authService.createUser(body, req.user.email);
     }
 }
