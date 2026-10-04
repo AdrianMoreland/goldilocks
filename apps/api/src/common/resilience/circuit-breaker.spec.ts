@@ -138,4 +138,51 @@ describe('withTimeout', () => {
             withTimeout(Promise.reject(new Error('boom')), 1000, 'Request'),
         ).rejects.toThrow('boom');
     });
+
+    describe('calls that were already in flight when the circuit opened', () => {
+        const deferred = () => {
+            let resolve!: (v: { success: boolean }) => void;
+            const promise = new Promise<{ success: boolean }>((r) => {
+                resolve = r;
+            });
+            return { promise, resolve };
+        };
+
+        it('a late success does not close an open circuit', async () => {
+            const { breaker } = build();
+            const slow = deferred();
+            const pending = breaker.run(() => slow.promise);
+
+            for (let i = 0; i < 3; i++) {
+                await expect(breaker.run(fail)).rejects.toThrow();
+            }
+            expect(breaker.state).toBe('open');
+
+            slow.resolve({ success: true });
+            await pending;
+            expect(breaker.state).toBe('open');
+        });
+
+        it('a closed-state call finishing during the trial does not admit a second trial', async () => {
+            const { breaker, advance } = build();
+            const slow = deferred();
+            const pending = breaker.run(() => slow.promise);
+            for (let i = 0; i < 3; i++) {
+                await expect(breaker.run(fail)).rejects.toThrow();
+            }
+            advance(60_000);
+
+            const trial = deferred();
+            const trialRun = breaker.run(() => trial.promise);
+            slow.resolve({ success: true });
+            await pending;
+
+            await expect(breaker.run(succeed)).rejects.toBeInstanceOf(
+                CircuitOpenError,
+            );
+            trial.resolve({ success: true });
+            await trialRun;
+            expect(breaker.state).toBe('closed');
+        });
+    });
 });
