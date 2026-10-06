@@ -121,13 +121,7 @@
                 16
               ],
               "fillW": true,
-              "fill": {
-                "mix": [
-                  "price",
-                  12,
-                  "background"
-                ]
-              },
+              "fill": "muted",
               "stroke": "border",
               "radius": "lg",
               "align": "center",
