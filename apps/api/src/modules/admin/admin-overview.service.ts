@@ -4,7 +4,7 @@ import type { AdminOverview } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { ErrorLogService } from '../error-log/error-log.service';
 import { DbBrowserService } from './db-browser.service';
-import { RequestMetricsService } from './request-metrics.service';
+import { RequestMetricsService } from '../request-metrics/request-metrics.service';
 import { SystemHealthService } from './system-health.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -36,7 +36,7 @@ import {
 import { AppLogsService } from './app-logs.service';
 import { AdminOverviewService } from './admin-overview.service';
 import { ApiCatalogueService } from './api-catalogue.service';
-import { AuditLogService } from './audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { DbBrowserService } from './db-browser.service';
 
 /** The admin console API. Class-level guards: every route here needs an admin, and a new route can't forget it. */

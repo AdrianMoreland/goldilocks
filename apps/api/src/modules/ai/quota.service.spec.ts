@@ -1,5 +1,5 @@
 import { HttpException, ServiceUnavailableException } from '@nestjs/common';
-import type { RedisService } from '../../redis/redis.service';
+import type { RedisService } from '../../infrastructure/redis/redis.service';
 import type { AiSettings } from './ai.settings';
 import { QuotaService } from './quota.service';
 

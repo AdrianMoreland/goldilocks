@@ -11,10 +11,10 @@ import { AppController } from '../../app.controller';
 import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
 import { ApiCatalogueService } from '../../modules/admin/api-catalogue.service';
-import { AuditLogService } from '../../modules/admin/audit-log.service';
+import { AuditLogService } from '../../modules/audit-log/audit-log.service';
 import { AppLogsService } from '../../modules/admin/app-logs.service';
 import { DbBrowserService } from '../../modules/admin/db-browser.service';
-import { RequestMetricsService } from '../../modules/admin/request-metrics.service';
+import { RequestMetricsService } from '../../modules/request-metrics/request-metrics.service';
 import { AppService } from '../../app.service';
 import { AuthController } from '../../modules/auth/auth.controller';
 import { AuthService } from '../../modules/auth/auth.service';
@@ -468,7 +468,11 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             )
                 .send({ stock_quantity: 7 })
                 .expect(200);
-            expect(productsService.updateStock).toHaveBeenCalledWith(1, 7);
+            expect(productsService.updateStock).toHaveBeenCalledWith(
+                1,
+                7,
+                'boss@example.com',
+            );
         });
     });
 });

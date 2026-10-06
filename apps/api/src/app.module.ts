@@ -20,7 +20,7 @@ import { BranchesModule } from './modules/branches/branches.module';
 import { MarketModeModule } from './modules/market-mode/market-mode.module';
 import { RoadmapModule } from './modules/roadmap/roadmap.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
-import { RedisModule } from './redis/redis.module';
+import { RedisModule } from './infrastructure/redis/redis.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ErrorLogModule } from './modules/error-log/error-log.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';

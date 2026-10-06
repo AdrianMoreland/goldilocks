@@ -1,0 +1,1554 @@
+{
+  "schema": 1,
+  "kind": "merrion-library",
+  "exportedAt": "2026-10-06T15:16:13.375Z",
+  "source": {
+    "file": "Untitled",
+    "page": "Design system"
+  },
+  "components": [
+    {
+      "id": "blocks/add-product-dialog",
+      "name": "Dialog",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "title",
+        "description",
+        "Name",
+        "value",
+        "SKU",
+        "value",
+        "Type",
+        "value",
+        "Metal",
+        "value",
+        "Weight (g)",
+        "value",
+        "Stock",
+        "value",
+        "Premium % (Price)",
+        "value",
+        "Discount % (Buyback)",
+        "value",
+        "VAT %",
+        "value",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 520,
+        "h": 502
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/table/add-product-dialog.tsx",
+        "apps/web/src/app/dashboard/components/table/product-form.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/delete-product-dialog",
+      "name": "Dialog",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "title",
+        "description",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 460,
+        "h": 188
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/table/delete-product-dialog.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/freshness-indicator",
+      "name": "Price freshness",
+      "type": "set",
+      "variants": {
+        "state": [
+          "live",
+          "cached",
+          "stale"
+        ]
+      },
+      "texts": [
+        "Live · 14:02:31"
+      ],
+      "size": {
+        "w": 103,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/data-freshness-indicator.tsx",
+        "apps/web/src/app/dashboard/components/stale-prices-notice.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/market-mode-banner",
+      "name": "Market mode banner",
+      "type": "set",
+      "variants": {
+        "mode": [
+          "weekend",
+          "volatile",
+          "shortage"
+        ]
+      },
+      "texts": [
+        "WEEKEND MODE ON",
+        "— Trade quotes use adjusted premiums/dis",
+        "Change"
+      ],
+      "size": {
+        "w": 1184,
+        "h": 32
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/market-mode-banner.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/melt-calculator",
+      "name": "Melt calculator",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Weight (g)",
+        "value",
+        "Category",
+        "Jewellery 9ct",
+        "Gold spot price",
+        "value",
+        "Reset",
+        "Follows the Gold card. Type a price to d",
+        "RESULTS",
+        "Spot per gram",
+        "€103.16",
+        "Market value",
+        "€2,579.00",
+        "Estimated payout",
+        "€1,030"
+      ],
+      "size": {
+        "w": 384,
+        "h": 462
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/pricing-tools/trade-tab.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/product-filter-bar",
+      "name": "Product filter bar",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Search name or SKU… (/)",
+        "Type",
+        "Price",
+        "label"
+      ],
+      "size": {
+        "w": 960,
+        "h": 32
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/table/product-filter-bar.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/product-table",
+      "name": "Product table",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "name",
+        "marketValue",
+        "priceSell",
+        "spreadSell",
+        "priceBuy",
+        "spreadBuy",
+        "priceSellVatExcl",
+        "weight",
+        "BARS",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "COINS",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight",
+        "name",
+        "marketValue",
+        "priceSell",
+        "label",
+        "priceBuy",
+        "label",
+        "priceSellVatExcl",
+        "weight"
+      ],
+      "size": {
+        "w": 969,
+        "h": 390
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/table/product-table-body.tsx",
+        "apps/web/src/app/dashboard/components/table/product-columns.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/sign-in-form",
+      "name": "Sign-in form",
+      "type": "set",
+      "variants": {
+        "state": [
+          "default",
+          "error",
+          "submitting"
+        ]
+      },
+      "texts": [
+        "Merrion Gold Pricing Workbook",
+        "Sign in with your staff account",
+        "Label",
+        "value",
+        "Label",
+        "value",
+        "label"
+      ],
+      "size": {
+        "w": 384,
+        "h": 316
+      },
+      "source": [
+        "apps/web/src/app/auth/sign-in/components/login-form-1.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/spot-card",
+      "name": "Spot price card",
+      "type": "set",
+      "variants": {
+        "metal": [
+          "Gold",
+          "Silver",
+          "Platinum",
+          "Palladium"
+        ],
+        "state": [
+          "normal",
+          "active",
+          "frozen"
+        ]
+      },
+      "texts": [
+        "Gold",
+        "price",
+        "+€12.40",
+        "+0.39%"
+      ],
+      "size": {
+        "w": 268,
+        "h": 106
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/section-cards.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/spot-chart",
+      "name": "Spot price chart",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Spot price history",
+        "label",
+        "label",
+        "1W",
+        "1M",
+        "3M",
+        "1Y",
+        "01 Sep",
+        "08 Sep",
+        "15 Sep",
+        "22 Sep",
+        "29 Sep",
+        "06 Oct"
+      ],
+      "size": {
+        "w": 840,
+        "h": 246
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/chart-area-interactive.tsx",
+        "apps/web/src/components/ui/chart.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "blocks/system-health",
+      "name": "System health",
+      "type": "set",
+      "variants": {
+        "state": [
+          "normal",
+          "attention",
+          "down"
+        ]
+      },
+      "texts": [
+        "System health",
+        "production · API up 3d 4h · Node 22.11.0",
+        "All systems normal",
+        "Database",
+        "· Up",
+        "Query took 12 ms",
+        "Redis",
+        "· Up",
+        "3 ms round trip",
+        "Memory",
+        "· Up",
+        "214 MB of 1,024 MB heap",
+        "Price feed",
+        "· Up",
+        "Last fetch 4 min ago"
+      ],
+      "size": {
+        "w": 720,
+        "h": 202
+      },
+      "source": [
+        "apps/web/src/app/admin/components/overview/health-panel.tsx"
+      ],
+      "needs": [
+        "components/admin-panel"
+      ]
+    },
+    {
+      "id": "blocks/tools-panel",
+      "name": "Pricing tools panel",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Pricing Tools",
+        "Gold",
+        "Product",
+        "Trade",
+        "Portfolio",
+        "Calculators",
+        "Price",
+        "Buyback",
+        "Melt",
+        "Gold spot price",
+        "value",
+        "Reset",
+        "Follows the Gold card. Type a price to d",
+        "Items",
+        "1 oz Gold Britannia",
+        "2",
+        "5.10",
+        "1/2 oz Gold Krugerrand",
+        "4",
+        "7.70",
+        "Add item",
+        "RESULTS",
+        "2 × 1 oz Gold Britannia",
+        "62.2 g · 5.10%",
+        "€6,744",
+        "4 × 1/2 oz Gold Krugerrand",
+        "62.4 g · 7.70%",
+        "€6,912",
+        "Total weight",
+        "124.6 g",
+        "Avg €/g",
+        "€109.4",
+        "Total price to customer",
+        "€13,656",
+        "Easy Copy",
+        "Customer message"
+      ],
+      "size": {
+        "w": 384,
+        "h": 820
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/pricing-tools/pricing-tools-panel.tsx"
+      ],
+      "needs": [
+        "blocks/trade-tab"
+      ]
+    },
+    {
+      "id": "blocks/trade-tab",
+      "name": "Trade tab",
+      "type": "set",
+      "variants": {
+        "side": [
+          "price",
+          "buyback"
+        ]
+      },
+      "texts": [
+        "Price",
+        "Buyback",
+        "Melt",
+        "Gold spot price",
+        "value",
+        "Reset",
+        "Follows the Gold card. Type a price to d",
+        "Items",
+        "1 oz Gold Britannia",
+        "2",
+        "5.10",
+        "1/2 oz Gold Krugerrand",
+        "4",
+        "7.70",
+        "Add item",
+        "RESULTS",
+        "2 × 1 oz Gold Britannia",
+        "62.2 g · 5.10%",
+        "€6,744",
+        "4 × 1/2 oz Gold Krugerrand",
+        "62.4 g · 7.70%",
+        "€6,912",
+        "Total weight",
+        "124.6 g",
+        "Avg €/g",
+        "€109.4",
+        "Total price to customer",
+        "€13,656",
+        "Easy Copy",
+        "Customer message"
+      ],
+      "size": {
+        "w": 384,
+        "h": 721
+      },
+      "source": [
+        "apps/web/src/app/dashboard/components/pricing-tools/trade-tab.tsx",
+        "apps/web/src/app/dashboard/components/pricing-tools/tab-widgets.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/admin-panel",
+      "name": "Panel",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Panel title",
+        "A short description of what the panel sh",
+        "Content goes here."
+      ],
+      "size": {
+        "w": 520,
+        "h": 104
+      },
+      "source": [
+        "apps/web/src/app/admin/components/panel.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/admin-panel-stat",
+      "name": "Stat",
+      "type": "set",
+      "variants": {
+        "tone": [
+          "normal",
+          "warn",
+          "bad"
+        ]
+      },
+      "texts": [
+        "Requests (24h)",
+        "1,284"
+      ],
+      "size": {
+        "w": 87,
+        "h": 42
+      },
+      "source": [],
+      "needs": []
+    },
+    {
+      "id": "components/app-sidebar",
+      "name": "App sidebar",
+      "type": "set",
+      "variants": {
+        "role": [
+          "staff",
+          "admin"
+        ],
+        "page": [
+          "workbook",
+          "admin"
+        ]
+      },
+      "texts": [
+        "Merrion Gold",
+        "Pricing Workbook",
+        "Navigation",
+        "label",
+        "label",
+        "Adrian Moreland",
+        "adrian@merrion.ie"
+      ],
+      "size": {
+        "w": 256,
+        "h": 820
+      },
+      "source": [
+        "apps/web/src/components/app-sidebar.tsx",
+        "apps/web/src/components/nav-main.tsx",
+        "apps/web/src/components/nav-secondary.tsx",
+        "apps/web/src/components/ui/sidebar.tsx"
+      ],
+      "needs": [
+        "components/logo"
+      ]
+    },
+    {
+      "id": "components/command-search",
+      "name": "SearchTrigger",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Search...",
+        "⌘K"
+      ],
+      "size": {
+        "w": 224,
+        "h": 32
+      },
+      "source": [
+        "apps/web/src/components/command-search.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/form",
+      "name": "Form",
+      "type": "set",
+      "variants": {
+        "state": [
+          "default",
+          "error"
+        ]
+      },
+      "texts": [
+        "Label",
+        "value",
+        "Label",
+        "value",
+        "At least 8 characters.",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 360,
+        "h": 220
+      },
+      "source": [
+        "apps/web/src/components/ui/form.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/logo",
+      "name": "Logo",
+      "type": "set",
+      "variants": {
+        "size": [
+          "sm",
+          "default",
+          "lg"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 24,
+        "h": 24
+      },
+      "source": [
+        "apps/web/src/components/logo.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/nav-user",
+      "name": "NavUser",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Adrian Moreland",
+        "adrian@merrion.ie"
+      ],
+      "size": {
+        "w": 240,
+        "h": 54
+      },
+      "source": [
+        "apps/web/src/components/nav-user.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "components/site-header",
+      "name": "Site header",
+      "type": "set",
+      "variants": {
+        "page": [
+          "workbook",
+          "admin"
+        ],
+        "search": [
+          "off",
+          "on"
+        ]
+      },
+      "texts": [
+        "Pricing Workbook",
+        "Live · 14:02:31"
+      ],
+      "size": {
+        "w": 1184,
+        "h": 56
+      },
+      "source": [
+        "apps/web/src/components/site-header.tsx"
+      ],
+      "needs": [
+        "components/logo"
+      ]
+    },
+    {
+      "id": "molecules/accordion",
+      "name": "Accordion",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Is it accessible?",
+        "Yes. It follows the WAI-ARIA pattern and",
+        "Is it styled?",
+        "Is it animated?"
+      ],
+      "size": {
+        "w": 360,
+        "h": 215
+      },
+      "source": [
+        "apps/web/src/components/ui/accordion.tsx",
+        "apps/web/src/components/ui/collapsible.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/avatar",
+      "name": "Avatar",
+      "type": "set",
+      "variants": {
+        "size": [
+          "default",
+          "lg"
+        ]
+      },
+      "texts": [
+        "AM"
+      ],
+      "size": {
+        "w": 32,
+        "h": 32
+      },
+      "source": [
+        "apps/web/src/components/ui/avatar.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/badge",
+      "name": "Badge",
+      "type": "set",
+      "variants": {
+        "variant": [
+          "default",
+          "secondary",
+          "destructive",
+          "outline"
+        ]
+      },
+      "texts": [
+        "label"
+      ],
+      "size": {
+        "w": 53,
+        "h": 20
+      },
+      "source": [
+        "apps/web/src/components/ui/badge.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/breadcrumb",
+      "name": "Breadcrumb",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Home",
+        "Pricing",
+        "Workbook"
+      ],
+      "size": {
+        "w": 213,
+        "h": 20
+      },
+      "source": [
+        "apps/web/src/components/ui/breadcrumb.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/button",
+      "name": "Button",
+      "type": "set",
+      "variants": {
+        "variant": [
+          "default",
+          "secondary",
+          "outline",
+          "ghost",
+          "destructive",
+          "link"
+        ],
+        "size": [
+          "default",
+          "sm",
+          "lg",
+          "icon"
+        ]
+      },
+      "texts": [
+        "label"
+      ],
+      "size": {
+        "w": 77,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/button.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/calendar",
+      "name": "Calendar",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "October 2026",
+        "Su",
+        "Mo",
+        "Tu",
+        "We",
+        "Th",
+        "Fr",
+        "Sa",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31"
+      ],
+      "size": {
+        "w": 250,
+        "h": 294
+      },
+      "source": [
+        "apps/web/src/components/ui/calendar.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/card",
+      "name": "Card",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "title",
+        "description",
+        "Card content goes here.",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 360,
+        "h": 196
+      },
+      "source": [
+        "apps/web/src/components/ui/card.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/checkbox",
+      "name": "Checkbox",
+      "type": "set",
+      "variants": {
+        "checked": [
+          "false",
+          "true"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 16,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/components/ui/checkbox.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/command",
+      "name": "Command",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Type a command or search…",
+        "Pages",
+        "Pricing Workbook",
+        "Knowledge Center",
+        "Settings",
+        "Profile",
+        "⌘P",
+        "Admin Console",
+        "⌘A"
+      ],
+      "size": {
+        "w": 448,
+        "h": 238
+      },
+      "source": [
+        "apps/web/src/components/ui/command.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/dialog",
+      "name": "Dialog",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "title",
+        "description",
+        "Label",
+        "value",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 440,
+        "h": 248
+      },
+      "source": [
+        "apps/web/src/components/ui/dialog.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/dropdown-menu",
+      "name": "DropdownMenuContent",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "My account",
+        "Profile",
+        "⇧⌘P",
+        "Settings",
+        "⌘,",
+        "Log out"
+      ],
+      "size": {
+        "w": 224,
+        "h": 156
+      },
+      "source": [
+        "apps/web/src/components/ui/dropdown-menu.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/input",
+      "name": "Input",
+      "type": "set",
+      "variants": {
+        "state": [
+          "default",
+          "filled",
+          "disabled",
+          "invalid"
+        ]
+      },
+      "texts": [
+        "value"
+      ],
+      "size": {
+        "w": 240,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/input.tsx",
+        "apps/web/src/components/ui/label.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/navigation-menu",
+      "name": "NavigationMenu",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Workbook",
+        "Knowledge",
+        "Admin",
+        "Project"
+      ],
+      "size": {
+        "w": 390,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/navigation-menu.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/progress",
+      "name": "Progress",
+      "type": "set",
+      "variants": {
+        "value": [
+          "25",
+          "60",
+          "100"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 240,
+        "h": 8
+      },
+      "source": [
+        "apps/web/src/components/ui/progress.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/radio-group",
+      "name": "Radio",
+      "type": "set",
+      "variants": {
+        "selected": [
+          "false",
+          "true"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 16,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/components/ui/radio-group.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/scroll-area",
+      "name": "ScrollArea",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Product line 1",
+        "Product line 2",
+        "Product line 3",
+        "Product line 4",
+        "Product line 5",
+        "Product line 6",
+        "Product line 7"
+      ],
+      "size": {
+        "w": 240,
+        "h": 160
+      },
+      "source": [
+        "apps/web/src/components/ui/scroll-area.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/select",
+      "name": "Select trigger",
+      "type": "set",
+      "variants": {
+        "state": [
+          "placeholder",
+          "filled"
+        ]
+      },
+      "texts": [
+        "Select a metal"
+      ],
+      "size": {
+        "w": 240,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/select.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/separator",
+      "name": "Separator",
+      "type": "set",
+      "variants": {
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 240,
+        "h": 1
+      },
+      "source": [
+        "apps/web/src/components/ui/separator.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/sheet",
+      "name": "Sheet",
+      "type": "set",
+      "variants": {
+        "side": [
+          "right",
+          "bottom"
+        ]
+      },
+      "texts": [
+        "Edit profile",
+        "Make changes here.",
+        "Label",
+        "value",
+        "label",
+        "label"
+      ],
+      "size": {
+        "w": 360,
+        "h": 420
+      },
+      "source": [
+        "apps/web/src/components/ui/sheet.tsx",
+        "apps/web/src/components/ui/drawer.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/skeleton",
+      "name": "Skeleton",
+      "type": "set",
+      "variants": {
+        "shape": [
+          "line",
+          "block",
+          "circle"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 200,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/components/ui/skeleton.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/slider",
+      "name": "Slider",
+      "type": "component",
+      "variants": {},
+      "texts": [],
+      "size": {
+        "w": 240,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/components/ui/slider.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/spinner",
+      "name": "Spinner",
+      "type": "set",
+      "variants": {
+        "size": [
+          "sm",
+          "default",
+          "lg"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 16,
+        "h": 16
+      },
+      "source": [
+        "apps/web/src/components/ui/loading-spinner.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/switch",
+      "name": "Switch",
+      "type": "set",
+      "variants": {
+        "checked": [
+          "false",
+          "true"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 32,
+        "h": 18
+      },
+      "source": [
+        "apps/web/src/components/ui/switch.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/table",
+      "name": "Table",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Product",
+        "Price",
+        "Buyback",
+        "Weight",
+        "1 oz Britannia",
+        "€3,411",
+        "€3,262",
+        "31.1 g",
+        "10 g Gold Bar",
+        "€1,142",
+        "€1,078",
+        "10 g",
+        "1 oz Maple Leaf",
+        "€3,408",
+        "€3,258",
+        "31.1 g"
+      ],
+      "size": {
+        "w": 560,
+        "h": 149
+      },
+      "source": [
+        "apps/web/src/components/ui/table.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/tabs",
+      "name": "Tabs",
+      "type": "set",
+      "variants": {
+        "active": [
+          "1",
+          "2",
+          "3"
+        ]
+      },
+      "texts": [
+        "Account",
+        "Password",
+        "Team"
+      ],
+      "size": {
+        "w": 213,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/tabs.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/textarea",
+      "name": "Textarea",
+      "type": "set",
+      "variants": {
+        "state": [
+          "placeholder",
+          "filled"
+        ]
+      },
+      "texts": [
+        "Type your message here."
+      ],
+      "size": {
+        "w": 280,
+        "h": 72
+      },
+      "source": [
+        "apps/web/src/components/ui/textarea.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/toast",
+      "name": "Toast",
+      "type": "set",
+      "variants": {
+        "type": [
+          "default",
+          "success",
+          "error"
+        ]
+      },
+      "texts": [
+        "Prices refreshed",
+        "Spot prices updated just now."
+      ],
+      "size": {
+        "w": 356,
+        "h": 73
+      },
+      "source": [
+        "apps/web/src/components/ui/sonner.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/toggle",
+      "name": "Toggle",
+      "type": "set",
+      "variants": {
+        "pressed": [
+          "false",
+          "true"
+        ]
+      },
+      "texts": [],
+      "size": {
+        "w": 36,
+        "h": 36
+      },
+      "source": [
+        "apps/web/src/components/ui/toggle.tsx",
+        "apps/web/src/components/ui/toggle-group.tsx"
+      ],
+      "needs": []
+    },
+    {
+      "id": "molecules/tooltip",
+      "name": "Tooltip",
+      "type": "component",
+      "variants": {},
+      "texts": [
+        "Freeze this spot price"
+      ],
+      "size": {
+        "w": 147,
+        "h": 28
+      },
+      "source": [
+        "apps/web/src/components/ui/tooltip.tsx",
+        "apps/web/src/components/ui/popover.tsx",
+        "apps/web/src/components/ui/hover-card.tsx"
+      ],
+      "needs": []
+    }
+  ],
+  "notImported": [],
+  "tokens": {
+    "colors": {
+      "background": {
+        "light": "#ffffff",
+        "dark": "#09090b"
+      },
+      "foreground": {
+        "light": "#000000",
+        "dark": "#fafafa"
+      },
+      "card": {
+        "light": "#ffffff",
+        "dark": "#09090b"
+      },
+      "card-raised": {
+        "light": "#fafafa",
+        "dark": "#171717"
+      },
+      "muted": {
+        "light": "#f4f4f5",
+        "dark": "#27272a"
+      },
+      "muted-foreground": {
+        "light": "#71717a",
+        "dark": "#a1a1aa"
+      },
+      "border": {
+        "light": "#e4e4e7",
+        "dark": "#27272a"
+      },
+      "ring": {
+        "light": "#18181b",
+        "dark": "#d4d4d8"
+      },
+      "sidebar": {
+        "light": "#fafafa",
+        "dark": "#18181b"
+      },
+      "ink": {
+        "light": "#18181b",
+        "dark": "#18181b"
+      },
+      "primary": {
+        "light": "#daab69",
+        "dark": "#daab69"
+      },
+      "primary-text": {
+        "light": "#8f6a2e",
+        "dark": "#daab69"
+      },
+      "price": {
+        "light": "#1eb8a5",
+        "dark": "#1eb8a5"
+      },
+      "price-text": {
+        "light": "#0f7f73",
+        "dark": "#1eb8a5"
+      },
+      "buyback": {
+        "light": "#e0558f",
+        "dark": "#e0558f"
+      },
+      "buyback-text": {
+        "light": "#b8336a",
+        "dark": "#e0558f"
+      },
+      "destructive": {
+        "light": "#ef4444",
+        "dark": "#7f1d1d"
+      }
+    },
+    "primitives": {
+      "zinc-white": "#ffffff",
+      "ink-black": "#000000",
+      "zinc-950": "#09090b",
+      "zinc-900": "#18181b",
+      "zinc-800": "#27272a",
+      "zinc-700": "#3f3f46",
+      "zinc-500": "#71717a",
+      "zinc-400": "#a1a1aa",
+      "zinc-300": "#d4d4d8",
+      "zinc-200": "#e4e4e7",
+      "zinc-100": "#f4f4f5",
+      "zinc-50": "#fafafa",
+      "merrion-gold": "#daab69",
+      "merrion-gold-text": "#8f6a2e",
+      "price-teal": "#1eb8a5",
+      "price-teal-text": "#0f7f73",
+      "buyback-raspberry": "#e0558f",
+      "buyback-raspberry-text": "#b8336a",
+      "signal-red": "#ef4444",
+      "night-red": "#7f1d1d",
+      "metal-gold": "#d4a017",
+      "metal-silver": "#8b95a1",
+      "metal-platinum": "#4c8ea3",
+      "metal-palladium": "#8073b8"
+    },
+    "radius": {
+      "sm": 4,
+      "md": 6,
+      "lg": 8,
+      "xl": 12,
+      "2xl": 16,
+      "full": 9999
+    },
+    "spacing": {
+      "unit": 2.880000114440918,
+      "cell-y": 5.760000228881836,
+      "cell-x": 8.640000343322754,
+      "gap-cards": 8.640000343322754,
+      "panel": 11.520000457763672,
+      "gutter": 11.520000457763672,
+      "gutter-lg": 17.280000686645508
+    },
+    "textStyles": [
+      {
+        "name": "h1",
+        "size": 48,
+        "weight": "Extra Bold"
+      },
+      {
+        "name": "h2",
+        "size": 30,
+        "weight": "Semi Bold"
+      },
+      {
+        "name": "h3",
+        "size": 24,
+        "weight": "Semi Bold"
+      },
+      {
+        "name": "h4",
+        "size": 20,
+        "weight": "Semi Bold"
+      },
+      {
+        "name": "large",
+        "size": 18,
+        "weight": "Semi Bold"
+      },
+      {
+        "name": "p",
+        "size": 16,
+        "weight": "Regular"
+      },
+      {
+        "name": "table-head",
+        "size": 16,
+        "weight": "Bold"
+      },
+      {
+        "name": "table-item",
+        "size": 16,
+        "weight": "Regular"
+      },
+      {
+        "name": "small",
+        "size": 14,
+        "weight": "Medium"
+      },
+      {
+        "name": "muted",
+        "size": 14,
+        "weight": "Regular"
+      },
+      {
+        "name": "field-label",
+        "size": 13,
+        "weight": "Semi Bold"
+      },
+      {
+        "name": "label",
+        "size": 12,
+        "weight": "Medium"
+      },
+      {
+        "name": "section-label",
+        "size": 11,
+        "weight": "Bold"
+      }
+    ]
+  }
+}

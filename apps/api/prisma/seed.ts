@@ -1,8 +1,10 @@
-import { prisma } from "../src/lib/db/prisma";
+import "dotenv/config";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../src/infrastructure/prisma/prisma.service";
 import { UserRole, MetalType } from "./generated/enums";
 import {Decimal} from "./generated/internal/prismaNamespace";
 
-// const prisma = new PrismaClient();
+const prisma = new PrismaService(new ConfigService());
 
 async function main() {
     console.log("🌱 Starting seeding...");

@@ -6,7 +6,7 @@ import {
     ServiceUnavailableException,
     UnauthorizedException,
 } from '@nestjs/common';
-import { SupabaseService } from '../../../supabase/supabase.service';
+import { SupabaseService } from '../../../infrastructure/supabase/supabase.service';
 import type {
     AuthIdentity,
     AuthProviderPort,

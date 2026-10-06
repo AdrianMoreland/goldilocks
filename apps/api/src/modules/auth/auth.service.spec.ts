@@ -2,6 +2,7 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { AuthProviderPort } from './auth-provider.port';
 import type { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import type { AuditLogService } from '../audit-log/audit-log.service';
 import type { CreateUserRequest } from '@goldilocks/shared-types';
 
 const dto: CreateUserRequest = {
@@ -23,17 +24,25 @@ function build() {
             .mockResolvedValue({ id: 'id-1', email: dto.email }),
         deleteIdentity: jest.fn().mockResolvedValue(undefined),
     };
-    const prisma = { user: { create: jest.fn(), findUnique: jest.fn() } };
+    const prisma = {
+        user: { create: jest.fn(), findUnique: jest.fn() },
+        $transaction: jest.fn(),
+    };
+    prisma.$transaction.mockImplementation((run: (tx: unknown) => unknown) =>
+        run(prisma),
+    );
+    const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new AuthService(
         provider satisfies AuthProviderPort,
         prisma as unknown as PrismaService,
+        audit as unknown as AuditLogService,
     );
-    return { service, provider, prisma };
+    return { service, provider, prisma, audit };
 }
 
 describe('AuthService.createUser', () => {
     it('creates the identity first and uses its id for the User row', async () => {
-        const { service, provider, prisma } = build();
+        const { service, provider, prisma, audit } = build();
         prisma.user.create.mockResolvedValue({
             id: 'id-1',
             email: dto.email,
@@ -44,7 +53,7 @@ describe('AuthService.createUser', () => {
             isActive: true,
         });
 
-        const result = await service.createUser(dto);
+        const result = await service.createUser(dto, 'boss@example.com');
 
         expect(provider.createIdentity).toHaveBeenCalledWith(
             dto.email,
@@ -55,6 +64,12 @@ describe('AuthService.createUser', () => {
             password: '',
         });
         expect(result).toMatchObject({ id: 'id-1', email: dto.email });
+        expect(audit.record).toHaveBeenCalledWith(
+            'boss@example.com',
+            'user',
+            'created new@example.com (SALES)',
+            prisma,
+        );
         expect(provider.deleteIdentity).not.toHaveBeenCalled();
     });
 
@@ -63,7 +78,21 @@ describe('AuthService.createUser', () => {
         const failure = new Error('unique constraint');
         prisma.user.create.mockRejectedValue(failure);
 
-        await expect(service.createUser(dto)).rejects.toBe(failure);
+        await expect(service.createUser(dto, 'boss@example.com')).rejects.toBe(
+            failure,
+        );
+        expect(provider.deleteIdentity).toHaveBeenCalledWith('id-1');
+    });
+
+    it('rolls the identity back when the audit entry cannot be written', async () => {
+        const { service, provider, prisma, audit } = build();
+        prisma.user.create.mockResolvedValue({ id: 'id-1' });
+        const failure = new Error('audit down');
+        audit.record.mockRejectedValue(failure);
+
+        await expect(service.createUser(dto, 'boss@example.com')).rejects.toBe(
+            failure,
+        );
         expect(provider.deleteIdentity).toHaveBeenCalledWith('id-1');
     });
 
@@ -73,7 +102,9 @@ describe('AuthService.createUser', () => {
         prisma.user.create.mockRejectedValue(failure);
         provider.deleteIdentity.mockRejectedValue(new Error('supabase down'));
 
-        await expect(service.createUser(dto)).rejects.toBe(failure);
+        await expect(service.createUser(dto, 'boss@example.com')).rejects.toBe(
+            failure,
+        );
     });
 
     it('does not touch the database when the provider rejects the identity', async () => {
@@ -82,9 +113,9 @@ describe('AuthService.createUser', () => {
             new ConflictException('exists'),
         );
 
-        await expect(service.createUser(dto)).rejects.toBeInstanceOf(
-            ConflictException,
-        );
+        await expect(
+            service.createUser(dto, 'boss@example.com'),
+        ).rejects.toBeInstanceOf(ConflictException);
         expect(prisma.user.create).not.toHaveBeenCalled();
         expect(provider.deleteIdentity).not.toHaveBeenCalled();
     });

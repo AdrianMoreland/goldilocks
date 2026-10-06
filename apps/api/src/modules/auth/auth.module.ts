@@ -3,12 +3,21 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
-import { SupabaseModule } from '../../supabase/supabase.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { RequestMetricsModule } from '../request-metrics/request-metrics.module';
+
+import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
 import { AUTH_PROVIDER } from './auth-provider.port';
 import { SupabaseAuthProvider } from './providers/supabase-auth.provider';
 
 @Module({
-    imports: [ConfigModule, PrismaModule, SupabaseModule],
+    imports: [
+        ConfigModule,
+        PrismaModule,
+        AuditLogModule,
+        RequestMetricsModule,
+        SupabaseModule,
+    ],
     controllers: [AuthController],
     providers: [
         AuthService,

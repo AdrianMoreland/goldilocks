@@ -83,7 +83,7 @@ export default function RoadmapView() {
 
             {roadmap.data?.version === 0 && (
                 <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-8 text-center text-sm">
-                    The roadmap has not been imported yet. Run <code className="bg-muted rounded px-1 py-0.5">pnpm --filter api roadmap:import</code> once, then reload.
+                    The roadmap has not been imported yet. Run <code className="bg-muted rounded px-1 py-0.5">pnpm --filter api roadmap:import --apply</code> once, then reload.
                 </p>
             )}
 

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { RoadmapService } from './roadmap.service';
 import * as file from './roadmap-file';
 
@@ -29,6 +29,7 @@ describe('RoadmapService', () => {
             create: jest.fn(),
             updateMany: jest.fn(),
         },
+        $transaction: jest.fn(),
     };
     const audit = { record: jest.fn() };
     const actor = { email: 'boss@example.com' };
@@ -44,6 +45,9 @@ describe('RoadmapService', () => {
 
     beforeEach(async () => {
         jest.resetAllMocks();
+        prisma.$transaction.mockImplementation(
+            (run: (tx: unknown) => unknown) => run(prisma),
+        );
         (file.roadmapFilePath as jest.Mock).mockReturnValue(null);
         const module = await Test.createTestingModule({
             providers: [
@@ -89,6 +93,7 @@ describe('RoadmapService', () => {
             'boss@example.com',
             'roadmap',
             'check: First task',
+            prisma,
         );
     });
 

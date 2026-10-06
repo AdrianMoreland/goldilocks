@@ -1,5 +1,9 @@
-import { prisma } from "../src/lib/db/prisma";
+import "dotenv/config";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../src/infrastructure/prisma/prisma.service";
 import { MetalType } from "./generated/enums";
+
+const prisma = new PrismaService(new ConfigService());
 
 /**
  * One-off data-sync script — NOT part of the initial `seed.ts` bootstrap.

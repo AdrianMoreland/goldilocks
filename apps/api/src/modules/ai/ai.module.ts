@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { LlmModule } from '../../infrastructure/llm/llm.module';
 import { MarketDataModule } from '../market-data/market-data.module';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
-import { RedisModule } from '../../redis/redis.module';
+import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { AuthModule } from '../auth/auth.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { AiController } from './ai.controller';

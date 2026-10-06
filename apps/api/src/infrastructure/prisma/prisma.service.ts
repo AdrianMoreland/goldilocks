@@ -11,7 +11,7 @@ export class PrismaService
     constructor(config: ConfigService) {
         super({
             adapter: new PrismaPg({
-                connectionString: config.get<string>('DATABASE_URL')!,
+                connectionString: config.getOrThrow<string>('DATABASE_URL'),
             }),
             log:
                 config.get<string>('NODE_ENV') === 'development'
