@@ -56,3 +56,6 @@ jobs:
       # Includes `tsc -b`, so this is also the web type-check.
       - name: Build web
         run: pnpm --filter web build
+
+      - name: Type-check and build site
+        run: pnpm --filter site check-types && pnpm --filter site build
