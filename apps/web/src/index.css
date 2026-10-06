@@ -36,6 +36,8 @@
   --color-buyback: var(--buyback);
   --color-price-text: var(--price-text);
   --color-buyback-text: var(--buyback-text);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
   --color-primary-text: var(--primary-text);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -100,6 +102,8 @@
      stay readable on any theme's background even if a preset picks a fill
      that's too light or too dark to read as text. Presets can still set
      them explicitly (Merrion Gold does). */
+  --warning: #fff4e0;
+  --warning-text: #6b3f06;
   --price: #1eb8a5;
   --buyback: #e0558f;
   --price-text: oklch(from var(--price) min(l, 0.45) c h);
@@ -143,6 +147,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --warning: #3b2a0c;
+  --warning-text: #f3c98b;
   --price-text: oklch(from var(--price) max(l, 0.78) c h);
   --buyback-text: oklch(from var(--buyback) max(l, 0.78) c h);
   --primary-text: oklch(from var(--primary) max(l, 0.78) c h);

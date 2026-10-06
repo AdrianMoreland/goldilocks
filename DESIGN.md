@@ -22,6 +22,10 @@ colors:
   buyback-raspberry-text: "#b8336a"
   signal-red: "#ef4444"
   night-red: "#7f1d1d"
+  warning-tint: "#fff4e0"
+  warning-ink: "#6b3f06"
+  warning-tint-night: "#3b2a0c"
+  warning-ink-night: "#f3c98b"
   metal-gold: "#D4A017"
   metal-silver: "#8B95A1"
   metal-platinum: "#4C8EA3"
@@ -211,6 +215,8 @@ A neutral zinc ledger with three accent pillars and a separate family of four me
 
 ### Status colours
 Price freshness uses Tailwind's stock status colours as small 6px dots: emerald for fresh, amber for stale, orange for "live fetch failed, showing last known price", and red for failed. Spot price movement uses green-600 for up and red-600 for down, always with an arrow icon, so colour is never the only signal.
+
+**Warning** (`--warning` fill, `--warning-text` ink): an amber panel for notices that delay or block something without being an error, such as "the market is closed, so this order will not be processed until Monday". Light `warning-tint` with `warning-ink`; dark `warning-tint-night` with `warning-ink-night`. Both pairs reach 7:1. The staff app defines the variables but does not use them yet; the public site does.
 
 ### Named Rules
 **The Direction Is Colour Rule.** Price is always teal and Buyback is always raspberry. This holds in every theme, in every column, badge and tab. A clerk should be able to tell which side of the trade a number belongs to before reading its header. Colour text with `var(--price-text)` / `var(--buyback-text)`, fills with `var(--price)` / `var(--buyback)` (or `tabThemeStyle("price" | "buyback")`), never `secondary`. Teal and raspberry are close in lightness and can look alike to red-green colour-blind users, so the column headers and the Price/Buyback labels must always be present.

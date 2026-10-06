@@ -59,6 +59,8 @@ const semantic = {
     buyback: { light: token('buyback-raspberry'), dark: token('buyback-raspberry') },
     'buyback-text': { light: token('buyback-raspberry-text'), dark: token('buyback-raspberry') },
     destructive: { light: token('signal-red'), dark: token('night-red') },
+    warning: { light: token('warning-tint'), dark: token('warning-tint-night') },
+    'warning-text': { light: token('warning-ink'), dark: token('warning-ink-night') },
 };
 
 /** Letter spacing is in em in the document; Figma wants a percentage of the font size. */
