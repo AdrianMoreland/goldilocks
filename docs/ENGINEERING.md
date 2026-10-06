@@ -21,9 +21,13 @@ pnpm workspace monorepo, orchestrated with Turborepo (`turbo.json`, root scripts
 | `apps/api` | NestJS 11, Prisma 7 (Postgres via Supabase), Redis (cache-aside), `nestjs-zod` for DTOs, Supabase Auth |
 | `apps/web` | React + **Vite** (not Next.js, despite the `app/` folder naming), React Router, TanStack Query + TanStack Table, shadcn/ui + Radix, Tailwind CSS v4 |
 | `packages/shared-types` | Zod schemas + pure pricing math, built with `tsup` |
+| `apps/site` | The public website (roadmap 2.1): React Router v7 framework mode on Vite, prerendered to static HTML, Tailwind CSS v4. Plan: `docs/SITE-PLAN.md`; decision: `docs/adr/0002-public-site-is-a-prerendered-app-with-shared-ui-package.md` |
+| `packages/ui` | shadcn primitives shared by `apps/web` and `apps/site` (no theme inside; each app sets its own CSS variables) |
 | `packages/typescript-config` | Shared `tsconfig` bases |
 
 **`shared-types` is consumed from `dist/`, not `src/`.** Any change there requires `pnpm --filter @goldilocks/shared-types build` before the API or web app will see it. If the API is running with `--watch`, it will not pick up a new `dist/` on its own — it needs a manual restart (webpack doesn't watch `node_modules`).
+
+**`packages/ui` is consumed from `src/`** (the package exports its `.tsx` files), so there is no build step. Each app that uses it must scan it for Tailwind classes with `@source "../../../packages/ui/src";` in its CSS (without it, classes used only inside the package are missing from the build). `apps/web/src/components/ui/<name>.tsx` re-exports the moved primitives, so existing `@/components/ui/...` imports keep working; add new shared primitives to the package and re-export them the same way.
 
 ---
 
