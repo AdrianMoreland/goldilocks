@@ -1,11 +1,10 @@
 {
   "schema": 1,
   "kind": "frame",
-  "name": "Store, direction A, from the site components",
+  "name": "Merrion · Designs / Store, direction A, from the site components",
   "dir": "V",
-  "w": 1440,
   "fill": "background",
-  "note": "The store page of direction A composed only from library instances (site/*, molecules/*). Product copy and prices are sample data.",
+  "w": 1440,
   "children": [
     {
       "kind": "instance",
@@ -27,13 +26,16 @@
     {
       "kind": "frame",
       "name": "hero",
-      "fillW": true,
-      "fill": "foreground",
+      "dir": "V",
+      "gap": 8,
       "pad": [
+        40,
+        80,
         40,
         80
       ],
-      "gap": 8,
+      "fill": "foreground",
+      "fillW": true,
       "children": [
         {
           "kind": "text",
@@ -56,18 +58,21 @@
       "gap": 32,
       "pad": [
         32,
+        80,
+        32,
         80
       ],
       "fillW": true,
-      "align": "start",
       "children": [
         {
           "kind": "instance",
-          "component": "site/store-filters"
+          "component": "site/store-filters",
+          "w": 260
         },
         {
           "kind": "frame",
           "name": "results",
+          "dir": "V",
           "gap": 16,
           "w": 1020,
           "children": [
@@ -75,9 +80,9 @@
               "kind": "frame",
               "name": "sort bar",
               "dir": "H",
-              "fillW": true,
-              "justify": "between",
               "align": "center",
+              "justify": "between",
+              "fillW": true,
               "children": [
                 {
                   "kind": "text",
@@ -103,9 +108,11 @@
                       "variant": {
                         "state": "filled"
                       },
-                      "texts": [
-                        "Price per gram"
-                      ]
+                      "texts": {
+                        "value": "Price per gram"
+                      },
+                      "w": 240,
+                      "h": 36
                     }
                   ]
                 }
@@ -118,13 +125,15 @@
               "gap": 8,
               "pad": [
                 10,
+                16,
+                10,
                 16
               ],
-              "fillW": true,
+              "align": "center",
               "fill": "muted",
               "stroke": "border",
               "radius": "lg",
-              "align": "center",
+              "fillW": true,
               "children": [
                 {
                   "kind": "text",
@@ -136,6 +145,7 @@
             {
               "kind": "frame",
               "name": "Product grid",
+              "dir": "V",
               "gap": 24,
               "children": [
                 {
@@ -151,13 +161,6 @@
                         "stock": "in-stock",
                         "price": "live"
                       },
-                      "texts": {
-                        "1": "In stock · Dublin",
-                        "name": "Britannia 1 oz Gold Coin",
-                        "meta": "31.1 g · 999.9 · The Royal Mint",
-                        "price": "€3,849",
-                        "perGram": "€123.76 per g"
-                      },
                       "w": 324
                     },
                     {
@@ -168,7 +171,7 @@
                         "price": "live"
                       },
                       "texts": {
-                        "1": "In stock · Cork",
+                        "#1": "In stock · Cork",
                         "name": "Krugerrand 1 oz Gold Coin",
                         "meta": "31.1 g · 916.7 · South African Mint",
                         "price": "€3,812",
@@ -184,7 +187,6 @@
                         "price": "live"
                       },
                       "texts": {
-                        "1": "In stock · Dublin",
                         "name": "PAMP Suisse 10 g Gold Bar",
                         "meta": "10 g · 999.9 · PAMP Suisse",
                         "price": "€1,296",
@@ -223,7 +225,7 @@
                         "price": "live"
                       },
                       "texts": {
-                        "1": "In stock · Blanchardstown",
+                        "#1": "In stock · Blanchardstown",
                         "name": "Valcambi 100 g Gold Bar",
                         "meta": "100 g · 999.9 · Valcambi",
                         "price": "€12,214",
@@ -259,5 +261,11 @@
       "component": "site/public-footer",
       "fillW": true
     }
-  ]
+  ],
+  "exportedAt": "2026-10-06T18:45:52.083Z",
+  "source": {
+    "file": "Untitled",
+    "page": "Design system"
+  },
+  "warnings": []
 }

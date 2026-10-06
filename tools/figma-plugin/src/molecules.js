@@ -252,7 +252,7 @@ reg('molecules/table', async () => {
 reg('molecules/select', async () => {
     const trigger = await variantSet('molecules/select', 'Select trigger', [{ name: 'state', values: ['placeholder', 'filled'] }], (c) =>
         F({ kind: 'component', name: 'SelectTrigger', dir: 'H', w: 240, h: 36, pad: [0, 12], align: 'center', justify: 'between', fill: 'background', stroke: 'border', radius: 'md', shadow: 'xs' }, [
-            T(c.state === 'filled' ? 'Gold' : 'Select a metal', { c: c.state === 'filled' ? 'foreground' : 'muted-foreground' }),
+            T(c.state === 'filled' ? 'Gold' : 'Select a metal', { c: c.state === 'filled' ? 'foreground' : 'muted-foreground', name: 'value' }),
             I('chevron-down', 16, 'muted-foreground'),
         ]),
     );
