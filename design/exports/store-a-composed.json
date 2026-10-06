@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "kind": "frame",
+  "name": "Merrion · Designs / Store, direction A, from the site components",
+  "dir": "V",
+  "fill": "background",
+  "w": 1440,
+  "children": [
+    {
+      "kind": "instance",
+      "component": "site/price-ticker",
+      "variant": {
+        "state": "live"
+      },
+      "fillW": true
+    },
+    {
+      "kind": "instance",
+      "component": "site/public-header",
+      "variant": {
+        "viewport": "desktop",
+        "cart": "items"
+      },
+      "fillW": true
+    },
+    {
+      "kind": "frame",
+      "name": "hero",
+      "dir": "V",
+      "gap": 8,
+      "pad": [
+        40,
+        80,
+        40,
+        80
+      ],
+      "fill": "foreground",
+      "fillW": true,
+      "children": [
+        {
+          "kind": "text",
+          "text": "Buy gold, silver, platinum and palladium",
+          "style": "h2",
+          "color": "background"
+        },
+        {
+          "kind": "text",
+          "text": "Live prices. Add what you need and send us an order request; a colleague confirms it by email.",
+          "style": "p",
+          "color": "zinc-300"
+        }
+      ]
+    },
+    {
+      "kind": "frame",
+      "name": "content",
+      "dir": "H",
+      "gap": 32,
+      "pad": [
+        32,
+        80,
+        32,
+        80
+      ],
+      "fillW": true,
+      "children": [
+        {
+          "kind": "instance",
+          "component": "site/store-filters",
+          "w": 260
+        },
+        {
+          "kind": "frame",
+          "name": "results",
+          "dir": "V",
+          "gap": 16,
+          "w": 1020,
+          "children": [
+            {
+              "kind": "frame",
+              "name": "sort bar",
+              "dir": "H",
+              "align": "center",
+              "justify": "between",
+              "fillW": true,
+              "children": [
+                {
+                  "kind": "text",
+                  "text": "54 products · prices indicative, updated 12:04:30",
+                  "style": "small",
+                  "color": "muted-foreground"
+                },
+                {
+                  "kind": "frame",
+                  "name": "sort",
+                  "dir": "H",
+                  "gap": 8,
+                  "align": "center",
+                  "children": [
+                    {
+                      "kind": "text",
+                      "text": "Sort",
+                      "style": "small"
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "molecules/select",
+                      "variant": {
+                        "state": "filled"
+                      },
+                      "texts": {
+                        "value": "Price per gram"
+                      },
+                      "w": 240,
+                      "h": 36
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Indicative price notice",
+              "dir": "H",
+              "gap": 8,
+              "pad": [
+                10,
+                16,
+                10,
+                16
+              ],
+              "align": "center",
+              "fill": "muted",
+              "stroke": "border",
+              "radius": "lg",
+              "fillW": true,
+              "children": [
+                {
+                  "kind": "text",
+                  "text": "Prices are indicative and not locked until funds are received.",
+                  "style": "small"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Product grid",
+              "dir": "V",
+              "gap": 24,
+              "children": [
+                {
+                  "kind": "frame",
+                  "name": "row",
+                  "dir": "H",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "in-stock",
+                        "price": "live"
+                      },
+                      "w": 324
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "in-stock",
+                        "price": "live"
+                      },
+                      "texts": {
+                        "#1": "In stock · Cork",
+                        "name": "Krugerrand 1 oz Gold Coin",
+                        "meta": "31.1 g · 916.7 · South African Mint",
+                        "price": "€3,812",
+                        "perGram": "€122.57 per g"
+                      },
+                      "w": 324
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "in-stock",
+                        "price": "live"
+                      },
+                      "texts": {
+                        "name": "PAMP Suisse 10 g Gold Bar",
+                        "meta": "10 g · 999.9 · PAMP Suisse",
+                        "price": "€1,296",
+                        "perGram": "€129.60 per g"
+                      },
+                      "w": 324
+                    }
+                  ]
+                },
+                {
+                  "kind": "frame",
+                  "name": "row",
+                  "dir": "H",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "supplier-order",
+                        "price": "live"
+                      },
+                      "texts": {
+                        "name": "Maple Leaf 1 oz Gold Coin",
+                        "meta": "31.1 g · 999.9 · Royal Canadian Mint",
+                        "price": "€3,861",
+                        "perGram": "€124.14 per g"
+                      },
+                      "w": 324
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "in-stock",
+                        "price": "live"
+                      },
+                      "texts": {
+                        "#1": "In stock · Blanchardstown",
+                        "name": "Valcambi 100 g Gold Bar",
+                        "meta": "100 g · 999.9 · Valcambi",
+                        "price": "€12,214",
+                        "perGram": "€122.14 per g"
+                      },
+                      "w": 324
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "site/product-card",
+                      "variant": {
+                        "stock": "unavailable",
+                        "price": "live"
+                      },
+                      "texts": {
+                        "name": "American Eagle 1 oz Gold Coin",
+                        "meta": "31.1 g · 916.7 · US Mint",
+                        "price": "€3,874",
+                        "perGram": "€124.55 per g"
+                      },
+                      "w": 324
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "instance",
+      "component": "site/public-footer",
+      "fillW": true
+    }
+  ],
+  "exportedAt": "2026-10-06T18:45:52.083Z",
+  "source": {
+    "file": "Untitled",
+    "page": "Design system"
+  },
+  "warnings": []
+}
