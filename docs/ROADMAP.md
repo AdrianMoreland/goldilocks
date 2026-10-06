@@ -535,6 +535,9 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 
 ## 2.1 Public site: catalogue, live prices, tools (read-only launch) 🟠
 
+Plan: [`docs/SITE-PLAN.md`](SITE-PLAN.md) · decision: `docs/adr/0002-public-site-is-a-prerendered-app-with-shared-ui-package.md`
+
+- [ ] **Store at `/buy`**: whole catalogue with live indicative prices, filters (metal, type, weight, price, mint, availability, branch), sort incl. price per gram, quantity input + add to cart, product side panel — L
 - [ ] Product pages: images, description, weight, purity, €/g — L
 - [ ] Live price + refresh countdown; transparent breakdown (spot + premium + VAT + "buyback value today") — M
 - [ ] Volume-tier display; availability states (in stock / supplier order / unavailable) — M
@@ -576,6 +579,8 @@ Goal: prove demand before automating risk.
 - [ ] Brokers alerted to lock and hedge manually — S
 - [ ] Abandoned-cart recovery at updated price — S
 - [ ] **Checkout disabled when spot is stale or market closed** (or Weekend/Volatile mode applied) — S
+- [ ] **Assisted launch version (built with 2.1, see ADR 0003):** cart submits an *order request* (guest details, collection branch; no payment, no BC write) — M
+- [ ] Staff **Orders queue** in the dashboard: review, live reprice, spot-move threshold flag (manager setting), confirmed-quote email (items, prices, stock, bank details, branch, ETA, "not locked until funds received"), status through funds received → ready → collected; audited — L (base for 1.6)
 
 ## 2.5 Payment automation 🟡
 
