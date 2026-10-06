@@ -1,8 +1,8 @@
 # Figma plugin: Merrion Gold design system
 
 A local Figma development plugin that builds the design system into a Figma file from `DESIGN.md` and the web app's
-source. It needs no API quota and no paid plan. Run it and a panel opens with five lists; tick what you want and press
-**Import**.
+source. It needs no API quota and no paid plan. Run it and a panel opens with five lists (tick what you want and press
+**Import**) and two more tabs, **Compose** and **Export**, for designing with the library and getting a design back into code.
 
 | List | What it brings in |
 |---|---|
@@ -22,6 +22,36 @@ pnpm figma:build                               # writes tools/figma-plugin/dist/
 In the Figma **desktop app**, open a design file, then *Plugins → Development → Import plugin from manifest…* and pick
 `tools/figma-plugin/manifest.json`. Run it from *Plugins → Development → Merrion Gold design system*. Re-run
 `pnpm figma:build` after changing `DESIGN.md` or any builder, then run the plugin again.
+
+## Designing with the library: Compose and Export
+
+The point is that a design is made of the same components the code uses, so the two never drift.
+
+| Tab | What it does |
+|---|---|
+| **Compose** | Builds a frame from a JSON spec using only library components and design tokens. A raw colour, a loose shape, an unknown component, text style or radius is rejected with the path of the node. **Check** validates without building. |
+| **Export → Export selection** | Writes the selected frame as the same JSON grammar, plus a `warnings` list: raw colours, loose shapes, overridden fills, instances of non-library components. An empty list means the design is fully library and tokens. |
+| **Export → Export library** | Writes every library component (id, variants, text layers, size, source files) and every token value, so a spec can be written and checked without opening Figma. |
+
+Save exports under `design/exports/` and specs under `design/specs/` (see `design/README.md`). The grammar is below;
+`node tools/figma-plugin/check-spec.mjs <spec.json>` applies the same rules from the command
+line, and also checks variant names and text layers when `design/exports/merrion-library.json` exists.
+
+A spec is a frame tree; kinds are `frame`, `text` and `instance`:
+
+```json
+{ "schema": 1, "kind": "frame", "name": "Home, hero A", "dir": "V", "w": 1440, "gap": 24, "pad": [64, 80], "fill": "background",
+  "children": [
+    { "kind": "text", "text": "Gold you can trust", "style": "h1" },
+    { "kind": "instance", "component": "molecules/button", "variant": { "variant": "default", "size": "lg" }, "texts": { "label": "Get a quote" } }
+  ] }
+```
+
+Frame keys: `name dir gap pad w h fillW fillH fill stroke sw dashed sides radius shadow clip align justify wrap abs opacity children`.
+Text keys: `text style color align w fillW size weight lh`. Instance keys: `component variant texts name w fillW fillH`.
+Colours are variable names (`primary`, `price-text`, `muted-foreground` ...), `{ "role": name, "a": 0.5 }` or
+`{ "mix": [a, percent, b] }`; text styles are `h1 h2 h3 h4 large p table-head table-item small muted field-label label section-label`;
+radius is `sm md lg xl 2xl full`.
 
 ## How it stays tied to the code
 
@@ -59,7 +89,8 @@ In the Figma **desktop app**, open a design file, then *Plugins → Development 
 ## Layout of this folder
 
 ```
-build.mjs            reads DESIGN.md + source, checks the catalogue, writes dist/code.js and dist/ui.html
+build.mjs            reads DESIGN.md + source, checks the catalogue, writes dist/code.js, ui.html, spec-check.cjs
+check-spec.mjs       validates a design spec from the command line (same rules as the Compose tab)
 manifest.json        the Figma plugin manifest (main: dist/code.js, ui: dist/ui.html)
 src/catalogue.mjs    what the panel lists, and the source files each entry covers
 src/ui.html          the panel
@@ -69,5 +100,8 @@ src/molecules.js     components/ui
 src/components.js    shared composed components
 src/blocks.js        feature blocks with sample data
 src/layouts.js       full pages
-src/main.js          panel messages and the import loop
+src/export.js        Export tab: selection and library as JSON
+src/spec-check.js    the rules a spec must follow (shared by the plugin and check-spec.mjs)
+src/compose.js       Compose tab: builds a spec from instances
+src/main.js          panel messages, sessions and the import loop
 ```
