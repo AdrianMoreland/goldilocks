@@ -530,7 +530,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Vendors chosen: Open Banking (payment initiation + AIS), KYC/ID verification, sanctions/PEP
 - [ ] Hedge platform API availability
 - [ ] Unit economics per order (fees, KYC, insurance, shipping, hedge cost vs desk margin)
-- [ ] Monorepo split agreed: `apps/web` (staff), `apps/site` (customer), `apps/api` (core), `apps/worker` (when triggered)
+- [x] Monorepo split agreed: `apps/web` (staff), `apps/site` (customer), `apps/api` (core), `apps/worker` (when triggered)
 - [ ] Scaling-trigger items for anything customer-facing done: rate limiting, public caching, CDN, separate endpoints
 
 ## 2.1 Public site: catalogue, live prices, tools (read-only launch) 🟠
