@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
-import { RedisService } from './redis/redis.service';
-import { SupabaseService } from './supabase/supabase.service';
+import { RedisService } from './infrastructure/redis/redis.service';
+import { SupabaseService } from './infrastructure/supabase/supabase.service';
 import { METAL_PRICE_API } from './infrastructure/metal-price-api/metal-price-api.port';
 
 // The other specs mock providers by hand, which hides a missing module import

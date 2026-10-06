@@ -32,17 +32,19 @@
   .field select { font: inherit; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 6px; }
   .field small { display: block; color: var(--text3); }
   .field.check { justify-content: flex-start; }
-  nav { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--border); }
-  nav button { position: relative; border: 0; background: none; color: var(--text2); font: inherit; font-weight: 500; padding: 8px 8px 9px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  nav { display: flex; align-items: flex-end; gap: 0; padding: 0 12px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  nav button { position: relative; border: 0; background: none; color: var(--text2); font: inherit; font-weight: 500; padding: 8px 7px 9px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
   nav button:hover { color: var(--text); }
   nav button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
   nav .count { margin-left: 4px; background: var(--brand); color: var(--onbrand); border-radius: 8px; padding: 0 5px; font-size: 10px; }
+  nav .divider { width: 1px; align-self: center; height: 14px; background: var(--border); margin: 0 6px; }
   .blurb { margin: 10px 16px 6px; color: var(--text2); }
   .toolbar { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
   .toolbar input[type=search] { flex: 1; font: inherit; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; min-width: 0; }
   .link { border: 0; background: none; color: var(--text2); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
   .link:hover { color: var(--text); }
-  ul { list-style: none; margin: 0; padding: 0 8px; overflow: auto; flex: 1; min-height: 0; }
+  #catalog { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #catalog ul { list-style: none; margin: 0; padding: 0 8px; overflow: auto; flex: 1; min-height: 0; }
   li label { display: flex; gap: 10px; align-items: flex-start; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
   li label:hover { background: var(--bgh); }
   li.disabled label { cursor: not-allowed; opacity: .55; }
@@ -53,16 +55,30 @@
   .tag { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 4px; background: var(--bg2); color: var(--text2); margin-left: 6px; }
   .tag.warn { color: var(--warn); }
   .empty { padding: 24px 16px; color: var(--text3); text-align: center; }
+  .tool { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 0 16px 8px; gap: 8px; }
+  .tool .blurb { margin: 10px 0 0; }
+  textarea { width: 100%; flex: 1; min-height: 120px; resize: none; font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .spacer { flex: 1; }
+  button.btn, label.btn { font: inherit; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 500; }
+  button.btn:hover, label.btn:hover { background: var(--bgh); }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--brand); color: var(--onbrand); border-color: transparent; font-weight: 600; }
+  button.primary:hover { background: var(--brand); filter: brightness(1.08); }
+  .result { max-height: 140px; overflow: auto; }
+  .result .err { color: var(--danger); margin: 2px 0; }
+  .result .warn { color: var(--warn); margin: 2px 0; }
+  .result .ok { color: var(--text); margin: 2px 0; }
   footer { border-top: 1px solid var(--border); padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
-  .row { display: flex; align-items: center; gap: 10px; }
   .row .count-text { flex: 1; color: var(--text2); }
   #import { border: 0; background: var(--brand); color: var(--onbrand); font: inherit; font-weight: 600; padding: 7px 16px; border-radius: 6px; cursor: pointer; }
   #import:disabled { opacity: .45; cursor: not-allowed; }
-  #status { max-height: 110px; overflow: auto; color: var(--text2); }
+  #status { max-height: 90px; overflow: auto; color: var(--text2); }
   #status .line { margin: 1px 0; }
   #status .ok { color: var(--text); }
   #status .warn { color: var(--warn); }
   #status .err { color: var(--danger); }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -70,7 +86,7 @@
   <h1 id="title">Merrion Gold design system</h1>
   <button class="icon-btn" id="close" title="Close the plugin">✕</button>
 </header>
-<p class="intro">Pick a group, tick what to bring in, then Import. It builds real Figma components, variables and text styles from the repo's design tokens and UI code.</p>
+<p class="intro">Import the library, compose designs from it, and export a design for code. It builds real Figma components, variables and text styles from the repo's design tokens and UI code.</p>
 
 <details id="settings">
   <summary>Settings and how it works</summary>
@@ -85,20 +101,50 @@
   <div class="field check">
     <label><input type="checkbox" id="replace" /> Replace an item that was imported before (keeps its position)</label>
   </div>
-  <p class="meta">Variables and text styles are always created or updated first, because everything else binds to them. Layouts are built from instances of components and blocks; any that are missing are created automatically. Items marked "no builder yet" exist in the code but are not drawn by this plugin.</p>
+  <p class="meta">Variables and text styles are always created or updated first, because everything else binds to them. Layouts are built from instances of components and blocks; any that are missing are created automatically. Compose builds a design from a spec using only library components and tokens. Export saves the selected frame, or the library, as JSON so a design can be turned into code and checked for drift. Items marked "no builder yet" exist in the code but are not drawn by this plugin.</p>
 </details>
 
 <nav id="tabs" role="tablist"></nav>
-<p class="blurb" id="blurb"></p>
-<div class="toolbar">
-  <input type="search" id="filter" placeholder="Filter…" />
-  <button class="link" id="all">All</button>
-  <button class="link" id="none">None</button>
+
+<div id="catalog">
+  <p class="blurb" id="blurb"></p>
+  <div class="toolbar">
+    <input type="search" id="filter" placeholder="Filter…" />
+    <button class="link" id="all">All</button>
+    <button class="link" id="none">None</button>
+  </div>
+  <ul id="list"><li><div class="empty">Waiting for the plugin to send its list…</div></li></ul>
 </div>
-<ul id="list"><li><div class="empty">Waiting for the plugin to send its list…</div></li></ul>
+
+<section class="tool" id="composeTab" hidden>
+  <p class="blurb">Paste a design spec, or load a file. It is built only from library components and design tokens; anything else is rejected with its path, not drawn. Use <b>Check</b> first to see problems without building.</p>
+  <textarea id="spec" spellcheck="false" placeholder='{ "schema": 1, "kind": "frame", "name": "Home, hero A", "w": 1440, "children": [ { "kind": "instance", "component": "molecules/button", "variant": { "variant": "default", "size": "lg" }, "texts": { "label": "Get a quote" } } ] }'></textarea>
+  <div class="row">
+    <label class="btn">Load file…<input type="file" id="specFile" accept=".json,application/json" hidden /></label>
+    <span class="spacer"></span>
+    <button class="btn" id="check">Check</button>
+    <button class="btn primary" id="build">Build</button>
+  </div>
+  <div class="result" id="composeOut"></div>
+</section>
+
+<section class="tool" id="exportTab" hidden>
+  <p class="blurb">Select one frame on the canvas and export it so it can be turned into code, or export the library so a spec can be written and checked without opening Figma. Save the files under <b>design/exports/</b> in the repo.</p>
+  <div class="row">
+    <button class="btn primary" id="expSel">Export selection</button>
+    <button class="btn" id="expLib">Export library</button>
+  </div>
+  <div class="result" id="expSummary"></div>
+  <textarea id="expOut" readonly spellcheck="false" placeholder="The JSON appears here."></textarea>
+  <div class="row">
+    <span class="spacer"></span>
+    <button class="btn" id="expCopy" disabled>Copy</button>
+    <button class="btn primary" id="expDownload" disabled>Download .json</button>
+  </div>
+</section>
 
 <footer>
-  <div class="row">
+  <div class="row" id="importRow">
     <span class="count-text" id="count">Nothing selected</span>
     <button id="import" disabled>Import</button>
   </div>
@@ -107,13 +153,15 @@
 
 <script>
   const $ = (id) => document.getElementById(id)
-  const state = { groups: [], catalogue: [], active: 'variables', selected: {}, settings: { mode: 'light', page: 'design', replace: true }, busy: false }
+  const TOOLS = [{ key: 'compose', label: 'Compose' }, { key: 'export', label: 'Export' }]
+  const state = { groups: [], catalogue: [], active: 'variables', selected: {}, settings: { mode: 'light', page: 'design', replace: true }, busy: false, exported: null }
 
   const post = (message) => parent.postMessage({ pluginMessage: message }, '*')
 
   const byId = () => Object.fromEntries(state.catalogue.map((e) => [e.id, e]))
   const buildable = (e) => e.builder
   const itemsOf = (group) => state.catalogue.filter((e) => e.group === group)
+  const isTool = () => TOOLS.some((t) => t.key === state.active)
 
   /** Everything an entry pulls in, transitively, for the "also builds" hint. */
   function dependencies(entry, map, seen = new Set()) {
@@ -128,21 +176,25 @@
   function renderTabs() {
     const tabs = $('tabs')
     tabs.innerHTML = ''
-    for (const g of state.groups) {
+    const add = (key, label, count) => {
       const b = document.createElement('button')
       b.setAttribute('role', 'tab')
-      b.setAttribute('aria-selected', String(g.key === state.active))
-      b.textContent = g.label
-      const n = (state.selected[g.key] || new Set()).size
-      if (n) {
+      b.setAttribute('aria-selected', String(key === state.active))
+      b.textContent = label
+      if (count) {
         const c = document.createElement('span')
         c.className = 'count'
-        c.textContent = n
+        c.textContent = count
         b.appendChild(c)
       }
-      b.onclick = () => { state.active = g.key; $('filter').value = ''; render() }
+      b.onclick = () => { state.active = key; $('filter').value = ''; render() }
       tabs.appendChild(b)
     }
+    for (const g of state.groups) add(g.key, g.label, (state.selected[g.key] || new Set()).size)
+    const divider = document.createElement('span')
+    divider.className = 'divider'
+    tabs.appendChild(divider)
+    for (const t of TOOLS) add(t.key, t.label, 0)
   }
 
   function renderList() {
@@ -196,8 +248,11 @@
   }
 
   function renderFooter() {
+    $('importRow').hidden = isTool()
+    if (isTool()) return
     const sel = state.selected[state.active] || new Set()
     const group = state.groups.find((g) => g.key === state.active)
+    if (!group) return
     $('count').textContent = sel.size ? sel.size + ' selected in ' + group.label : 'Nothing selected in ' + group.label
     $('import').disabled = state.busy || sel.size === 0
     $('import').textContent = state.busy ? 'Importing…' : 'Import' + (sel.size ? ' ' + sel.size : '')
@@ -205,10 +260,16 @@
 
   function render() {
     renderTabs()
+    $('catalog').hidden = isTool()
+    $('composeTab').hidden = state.active !== 'compose'
+    $('exportTab').hidden = state.active !== 'export'
     const group = state.groups.find((g) => g.key === state.active)
-    $('blurb').textContent = group.blurb
-    renderList()
+    if (group) {
+      $('blurb').textContent = group.blurb
+      renderList()
+    }
     renderFooter()
+    for (const id of ['check', 'build', 'expSel', 'expLib']) $(id).disabled = state.busy
   }
 
   function log(text, kind) {
@@ -218,6 +279,16 @@
     const box = $('status')
     box.appendChild(line)
     box.scrollTop = box.scrollHeight
+  }
+
+  function lines(target, items) {
+    target.innerHTML = ''
+    for (const [kind, text] of items) {
+      const div = document.createElement('div')
+      div.className = kind
+      div.textContent = text
+      target.appendChild(div)
+    }
   }
 
   function setAll(on) {
@@ -235,6 +306,28 @@
     post({ type: 'settings', settings: state.settings })
   }
 
+  function download(name, text) {
+    const blob = new Blob([text], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = name
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  function copy(text) {
+    const area = $('expOut')
+    area.focus()
+    area.select()
+    let ok = false
+    try { ok = document.execCommand('copy') } catch (e) { ok = false }
+    if (!ok && navigator.clipboard) navigator.clipboard.writeText(text).then(() => log('Copied.', 'ok'), () => log('Could not copy; select the text and copy it by hand.', 'warn'))
+    else log(ok ? 'Copied.' : 'Could not copy; select the text and copy it by hand.', ok ? 'ok' : 'warn')
+  }
+
+  const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'design'
+
   $('all').onclick = () => setAll(true)
   $('none').onclick = () => setAll(false)
   $('filter').oninput = renderList
@@ -249,6 +342,36 @@
     render()
     post({ type: 'import', ids, settings: state.settings })
   }
+
+  const runCompose = (check) => {
+    const text = $('spec').value.trim()
+    if (!text) return lines($('composeOut'), [['err', 'Paste a spec first.']])
+    state.busy = true
+    lines($('composeOut'), [['ok', check ? 'Checking…' : 'Building…']])
+    render()
+    post({ type: 'compose', text, check, settings: state.settings })
+  }
+  $('check').onclick = () => runCompose(true)
+  $('build').onclick = () => runCompose(false)
+  $('specFile').onchange = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => { $('spec').value = String(reader.result); lines($('composeOut'), [['ok', 'Loaded ' + file.name + '. Press Check.']]) }
+    reader.readAsText(file)
+    event.target.value = ''
+  }
+
+  const runExport = (kind) => {
+    state.busy = true
+    lines($('expSummary'), [['ok', kind === 'selection' ? 'Reading the selection…' : 'Reading the library…']])
+    render()
+    post({ type: 'export', kind })
+  }
+  $('expSel').onclick = () => runExport('selection')
+  $('expLib').onclick = () => runExport('library')
+  $('expCopy').onclick = () => state.exported && copy(state.exported.json)
+  $('expDownload').onclick = () => state.exported && download(state.exported.file, state.exported.json)
 
   onmessage = (event) => {
     const msg = event.data.pluginMessage
@@ -270,9 +393,43 @@
       for (const f of msg.failed) log('Failed: ' + f.label + ': ' + f.error, 'err')
       for (const n of msg.notes) log(n, 'warn')
       render()
+    } else if (msg.type === 'compose-result') {
+      state.busy = false
+      const rows = []
+      if (msg.ok) rows.push(['ok', msg.checked ? 'Spec is valid: every component and token exists.' : 'Built ' + msg.built + '.'])
+      else rows.push(['err', msg.errors.length + ' problem' + (msg.errors.length === 1 ? '' : 's') + (msg.checked ? '' : ' building') + ':'])
+      for (const e of msg.errors) rows.push(['err', '• ' + e])
+      for (const w of msg.warnings || []) rows.push(['warn', '• ' + w])
+      lines($('composeOut'), rows)
+      render()
+    } else if (msg.type === 'export-result') {
+      state.busy = false
+      if (msg.error) {
+        lines($('expSummary'), [['err', msg.error]])
+        state.exported = null
+        $('expOut').value = ''
+      } else {
+        const file = msg.kind === 'library' ? 'merrion-library.json' : 'merrion-' + slug(msg.name) + '.json'
+        state.exported = { json: msg.json, file }
+        $('expOut').value = msg.json
+        const rows = []
+        if (msg.kind === 'library') {
+          rows.push(['ok', msg.components + ' library components' + (msg.notImported ? ', ' + msg.notImported + ' more can be imported' : '') + '.'])
+        } else {
+          const tally = Object.entries(msg.components).map(([id, n]) => id + ' × ' + n).join(', ')
+          rows.push(['ok', 'Exported "' + msg.name + '": ' + (tally || 'no library components') + '.'])
+          rows.push([msg.warnings.length ? 'warn' : 'ok', msg.warnings.length ? msg.warnings.length + ' drift warning' + (msg.warnings.length === 1 ? '' : 's') + ':' : 'No drift: everything is a library component or a token.'])
+          for (const w of msg.warnings) rows.push(['warn', '• ' + w])
+        }
+        rows.push(['ok', 'Save as design/exports/' + file])
+        lines($('expSummary'), rows)
+      }
+      $('expCopy').disabled = !state.exported
+      $('expDownload').disabled = !state.exported
+      render()
     } else if (msg.type === 'error') {
       state.busy = false
-      log('Import failed: ' + msg.message, 'err')
+      log('Failed: ' + msg.message, 'err')
       render()
     }
   }

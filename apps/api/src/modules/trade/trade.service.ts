@@ -19,7 +19,7 @@ import {
     GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
-import { ProductsProvider } from '../products/products.provider';
+import { ProductsService } from '../products/products.service';
 
 /** Percentages are stored as fractions, so x100 leaves float noise (0.059 -> 5.8999999999999995). Four decimals is finer than any real premium. */
 const roundPct = (value: number) => Math.round(value * 1e4) / 1e4;
@@ -40,13 +40,13 @@ const roundPct = (value: number) => Math.round(value * 1e4) / 1e4;
 export class TradeService {
     constructor(
         private readonly metalsProvider: MetalsProvider,
-        private readonly productsProvider: ProductsProvider,
+        private readonly productsService: ProductsService,
     ) {}
 
     async getBootstrap(metalType: MetalType): Promise<TradeBootstrapResponse> {
         const [spot, allProducts] = await Promise.all([
             this.metalsProvider.getLatest(metalType),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
 
         if (!spot) {
@@ -98,7 +98,7 @@ export class TradeService {
         // Each item's product lookup is independent of the others — fetch
         // them all in parallel instead of one round-trip per cart line.
         const products = await Promise.all(
-            items.map((item) => this.productsProvider.getById(item.productId)),
+            items.map((item) => this.productsService.findById(item.productId)),
         );
 
         let totalWeight = 0;

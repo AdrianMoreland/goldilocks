@@ -294,3 +294,18 @@ model RoadmapDocument {
 
   @@map("roadmap_document")
 }
+
+/// Who changed what from the admin console, the roadmap page and market mode. Written in the same
+/// transaction as the change it describes, so an entry exists exactly when the change committed.
+/// `actor` is the account email, kept as text so deleting a user never orphans or erases history.
+/// Append-only: nothing in the API updates or deletes a row.
+model AuditLog {
+  id     Int      @id @default(autoincrement())
+  at     DateTime @default(now()) @db.Timestamptz(6)
+  actor  String
+  action String
+  detail String
+
+  @@index([at(sort: Desc)])
+  @@map("audit_log")
+}

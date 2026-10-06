@@ -4,35 +4,25 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { MetalType } from '../../../prisma/generated/enums';
-import { Product, RawProduct } from '@goldilocks/shared-types';
+import { RawProduct } from '@goldilocks/shared-types';
 import { CreateProductDto, UpdateProductDto } from '../../common/dto/dtos';
 import { ProductsProvider } from './products.provider';
-import {
-    calculateProductPrice,
-    ZERO_SPOT_MAP,
-} from '../../common/utils/pricing.util';
 
 @Injectable()
 export class ProductsService {
     constructor(private readonly productsProvider: ProductsProvider) {}
 
     /**
-     * Priced products. Caller (MarketDataService, typically) supplies spotMap.
-     * If omitted, prices default to 0 rather than silently fetching live spot.
+     * Raw products, no pricing applied: the module's read API for other
+     * modules and for admin views. Priced products come from MarketDataService.
      */
-    async getProducts(
-        spotMap: Record<MetalType, number> = ZERO_SPOT_MAP,
-    ): Promise<Product[]> {
-        const rawProducts = await this.productsProvider.getAll();
-        return rawProducts.map((p) => calculateProductPrice(p, spotMap));
+    async getRawProducts(): Promise<RawProduct[]> {
+        return this.productsProvider.getAll();
     }
 
-    /**
-     * Raw products, no pricing applied. Useful for admin views/CRUD.
-     */
-    async getRawProducts() {
-        return this.productsProvider.getAll();
+    /** One live product, or null when it does not exist. For callers that word their own not-found error. */
+    async findById(id: number): Promise<RawProduct | null> {
+        return this.productsProvider.getById(id);
     }
 
     /**
@@ -48,12 +38,12 @@ export class ProductsService {
         return raw;
     }
 
-    async create(dto: CreateProductDto) {
+    async create(dto: CreateProductDto, actor: string) {
         await this.assertSkuAvailable(dto.sku);
-        return this.productsProvider.create(dto);
+        return this.productsProvider.create(dto, actor);
     }
 
-    async update(id: number, dto: Partial<UpdateProductDto>) {
+    async update(id: number, dto: Partial<UpdateProductDto>, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
@@ -76,48 +66,52 @@ export class ProductsService {
             category,
             description,
         } = dto;
-        return this.productsProvider.update(id, {
-            name,
-            sku,
-            metalType,
-            weight,
-            spreadSell,
-            spreadBuy,
-            vatRate,
-            stock,
-            isActive,
-            category,
-            description,
-        });
+        return this.productsProvider.update(
+            id,
+            {
+                name,
+                sku,
+                metalType,
+                weight,
+                spreadSell,
+                spreadBuy,
+                vatRate,
+                stock,
+                isActive,
+                category,
+                description,
+            },
+            actor,
+        );
     }
 
     /** Soft delete — the row is kept (and can be restored), just hidden everywhere. */
-    async delete(id: number) {
+    async delete(id: number, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.softDelete(id);
+        return this.productsProvider.softDelete(id, actor);
     }
 
     async getDeleted() {
         return this.productsProvider.getDeleted();
     }
 
-    async restore(id: number) {
+    async restore(id: number, actor: string) {
         const existing = await this.productsProvider.getDeletedById(id);
         if (!existing) {
             throw new NotFoundException('Deleted product not found');
         }
-        return this.productsProvider.restore(id);
+        return this.productsProvider.restore(id, actor);
     }
 
-    async updateStock(id: number, stockQuantity: number) {
+    async updateStock(id: number, stockQuantity: number, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new NotFoundException('Product not found');
         }
-        return this.productsProvider.updateStock(id, stockQuantity);
+        return this.productsProvider.updateStock(id, stockQuantity, actor);
     }
 
     private async assertSkuAvailable(sku: string) {

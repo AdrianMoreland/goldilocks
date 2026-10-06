@@ -1,11 +1,23 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { KnowledgeService } from './knowledge.service';
 import type { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import type { AuditLogService } from '../audit-log/audit-log.service';
 
 type Row = Record<string, unknown>;
 
 function serviceWith(prisma: unknown) {
-    return new KnowledgeService(prisma as PrismaService);
+    const db = prisma as PrismaService;
+    // Writes run in a transaction; the stub hands the same fake client to the callback.
+    if (!('$transaction' in db)) {
+        Object.assign(db, {
+            $transaction: (run: (tx: unknown) => unknown) => run(db),
+        });
+    }
+    const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    return Object.assign(
+        new KnowledgeService(db, audit as unknown as AuditLogService),
+        { recorded: audit.record },
+    );
 }
 
 describe('KnowledgeService.updateDocument', () => {
@@ -63,6 +75,19 @@ describe('KnowledgeService.updateDocument', () => {
         });
         expect(String(updateData(prisma).contentHash)).toMatch(/^app:/);
         expect(result.status).toBe('draft');
+    });
+
+    it('audits an edit that sends an approved SOP back to draft', async () => {
+        const { service, prisma } = editor();
+
+        await service.updateDocument('pricing', dto(), 'boss@example.com');
+
+        expect(service.recorded).toHaveBeenCalledWith(
+            'boss@example.com',
+            'sop',
+            'edited "pricing" (approved → draft)',
+            prisma,
+        );
     });
 
     it('keeps the status when only the owner changes', async () => {
@@ -212,6 +237,19 @@ describe('KnowledgeService.setStatus', () => {
         expect(result.status).toBe('approved');
         expect(result.contentUpdatedOn).toBe(
             new Date().toISOString().slice(0, 10),
+        );
+    });
+
+    it('audits an approval inside the same transaction as the status change', async () => {
+        const { service, prisma } = workflow();
+
+        await service.setStatus('pricing', 'approved', 'boss@example.com');
+
+        expect(service.recorded).toHaveBeenCalledWith(
+            'boss@example.com',
+            'sop',
+            'moved "pricing" draft → approved',
+            prisma,
         );
     });
 

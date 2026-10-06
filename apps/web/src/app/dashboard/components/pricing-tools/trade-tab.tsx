@@ -1,7 +1,6 @@
 import { toast } from "sonner"
 import { useMarketDataApi } from "@/api/market-data.api"
 import { ArrowLeftRight, Flame, Table2, X, Plus } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TRADE_FIRST_QTY_ID, usePricingTools } from "../../context/pricing-tools-context"
@@ -16,6 +15,7 @@ import { ToolSpotEditor } from "./tool-spot-editor"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
+import { NumberInput } from "@/components/number-input"
 
 export function TradeTab() {
     const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
@@ -141,21 +141,19 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 </SelectContent>
                             </Select>
 
-                            <Input
+                            <NumberInput
                                 id={index === 0 ? TRADE_FIRST_QTY_ID : undefined}
-                                type="number"
                                 min={1}
                                 value={item.quantity}
-                                onChange={(e) => trade.updateItemQuantity(item.id, Number(e.target.value))}
+                                onValueChange={(n) => trade.updateItemQuantity(item.id, n)}
                                 className="bg-background h-8 w-11 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
                                 title="Quantity"
                                 aria-label={`Quantity of ${item.product?.name ?? "item"}`}
                             />
-                            <Input
-                                type="number"
+                            <NumberInput
                                 step="0.01"
                                 value={item.percent}
-                                onChange={(e) => trade.updateItemPercent(item.id, Number(e.target.value))}
+                                onValueChange={(n) => trade.updateItemPercent(item.id, n)}
                                 className="bg-background h-8 w-14 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
                                 title={percentLabel}
                                 aria-label={`${percentLabel} for ${item.product?.name ?? "item"}`}
@@ -268,12 +266,11 @@ function MeltPanel({ trade }: { trade: TradeTools }) {
         <div className="flex flex-col gap-4">
             <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
                 <FieldLabel>Weight (g)</FieldLabel>
-                <Input
+                <NumberInput
                     id="melt-weight"
-                    type="number"
                     step="0.1"
                     value={trade.meltWeight}
-                    onChange={(e) => trade.setMeltWeight(Number(e.target.value))}
+                    onValueChange={trade.setMeltWeight}
                     className="h-10 rounded-xl"
                 />
 

@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { RequestMetricsService } from '../admin/request-metrics.service';
+import { RequestMetricsService } from '../request-metrics/request-metrics.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -78,7 +78,8 @@ export class AuthController {
     @ApiOperation({ summary: 'Create a new staff account (admin)' })
     async createUser(
         @Body() body: CreateUserRequestDto,
+        @Req() req: RequestWithUser,
     ): Promise<SessionUserDto> {
-        return this.authService.createUser(body);
+        return this.authService.createUser(body, req.user.email);
     }
 }

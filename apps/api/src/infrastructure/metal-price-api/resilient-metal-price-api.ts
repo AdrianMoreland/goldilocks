@@ -47,8 +47,10 @@ export class ResilientMetalPriceApi implements MetalPriceApiPort {
         endDate: string,
         currency?: string,
     ): Promise<TimeframeResponse> {
-        return this.guard('timeframe prices', () =>
-            this.client.timeframePrices(startDate, endDate, currency),
+        return this.guard(
+            'timeframe prices',
+            () => this.client.timeframePrices(startDate, endDate, currency),
+            false,
         );
     }
 
@@ -57,20 +59,30 @@ export class ResilientMetalPriceApi implements MetalPriceApiPort {
         currency?: string,
         metal?: string,
     ): Promise<OHLCResponse> {
-        return this.guard('OHLC prices', () =>
-            this.client.ohlcPrices(date, currency, metal),
+        return this.guard(
+            'OHLC prices',
+            () => this.client.ohlcPrices(date, currency, metal),
+            false,
         );
     }
 
+    /**
+     * `softFailureCounts` is false for calls that carry caller-chosen parameters (dates, currency,
+     * metal): there `success: false` usually means the caller asked for something the vendor
+     * refuses, which says nothing about the vendor being down, so it must not open the circuit.
+     * Thrown errors and timeouts still count. Quota exhaustion is caught by `livePrices`, which has
+     * no parameters to get wrong.
+     */
     private guard<T extends { success: boolean }>(
         what: string,
         call: () => Promise<T>,
+        softFailureCounts = true,
     ): Promise<T> {
         return this.breaker.run(
             () =>
                 withTimeout(call(), REQUEST_TIMEOUT_MS, `The ${what} request`),
             // The vendor reports quota exhaustion and bad requests as 200 with success=false.
-            (result) => result.success === false,
+            (result) => softFailureCounts && result.success === false,
         );
     }
 }

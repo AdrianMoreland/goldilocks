@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import type { HourlyStats, RouteStats } from '@goldilocks/shared-types';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 
 const HOURS_KEPT = 24;
 const KEY_TTL_SECONDS = 30 * 24 * 60 * 60;

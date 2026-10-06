@@ -145,11 +145,11 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [x] CORS from `FRONTEND_URL` env, not hardcoded — S
 - [x] 🔴 Helmet security headers — S *(`helmet()`; CSP dropped only while Swagger is on; needs `TRUST_PROXY_HOPS` correct behind Railway — verify after deploy)*
 - [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check — S
-- [ ] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
-  - [ ] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
-  - [ ] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
-  - [ ] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
-  - *(started: edits made in the admin Database tab are logged with the admin's email in Redis, capped at 500 and without old → new values. Product, premium and role changes through the normal screens are not logged yet)*
+- [x] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI — M ← gate for 1.8 and 1.9
+  - [x] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
+  - [x] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
+  - [x] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) — document that exception
+  - *(done: `audit_log` table and `AuditLogService.record(…, tx)`. Product create/edit/stock/delete/restore (old → new per field), market mode, roadmap edits, SOP edit and status changes, user creation and the admin Database tab all write their entry in the same `$transaction`; the cache is refreshed after the commit. `createUser` cannot join its identity call to a transaction, so the User row and its entry commit together and a failure deletes the identity (commented in the code). Not covered because they do not exist yet: role changes (no endpoint) and branches (0.8) — add `record(…, tx)` when they are built.)*
 - [ ] Per-user admin trail (no blanket admin flag) — part of the audit log
 - [ ] Supabase RLS reviewed — S
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders — S
@@ -159,7 +159,7 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 
 - [ ] Move the 10-min price fetch to a BullMQ repeatable job — M
 - [ ] ⚪ Conditional: push updates over SSE with Redis pub/sub fan-out — M ← only when a second replica is planned or Phase 2 needs push *(spot polling in 0.3/0.13 is the default until then)*
-- [ ] Remove shared in-memory state (multi-instance safe) — M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; the audit-log memory fallback)*
+- [ ] Remove shared in-memory state (multi-instance safe) — M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; ~~the audit-log memory fallback~~ gone with the Redis audit list)*
 - [ ] Prove the Redis-down path: a test that simulates an outage and asserts every `CacheAsideStore.get` falls through to the source — S
 - [x] Pino structured logging + request IDs; log cache hit/miss, DB fallback, external call + duration — S *(`nestjs-pino`: JSON in production, request lines with duration, secrets redacted, an in-memory tail in the admin Logs tab. Request IDs are generated but not yet written to the log line)*
 - [ ] 🟠 Sentry on API and web; breadcrumbs on the pricing cascade — S
@@ -257,9 +257,9 @@ Found by the 2026-10-01 code review. Do these right after CI (0.10) and before t
   - [x] `metals/:metal/retry`: validate with `ZodValidationPipe(MetalTypeEnum)` like `trade`
   - [x] Audit every numeric `@Param` for a missing `ParseIntPipe` *(only `products` has numeric params and all use `ParseIntPipe`; `:table` and `:slug` are validated by the DB browser and a Zod slug pipe)*
   - [x] Move the quantity coercion `Math.max(1, Math.floor(q) || 1)` in `TradeService.calculateCart` into the Zod schema (it silently rewrites bad input) *(the schema already enforced whole numbers >= 1; the silent rewrite in the service is gone)*
-- [ ] **Web number inputs:** one shared `NumberInput` that keeps the string while editing; `Number(e.target.value) || 0` snaps a field to `0` on every empty edit, so you cannot clear it and type `0.5` — S
+- [x] **Web number inputs:** one shared `NumberInput` that keeps the string while editing; `Number(e.target.value) || 0` snaps a field to `0` on every empty edit, so you cannot clear it and type `0.5` — S *(done: `components/number-input.tsx` (`NumberInput`, plus `useNumberField` for the one raw input) keeps the typed text and reports a number on every keystroke; used by the trade, portfolio, calculators and settings tabs. The product form, the tool spot editor and the spot card already kept a draft, so they were left as they were. The web app has no test runner: checked by hand in the browser that clearing then typing `0.5` works, blur tidies an empty field to 0, and a percent field scaled by 100 edits as 7.5 and stores 0.075)*
 - [ ] **`DbBrowserService` spec + hardening** — M. Raw SQL is used in 10 places (`$queryRawUnsafe`/`$executeRawUnsafe`); table and column names are checked against the catalogue and values are bound — keep it that way and comment why `quote()` is safe.
-  - [ ] Spec: unknown table → 404, read-only table → 403, hidden column never returned, identifiers only from the catalogue, **hostile table/column names are rejected**
+  - [x] Spec: unknown table → 404, read-only table → 403, hidden column never returned, identifiers only from the catalogue, **hostile table/column names are rejected** *(`db-browser.service.spec.ts`: 26 tests, also covering bound values, page clamping, key handling, and the audit-then-commit-then-cache order of writes)*
   - [ ] Extend `CACHE_KEYS_BY_TABLE` beyond `products` for any table that is actually cached (check `branches`, the history table and knowledge reads); the new history cache from 0.13 must be registered, or an admin edit serves stale data
   - [ ] Move the DELETE row key into a query param or a POST (some proxies strip DELETE bodies)
 - [ ] **Characterisation tests before each big refactor** — M each ← depends: the refactor it protects: `KnowledgeService.importDocuments`, `useTradeTools` cart behaviour, `AskService` (only if taken up)
@@ -535,6 +535,9 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 
 ## 2.1 Public site: catalogue, live prices, tools (read-only launch) 🟠
 
+Plan: [`docs/SITE-PLAN.md`](SITE-PLAN.md) · decision: `docs/adr/0002-public-site-is-a-prerendered-app-with-shared-ui-package.md`
+
+- [ ] **Store at `/buy`**: whole catalogue with live indicative prices, filters (metal, type, weight, price, mint, availability, branch), sort incl. price per gram, quantity input + add to cart, product side panel — L
 - [ ] Product pages: images, description, weight, purity, €/g — L
 - [ ] Live price + refresh countdown; transparent breakdown (spot + premium + VAT + "buyback value today") — M
 - [ ] Volume-tier display; availability states (in stock / supplier order / unavailable) — M
@@ -576,6 +579,8 @@ Goal: prove demand before automating risk.
 - [ ] Brokers alerted to lock and hedge manually — S
 - [ ] Abandoned-cart recovery at updated price — S
 - [ ] **Checkout disabled when spot is stale or market closed** (or Weekend/Volatile mode applied) — S
+- [ ] **Assisted launch version (built with 2.1, see ADR 0003):** cart submits an *order request* (guest details, collection branch; no payment, no BC write) — M
+- [ ] Staff **Orders queue** in the dashboard: review, live reprice, spot-move threshold flag (manager setting), confirmed-quote email (items, prices, stock, bank details, branch, ETA, "not locked until funds received"), status through funds received → ready → collected; audited — L (base for 1.6)
 
 ## 2.5 Payment automation 🟡
 

@@ -8,7 +8,7 @@ import {
 } from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
 import { HistoricSpotService } from '../metals/historic-spot.service';
-import { ProductsProvider } from '../products/products.provider';
+import { ProductsService } from '../products/products.service';
 
 import {
     calculateProductPrice,
@@ -55,7 +55,7 @@ export class MarketDataService {
     constructor(
         private readonly metalsProvider: MetalsProvider,
         private readonly historicSpots: HistoricSpotService,
-        private readonly productsProvider: ProductsProvider,
+        private readonly productsService: ProductsService,
     ) {}
 
     /**
@@ -91,7 +91,7 @@ export class MarketDataService {
     ): Promise<Product[]> {
         const [spotPrices, rawProducts] = await Promise.all([
             this.metalsProvider.getAllLatest(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
 
         const liveMap = this.toSpotMap(spotPrices);
@@ -114,7 +114,7 @@ export class MarketDataService {
     ): Promise<PricedCatalogue> {
         const [{ prices, degradedMetals }, rawProducts] = await Promise.all([
             this.metalsProvider.getAllLatestForLaunch(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
 
         const liveMap = this.toSpotMap(prices);
@@ -165,7 +165,7 @@ export class MarketDataService {
     ): Promise<MarketDataResponse> {
         const [historicSpot, rawProducts] = await Promise.all([
             this.historicSpots.getHistoricSpots(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
 
         const latestHistoric = new Map<MetalType, HistoricSpot>();

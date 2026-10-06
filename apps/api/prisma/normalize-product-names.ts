@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import Redis from 'ioredis';
 import { normalizeProductName } from '@goldilocks/shared-types';
-import { prisma } from '../src/lib/db/prisma';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../src/infrastructure/prisma/prisma.service';
+
+const prisma = new PrismaService(new ConfigService());
 
 /**
  * One-off data fix: product names imported with a space between the number
@@ -10,8 +13,8 @@ import { prisma } from '../src/lib/db/prisma';
  * normalised by the API itself (see products.provider.ts), so this only
  * needs to run once for the rows that already exist.
  *
- *   pnpm --filter api tsx prisma/normalize-product-names.ts          # dry run — prints the changes
- *   pnpm --filter api tsx prisma/normalize-product-names.ts --apply  # writes them, then clears the products cache
+ *   pnpm --filter api exec ts-node --transpile-only prisma/normalize-product-names.ts          # dry run — prints the changes
+ *   pnpm --filter api exec ts-node --transpile-only prisma/normalize-product-names.ts --apply  # writes them, then clears the products cache
  *
  * Includes soft-deleted products, so a restored one comes back tidy too.
  */

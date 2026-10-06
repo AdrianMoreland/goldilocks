@@ -360,6 +360,11 @@ async function use(id, vals = {}, o = {}) {
     const m = await master(id);
     let comp = m;
     if (m.type === 'COMPONENT_SET') {
+        const options = variantOptionsOf(m);
+        for (const [key, value] of Object.entries(vals)) {
+            if (!options[key]) throw new Error(`"${id}" has no variant property "${key}" (it has: ${Object.keys(options).join(', ')})`);
+            if (!options[key].has(String(value))) throw new Error(`"${id}" has no ${key}="${value}" (options: ${[...options[key]].join(', ')})`);
+        }
         const base = Object.fromEntries(m.defaultVariant.name.split(', ').map((p) => p.split('=')));
         const merged = { ...base, ...vals };
         const want = Object.keys(base)

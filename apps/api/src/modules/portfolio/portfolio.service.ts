@@ -16,7 +16,7 @@ import {
     solveMissingPurchaseField,
     buildPortfolioStrategies,
 } from '@goldilocks/shared-types';
-import { ProductsProvider } from '../products/products.provider';
+import { ProductsService } from '../products/products.service';
 import { MetalsProvider } from '../metals/metals.provider';
 import {
     calculateProductPrice,
@@ -35,14 +35,14 @@ import {
 @Injectable()
 export class PortfolioService {
     constructor(
-        private readonly productsProvider: ProductsProvider,
+        private readonly productsService: ProductsService,
         private readonly metalsProvider: MetalsProvider,
     ) {}
 
     async calculateProfitAnalysis(
         request: ProfitAnalysisRequest,
     ): Promise<ProfitAnalysisResponse> {
-        const product = await this.productsProvider.getById(request.productId);
+        const product = await this.productsService.findById(request.productId);
 
         if (!product) {
             throw new NotFoundException(
@@ -112,7 +112,7 @@ export class PortfolioService {
     ): Promise<PortfolioBuildResponse> {
         const [spot, rawProducts] = await Promise.all([
             this.metalsProvider.getLatest(request.metalType),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         if (!spot) {
             throw new NotFoundException(

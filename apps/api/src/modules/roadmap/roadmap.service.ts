@@ -11,7 +11,7 @@ import {
     type RoadmapEditRequest,
 } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import {
     normalizeRoadmap,
     readRoadmapFile,
@@ -79,7 +79,7 @@ export class RoadmapService {
         const current = await this.get();
         if (current.version === 0) {
             throw new NotFoundException(
-                'The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import`.',
+                'The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import --apply`.',
             );
         }
         if (request.version !== current.version) {
@@ -98,7 +98,7 @@ export class RoadmapService {
                 normalizeRoadmap(current.markdown)
         ) {
             throw new ConflictException(
-                'docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins), then retry.',
+                'docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins) to see the differences, add `--apply` to overwrite, then retry.',
             );
         }
 
@@ -112,26 +112,30 @@ export class RoadmapService {
         }
 
         // The version in the WHERE clause makes a concurrent save lose cleanly instead of overwriting.
-        const saved = await this.prisma.roadmapDocument.updateMany({
-            where: { id: ROW_ID, version: current.version },
-            data: {
-                markdown,
-                version: { increment: 1 },
-                updatedBy: actor.email,
-            },
-        });
-        if (saved.count === 0) {
-            throw new ConflictException(
-                'The roadmap changed while saving. Reload and try again.',
+        // The audit entry shares the transaction, and the file is written last inside it: if the write
+        // fails the database change and its entry roll back, so the two copies never drift apart.
+        await this.prisma.$transaction(async (tx) => {
+            const saved = await tx.roadmapDocument.updateMany({
+                where: { id: ROW_ID, version: current.version },
+                data: {
+                    markdown,
+                    version: { increment: 1 },
+                    updatedBy: actor.email,
+                },
+            });
+            if (saved.count === 0) {
+                throw new ConflictException(
+                    'The roadmap changed while saving. Reload and try again.',
+                );
+            }
+            await this.audit.record(
+                actor.email,
+                'roadmap',
+                describeEdit(request.edit),
+                tx,
             );
-        }
-        if (file) writeRoadmapFile(file, markdown);
-
-        await this.audit.record(
-            actor.email,
-            'roadmap',
-            describeEdit(request.edit),
-        );
+            if (file) writeRoadmapFile(file, markdown);
+        });
         return this.get();
     }
 }

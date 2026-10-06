@@ -10,7 +10,7 @@ import { ErrorLogService } from './modules/error-log/error-log.service';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { ApiCatalogueService } from './modules/admin/api-catalogue.service';
-import { RequestMetricsService } from './modules/admin/request-metrics.service';
+import { RequestMetricsService } from './modules/request-metrics/request-metrics.service';
 
 const logger = new Logger('Bootstrap');
 
@@ -140,7 +140,11 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     app.get(ApiCatalogueService).setDocument(cleanupOpenApiDoc(document));
     if (swaggerEnabled) {
-        SwaggerModule.setup('docs', app, document);
+        // Keeps the pasted bearer token across page reloads; otherwise every
+        // reload (e.g. after a --watch restart) silently drops it and calls 401.
+        SwaggerModule.setup('docs', app, document, {
+            swaggerOptions: { persistAuthorization: true },
+        });
     }
 
     const port = config.get<number>('PORT', 4000);
