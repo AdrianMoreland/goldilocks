@@ -37,6 +37,8 @@ export interface Palette {
     buyback: string
     buybackText: string
     destructive: string
+    warning: string
+    warningText: string
 }
 
 /**
@@ -62,6 +64,8 @@ export function buildPalette(mode: Mode, c: Record<string, string>): Palette {
         buyback: c["buyback-raspberry"]!,
         buybackText: light ? c["buyback-raspberry-text"]! : c["buyback-raspberry"]!,
         destructive: light ? c["signal-red"]! : c["night-red"]!,
+        warning: light ? c["warning-tint"]! : c["warning-tint-night"]!,
+        warningText: light ? c["warning-ink"]! : c["warning-ink-night"]!,
     }
 }
 
