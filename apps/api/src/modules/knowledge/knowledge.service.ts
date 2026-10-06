@@ -19,7 +19,7 @@ import {
 } from '@goldilocks/shared-types';
 import type { KbDocument as KbDocumentRow } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 export interface KbImportFile {
     /** File name, used only to tell the operator which file a problem belongs to. */

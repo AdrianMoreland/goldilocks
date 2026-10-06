@@ -7,7 +7,7 @@ import {
     type ErrorLogKind,
     type ErrorLogSeverity,
 } from '@goldilocks/shared-types';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 
 const REDIS_KEY = 'error-log:entries';
 const MAX_ENTRIES = 500;

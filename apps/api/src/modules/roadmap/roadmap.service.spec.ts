@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { RoadmapService } from './roadmap.service';
 import * as file from './roadmap-file';
 

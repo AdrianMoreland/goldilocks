@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 import { RawProduct } from '@goldilocks/shared-types';
-import { toRawProduct } from '../../common/utils/pricing.util';
+import { toRawProduct } from '../../common/utils/prisma-mappers';
 import { CacheAsideStore } from '../../common/cache/cache-aside-store.base';
 
 const PRODUCTS_CACHE_KEY = 'products:all';

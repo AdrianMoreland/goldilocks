@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RawProduct, normalizeProductName } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
-import { toRawProduct } from '../../common/utils/pricing.util';
-import { AuditLogService } from '../admin/audit-log.service';
+import { toRawProduct } from '../../common/utils/prisma-mappers';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { describeProductChange } from './product-audit';
 import { ProductCacheStore } from './product-cache.store';
 

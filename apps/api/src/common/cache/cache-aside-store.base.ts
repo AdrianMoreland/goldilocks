@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 
 export abstract class CacheAsideStore<TKey, TValue> {
     private readonly storeLogger = new Logger(this.constructor.name);

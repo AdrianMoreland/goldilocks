@@ -4,7 +4,7 @@ import type {
     UpdateMarketModeRequest,
 } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 /** The one row that holds the shared mode. */
 const ROW_ID = 1;

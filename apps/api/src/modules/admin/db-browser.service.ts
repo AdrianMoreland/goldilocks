@@ -11,8 +11,8 @@ import type {
 } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { AuditLogService } from './audit-log.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 // Tables the console may change. Everything else is browse-only: `users` rows
 // must stay in step with Supabase Auth ids, and the fetch/AI logs are history

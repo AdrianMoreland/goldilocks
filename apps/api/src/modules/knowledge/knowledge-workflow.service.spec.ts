@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { KnowledgeService } from './knowledge.service';
 import type { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import type { AuditLogService } from '../admin/audit-log.service';
+import type { AuditLogService } from '../audit-log/audit-log.service';
 
 type Row = Record<string, unknown>;
 

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/terminus';
 import type { HealthItem, HealthStatus } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 import { FetchAttemptService } from '../metals/fetch-attempt.service';
 
 const HEAP_LIMIT_BYTES = 1024 * 1024 * 1024;

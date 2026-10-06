@@ -10,7 +10,7 @@ import { ErrorLogService } from './modules/error-log/error-log.service';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { ApiCatalogueService } from './modules/admin/api-catalogue.service';
-import { RequestMetricsService } from './modules/admin/request-metrics.service';
+import { RequestMetricsService } from './modules/request-metrics/request-metrics.service';
 
 const logger = new Logger('Bootstrap');
 
