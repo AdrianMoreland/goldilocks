@@ -97,7 +97,7 @@ const data = {
 // ── Catalogue: what the panel lists, checked against the code ───────────────
 
 const root = join(here, '../..');
-const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'layouts.js', 'main.js'];
+const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'layouts.js', 'export.js', 'spec-check.js', 'compose.js', 'main.js'];
 const sources = Object.fromEntries(SRC_FILES.map((f) => [f, readFileSync(join(here, 'src', f), 'utf8')]));
 const allSource = Object.values(sources).join('\n');
 
@@ -169,6 +169,12 @@ const code = [
 ].join('\n');
 writeFileSync(join(here, 'dist/code.js'), code);
 writeFileSync(join(here, 'dist/ui.html'), readFileSync(join(here, 'src/ui.html'), 'utf8'));
+
+// The spec rules also run outside Figma (check-spec.mjs), from the same source file and the same tokens.
+writeFileSync(
+    join(here, 'dist/spec-check.cjs'),
+    [`const DATA = ${JSON.stringify(data)};`, `const CATALOGUE = ${json(catalogue)};`, sources['spec-check.js'], 'module.exports = { checkSpec, usableComponents };'].join('\n'),
+);
 
 const count = (group) => catalogue.filter((e) => e.group === group.key && e.builder).length;
 console.log(
