@@ -59,6 +59,8 @@ const semantic = {
     buyback: { light: token('buyback-raspberry'), dark: token('buyback-raspberry') },
     'buyback-text': { light: token('buyback-raspberry-text'), dark: token('buyback-raspberry') },
     destructive: { light: token('signal-red'), dark: token('night-red') },
+    warning: { light: token('warning-tint'), dark: token('warning-tint-night') },
+    'warning-text': { light: token('warning-ink'), dark: token('warning-ink-night') },
 };
 
 /** Letter spacing is in em in the document; Figma wants a percentage of the font size. */
@@ -97,7 +99,7 @@ const data = {
 // ── Catalogue: what the panel lists, checked against the code ───────────────
 
 const root = join(here, '../..');
-const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'layouts.js', 'export.js', 'spec-check.js', 'compose.js', 'main.js'];
+const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'site.js', 'layouts.js', 'export.js', 'spec-check.js', 'compose.js', 'main.js'];
 const sources = Object.fromEntries(SRC_FILES.map((f) => [f, readFileSync(join(here, 'src', f), 'utf8')]));
 const allSource = Object.values(sources).join('\n');
 

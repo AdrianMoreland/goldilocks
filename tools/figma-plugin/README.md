@@ -1,7 +1,7 @@
 # Figma plugin: Merrion Gold design system
 
 A local Figma development plugin that builds the design system into a Figma file from `DESIGN.md` and the web app's
-source. It needs no API quota and no paid plan. Run it and a panel opens with five lists (tick what you want and press
+source. It needs no API quota and no paid plan. Run it and a panel opens with six lists (tick what you want and press
 **Import**) and two more tabs, **Compose** and **Export**, for designing with the library and getting a design back into code.
 
 | List | What it brings in |
@@ -10,6 +10,7 @@ source. It needs no API quota and no paid plan. Run it and a panel opens with fi
 | **Molecules** | Everything in `apps/web/src/components/ui`: button, badge, input, checkbox, switch, tabs, card, table, dialog, select, command, calendar ... as Figma components with their variants |
 | **Components** | Logo, app sidebar, site header, user menu, command search, generic form, admin panel |
 | **Blocks** | Spot price card, spot chart, product table (8 sample rows), filter bar, market mode banner, price freshness, trade tab, melt calculator, pricing tools panel, sign-in form, system health, add and delete product dialogs |
+| **Site** | The public website's components (`apps/site`): product card and row, store filters, price ticker, public header and footer, the market-closed and payment-options dialogs. Needs the Molecules and Variables imported first (the plugin builds what is missing) |
 | **Layouts** | Sign-in page, Dashboard, Admin console, assembled from instances of the components and blocks |
 
 ## Use

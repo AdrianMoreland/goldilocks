@@ -9,12 +9,15 @@
 const UI = 'apps/web/src/components/ui';
 const WEB = 'apps/web/src';
 const DASH = 'apps/web/src/app/dashboard/components';
+const SITE = 'apps/site/app/components';
+const UI_PKG = 'packages/ui/src';
 
 export const GROUPS = [
     { key: 'variables', label: 'Variables', blurb: 'Colour, type, radius and spacing from DESIGN.md. Variables and text styles are always kept up to date; the ticks choose which reference frames are drawn.' },
     { key: 'molecules', label: 'Molecules', blurb: 'The small building blocks in components/ui, drawn as Figma components with their variants.' },
     { key: 'components', label: 'Components', blurb: 'Larger shared pieces: sidebar, header, user menu, forms.' },
     { key: 'blocks', label: 'Blocks', blurb: 'Feature-specific compositions with placeholder data: spot cards, product table, trade tab, sign-in form.' },
+    { key: 'site', label: 'Site', blurb: 'The public website: store components, header and footer, price ticker and the order dialogs (apps/site).' },
     { key: 'layouts', label: 'Layouts', blurb: 'Whole pages assembled from instances of the components and blocks (built first when missing).' },
 ];
 
@@ -55,6 +58,7 @@ export const CATALOGUE = [
     { id: 'molecules/calendar', group: 'molecules', label: 'Calendar', desc: 'month grid with a selected day', covers: [`${UI}/calendar.tsx`] },
     { id: 'molecules/navigation-menu', group: 'molecules', label: 'Navigation menu', desc: 'link row, one active', covers: [`${UI}/navigation-menu.tsx`] },
     { id: 'molecules/scroll-area', group: 'molecules', label: 'Scroll area', desc: 'content with a scrollbar', covers: [`${UI}/scroll-area.tsx`] },
+    { id: 'molecules/range-slider', group: 'molecules', label: 'Range slider', desc: 'two thumbs, for a price range', covers: [`${UI_PKG}/range-slider.tsx`] },
 
     // ── Components ───────────────────────────────────────────────────────────
     { id: 'components/logo', group: 'components', label: 'Logo', desc: 'Merrion Gold mark, 3 sizes', covers: [`${WEB}/components/logo.tsx`] },
@@ -79,6 +83,16 @@ export const CATALOGUE = [
     { id: 'blocks/system-health', group: 'blocks', label: 'System health panel', desc: 'status pill and check list', covers: ['apps/web/src/app/admin/components/overview/health-panel.tsx'], needs: ['components/admin-panel'] },
     { id: 'blocks/add-product-dialog', group: 'blocks', label: 'Add product dialog', desc: 'form fields and actions', covers: [`${DASH}/table/add-product-dialog.tsx`, `${DASH}/table/product-form.tsx`] },
     { id: 'blocks/delete-product-dialog', group: 'blocks', label: 'Delete product dialog', desc: 'confirmation', covers: [`${DASH}/table/delete-product-dialog.tsx`] },
+
+    // ── Site (apps/site) ─────────────────────────────────────────────────────
+    { id: 'site/product-card', group: 'site', label: 'Product card', desc: '3 availability states × price live or unavailable', covers: [`${SITE}/product-card.tsx`, `${SITE}/product-availability.tsx`, `${SITE}/quantity-stepper.tsx`] },
+    { id: 'site/product-row', group: 'site', label: 'Product row', desc: 'the compact table view, same states', covers: [`${SITE}/product-row.tsx`] },
+    { id: 'site/store-filters', group: 'site', label: 'Store filters', desc: 'metal, type, price range, collect from', covers: [`${SITE}/store-filters.tsx`] },
+    { id: 'site/price-ticker', group: 'site', label: 'Price ticker', desc: 'live, loading, stale', covers: [`${SITE}/price-ticker.tsx`] },
+    { id: 'site/public-header', group: 'site', label: 'Public header', desc: 'desktop and phone, cart empty or with items', covers: [`${SITE}/public-header.tsx`] },
+    { id: 'site/public-footer', group: 'site', label: 'Public footer', desc: 'sections, legal, company details', covers: [`${SITE}/public-footer.tsx`] },
+    { id: 'site/market-closed-dialog', group: 'site', label: 'Market closed dialog', desc: 'amber warning with the next opening time', covers: [`${SITE}/market-closed-dialog.tsx`] },
+    { id: 'site/payment-options-dialog', group: 'site', label: 'Payment options dialog', desc: 'how and when the customer pays', covers: [`${SITE}/payment-options-dialog.tsx`] },
 
     // ── Layouts ──────────────────────────────────────────────────────────────
     { id: 'layouts/sign-in', group: 'layouts', label: 'Sign-in page', desc: '/auth/sign-in', covers: ['apps/web/src/app/auth/sign-in/page.tsx'], needs: ['components/logo', 'blocks/sign-in-form'] },
