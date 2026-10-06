@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource/playfair-display/600.css";
+@source "../../../packages/ui/src";
+
+/*
+ * Heritage Vault: the public site theme (design/proposals/site-theme-directions.md, direction A).
+ * Role names follow the shadcn convention so packages/ui works unchanged; the staff app keeps its own theme.
+ */
+:root {
+  --radius: 0.125rem;
+
+  --background: #faf7f2;
+  --foreground: #141210;
+  --card: #ffffff;
+  --card-foreground: #141210;
+  --popover: #ffffff;
+  --popover-foreground: #141210;
+  --primary: #141210;
+  --primary-foreground: #ffffff;
+  --secondary: #f1ebdd;
+  --secondary-foreground: #141210;
+  --muted: #f1ebdd;
+  --muted-foreground: #6b6358;
+  --accent: #e4dccd;
+  --accent-foreground: #141210;
+  --destructive: #a63d2f;
+  --border: #e4dccd;
+  --input: #e4dccd;
+  --ring: #b8893f;
+
+  --gold: #b8893f;
+  --gold-text: #8f6a2e;
+  --price-text: #141210;
+  --warning: #fff4e0;
+  --warning-text: #6b3f06;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-heading: "Playfair Display", Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-price-text: var(--price-text);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
