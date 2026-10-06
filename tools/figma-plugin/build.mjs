@@ -99,7 +99,7 @@ const data = {
 // ── Catalogue: what the panel lists, checked against the code ───────────────
 
 const root = join(here, '../..');
-const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'layouts.js', 'export.js', 'spec-check.js', 'compose.js', 'main.js'];
+const SRC_FILES = ['core.js', 'variables.js', 'molecules.js', 'components.js', 'blocks.js', 'site.js', 'layouts.js', 'export.js', 'spec-check.js', 'compose.js', 'main.js'];
 const sources = Object.fromEntries(SRC_FILES.map((f) => [f, readFileSync(join(here, 'src', f), 'utf8')]));
 const allSource = Object.values(sources).join('\n');
 
