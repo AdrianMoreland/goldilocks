@@ -78,10 +78,10 @@ reg('site/product-row', async () => {
             { name: 'price', values: ['live', 'unavailable'] },
         ],
         (c) =>
-            F({ kind: 'component', name: 'Product row', dir: 'H', gap: 16, w: 1120, pad: [12, 16], align: 'center', stroke: 'border', sides: 'b', fill: 'card' }, [
+            F({ kind: 'component', name: 'Product row', dir: 'H', gap: 16, w: 1200, pad: [12, 16], align: 'center', stroke: 'border', sides: 'b', fill: 'card' }, [
                 F({ name: 'Thumbnail', w: 56, h: 56, fill: 'muted', radius: 'md', align: 'center', justify: 'center' }, [T('img', { size: 12, c: 'muted-foreground', name: 'image' })]),
-                F({ name: 'Name', gap: 2, w: 320 }, [T('Britannia 1 oz Gold Coin', { weight: 500, name: 'name' }), T('31.1 g · 999.9 · The Royal Mint', { c: 'muted-foreground', name: 'meta' })]),
-                F({ name: 'Availability', w: 200 }, [siteAvailability(c.stock)]),
+                F({ name: 'Name', gap: 2, w: 280 }, [T('Britannia 1 oz Gold Coin', { weight: 500, name: 'name' }), T('31.1 g · 999.9 · The Royal Mint', { c: 'muted-foreground', name: 'meta' })]),
+                F({ name: 'Availability', w: 190 }, [siteAvailability(c.stock)]),
                 F({ name: 'Price column', w: 120, gap: 2 }, [
                     c.price === 'unavailable'
                         ? T('Unavailable', { size: 14, c: 'muted-foreground', name: 'price' })
