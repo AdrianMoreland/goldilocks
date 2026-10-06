@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "kind": "merrion-library",
-  "exportedAt": "2026-10-06T17:10:49.239Z",
+  "exportedAt": "2026-10-06T18:47:31.414Z",
   "source": {
     "file": "Untitled",
     "page": "Design system"
@@ -1103,7 +1103,7 @@
         ]
       },
       "texts": [
-        "Select a metal"
+        "value"
       ],
       "size": {
         "w": 240,
@@ -1526,7 +1526,7 @@
         "label"
       ],
       "size": {
-        "w": 1120,
+        "w": 1200,
         "h": 125
       },
       "source": [
