@@ -2,7 +2,7 @@ import type { RawProduct, RawSpotPrice } from '@goldilocks/shared-types';
 import { calculateProductPrice } from '../../common/utils/pricing.util';
 import type { HistoricSpotService } from '../metals/historic-spot.service';
 import type { MetalsProvider } from '../metals/metals.provider';
-import type { ProductsProvider } from '../products/products.provider';
+import type { ProductsService } from '../products/products.service';
 import { MarketDataService } from './market-data.service';
 
 const spot = (
@@ -50,8 +50,8 @@ function build(
         } as unknown as MetalsProvider,
         {} as HistoricSpotService,
         {
-            getAll: jest.fn(async () => [gold100g]),
-        } as unknown as ProductsProvider,
+            getRawProducts: jest.fn(async () => [gold100g]),
+        } as unknown as ProductsService,
     );
     return service;
 }

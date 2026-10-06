@@ -10,7 +10,7 @@ import { RolesGuard } from './roles.guard';
 import { UserThrottlerGuard } from './user-throttler.guard';
 import { AuthController } from '../../modules/auth/auth.controller';
 import { AuthService } from '../../modules/auth/auth.service';
-import { RequestMetricsService } from '../../modules/admin/request-metrics.service';
+import { RequestMetricsService } from '../../modules/request-metrics/request-metrics.service';
 import { MarketDataController } from '../../modules/market-data/market-data.controller';
 import { MarketDataService } from '../../modules/market-data/market-data.service';
 

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { RedisModule } from '../../redis/redis.module';
+import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { AuthModule } from '../auth/auth.module';
 import { ErrorLogService } from './error-log.service';
 import { ErrorLogController } from './error-log.controller';

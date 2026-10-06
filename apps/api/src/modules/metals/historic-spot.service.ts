@@ -10,9 +10,9 @@ import {
     HISTORIC_LOOKBACK_DAYS,
     thinOldHistory,
     SYMBOL_MAP,
-    toNumber,
     type HistoricSpotRecord,
 } from '../../common/utils/pricing.util';
+import { toNumber } from '../../common/utils/prisma-mappers';
 import { mapTimeframeRecords } from './vendor-rates';
 
 export interface BackfillWindowReport {

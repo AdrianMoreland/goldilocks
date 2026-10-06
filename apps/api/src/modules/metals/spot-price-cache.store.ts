@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 import { MetalType, RawSpotPrice } from '@goldilocks/shared-types';
 import { CacheAsideStore } from '../../common/cache/cache-aside-store.base';
-import { toRawMetalSpotPrice } from '../../common/utils/pricing.util';
+import { toRawMetalSpotPrice } from '../../common/utils/prisma-mappers';
 
 const SPOT_CACHE_TTL_SECONDS = 3600;
 

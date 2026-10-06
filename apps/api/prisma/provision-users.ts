@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
-import { prisma } from '../src/lib/db/prisma';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../src/infrastructure/prisma/prisma.service';
 import { UserRole } from './generated/enums';
+
+const prisma = new PrismaService(new ConfigService());
 
 /**
  * One-off provisioning script for this app's two known staff accounts.

@@ -5,7 +5,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { SupabaseAuthProvider } from './supabase-auth.provider';
-import type { SupabaseService } from '../../../supabase/supabase.service';
+import type { SupabaseService } from '../../../infrastructure/supabase/supabase.service';
 
 const sdkError = (status: number | undefined, code?: string) =>
     Object.assign(new Error('sdk error'), { status, code });

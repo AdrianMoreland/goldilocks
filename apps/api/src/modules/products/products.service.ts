@@ -4,35 +4,25 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { MetalType } from '../../../prisma/generated/enums';
-import { Product, RawProduct } from '@goldilocks/shared-types';
+import { RawProduct } from '@goldilocks/shared-types';
 import { CreateProductDto, UpdateProductDto } from '../../common/dto/dtos';
 import { ProductsProvider } from './products.provider';
-import {
-    calculateProductPrice,
-    ZERO_SPOT_MAP,
-} from '../../common/utils/pricing.util';
 
 @Injectable()
 export class ProductsService {
     constructor(private readonly productsProvider: ProductsProvider) {}
 
     /**
-     * Priced products. Caller (MarketDataService, typically) supplies spotMap.
-     * If omitted, prices default to 0 rather than silently fetching live spot.
+     * Raw products, no pricing applied: the module's read API for other
+     * modules and for admin views. Priced products come from MarketDataService.
      */
-    async getProducts(
-        spotMap: Record<MetalType, number> = ZERO_SPOT_MAP,
-    ): Promise<Product[]> {
-        const rawProducts = await this.productsProvider.getAll();
-        return rawProducts.map((p) => calculateProductPrice(p, spotMap));
+    async getRawProducts(): Promise<RawProduct[]> {
+        return this.productsProvider.getAll();
     }
 
-    /**
-     * Raw products, no pricing applied. Useful for admin views/CRUD.
-     */
-    async getRawProducts() {
-        return this.productsProvider.getAll();
+    /** One live product, or null when it does not exist. For callers that word their own not-found error. */
+    async findById(id: number): Promise<RawProduct | null> {
+        return this.productsProvider.getById(id);
     }
 
     /**
