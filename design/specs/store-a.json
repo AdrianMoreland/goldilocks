@@ -1,0 +1,1407 @@
+{
+  "schema": 1,
+  "kind": "frame",
+  "name": "Store, direction A: grid with side filters",
+  "dir": "V",
+  "w": 1440,
+  "fill": "background",
+  "note": "A: classic catalogue. A short dark hero band, filters in a left column, a 3-column card grid. Calm and spacious, the layout of a premium retailer. Theme proposal: site-theme-a (Heritage Vault).",
+  "children": [
+    {
+      "kind": "frame",
+      "name": "Price ticker (proposed block)",
+      "dir": "H",
+      "gap": 24,
+      "pad": [
+        8,
+        24
+      ],
+      "fillW": true,
+      "fill": "foreground",
+      "align": "center",
+      "children": [
+        {
+          "kind": "text",
+          "text": "Gold €3,707 +0.5%",
+          "style": "small",
+          "color": "background"
+        },
+        {
+          "kind": "text",
+          "text": "Silver €54.53 +0.2%",
+          "style": "small",
+          "color": "background"
+        },
+        {
+          "kind": "text",
+          "text": "Platinum €1,512 -1.0%",
+          "style": "small",
+          "color": "background"
+        },
+        {
+          "kind": "text",
+          "text": "Palladium €1,034 -1.2%",
+          "style": "small",
+          "color": "background"
+        }
+      ]
+    },
+    {
+      "kind": "frame",
+      "name": "Header (proposed block: public header)",
+      "dir": "H",
+      "gap": 28,
+      "pad": [
+        16,
+        24
+      ],
+      "fillW": true,
+      "fill": "background",
+      "stroke": "border",
+      "sides": "b",
+      "align": "center",
+      "children": [
+        {
+          "kind": "text",
+          "text": "MERRION GOLD",
+          "style": "large"
+        },
+        {
+          "kind": "text",
+          "text": "Buy",
+          "style": "p"
+        },
+        {
+          "kind": "text",
+          "text": "Sell",
+          "style": "p"
+        },
+        {
+          "kind": "text",
+          "text": "Prices",
+          "style": "p"
+        },
+        {
+          "kind": "text",
+          "text": "Storage",
+          "style": "p"
+        },
+        {
+          "kind": "text",
+          "text": "Learn",
+          "style": "p"
+        },
+        {
+          "kind": "text",
+          "text": "Branches",
+          "style": "p"
+        },
+        {
+          "kind": "frame",
+          "name": "spacer",
+          "dir": "H",
+          "fillW": true,
+          "children": []
+        },
+        {
+          "kind": "text",
+          "text": "01 254 7901",
+          "style": "small",
+          "color": "muted-foreground"
+        },
+        {
+          "kind": "instance",
+          "component": "molecules/button",
+          "variant": {
+            "variant": "default",
+            "size": "sm"
+          },
+          "texts": [
+            "Cart (3)"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "frame",
+      "name": "hero",
+      "fillW": true,
+      "fill": "foreground",
+      "pad": [
+        40,
+        80
+      ],
+      "gap": 8,
+      "children": [
+        {
+          "kind": "text",
+          "text": "Buy gold, silver, platinum and palladium",
+          "style": "h2",
+          "color": "background"
+        },
+        {
+          "kind": "text",
+          "text": "Live prices. Add what you need and send us an order request; a colleague confirms it by email.",
+          "style": "p",
+          "color": "zinc-300"
+        }
+      ]
+    },
+    {
+      "kind": "frame",
+      "name": "content",
+      "dir": "H",
+      "gap": 32,
+      "pad": [
+        32,
+        80
+      ],
+      "fillW": true,
+      "align": "start",
+      "children": [
+        {
+          "kind": "frame",
+          "name": "Filters (proposed block)",
+          "w": 260,
+          "gap": 16,
+          "pad": 16,
+          "fill": "card",
+          "stroke": "border",
+          "radius": "xl",
+          "children": [
+            {
+              "kind": "text",
+              "text": "Filters",
+              "style": "section-label",
+              "color": "muted-foreground"
+            },
+            {
+              "kind": "text",
+              "text": "Metal",
+              "style": "field-label"
+            },
+            {
+              "kind": "frame",
+              "name": "Gold",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "true"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Gold",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Silver",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "false"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Silver",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Platinum and palladium",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "false"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Platinum and palladium",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Copper",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "false"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Copper",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/separator",
+              "fillW": true
+            },
+            {
+              "kind": "text",
+              "text": "Type",
+              "style": "field-label"
+            },
+            {
+              "kind": "frame",
+              "name": "Coins",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "true"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Coins",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Bars",
+              "dir": "H",
+              "gap": 8,
+              "align": "center",
+              "children": [
+                {
+                  "kind": "instance",
+                  "component": "molecules/checkbox",
+                  "variant": {
+                    "checked": "false"
+                  }
+                },
+                {
+                  "kind": "text",
+                  "text": "Bars",
+                  "style": "p"
+                }
+              ]
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/separator",
+              "fillW": true
+            },
+            {
+              "kind": "text",
+              "text": "Price range",
+              "style": "field-label"
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/slider"
+            },
+            {
+              "kind": "frame",
+              "name": "range",
+              "dir": "H",
+              "justify": "between",
+              "fillW": true,
+              "children": [
+                {
+                  "kind": "text",
+                  "text": "€100",
+                  "style": "small",
+                  "color": "muted-foreground"
+                },
+                {
+                  "kind": "text",
+                  "text": "€15,000",
+                  "style": "small",
+                  "color": "muted-foreground"
+                }
+              ]
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/separator",
+              "fillW": true
+            },
+            {
+              "kind": "text",
+              "text": "Collect from",
+              "style": "field-label"
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/select",
+              "variant": {
+                "state": "filled"
+              },
+              "texts": [
+                "Any branch"
+              ]
+            },
+            {
+              "kind": "instance",
+              "component": "molecules/button",
+              "variant": {
+                "variant": "ghost",
+                "size": "sm"
+              },
+              "texts": [
+                "Clear all"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "frame",
+          "name": "results",
+          "gap": 16,
+          "w": 1020,
+          "children": [
+            {
+              "kind": "frame",
+              "name": "Sort bar",
+              "dir": "H",
+              "fillW": true,
+              "justify": "between",
+              "align": "center",
+              "children": [
+                {
+                  "kind": "text",
+                  "text": "54 products · prices indicative, updated 12:04:30",
+                  "style": "small",
+                  "color": "muted-foreground"
+                },
+                {
+                  "kind": "frame",
+                  "name": "sort",
+                  "dir": "H",
+                  "gap": 8,
+                  "align": "center",
+                  "children": [
+                    {
+                      "kind": "text",
+                      "text": "Sort",
+                      "style": "small"
+                    },
+                    {
+                      "kind": "instance",
+                      "component": "molecules/select",
+                      "variant": {
+                        "state": "filled"
+                      },
+                      "texts": [
+                        "Price per gram"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Indicative price notice",
+              "dir": "H",
+              "gap": 8,
+              "pad": [
+                10,
+                16
+              ],
+              "fillW": true,
+              "fill": {
+                "mix": [
+                  "price",
+                  12,
+                  "background"
+                ]
+              },
+              "stroke": "border",
+              "radius": "lg",
+              "align": "center",
+              "children": [
+                {
+                  "kind": "text",
+                  "text": "Prices are indicative and not locked until funds are received.",
+                  "style": "small"
+                }
+              ]
+            },
+            {
+              "kind": "frame",
+              "name": "Product grid",
+              "gap": 24,
+              "children": [
+                {
+                  "kind": "frame",
+                  "name": "row",
+                  "dir": "H",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "secondary"
+                              },
+                              "texts": [
+                                "In stock · Dublin"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "Britannia 1 oz Gold Coin",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "31.1 g · 999.9 · The Royal Mint",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€3,849",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€123.76 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "secondary"
+                              },
+                              "texts": [
+                                "In stock · Cork"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "Krugerrand 1 oz Gold Coin",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "31.1 g · 916.7 · South African Mint",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€3,812",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€122.57 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "secondary"
+                              },
+                              "texts": [
+                                "In stock · Dublin"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "PAMP Suisse 10 g Gold Bar",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "10 g · 999.9 · PAMP Suisse",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€1,296",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€129.60 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "frame",
+                  "name": "row",
+                  "dir": "H",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "outline"
+                              },
+                              "texts": [
+                                "Supplier order · 7 to 10 days"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "Maple Leaf 1 oz Gold Coin",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "31.1 g · 999.9 · Royal Canadian Mint",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€3,861",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€124.14 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "secondary"
+                              },
+                              "texts": [
+                                "In stock · Blanchardstown"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "Valcambi 100 g Gold Bar",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "100 g · 999.9 · Valcambi",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€12,214",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€122.14 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "frame",
+                      "name": "Product card (proposed block)",
+                      "w": 324,
+                      "fill": "card",
+                      "stroke": "border",
+                      "radius": "xl",
+                      "shadow": "sm",
+                      "clip": true,
+                      "children": [
+                        {
+                          "kind": "frame",
+                          "name": "image",
+                          "h": 168,
+                          "fillW": true,
+                          "fill": "muted",
+                          "align": "center",
+                          "justify": "center",
+                          "children": [
+                            {
+                              "kind": "text",
+                              "text": "Product image",
+                              "style": "muted",
+                              "color": "muted-foreground"
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "frame",
+                          "name": "body",
+                          "gap": 8,
+                          "pad": 16,
+                          "fillW": true,
+                          "children": [
+                            {
+                              "kind": "instance",
+                              "component": "molecules/badge",
+                              "variant": {
+                                "variant": "secondary"
+                              },
+                              "texts": [
+                                "In stock · Dublin"
+                              ]
+                            },
+                            {
+                              "kind": "text",
+                              "text": "American Eagle 1 oz Gold Coin",
+                              "style": "large",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "text",
+                              "text": "31.1 g · 916.7 · US Mint",
+                              "style": "small",
+                              "color": "muted-foreground",
+                              "fillW": true
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "price",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "baseline",
+                              "children": [
+                                {
+                                  "kind": "text",
+                                  "text": "€3,874",
+                                  "style": "h3",
+                                  "color": "price-text"
+                                },
+                                {
+                                  "kind": "text",
+                                  "text": "€124.55 per g",
+                                  "style": "small",
+                                  "color": "muted-foreground"
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "frame",
+                              "name": "actions",
+                              "dir": "H",
+                              "gap": 8,
+                              "align": "center",
+                              "fillW": true,
+                              "children": [
+                                {
+                                  "kind": "frame",
+                                  "name": "qty",
+                                  "dir": "H",
+                                  "gap": 8,
+                                  "align": "center",
+                                  "children": [
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "-"
+                                      ]
+                                    },
+                                    {
+                                      "kind": "text",
+                                      "text": "3",
+                                      "style": "table-item",
+                                      "w": 24,
+                                      "align": "center"
+                                    },
+                                    {
+                                      "kind": "instance",
+                                      "component": "molecules/button",
+                                      "variant": {
+                                        "variant": "outline",
+                                        "size": "sm"
+                                      },
+                                      "texts": [
+                                        "+"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "instance",
+                                  "component": "molecules/button",
+                                  "variant": {
+                                    "variant": "default",
+                                    "size": "default"
+                                  },
+                                  "texts": [
+                                    "Add to cart"
+                                  ],
+                                  "fillW": true
+                                }
+                              ]
+                            },
+                            {
+                              "kind": "instance",
+                              "component": "molecules/button",
+                              "variant": {
+                                "variant": "link",
+                                "size": "sm"
+                              },
+                              "texts": [
+                                "Details"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
