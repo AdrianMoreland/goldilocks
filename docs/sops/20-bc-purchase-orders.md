@@ -4,7 +4,7 @@ title: Business Central — buying from a seller (Purchase Order)
 category: systems
 jurisdiction: IE
 owner: Merrion Gold
-status: draft
+status: approved
 version: 2
 updatedAt: 2026-10-07
 ---

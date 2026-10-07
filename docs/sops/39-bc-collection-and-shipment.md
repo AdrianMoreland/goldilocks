@@ -4,8 +4,8 @@ title: Business Central — collection, serial numbers, part shipment and final 
 category: systems
 jurisdiction: IE
 owner: Merrion Gold
-status: draft
-version: 1
+status: approved
+version: 2
 updatedAt: 2026-10-07
 ---
 

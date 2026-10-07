@@ -17,7 +17,7 @@ The Irish branches have moved from Zoho and Google Sheets to Microsoft Dynamics 
 |---|---|
 | Customer inquiries | Outlook, website form, WhatsApp, phone, walk-in |
 | Live spot prices and product prices | Goldilocks pricing dashboard; Google Sheets pricing workbook (legacy) |
-| Quotes, invoices, customer purchases, supplier shipments | Business Central |
+| Quotes, invoices, customer purchases, supplier shipments | Business Central (new to BC? Start with [[bc-quick-start]]) |
 | Customer ID photo and collection signature | Business Central, captured on the signature tablet |
 | Orders created before BC go-live | Zoho Books (read-only) |
 | Stock counts | Business Central ([[stock-management]]) |
@@ -30,7 +30,7 @@ The Irish branches have moved from Zoho and Google Sheets to Microsoft Dynamics 
 
 ## BC and Zoho
 BC went live in Ireland in September 2026 and the desk is still in transition. Orders were not migrated, so each order exists in only one system.
-1. Create all new quotes and invoices in BC. Never create new documents in Zoho.
+1. Create all new quotes and invoices in BC ([[bc-customer-sales-workflow]]). Never create new documents in Zoho.
 2. To find an existing order, search BC first. If it isn't there, it was created before go-live: search Zoho.
 3. If the order can't be found in either system, escalate to the branch manager.
 
