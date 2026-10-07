@@ -83,7 +83,7 @@ export type SetKbStatusRequest = z.infer<typeof SetKbStatusRequestSchema>;
 /** Plain-language description of each category, shown on the library tiles (from the README's category list). */
 export const KB_CATEGORY_INFO: Record<KbCategory, { label: string; description: string }> = {
   sales: { label: 'Sales', description: 'Inquiries, quotes, pricing and customer conversations' },
-  trading: { label: 'Trading', description: 'Payment, price lock, hedging, limit orders and cancellations' },
+  trading: { label: 'Trading', description: 'Payment, price lock, hedging and cancellations' },
   operations: { label: 'Operations', description: 'Stock, fulfilment, collection, buyback and delivery' },
   compliance: { label: 'Compliance', description: 'KYC, AML and ID checks' },
   storage: { label: 'Storage', description: 'Bonded silver' },

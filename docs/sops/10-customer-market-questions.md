@@ -3,7 +3,7 @@ slug: customer-market-questions
 title: Answering customer questions about the market
 category: sales
 jurisdiction: all
-owner: Adrian
+owner: Merrion Gold
 status: approved
 version: 3
 updatedAt: 2026-09-30

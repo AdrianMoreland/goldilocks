@@ -11,9 +11,9 @@ describe('termRegExp', () => {
   it('matches whole phrases only, and respects case where it matters', () => {
     expect(termRegExp(term('vat')).test('plus VAT on silver')).toBe(true);
     expect(termRegExp(term('vat')).test('the privatisation')).toBe(false);
-    expect(termRegExp(term('available-vs-net')).test('a negative NET means reorder')).toBe(true);
-    expect(termRegExp(term('available-vs-net')).test('the internet')).toBe(false);
-    expect(termRegExp(term('available-vs-net')).test('a net loss')).toBe(false);
+    expect(termRegExp(term('kyc-aml')).test('run the KYC checks')).toBe(true);
+    expect(termRegExp(term('kyc-aml')).test('the kycs of the day')).toBe(false);
+    expect(termRegExp(term('kyc-aml')).test('a kyc form')).toBe(false);
     expect(termRegExp(term('customer-safe')).test('placed in the Customer Safe')).toBe(true);
   });
 

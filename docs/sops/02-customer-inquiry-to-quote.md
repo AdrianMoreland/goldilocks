@@ -3,10 +3,10 @@ slug: customer-inquiry-to-quote
 title: Handling a customer inquiry and issuing a quote
 category: sales
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
-version: 3
-updatedAt: 2026-09-30
+version: 4
+updatedAt: 2026-10-07
 ---
 
 ## Purpose
@@ -19,7 +19,7 @@ Inquiries arrive by Outlook, the website form, WhatsApp, phone or walk-in. Every
 1. Identify the customer. Search BC for an existing customer record. If there isn't one, create it with at least name, phone and email. ID and compliance checks happen later, at payment and collection ([[kyc-aml]]).
 2. Confirm what the customer wants: product, quantity, whether they are buying or selling, and whether they want collection, storage or delivery.
 3. Price the order using [[pricing]].
-4. Check availability using the Available figure on the stock sheet ([[stock-management#available-vs-net]]).
+4. Check the item is available. If it is not in stock, a manager orders it from the supplier.
 5. Create the quote in BC.
 6. Send or give the quote to the customer, and tell them it is indicative (see [[customer-inquiry-to-quote#quote-validity]]).
 

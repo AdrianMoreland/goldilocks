@@ -3,7 +3,7 @@ slug: bonded-silver-storage
 title: Bonded silver storage
 category: storage
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
 version: 3
 updatedAt: 2026-09-30
