@@ -36,21 +36,29 @@ pnpm workspace monorepo, orchestrated with Turborepo (`turbo.json`, root scripts
 The backend already follows feature-based structure — keep it that way:
 
 ```
-apps/api/src/modules/
-├── auth/
-│   ├── auth-provider.port.ts       # interface — see §6
-│   ├── providers/supabase-auth.provider.ts
-│   ├── auth.controller.ts
-│   ├── auth.service.ts
-│   └── auth.module.ts
-├── products/
-├── trade/
-├── portfolio/
-├── metals/
-├── market-data/
-├── admin/            # /admin console: health (Terminus), request/login history (Redis hourly buckets), pino log buffer, endpoint catalogue, DB browser
-├── knowledge/        # SOPs (roadmap 1.4) — source files in docs/sops/, loaded with `pnpm --filter api kb:import`
-└── ai/               # internal assistant (roadmap 1.5) — plan in docs/AI-AGENT-PLAN.md; model behind infrastructure/llm (LlmPort)
+apps/api/src/
+├── infrastructure/   # ports and adapters for outside systems: prisma, redis, supabase, metal-price-api (circuit breaker), llm
+└── modules/
+    ├── auth/
+    │   ├── auth-provider.port.ts       # interface — see §6
+    │   ├── providers/supabase-auth.provider.ts
+    │   ├── auth.controller.ts
+    │   ├── auth.service.ts
+    │   └── auth.module.ts
+    ├── products/        # the single owner of product reads and writes; other modules go through ProductsService
+    ├── trade/
+    ├── portfolio/
+    ├── metals/
+    ├── market-data/
+    ├── market-mode/     # shared Weekend / Volatile / Shortage state
+    ├── branches/
+    ├── roadmap/         # roadmap file <-> database import and export (dry run unless --apply)
+    ├── audit-log/       # transactional Postgres audit trail: product, SOP, user and market-mode changes
+    ├── request-metrics/ # Redis hourly buckets behind the admin request/login history
+    ├── error-log/
+    ├── admin/           # /admin console: health (Terminus), pino log buffer, endpoint catalogue, DB browser
+    ├── knowledge/       # SOPs (roadmap 1.4) — source files in docs/sops/, loaded with `pnpm --filter api kb:import`
+    └── ai/              # internal assistant (roadmap 1.5) — plan in docs/AI-AGENT-PLAN.md; model behind infrastructure/llm (LlmPort)
 ```
 
 `pnpm --filter api ai:eval` runs the golden questions (`modules/ai/eval`) through the real model; it spends a few cents, so it is opt-in. The assistant's live lookups live in `modules/ai/tools/` (one class per tool, listed under the `AI_TOOLS` token); they read prices through `MarketDataService.getPricedCatalogue()`, never the providers directly (§2 boundary).
@@ -184,7 +192,7 @@ Existing consumers: `ProductCacheStore` (5-minute TTL on the full product list),
 
 ## 10. Testing
 
-**Current state: the API has a Jest suite (`pnpm --filter api exec jest`, ~470 tests) and `packages/shared-types` has specs for the pricing math and the Knowledge Center parsers. The web app has no tests yet.** Run the suite before claiming a backend change works, and don't claim something is "tested" unless a test covers it. The patterns below are the target for new logic.
+**Current state: the API has a Jest suite (`pnpm --filter api exec jest`, ~620 tests in 47 suites) and `packages/shared-types` has specs (vitest, ~180 tests) for the pricing math and the Knowledge Center parsers. The web app has no tests yet.** Run the suite before claiming a backend change works, and don't claim something is "tested" unless a test covers it. The patterns below are the target for new logic.
 
 ```ts
 describe('TradeService', () => {

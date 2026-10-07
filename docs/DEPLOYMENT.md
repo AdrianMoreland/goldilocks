@@ -6,17 +6,18 @@ Split out of `docs/ENGINEERING.md` (§13 and §14) so the engineering guide that
 
 ## 13. Deployment — current setup (simple, for the initial demo)
 
-This section describes what's actually deployed **today**, not a target architecture. It intentionally skips Docker, a secrets manager, Sentry, rate limiting, and API versioning — those are real production concerns for later, once this is more than an internal two-person tool being shown to one stakeholder. See §14 for what "later" should add.
+This section describes what's actually deployed **today**, not a target architecture. It intentionally skips Docker, a secrets manager, Sentry and API versioning — those are real production concerns for later, once this is more than an internal two-person tool being shown to one stakeholder. See §14 for what "later" should add.
 
-### Platform: Railway, two services in one project
+### Platform: Railway, services in one project
 
 1. **API service** — `apps/api`, built with `pnpm --filter api build`, started with `pnpm --filter api start:prod`.
 2. **Web service** — `apps/web`, a static Vite build (`pnpm --filter web build` → serve `dist/`).
+3. **Redis** — Railway's Redis service; its address is the API's `REDIS_URL`.
 
 ### Data & auth: already hosted, nothing new to stand up
 
 - **Postgres + Auth**: Supabase (already configured — `DATABASE_URL`/`DIRECT_URL` point at it, and Supabase Auth holds the two staff accounts). Nothing changes for deployment; the same project serves both dev and this demo.
-- **Redis**: `apps/api/.env` currently points at `redis://127.0.0.1:6379` — a **local-only** address that will not resolve on Railway. Before deploying, add Railway's Redis plugin (or reuse an existing Upstash instance) and set `REDIS_URL` to that real address. This is a required step, not optional — the product/spot-price cache-aside store will fail without it.
+- **Redis**: a local `apps/api/.env` points at `redis://127.0.0.1:6379`, which will not resolve on Railway. The API service must have `REDIS_URL` set to the Railway Redis address; the product and spot-price cache-aside stores fail without it.
 
 ### Environment variables to set on the API service
 
@@ -29,6 +30,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_KEY=
 METALPRICE_API_KEY=
 REDIS_URL=              # ← must be a real host, see above
+FRONTEND_URL=           # allowed CORS origin(s), comma-separated; defaults to http://localhost:5173
 PORT=4000
 NODE_ENV=production
 SWAGGER_ENABLED=        # optional; /docs is off in production unless this is "true"
@@ -53,34 +55,24 @@ AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million t
 VITE_API_URL=https://<the-api-service>.up.railway.app
 ```
 
-### One real code change needed before this works cross-origin
+### CORS
 
-`apps/api/src/main.ts` currently hardcodes CORS to `http://localhost:5173`:
-
-```ts
-app.enableCors({ origin: ['http://localhost:5173'], credentials: true });
-```
-
-This must read from an env var (e.g. `FRONTEND_URL`) before the Railway-hosted frontend can call the Railway-hosted API — flag this to the user as a required fix, don't just deploy and let it silently CORS-fail.
+`apps/api/src/main.ts` reads the allowed origin(s) from `FRONTEND_URL` (comma-separated, default `http://localhost:5173`). Set it on the API service to the web service's URL, or the browser blocks every call from the deployed frontend.
 
 ### Not doing yet (intentionally)
 
 - No Docker/Dockerfile — Railway builds directly from the repo.
 - No secrets manager — Railway's own encrypted environment variables are enough at this scale.
-- No health-check endpoints, Sentry, Helmet, or rate limiting yet (see §14).
+- No Sentry yet (see §14). Helmet, rate limiting (`@nestjs/throttler`, per user) and `GET /health` already exist.
 - No custom domain — Railway's generated `*.up.railway.app` URLs are fine for a demo.
 
 ---
 
 ## 14. Future hardening (not needed yet — revisit if this becomes customer-facing)
 
-Listed so they aren't added prematurely, and so they're easy to pick up later:
+Helmet, rate limiting and `GET /health` are already done (see §13). Still open:
 
-- **Helmet** (`app.use(helmet())`) for security headers.
-- **Rate limiting** (`@nestjs/throttler`) on `/auth/login` at minimum.
 - **Sentry** or similar error tracking.
 - **API versioning** (`app.enableVersioning(...)`) — irrelevant with one internal client; do this only if a second consumer of the API ever appears.
 - A real secrets manager (Railway env vars are fine below a certain team size; revisit if this moves to a platform with more than a couple of people touching production config).
-- Health-check endpoints (`GET /health`, `GET /health/db`) if this ever needs uptime monitoring.
-
----
+- A database health check (`GET /health/db`) and external uptime monitoring, if this needs them; `GET /health` already exists.
