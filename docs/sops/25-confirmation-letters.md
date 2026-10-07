@@ -17,7 +17,7 @@ Standard letters customers ask for as proof of funds, holdings, value or transac
 2. State the date and the exact amounts. Close with "Please let me know if you require any further information."
 3. Do not put customer personal data, bank details or account numbers in anything other than the letter itself.
 4. [TODO: who may approve and sign each type. Past letters are signed by the Head of Trading, a Bullion Dealer or Bullion Broker, and (for the authority letter) the Managing Director.]
-5. [TODO: opening hours differ between letters (17:00, 17:30, 17:45 closes). Confirm and use one set.]
+5. Do not state opening hours in a letter. Refer the customer to the website.
 
 ## Funds held on account
 Use when a customer needs evidence of money held pending a purchase.
@@ -32,7 +32,7 @@ Use when a cheque arrives, before it clears.
 3. Signed by the broker.
 
 ## Confirmation of card lodgement
-- "[Customer] has lodged €[amount] on account with Merrion Gold via card payment and now holds the money on account." Signed by the Head of Trading. [TODO: the card payment method is not listed in other documents. See [[payment-lock-and-hedge#accepted-payment-methods]].]
+- "[Customer] has lodged €[amount] on account with Merrion Gold via card payment and now holds the money on account." Signed by the Head of Trading. Card payments carry a 2% handling fee ([[payment-lock-and-hedge]]).
 
 ## Confirmation of payment and amount invested
 - "Merrion Gold received a payment of €[amount] from you on [date]. These funds were used to purchase [qty] x [size] gold bar, 999.9 purity, 24 carat, at €[price] each, totalling €[total]." Signed by the broker.
@@ -58,7 +58,7 @@ Wording: bars stored on the customer's behalf at Loomis International in Zurich 
 1. Say which price source is used: LBMA gold AM fix, PM fix or silver fix, with the date.
 2. Types: position summary; live value of bars (serial number, refinery, ounces, value); total holdings (gold, silver, total); single item.
 3. Check that each price line is labelled gold or silver correctly. A past letter labelled a gold fix as silver.
-4. [TODO: a past live valuation appears to value bars at about 97% of spot. Confirm the sell-back rate before quoting.]
+4. Value bars at the bid price from the product table ([[pricing#buy-price]]), not at a fixed percentage of spot.
 
 ## Net asset value (NAV)
 1. NAV is the value of the customer's holdings less outstanding liabilities, meaning quarterly storage fees due.

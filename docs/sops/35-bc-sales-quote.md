@@ -31,7 +31,7 @@ Price a customer order in Business Central (BC) and send it with the payment ref
 
 ## Header fields you may see
 - The quote header also shows Gold, Silver, Platinum and Palladium Spot Price boxes, a Quote Valid To Date and a Quote Accepted switch.
-- [TODO: confirm whether staff should fill in the spot price boxes and the Quote Valid To Date. The guide does not say. Quotes have no validity period ([[customer-inquiry-to-quote#quote-validity]]).]
+- Leave the spot price boxes and the Quote Valid To Date blank. Quotes have no validity period ([[customer-inquiry-to-quote#quote-validity]]).
 
 ## Send the quote
 1. On the quote, open the Print/Send tab.

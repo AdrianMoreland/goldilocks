@@ -14,9 +14,9 @@ Show who is responsible for AML, how often policies are reviewed, and how staff 
 Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), staff training forms.
 
 ## Roles
-- The MLRO signs off new clients, owns the money-laundering identification file, handles reports of suspicion, and makes sure staff are trained.
+- The MLRO signs off KYC packs for cash of €10,000 or more, owns the money-laundering identification file, handles reports of suspicion, and makes sure staff are trained.
 - The MLRO reviews the AML policy at least once a year and keeps a written record of changes and of how staff were told.
-- [TODO: name of the current MLRO and whether a second MLRO exists (the Nov 2023 policy planned one for Cork).]
+- Ask a manager who the current MLRO is. This SOP names roles, not people, so it does not go out of date.
 
 ## Business risk assessment
 1. The Business Risk Assessment is reviewed, signed and dated every year.

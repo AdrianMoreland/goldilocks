@@ -23,9 +23,8 @@ Once the customer's money is confirmed, convert the quote into a Sales Order and
 
 ## The prepayment value
 1. On the Sales Order line, enter the prepayment value before creating the Prepayment Invoice. The guide's screenshot highlights the prepayment amount column next to Prepayment %.
-2. Enter only the amount the customer has actually paid. Anything still owed, for example because the metal price moved, then remains outstanding.
-3. For a normal fully prepaid order this equals 100% of the order value.
-4. [TODO: the workflow chart says "Enter 100% of the order value as the prepayment value", while the guide says only the amount actually paid. They agree when the customer paid in full. Confirm which to use when the customer paid less than the full order value.]
+2. Enter 100 in the Prepayment field, even if the customer has paid only part of the order.
+3. The exact amount paid is entered later, in the Cash Receipt Journal ([[bc-record-customer-payment]]).
 
 ## Post the Prepayment Invoice
 1. On the Sales Order, open the Actions menu.

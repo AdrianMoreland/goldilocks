@@ -5,8 +5,8 @@ category: operations
 jurisdiction: IE
 owner: Adrian
 status: approved
-version: 3
-updatedAt: 2026-09-30
+version: 4
+updatedAt: 2026-10-07
 ---
 
 ## Purpose
@@ -29,9 +29,8 @@ Buy product from customers at a correct price and record it in stock.
 ## Paying the customer
 - Customers are paid by bank transfer only. No cash.
 - Tell the customer the timing before they agree:
-  - normally 3–5 working days;
-  - up to 10 working days;
-  - up to 15 working days for payments over €50,000.
+  - up to 10 working days, and sometimes sooner;
+  - up to 15 working days for larger payments (over €50,000).
 
 ## Purchase records
 - Record every purchase in BC. The Raw GP purchase inventory sheet is no longer used.

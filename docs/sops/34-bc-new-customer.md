@@ -36,7 +36,7 @@ Create a customer record in Business Central (BC) without making a duplicate. Yo
 In a Sales Quote, type the new name in Customer Name and select + New in the drop-down. The same template box appears and the steps above apply.
 
 ## Other templates
-The template list also has EU, ROW (rest of world), UK and XI (Northern Ireland). [TODO: confirm when to use each. Only DOMESTIC is covered in the guide.]
+Use DOMESTIC. The template list also has EU, ROW, UK and XI, but they are not used yet. If a customer needs one, ask a manager.
 
 ## If the customer is also a vendor
 A person who sells to us and also buys from us should have one number across both records. See [[bc-new-vendor#same-number-for-customer-and-vendor]].

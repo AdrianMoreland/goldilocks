@@ -16,7 +16,7 @@ Sources: Merrion Gold Procedures (point 13), Gold Buying and Testing Receipt, Pu
 ## Before the customer comes in
 - To sell to us the customer must bring the item to the premises for testing and verification. We do not agree a final price by email.
 - An email may give an indicative offer "pending testing and verification" at the current live price.
-- Payment is made to an account of the customer's choice, normally on the business day after the price is agreed. [TODO: this conflicts with [[customer-buyback#paying-the-customer]] (3 to 5, up to 10, up to 15 working days). Confirm which is current.]
+- Payment is made to an account of the customer's choice, within 10 working days of the price being agreed, sometimes sooner, and within 15 working days for larger payments ([[customer-buyback#paying-the-customer]]).
 
 ## At the desk
 1. Check valid photo ID (passport or driving licence) and take a photocopy ([[kyc-aml]]).
@@ -49,13 +49,10 @@ Complete and sign the Gold Buying and Testing Receipt. Fields:
 6. We buy only from LBMA-approved refineries' products. [TODO: confirm. The sample emails say Merrion Gold only buys from reputable LBMA-approved refineries when sourcing gold. Confirm whether the same restriction applies when buying back from customers.]
 
 ## What we buy
-- Always what we sold, and other gold if it passes testing. Investment bars and 22 or 24 carat coins. No scrap or jewellery. Rare coins are bought for gold content only. [TODO: the Irish FAQ says no scrap, but [[pricing#scrap-and-non-standard-items]] allows scrap with manager approval. Confirm which applies.]
+- Always what we sold, and other gold if it passes testing. Investment bars and 22 or 24 carat coins. No jewellery. Damaged bullion coins and bars (scrap) only with manager approval ([[pricing#scrap-and-non-standard-items]]). Rare coins are bought for gold content only.
 
-## Legacy price guide
-These older guides conflict with the product table in [[pricing]] and are shown only for review. Do not quote them.
-- First-time customer: about 95% of spot. Returning customer: about 97% of spot. Percentages change with the market.
-- Quote Guide, purchases: sovereign -10% of spot, 1oz bar -5%, 1oz coin -3%, 100g -3%, 1kg -1%, silver at spot.
-- [TODO: decide whether these are retired.]
+## Buy prices
+Use the product table in [[pricing#buy-price]]. Older fixed percentages of spot are retired.
 
 ## Related
 - [[customer-buyback]]

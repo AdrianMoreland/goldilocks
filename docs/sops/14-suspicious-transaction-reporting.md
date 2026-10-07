@@ -47,7 +47,6 @@ Sources: AML Policy (Dec 2022); Revenue STR guidance (online filing from 7 Septe
 - A ROS login and digital certificate. The ROS Administrator creates a sub-user certificate for the MLRO and grants the permission to file STRs. The main administrator certificate cannot file STRs unless it is also the MLRO's.
 - A goAML registration for Merrion Gold with the MLRO as a user, and the FIU notification email whitelisted.
 - [TODO: confirm Merrion Gold is registered on goAML and on ROS for STRs, who holds the certificates, and where STR records are kept.]
-- [TODO: confirm who the MLRO is now.]
 
 ## Related
 - [[kyc-aml]]

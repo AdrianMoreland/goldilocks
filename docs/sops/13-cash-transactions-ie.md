@@ -16,8 +16,8 @@ Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), Cash Transaction 
 ## When it applies
 - Cash of €10,000 or more in one payment, or in a series of linked payments by the same customer.
 - This applies when the customer pays cash for goods and when we pay cash. Buybacks are normally paid by bank transfer only ([[customer-buyback#paying-the-customer]]).
-- [TODO: the AML Policy says "equal to or greater than" €10,000 and the Risk Policy says "exceeding". Existing SOPs use "€10,000 or more". Confirm.]
-- [TODO: no linked-transaction time window is defined in the policies. The Selling gold procedure says payments cumulatively above €10,000 in cash over one year. Confirm the window.]
+- The threshold is €10,000 or more. A payment of exactly €10,000 is covered.
+- Cash payments by the same customer are linked if they add up to €10,000 or more within 12 months.
 - Customer email wording must never say that no ID is needed under €10,000. See [[customer-email-wording#cash-purchases]].
 
 ## Before accepting the cash

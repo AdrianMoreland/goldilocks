@@ -49,7 +49,7 @@ Sources: Business Central Guide (Branch Sales and Purchasing work instructions),
 
 ## The six traps
 1. The journal amount is negative. €4,495 received is entered as -4495.
-2. The prepayment value is what the customer has paid, not automatically the order total ([[bc-sales-order-and-prepayment#the-prepayment-value]]).
+2. Enter 100 in the Prepayment field, even if only part is paid. The exact amount goes in the Cash Receipt Journal ([[bc-sales-order-and-prepayment#the-prepayment-value]]).
 3. Release the order before sending the confirmation. No Release, no Hedging table.
 4. One serial per bar, with Quantity (Base) 1 on every line.
 5. Start from a Quote, never a standalone Sales Order.

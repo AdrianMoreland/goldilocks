@@ -21,8 +21,8 @@ The rules in the customer-facing General Terms and Conditions (v1.02, 2023) that
 
 ## Payment
 1. Orders are delayed until funds are cleared.
-2. Accepted: cash, bank transfer, cleared bank draft, cleared personal or company cheque. [TODO: existing SOP lists bank transfer, card and cash. No source mentions cards, and the UK manual says "We do not accept cards". Confirm.]
-3. Cash handling fee: the Irish staff FAQ says 1% (and 3% extra on non-euro cash). The existing SOP says 2%. [TODO: confirm.]
+2. Accepted: cash, bank transfer, card, cleared bank draft, cleared personal or company cheque.
+3. A 2% handling fee applies to card and cash payments ([[payment-lock-and-hedge]]).
 4. Cash of €10,000 or more, single or linked, triggers AML checks ([[cash-transactions-ie]]).
 5. Other currencies can be paid at the live spot in that currency.
 
@@ -30,8 +30,7 @@ The rules in the customer-facing General Terms and Conditions (v1.02, 2023) that
 1. Collect from the vault location on the quote. We do not deliver to private or company addresses.
 2. Orders are ready in 7 to 10 working days where cleared funds arrive before 3pm. We are not liable for delays outside our control.
 3. Ownership passes on collection once the full value is received.
-4. [TODO: the staff FAQ also says delivery is available for large orders, in 10 to 14 days. Confirm which is current.]
-5. Orders ready for collection are held for 30 days ([[desk-security-and-dual-control#storage-in-the-gold-safety-deposit-box]]).
+4. Orders ready for collection are held for 30 days ([[desk-security-and-dual-control#storage-in-the-gold-safety-deposit-box]]).
 
 ## Cancellation and returns
 1. There is no right of return, and the distance-selling cancellation right does not apply because prices depend on financial markets.

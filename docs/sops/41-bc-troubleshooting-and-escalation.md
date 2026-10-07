@@ -35,7 +35,7 @@ Do not improvise. Do not use a function because it appears in the menu.
 | Error when posting a sale with bars | Serial numbers are missing | Add one serial per bar with Quantity (Base) 1 ([[bc-collection-and-shipment#serial-numbers-for-bars]]) |
 | Error screen on a Purchase Order | A required field is empty | Read the message, complete the field, try again |
 | Hedging table is empty | The order was not released | Release the order ([[bc-release-and-confirm]]) |
-| Order shows an amount still owing | Prepayment was less than the order total | Check the remaining amount before handing over goods |
+| Order shows an amount still owing | The amount in the Cash Receipt Journal was less than the order total | Check the remaining amount before handing over goods |
 | Two records for one person | The customer was created without searching | Tell a manager. Do not delete anything |
 | Customer not found | Spelled differently or created before BC | Search by phone number, then Zoho ([[systems-overview#bc-and-zoho]]) |
 | Payment applied to the wrong invoice | Wrong Prepayment Invoice chosen | Do not post. If already posted, tell a manager |
@@ -44,7 +44,6 @@ Do not improvise. Do not use a function because it appears in the menu.
 ## Cancellations and refunds
 - The documents do not give a BC procedure for cancelling an order or refunding a customer.
 - Until one is written, stop and ask a manager for any cancellation, refund or reversal.
-- [TODO: add the BC steps for a cancellation and a refund when the manager confirms them.]
 
 ## Related
 - [[bc-quick-start]]

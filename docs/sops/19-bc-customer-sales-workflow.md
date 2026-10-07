@@ -27,7 +27,7 @@ Sources: Business Central Guide, Branch Staff Workflow chart.
 | 4 | Customer pays | They pay using the payment reference | |
 | 5 | STOP | Confirm the payment has landed | [[payment-lock-and-hedge#confirming-funds]] |
 | 6 | Sales Order | Make Order from the quote. Update the price if the metal moved | [[bc-sales-order-and-prepayment]] |
-| 7 | Prepayment value | Enter what the customer has paid | [[bc-sales-order-and-prepayment#the-prepayment-value]] |
+| 7 | Prepayment value | Enter 100 in the Prepayment field, even if only part is paid | [[bc-sales-order-and-prepayment#the-prepayment-value]] |
 | 8 | Prepayment Invoice | Post it and check it posted | [[bc-sales-order-and-prepayment#post-the-prepayment-invoice]] |
 | 9 | Record the money | Cash Receipt Journal, apply to the invoice, Post | [[bc-record-customer-payment]] |
 | 10 | Release | Fills the Hedging table. Then send the confirmation | [[bc-release-and-confirm]] |

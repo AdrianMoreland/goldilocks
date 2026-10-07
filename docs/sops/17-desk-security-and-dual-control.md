@@ -52,9 +52,6 @@ All deliveries, testing and dealings involving gold are done under the departmen
 - The shared Gold mailbox is checked constantly.
 - Answer every gold email query as soon as possible ([[customer-email-wording]]).
 
-## Phone calls
-- [TODO: the source lists "Phone calls", "Estimates" and "Invoices" as headings with no content. Add the call-handling rules if any exist.]
-
 ## Related
 - [[supplier-orders]]
 - [[stock-management]]
