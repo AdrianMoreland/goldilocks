@@ -4,8 +4,8 @@ title: Gold and silver product reference
 category: sales
 jurisdiction: all
 owner: Merrion Gold
-status: draft
-version: 1
+status: approved
+version: 2
 updatedAt: 2026-10-07
 ---
 
