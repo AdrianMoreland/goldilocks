@@ -13,12 +13,12 @@ updatedAt: 2026-10-07
 Hand over bullion only to the right person, with a record of the handover.
 
 ## Steps
-1. Find the order in BC and confirm it is paid and invoiced.
+1. Find the order in BC and confirm it is paid and invoiced ([[bc-collection-and-shipment]]).
 2. Check the collector's identity (see [[customer-collection#identity-check]]). Do not bring out the items until identity is confirmed.
 3. Take the customer's bag from the customer safe and check the contents against the invoice.
 4. The customer checks the items in front of you.
 5. Trigger the signature capture from BC. The customer signs on the tablet and their ID is photographed.
-6. Mark the order as collected in BC ([[stock-management#customer-safe-cst-safe]]).
+6. Mark the order as collected in BC: Post, then Ship and Invoice ([[bc-collection-and-shipment]], [[stock-management#customer-safe-cst-safe]]).
 
 ## Identity check
 - Accepted documents: passport, national ID card or driving licence.

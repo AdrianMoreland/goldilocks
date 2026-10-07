@@ -23,7 +23,7 @@ Keep an accurate record of physical stock and what needs reordering.
 - Bagged items are not available for sale.
 
 ## Supplier orders
-When an item is not in stock, a manager orders it from the supplier. Record the shipment in BC.
+When an item is not in stock, a manager orders it from the supplier. Record the shipment in BC ([[bc-purchase-orders]]).
 
 ## Proposed controls (not yet in force)
 These are intended for the BC stock setup.

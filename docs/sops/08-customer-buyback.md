@@ -13,11 +13,11 @@ updatedAt: 2026-10-07
 Buy product from customers at a correct price and record it in stock.
 
 ## Steps
-1. Identify the customer. Find or create them in BC and check their photo ID ([[kyc-aml]]).
+1. Identify the customer. Find or create them in BC ([[bc-new-vendor]]) and check their photo ID ([[kyc-aml]]).
 2. Test the item (see [[customer-buyback#testing]]). Check its condition too.
 3. Price it with the buy price ([[pricing#buy-price]]), using the item's condition. For scrap or non-standard items, use [[pricing#scrap-and-non-standard-items]], which requires manager approval.
 4. Agree the price with the customer.
-5. Record the purchase in BC. Use the standard product name.
+5. Record the purchase in BC as a Purchase Order ([[bc-purchase-orders]]). Use the standard product name.
 6. Pay the customer by bank transfer (see [[customer-buyback#paying-the-customer]]).
 7. Put the item into stock ([[stock-management]]).
 
