@@ -3,10 +3,10 @@ slug: customer-collection
 title: Customer collection
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
-version: 3
-updatedAt: 2026-09-30
+version: 4
+updatedAt: 2026-10-07
 ---
 
 ## Purpose
@@ -18,7 +18,7 @@ Hand over bullion only to the right person, with a record of the handover.
 3. Take the customer's bag from the customer safe and check the contents against the invoice.
 4. The customer checks the items in front of you.
 5. Trigger the signature capture from BC. The customer signs on the tablet and their ID is photographed.
-6. Mark the order as collected in BC and update CST Safe on the stock sheet ([[stock-management#customer-safe-cst-safe]]).
+6. Mark the order as collected in BC ([[stock-management#customer-safe-cst-safe]]).
 
 ## Identity check
 - Accepted documents: passport, national ID card or driving licence.

@@ -3,10 +3,10 @@ slug: limit-orders
 title: Limit orders
 category: trading
 jurisdiction: IE
-owner: Adrian
-status: draft
+owner: Merrion Gold
+status: retired
 version: 2
-updatedAt: 2026-09-30
+updatedAt: 2026-10-07
 ---
 
 ## Purpose

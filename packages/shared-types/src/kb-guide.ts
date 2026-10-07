@@ -124,7 +124,6 @@ export const KB_GUIDE: KbGuide = {
       ],
       alsoSee: [
         { label: 'Price moved before funds landed', target: { slug: 'customer-inquiry-to-quote', anchor: 'price-changed-before-funds-landed' } },
-        { label: 'Limit order', target: { slug: 'limit-orders' } },
         { label: 'Bonded silver (VAT-free)', target: { slug: 'bonded-silver-storage' } },
       ],
     },
@@ -132,20 +131,20 @@ export const KB_GUIDE: KbGuide = {
       id: 'buyback',
       title: 'Buyback',
       tag: 'Customer sells to us',
-      blurb: 'We pay them. Check the item, agree a price, record it, pay by bank transfer.',
+      blurb: 'We pay them. Test the item, agree a price, record it, pay by bank transfer.',
       icon: 'hand-coins',
       steps: [
         {
           title: 'Identify the customer',
-          hint: 'Find or create them in BC, run the ID and AML checks',
+          hint: 'Find or create them in BC, check their photo ID',
           icon: 'user-search',
           target: { slug: 'customer-buyback', anchor: 'steps' },
         },
         {
-          title: 'Check the item',
-          hint: 'Tester, weight and dimensions',
+          title: 'Test the item',
+          hint: 'Tester, weight, dimensions and condition',
           icon: 'search-check',
-          target: { slug: 'customer-buyback', anchor: 'authentication' },
+          target: { slug: 'customer-buyback', anchor: 'testing' },
         },
         {
           title: 'Work out the Buyback',
@@ -167,26 +166,19 @@ export const KB_GUIDE: KbGuide = {
         },
         {
           title: 'Put it into stock',
-          hint: 'It goes under “Bought” on the stock sheet',
+          hint: 'Counted in the monthly stock take',
           icon: 'boxes',
-          target: { slug: 'stock-management', anchor: 'the-stock-sheet' },
+          target: { slug: 'stock-management', anchor: 'monthly-stock-take' },
         },
       ],
       alsoSee: [
         { label: 'Scrap and non-standard items', target: { slug: 'pricing', anchor: 'scrap-and-non-standard-items' } },
         { label: 'Selling bonded silver back', target: { slug: 'bonded-silver-storage', anchor: 'selling-bonded-silver-back' } },
-        { label: 'Sell at a target price (limit order)', target: { slug: 'limit-orders', anchor: 'placing-a-sell-limit-order' } },
       ],
     },
   ],
 
   quickLinks: [
-    {
-      label: 'Is gold going up?',
-      hint: 'What to say, and what not to',
-      icon: 'messages',
-      target: { slug: 'customer-market-questions' },
-    },
     {
       label: 'Checking a customer’s ID',
       hint: 'Accepted documents and the rules',
@@ -206,10 +198,16 @@ export const KB_GUIDE: KbGuide = {
       target: { slug: 'systems-overview', anchor: 'system-map' },
     },
     {
-      label: 'Available vs NET stock',
-      hint: 'What you can sell, and what to reorder',
+      label: 'Monthly stock take',
+      hint: 'Count, compare with BC, report differences',
       icon: 'boxes',
-      target: { slug: 'stock-management', anchor: 'available-vs-net' },
+      target: { slug: 'stock-management', anchor: 'monthly-stock-take' },
+    },
+    {
+      label: 'Is gold going up?',
+      hint: 'What to say, and what not to',
+      icon: 'messages',
+      target: { slug: 'customer-market-questions' },
     },
   ],
 
@@ -222,7 +220,7 @@ export const KB_GUIDE: KbGuide = {
     },
     {
       label: 'Pricing & VAT',
-      hint: 'Spot, premiums, VAT rules, market modes',
+      hint: 'Spot, premiums, VAT rules',
       icon: 'calculator',
       target: { slug: 'pricing' },
     },
@@ -249,7 +247,6 @@ export const KB_GUIDE: KbGuide = {
       hint: 'KYC and AML checks',
       icon: 'shield-check',
       target: { slug: 'kyc-aml' },
-      pendingSop: true,
     },
   ],
 };

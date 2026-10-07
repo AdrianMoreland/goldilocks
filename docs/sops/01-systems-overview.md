@@ -3,10 +3,10 @@ slug: systems-overview
 title: Systems overview — which tool is used for what
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
-version: 3
-updatedAt: 2026-09-30
+version: 4
+updatedAt: 2026-10-07
 ---
 
 ## Summary
@@ -20,8 +20,8 @@ The Irish branches have moved from Zoho and Google Sheets to Microsoft Dynamics 
 | Quotes, invoices, customer purchases, supplier shipments | Business Central |
 | Customer ID photo and collection signature | Business Central, captured on the signature tablet |
 | Orders created before BC go-live | Zoho Books (read-only) |
-| Stock position | Monthly trade sheet (Google Sheets, "Stock - IE") until BC stock is set up ([[stock-management#transition-to-bc]]) |
-| Hedging and supplier orders | StoneX, CoinInvest |
+| Stock counts | Business Central ([[stock-management]]) |
+| Hedging and supplier orders | Placed by managers |
 | Internal communication | Teams, Outlook |
 | Calendar | Google Calendar |
 | HR, leave, rota | BrightHR |

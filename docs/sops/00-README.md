@@ -3,7 +3,7 @@ slug: readme
 title: Knowledge Center — How SOPs are written
 category: meta
 jurisdiction: all
-owner: Adrian
+owner: Merrion Gold
 status: approved
 version: 3
 updatedAt: 2026-09-30
@@ -57,7 +57,7 @@ Sections titled `Proposed controls (not yet in force)` describe controls that ar
 
 ## Categories
 - `sales`: inquiries, quotes, pricing, customer conversations
-- `trading`: payment, price lock, hedging, limit orders, cancellations
+- `trading`: payment, price lock, hedging, cancellations
 - `operations`: stock, fulfilment, collection, buyback, delivery
 - `compliance`: KYC, AML, ID checks
 - `storage`: bonded silver
