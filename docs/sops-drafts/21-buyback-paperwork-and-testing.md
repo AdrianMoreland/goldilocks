@@ -1,0 +1,63 @@
+---
+slug: buyback-paperwork-and-testing
+title: Buying from customers — testing and paperwork
+category: operations
+jurisdiction: IE
+owner: Adrian
+status: draft
+version: 1
+updatedAt: 2026-10-07
+---
+
+## Purpose
+The forms, copies and tests required when a customer sells gold or silver to us. Adds detail to [[customer-buyback]].
+Sources: Merrion Gold Procedures (point 13), Gold Buying and Testing Receipt, Purchasing from Customers procedure, sample customer emails.
+
+## Before the customer comes in
+- To sell to us the customer must bring the item to the premises for testing and verification. We do not agree a final price by email.
+- An email may give an indicative offer "pending testing and verification" at the current live price.
+- Payment is made to an account of the customer's choice, normally on the business day after the price is agreed. [TODO: this conflicts with [[customer-buyback#paying-the-customer]] (3 to 5, up to 10, up to 15 working days). Confirm which is current.]
+
+## At the desk
+1. Check valid photo ID (passport or driving licence) and take a photocopy ([[kyc-aml]]).
+2. Ask what they are selling and ask for proof of purchase or ownership.
+3. Fill in the Gold Buying and Testing Receipt (see [[buyback-paperwork-and-testing#the-testing-receipt]]).
+4. Photocopy the gold and the ID.
+5. Give the customer a copy of the form and a copy of the gold photocopy.
+6. Test the item (see below). A price is created only after it passes.
+7. Agree the price ([[customer-buyback]], [[pricing#buy-price]]).
+8. Record the purchase in BC ([[bc-purchase-orders]]). Tell the customer how payment works.
+9. Give the customer a Transaction Receipt ([[confirmation-letters#transaction-receipt]]).
+
+## The testing receipt
+Complete and sign the Gold Buying and Testing Receipt. Fields:
+1. Unique transaction reference.
+2. Photo ID of the seller provided: yes or no, with a reason if no.
+3. Ownership of the gold confirmed: yes or no, with a reason if no.
+4. Where the gold was originally purchased.
+5. Table of products received: description, weight, quantity, price, total. Combined total value of the sale. Comments.
+6. Staff member signature and printed name, date. Seller signature and printed name, email and mobile number.
+7. Name of the beneficiary and the seller's IBAN for payment.
+8. The form is dated and signed by both, then photocopied.
+
+## Testing
+1. All gold must be tested, from suppliers and from customers.
+2. Use the testing machine with the correct setting for each product.
+3. Weigh the item first. Then run the two further tests: that the purity is correct all the way through, and that the magnetic weight corresponds to pure gold.
+4. Test under the camera ([[desk-security-and-dual-control#cameras]]).
+5. If a check fails or you are unsure, do not buy. Ask a manager ([[customer-buyback#authentication]]).
+6. We buy only from LBMA-approved refineries' products. [TODO: confirm. The sample emails say Merrion Gold only buys from reputable LBMA-approved refineries when sourcing gold. Confirm whether the same restriction applies when buying back from customers.]
+
+## What we buy
+- Always what we sold, and other gold if it passes testing. Investment bars and 22 or 24 carat coins. No scrap or jewellery. Rare coins are bought for gold content only. [TODO: the Irish FAQ says no scrap, but [[pricing#scrap-and-non-standard-items]] allows scrap with manager approval. Confirm which applies.]
+
+## Legacy price guide
+These older guides conflict with the product table in [[pricing]] and are shown only for review. Do not quote them.
+- First-time customer: about 95% of spot. Returning customer: about 97% of spot. Percentages change with the market.
+- Quote Guide, purchases: sovereign -10% of spot, 1oz bar -5%, 1oz coin -3%, 100g -3%, 1kg -1%, silver at spot.
+- [TODO: decide whether these are retired.]
+
+## Related
+- [[customer-buyback]]
+- [[kyc-aml]]
+- [[cash-transactions-ie]]
