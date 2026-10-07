@@ -3,7 +3,7 @@ slug: suspicious-transaction-reporting
 title: Suspicious transaction reporting (STR)
 category: compliance
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

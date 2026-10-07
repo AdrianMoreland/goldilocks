@@ -3,7 +3,7 @@ slug: product-reference
 title: Gold and silver product reference
 category: sales
 jurisdiction: all
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -43,14 +43,6 @@ Every item is weighed and tested before it is given to a customer ([[buyback-pap
 
 ## Cast and minted bars
 Cast bars are poured from molten metal and look uneven. Minted bars are cut from blanks and are smooth. Minted bars usually cost more.
-
-## Points not to use until checked
-The training cheat sheet has statements that look wrong and must be verified before use:
-- Metalor listed as a Japanese refiner (Metalor is Swiss).
-- Argor-Heraeus described as German in the FAQ (it is a Swiss refiner).
-- "A troy ounce is 3.1g heavier than a regular ounce" (about 2.75g).
-- Britannia carat history overlaps (22 carat 1987 to 2013 and 24 carat from 2013).
-- [TODO: verify the cheat sheet's rare-year lists and Panda weight notes before they are used in any SOP.]
 
 ## Related
 - [[pricing]]

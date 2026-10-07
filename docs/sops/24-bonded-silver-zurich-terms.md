@@ -3,7 +3,7 @@ slug: bonded-silver-zurich-terms
 title: Bonded silver in Zurich — fees, withdrawal and sale terms
 category: storage
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -16,7 +16,7 @@ Sources: Agreement for Bonded Storage at Loomis Zurich, Bonded Storage Info, Loo
 ## Storage fee
 1. The annual fee is 1% plus VAT, charged quarterly in arrears.
 2. The quarterly fee is 0.25% plus VAT of the value of the silver stored.
-3. [TODO: confirm the value used. Loomis says the average value through the quarter at the LBMA Silver Price fix (12:00 BST each working day). [[bonded-silver-storage#storage-fee]] says the value at the time of billing.]
+3. Value is the value of the silver at the time of billing, not the value at purchase ([[bonded-silver-storage#storage-fee]]).
 4. Fees are calculated and paid in euro unless agreed before purchase.
 5. Silver bought part-way through a quarter is charged for the days stored, counted as actual days over 365.
 6. VAT on the storage fee is 23%.
@@ -30,14 +30,13 @@ Sources: Agreement for Bonded Storage at Loomis Zurich, Bonded Storage Info, Loo
 
 ## Selling back
 1. The customer can sell back by phone or email and does not need to visit the warehouse.
-2. Merrion Gold buys back any silver bought through it. [TODO: Loomis says proceeds go to the nominated account within three business days. [[customer-buyback#paying-the-customer]] says up to 10 working days. Confirm which applies.]
+2. Merrion Gold buys back any silver bought through it. The customer is paid as for any buyback ([[customer-buyback#paying-the-customer]]).
 3. Sale is not guaranteed outside 08:45 to 17:00 Monday to Friday or on public or bank holidays.
 4. Silver sold back while still in bond is bought at the bid price from the product table, and no VAT is due ([[bonded-silver-storage#selling-bonded-silver-back]]).
 
 ## Documents
 1. Merrion Gold issues an invoice for the purchase. Serial numbers can be requested and appear on the invoice.
 2. The invoice should state the bar serial number, the total ounces, and that a storage fee of 1% per annum plus VAT applies, billed quarterly.
-3. Bonded silver confirmations are in [[confirmation-letters#bonded-silver-confirmation-of-holdings]].
 
 ## Visits and services
 - Warehouse visits are arranged through Merrion Gold with at least five working days' notice.
@@ -45,4 +44,3 @@ Sources: Agreement for Bonded Storage at Loomis Zurich, Bonded Storage Info, Loo
 
 ## Related
 - [[bonded-silver-storage]]
-- [[confirmation-letters]]

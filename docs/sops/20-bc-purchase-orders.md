@@ -3,7 +3,7 @@ slug: bc-purchase-orders
 title: Business Central — buying from a seller (Purchase Order)
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 2
 updatedAt: 2026-10-07
@@ -48,5 +48,4 @@ Sources: Business Central Guide, Branch Staff Workflow chart.
 ## Related
 - [[bc-new-vendor]]
 - [[bc-quick-start]]
-- [[supplier-orders]]
 - [[stock-management]]

@@ -3,7 +3,7 @@ slug: buyback-paperwork-and-testing
 title: Buying from customers — testing and paperwork
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -27,7 +27,7 @@ Sources: Merrion Gold Procedures (point 13), Gold Buying and Testing Receipt, Pu
 6. Test the item (see below). A price is created only after it passes.
 7. Agree the price ([[customer-buyback]], [[pricing#buy-price]]).
 8. Record the purchase in BC ([[bc-purchase-orders]]). Tell the customer how payment works.
-9. Give the customer a Transaction Receipt ([[confirmation-letters#transaction-receipt]]).
+9. Give the customer a Transaction Receipt.
 
 ## The testing receipt
 Complete and sign the Gold Buying and Testing Receipt. Fields:
@@ -45,8 +45,8 @@ Complete and sign the Gold Buying and Testing Receipt. Fields:
 2. Use the testing machine with the correct setting for each product.
 3. Weigh the item first. Then run the two further tests: that the purity is correct all the way through, and that the magnetic weight corresponds to pure gold.
 4. Test under the camera ([[desk-security-and-dual-control#cameras]]).
-5. If a check fails or you are unsure, do not buy. Ask a manager ([[customer-buyback#authentication]]).
-6. We buy only from LBMA-approved refineries' products. [TODO: confirm. The sample emails say Merrion Gold only buys from reputable LBMA-approved refineries when sourcing gold. Confirm whether the same restriction applies when buying back from customers.]
+5. If a check fails or you are unsure, do not buy. Ask a manager ([[customer-buyback#testing]]).
+6. We generally buy products from LBMA-approved refineries. We also buy some other items, such as Austrian shillings and Swiss francs. We do not buy jewellery.
 
 ## What we buy
 - Always what we sold, and other gold if it passes testing. Investment bars and 22 or 24 carat coins. No jewellery. Damaged bullion coins and bars (scrap) only with manager approval ([[pricing#scrap-and-non-standard-items]]). Rare coins are bought for gold content only.

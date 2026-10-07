@@ -3,7 +3,7 @@ slug: cash-transactions-ie
 title: Cash transactions of €10,000 or more
 category: compliance
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

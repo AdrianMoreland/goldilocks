@@ -3,7 +3,7 @@ slug: bc-record-customer-payment
 title: Business Central — record a customer payment (Cash Receipt Journal)
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

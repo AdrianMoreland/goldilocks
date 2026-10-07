@@ -1,6 +1,6 @@
 # SOP drafts — rollout notes
 
-Updated 2026-10-07. The Ireland drafts (SOPs 12 to 27 and 33 to 41) were reviewed with the owner and moved to `docs/sops/` as `status: draft`. They are visible in the Knowledge Center with the "Not yet approved" banner and are not used by the AI assistant until a manager approves them. This folder keeps the guide and the SOPs set aside for later.
+Updated 2026-10-07. The Ireland drafts (SOPs 12 to 17, 19 to 24, 26, 27 and 33 to 41) were reviewed with the owner and moved to `docs/sops/` as `status: draft`. They are visible in the Knowledge Center with the "Not yet approved" banner and are not used by the AI assistant until a manager approves them. This folder keeps the guide and the SOPs set aside for later.
 
 ## Set aside until other branches join the app
 | File | Why |
@@ -8,6 +8,10 @@ Updated 2026-10-07. The Ireland drafts (SOPs 12 to 27 and 33 to 41) were reviewe
 | 28-weekend-pricing | Market modes (Weekend, Volatile, Shortage) are not part of the knowledge base |
 | 29-uk-sales-and-purchases, 30-uk-aml-and-cash, 31-uk-delivery-and-dispatch | UK content; the app is Ireland-only for now |
 | 32-es-desk-procedures | Spain content; same reason |
+| 18-supplier-orders | Staff do not need supplier or hedging detail; SOPs say only that a manager orders stock and hedges after funds arrive |
+| 25-confirmation-letters | Removed from the knowledge base by the owner (letters, ownership wording and fix times) |
+
+SOP 05 (limit orders) is set to `retired`, so it is hidden from staff, and every link to it was removed.
 
 ## Decisions taken (2026-10-07)
 | Topic | Decision | Applied in |
@@ -34,19 +38,29 @@ Updated 2026-10-07. The Ireland drafts (SOPs 12 to 27 and 33 to 41) were reviewe
 | BC quote | Leave the spot price boxes and Quote Valid To Date blank | 35 |
 | BC customer template | DOMESTIC only for now | 34 |
 
+## Second round (2026-10-07)
+| Topic | Decision |
+|---|---|
+| Owner | Every SOP is owned by "Merrion Gold" (no personal names) |
+| Buybacks | "Authentication" is now "Testing" everywhere and includes checking the item's condition, which decides the price. Only photo ID is checked for a buyback; no AML pack |
+| Stock | No stock sheet and no "Stock - IE". Monthly stock take: count what is there, compare with the amounts BC calculates, report differences. More detail to come |
+| Raw GP sheet | Not mentioned anywhere |
+| Pricing | Removed the bar/wafer purity and coin legal-tender rules from the investment gold definition |
+| Hedging | Staff message a manager after funds land; managers hedge. No platform names |
+| Branches | Directory lists Irish branches only |
+| Transaction reference | Bags carry the transaction reference code (for example DU-G202610823) |
+| Refineries | Generally LBMA-approved products; some other items are bought (Austrian shillings, Swiss francs); no jewellery |
+| Bonded silver | Fee on the value at the time of billing; sell-back paid like any buyback |
+| Order of quick links | "Is gold going up?" moved to the end of the Knowledge Center quick links |
+
 ## Still open (each is a `[TODO]`; its section stays out of the assistant's answers)
-- 12: PEP, sanctions and adverse-media tool; the full list of enhanced-due-diligence cases and steps; record retention period.
+- 12: PEP, sanctions and adverse-media tool; enhanced-due-diligence cases and steps; record retention period.
 - 13: who approves the cash form; whether the 2026 form is the only current one and where completed forms are kept.
 - 14: goAML and ROS registration, certificate holders, where STR records are kept.
-- 15: cash share of turnover; the "October 2022" policy reference; which AML policy version is current.
-- 16: whether the Nov 2023 policy meant to drop the disciplinary and whistleblowing section.
-- 17: the customer reference number format and whether BC numbers replaced it.
-- 18: whether the supplier ordering steps match how managers order now; Baird cut-offs and accounts; who sends payment instructions.
-- 21: whether the LBMA-refinery restriction applies to buybacks.
-- 24: the value used for the bonded storage fee; Loomis release order signer and lead time; sell-back payment days.
-- 25: who may sign each letter type; the balance sheet wording; LBMA fix times; who may receive the ownership letter.
-- 27: the training cheat sheet's rare-year lists and Panda weight notes.
+- 15: the "October 2022" policy reference; which AML policy version is current.
+- 24: Loomis release order signer and lead time.
 - 40: how to set the number on the Vendor Card.
+- 11: Cork and Blanchardstown address, phone and hours; escalation contacts for compliance and IT.
 
 Cancellation and refund steps in BC are not written: the SOP says stop and ask a manager.
 

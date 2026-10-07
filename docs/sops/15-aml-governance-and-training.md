@@ -3,7 +3,7 @@ slug: aml-governance-and-training
 title: AML governance, risk assessment and staff training
 category: compliance
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -21,9 +21,8 @@ Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), staff training fo
 ## Business risk assessment
 1. The Business Risk Assessment is reviewed, signed and dated every year.
 2. The Nov 2023 rating is Medium overall. Cash is the main risk factor and is controlled by [[cash-transactions-ie]].
-3. Cash was described as about 10% of turnover and rarely above €10,000. [TODO: re-check this against current figures, since 2025 and 2026 cash records show purchases of €17,000 to €26,000.]
-4. Merrion Gold is regulated by the Department of Justice for AML. It is not regulated by the Central Bank of Ireland.
-5. Cryptocurrency payments stopped in December 2022. Do not accept them.
+3. Merrion Gold is regulated by the Department of Justice for AML. It is not regulated by the Central Bank of Ireland.
+4. Cryptocurrency payments stopped in December 2022. Do not accept them.
 
 ## Staff training
 1. New staff: AML training within two weeks of joining.
