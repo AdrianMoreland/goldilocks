@@ -222,7 +222,7 @@ export const KB_GUIDE: KbGuide = {
     },
     {
       label: 'Pricing & VAT',
-      hint: 'Spot, premiums, VAT rules, market modes',
+      hint: 'Spot, premiums, VAT rules',
       icon: 'calculator',
       target: { slug: 'pricing' },
     },
@@ -249,7 +249,6 @@ export const KB_GUIDE: KbGuide = {
       hint: 'KYC and AML checks',
       icon: 'shield-check',
       target: { slug: 'kyc-aml' },
-      pendingSop: true,
     },
   ],
 };
