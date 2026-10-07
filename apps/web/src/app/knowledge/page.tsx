@@ -10,7 +10,7 @@ import { KnowledgeLayout } from './components/knowledge-layout';
 import { SearchResultList } from './components/search-results';
 import { GuideFlow } from './components/guide-flow';
 import { KnowledgePage } from './components/knowledge-page';
-import { QuickLinks, ToolTiles } from './components/guide-shortcuts';
+import { BusinessCentralStrip, QuickLinks, ToolTiles } from './components/guide-shortcuts';
 import { formatDay, plural } from './utils/format';
 
 const SEARCH_LIMIT = 30;
@@ -166,6 +166,8 @@ export default function KnowledgeCenterPage() {
                                 <QuickLinks library={library} />
                                 <ToolTiles library={library} />
                             </div>
+
+                            <BusinessCentralStrip library={library} />
 
                             <GuideFlow library={library} />
 
