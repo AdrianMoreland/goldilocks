@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowRight, ArrowLeftRight } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowLeftRight, Blocks } from 'lucide-react';
 import { KB_GUIDE, type KbGuideBranch } from '@goldilocks/shared-types';
 import { cn } from '@/lib/utils';
 import type { KnowledgeLibrary } from '../utils/library';
@@ -80,7 +80,8 @@ function Branch({ branch, library }: { branch: KbGuideBranch; library: Knowledge
     // A step whose SOP or section has gone away is left out, not shown as a dead link.
     const steps = branch.steps.flatMap((step) => {
         const href = resolveTarget(library, step.target);
-        return href ? [{ ...step, href }] : [];
+        const bcHref = step.bc ? resolveTarget(library, step.bc.target) : null;
+        return href ? [{ ...step, href, bcHref }] : [];
     });
     const alsoSee = branch.alsoSee.flatMap((link) => {
         const href = resolveTarget(library, link.target);
@@ -131,6 +132,19 @@ function Branch({ branch, library }: { branch: KbGuideBranch; library: Knowledge
                                     <StepIcon className="size-5 shrink-0 text-muted-foreground group-hover:hidden" aria-hidden />
                                     <ArrowRight className="hidden size-5 shrink-0 group-hover:block" aria-hidden />
                                 </Link>
+                                {step.bc && step.bcHref && (
+                                    <Link
+                                        to={step.bcHref}
+                                        className={cn(
+                                            'mt-1.5 ml-11 inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-sm transition-colors',
+                                            tone.chipHover,
+                                            FOCUS,
+                                        )}
+                                    >
+                                        <Blocks className="size-3.5 text-muted-foreground" aria-hidden />
+                                        <span className="font-medium">In BC:</span> {step.bc.label}
+                                    </Link>
+                                )}
                             </li>
                         </Fragment>
                     );
