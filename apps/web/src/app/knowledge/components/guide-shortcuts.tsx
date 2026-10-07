@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Blocks } from 'lucide-react';
 import { KB_GUIDE, type KbGuideShortcut } from '@goldilocks/shared-types';
 import { cn } from '@/lib/utils';
 import type { KnowledgeLibrary } from '../utils/library';
@@ -101,6 +101,55 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
                         </li>
                     );
                 })}
+            </ul>
+        </section>
+    );
+}
+
+/** Business Central has its own row: the how-tos are the part of the desk's day most people have to look up. */
+export function BusinessCentralStrip({ library }: { library: KnowledgeLibrary }) {
+    const { title, hint, start, links } = KB_GUIDE.businessCentral;
+    const startHref = resolveTarget(library, start.target);
+    const items = links.flatMap((link) => {
+        const href = resolveTarget(library, link.target);
+        return href ? [{ ...link, href }] : [];
+    });
+    if (!startHref && items.length === 0) return null;
+
+    return (
+        <section aria-labelledby="business-central" className="rounded-xl border bg-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                <div className="flex items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+                        <Blocks className="size-5" aria-hidden />
+                    </span>
+                    <div>
+                        <h2 id="business-central" className="type-h4">
+                            {title}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">{hint}</p>
+                    </div>
+                </div>
+                {startHref && (
+                    <Link
+                        to={startHref}
+                        className={cn('inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground', FOCUS)}
+                    >
+                        {start.label} <ArrowRight className="size-4" aria-hidden />
+                    </Link>
+                )}
+            </div>
+            <ul className="mt-4 flex flex-wrap gap-2">
+                {items.map((link) => (
+                    <li key={link.label}>
+                        <Link
+                            to={link.href}
+                            className={cn('inline-flex items-center rounded-md border bg-background px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50', FOCUS)}
+                        >
+                            {link.label}
+                        </Link>
+                    </li>
+                ))}
             </ul>
         </section>
     );

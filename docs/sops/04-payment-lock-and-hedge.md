@@ -35,7 +35,7 @@ The price is locked and hedged only when the customer's funds have landed. A quo
 2. If spot has moved since the quote, follow [[customer-inquiry-to-quote#price-changed-before-funds-landed]].
 3. Lock the price at current spot. Record the locked spot, time, product, weight and premium on the order.
 4. Send a message to a manager asking them to hedge the order. Only managers place hedges.
-5. Make the Sales Order in BC and post the prepayment invoice ([[bc-customer-sales-workflow]]).
+5. Make the Sales Order in BC, post the prepayment invoice, record the payment and release the order ([[bc-customer-sales-workflow]]).
 6. Decide fulfilment: bag the items from stock into the customer safe, or, if the item is not in stock, a manager orders it from the supplier ([[stock-management]]).
 7. Tell the customer the final locked price and the expected collection or delivery date.
 

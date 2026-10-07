@@ -42,6 +42,8 @@ export interface KbGuideStep {
   hint: string;
   icon: KbGuideIcon;
   target: KbGuideTarget;
+  /** The matching Business Central how-to, shown as a small "In BC" link under the step. */
+  bc?: KbGuideLink;
 }
 
 export interface KbGuideLink {
@@ -70,8 +72,17 @@ export interface KbGuideShortcut {
   pendingSop?: boolean;
 }
 
+/** The Business Central strip on the home page: where to start, then the clicks for each job. */
+export interface KbGuideBc {
+  title: string;
+  hint: string;
+  start: KbGuideLink;
+  links: KbGuideLink[];
+}
+
 export interface KbGuide {
   start: { title: string; hint: string };
+  businessCentral: KbGuideBc;
   branches: KbGuideBranch[];
   quickLinks: KbGuideShortcut[];
   tools: KbGuideShortcut[];
@@ -81,6 +92,24 @@ export const KB_GUIDE: KbGuide = {
   start: {
     title: 'Who is paying whom?',
     hint: 'Pick the side of the trade. Everything else follows from it.',
+  },
+
+  businessCentral: {
+    title: 'Business Central',
+    hint: 'The exact clicks for each job in BC, in the order you do them.',
+    start: { label: 'New to BC? Start here', target: { slug: 'bc-quick-start' } },
+    links: [
+      { label: 'A sale, step by step', target: { slug: 'bc-customer-sales-workflow' } },
+      { label: 'New customer', target: { slug: 'bc-new-customer' } },
+      { label: 'Sales Quote', target: { slug: 'bc-sales-quote' } },
+      { label: 'Sales Order and prepayment', target: { slug: 'bc-sales-order-and-prepayment' } },
+      { label: 'Record a payment', target: { slug: 'bc-record-customer-payment' } },
+      { label: 'Release and confirm', target: { slug: 'bc-release-and-confirm' } },
+      { label: 'Collection and shipment', target: { slug: 'bc-collection-and-shipment' } },
+      { label: 'Buying: Purchase Order', target: { slug: 'bc-purchase-orders' } },
+      { label: 'New vendor', target: { slug: 'bc-new-vendor' } },
+      { label: 'Stuck? When to stop', target: { slug: 'bc-troubleshooting-and-escalation' } },
+    ],
   },
 
   branches: [
@@ -96,6 +125,7 @@ export const KB_GUIDE: KbGuide = {
           hint: 'Identify them, price it, check stock, send the quote',
           icon: 'file-text',
           target: { slug: 'customer-inquiry-to-quote', anchor: 'steps' },
+          bc: { label: 'Sales Quote in BC', target: { slug: 'bc-sales-quote' } },
         },
         {
           title: 'Work out the Price',
@@ -108,18 +138,21 @@ export const KB_GUIDE: KbGuide = {
           hint: 'Bank transfer, card or cash — and confirm the funds landed',
           icon: 'banknote',
           target: { slug: 'payment-lock-and-hedge', anchor: 'accepted-payment-methods' },
+          bc: { label: 'Record the payment in BC', target: { slug: 'bc-record-customer-payment' } },
         },
         {
           title: 'Lock the price and hedge',
           hint: 'Only once the funds have landed',
           icon: 'lock',
           target: { slug: 'payment-lock-and-hedge', anchor: 'steps' },
+          bc: { label: 'Sales Order, prepayment and Release in BC', target: { slug: 'bc-sales-order-and-prepayment' } },
         },
         {
           title: 'Hand it over',
           hint: 'ID check, signature, mark as collected',
           icon: 'package-check',
           target: { slug: 'customer-collection', anchor: 'steps' },
+          bc: { label: 'Collection in BC', target: { slug: 'bc-collection-and-shipment' } },
         },
       ],
       alsoSee: [
@@ -139,6 +172,7 @@ export const KB_GUIDE: KbGuide = {
           hint: 'Find or create them in BC, check their photo ID',
           icon: 'user-search',
           target: { slug: 'customer-buyback', anchor: 'steps' },
+          bc: { label: 'New vendor card in BC', target: { slug: 'bc-new-vendor' } },
         },
         {
           title: 'Test the item',
@@ -157,6 +191,7 @@ export const KB_GUIDE: KbGuide = {
           hint: 'Every purchase goes into BC',
           icon: 'file-text',
           target: { slug: 'customer-buyback', anchor: 'purchase-records' },
+          bc: { label: 'Purchase Order in BC', target: { slug: 'bc-purchase-orders' } },
         },
         {
           title: 'Pay the customer',
@@ -258,8 +293,13 @@ export function guideLibraryTargets(guide: KbGuide = KB_GUIDE): { slug: string; 
     if ('slug' in target) out.push({ slug: target.slug, anchor: target.anchor, pendingSop });
   };
 
+  add(guide.businessCentral.start.target);
+  guide.businessCentral.links.forEach((link) => add(link.target));
   for (const branch of guide.branches) {
-    branch.steps.forEach((step) => add(step.target));
+    branch.steps.forEach((step) => {
+      add(step.target);
+      if (step.bc) add(step.bc.target);
+    });
     branch.alsoSee.forEach((link) => add(link.target));
   }
   [...guide.quickLinks, ...guide.tools].forEach((shortcut) => add(shortcut.target, shortcut.pendingSop));

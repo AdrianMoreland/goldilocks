@@ -4,8 +4,8 @@ title: Business Central quick start — the two flows and how to find things
 category: systems
 jurisdiction: IE
 owner: Merrion Gold
-status: draft
-version: 1
+status: approved
+version: 2
 updatedAt: 2026-10-07
 ---
 
