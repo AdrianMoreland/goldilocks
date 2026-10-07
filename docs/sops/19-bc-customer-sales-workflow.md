@@ -4,7 +4,7 @@ title: Business Central — selling to a customer, start to finish
 category: systems
 jurisdiction: IE
 owner: Merrion Gold
-status: draft
+status: approved
 version: 2
 updatedAt: 2026-10-07
 ---
