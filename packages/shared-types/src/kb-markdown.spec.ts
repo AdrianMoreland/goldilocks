@@ -190,7 +190,7 @@ describe('docs/sops (the real files)', () => {
 
     // Section-level mistakes (a real SOP linked with a heading that does not exist) are never acceptable.
     expect(broken.filter((b) => b.reason === 'missing-section')).toEqual([]);
-    // Documents still to come. Shrink this list as they are written; it must never grow silently.
-    expect([...new Set(broken.map((b) => b.slug))].sort()).toEqual(['kyc-aml']);
+    // Documents still to come (none now). Any entry added here must be a SOP that is really on its way.
+    expect([...new Set(broken.map((b) => b.slug))].sort()).toEqual([]);
   });
 });

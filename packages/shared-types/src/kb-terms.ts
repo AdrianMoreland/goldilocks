@@ -26,7 +26,6 @@ export const KB_TERMS: KbTerm[] = [
   { id: 'available-vs-net', phrases: ['NET'], target: { slug: 'stock-management', anchor: 'available-vs-net' }, caseSensitive: true },
   { id: 'stock-sheet', phrases: ['stock sheet', 'Stock - IE'], target: { slug: 'stock-management', anchor: 'the-stock-sheet' } },
   { id: 'bonded-silver', phrases: ['bonded silver', 'bonded warehouse', 'in bond'], target: { slug: 'bonded-silver-storage' } },
-  { id: 'market-modes', phrases: ['market modes', 'Metal Shortage', 'Weekend', 'Volatile'], target: { slug: 'pricing', anchor: 'market-modes' } },
   { id: 'scrap', phrases: ['non-standard items', 'scrap'], target: { slug: 'pricing', anchor: 'scrap-and-non-standard-items' } },
   { id: 'spot-price', phrases: ['live spot', 'spot price'], target: { slug: 'pricing', anchor: 'spot-price' } },
   { id: 'buy-price', phrases: ['buy price'], target: { slug: 'pricing', anchor: 'buy-price' } },
@@ -40,7 +39,7 @@ export const KB_TERMS: KbTerm[] = [
   { id: 'hedging-platforms', phrases: ['StoneX', 'CoinInvest'], target: { slug: 'systems-overview', anchor: 'system-map' }, caseSensitive: true },
   { id: 'bc', phrases: ['Business Central', 'Zoho', 'BC'], target: { slug: 'systems-overview', anchor: 'bc-and-zoho' }, caseSensitive: true },
   { id: 'buyback', phrases: ['Buyback', 'buyback'], target: { slug: 'customer-buyback' }, caseSensitive: true },
-  { id: 'kyc-aml', phrases: ['KYC', 'AML'], target: { slug: 'kyc-aml' }, caseSensitive: true, pendingSop: true },
+  { id: 'kyc-aml', phrases: ['KYC', 'AML'], target: { slug: 'kyc-aml' }, caseSensitive: true },
 ];
 
 function escapeRegExp(value: string): string {
