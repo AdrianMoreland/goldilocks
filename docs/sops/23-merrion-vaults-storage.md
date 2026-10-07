@@ -11,29 +11,28 @@ updatedAt: 2026-10-07
 
 ## Purpose
 Answer customer questions about safe deposit boxes at Merrion Vaults and know where the two companies' responsibilities divide.
-Sources: Merrion Vaults Conditions of Licence, Box Sizes price list, vault information letter.
+Sources: Merrion Vaults Conditions of Licence, Box Sizes list, vault information letter.
 
 ## Who is who
 - Merrion Vaults is Shavo Ltd trading as Merrion Vaults. Merrion Gold Limited is a separate company at the same office. Both have the same two owners.
 - Merrion Vaults holds the box. Merrion Gold does not hold the customer's box contents and has no knowledge of them.
 - Metal bought from Merrion Gold can be handed over in the vault with both parties present.
 
-## Box sizes and prices
-Prices in euro, from the "Discount prices and box sizes" list. [TODO: confirm the list is current and whether prices include VAT. The sheet does not say.]
+## Box sizes
+Box sizes (inches, as drawn). Prices, the insurance charge and the deposit are set by Merrion Vaults and are not listed here. Ask a manager for the current price list.
 
-| Box | Size (inches, as drawn) | 1 year | 3 years | 5 years | 10 years |
-|---|---|---|---|---|---|
-| AA | 2 x 5 x 24 | 220 | 595 | 880 | 1,650 |
-| A | 3 x 5 x 24 | 330 | 890 | 1,320 | 2,475 |
-| B | 5 x 5 x 24 | 440 | 1,185 | 1,760 | 3,300 |
-| C | 3 x 10 x 24 | 495 | 1,335 | 1,980 | 3,710 |
-| D | 5 x 10 x 24 | 715 | 1,930 | 2,860 | 5,360 |
-| E | 10 x 10 x 24 | 1,265 | 3,415 | 5,060 | 9,485 |
-| F | 5 x 16 x 24 | 1,090 | 2,940 | 4,360 | 8,175 |
-| G | 10 x 16 x 24 | 2,070 | 5,585 | 8,280 | 15,525 |
+| Box | Size |
+|---|---|
+| AA | 2 x 5 x 24 |
+| A | 3 x 5 x 24 |
+| B | 5 x 5 x 24 |
+| C | 3 x 10 x 24 |
+| D | 5 x 10 x 24 |
+| E | 10 x 10 x 24 |
+| F | 5 x 16 x 24 |
+| G | 10 x 16 x 24 |
 
-- [TODO: a vault information letter quotes €250 per year per box including VAT. No size on the list matches. Confirm which applies.]
-- Insurance for contents up to €500,000 per box is available at an extra charge. [TODO: confirm the insurance charge.]
+- Insurance for contents up to €500,000 per box is available at an extra charge.
 - Two pension funds need two separate boxes.
 
 ## Opening a box at collection
@@ -60,7 +59,7 @@ Setting up a box takes about fifteen minutes and can be done with colleagues at 
 6. Liability is capped at the annual licence fee, unless the optional insurance applies. Insurance covers contents up to the stated limit.
 7. Claims must be made in writing as soon as reasonably possible and substantiated within 30 days.
 8. Irish law applies.
-9. [TODO: the deposit amount, set in the contract particulars, is not in the documents.]
+9. The deposit is set in the contract particulars. Ask a manager.
 
 ## Related
 - [[bonded-silver-zurich-terms]]

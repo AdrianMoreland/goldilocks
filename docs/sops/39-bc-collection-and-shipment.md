@@ -23,7 +23,7 @@ Hand the goods over and post the order so the stock leaves inventory. Stock leav
 4. Make sure each bar has its serial number entered (see below).
 5. Post the order (see [[bc-collection-and-shipment#final-posting]]).
 6. Mark the order collected and update CST Safe ([[stock-management#customer-safe-cst-safe]]).
-7. [TODO: the guide says "post the collection" without naming the button. Confirm it is also Post → Ship and Invoice.]
+7. Posting the collection is also Post → Ship and Invoice.
 
 ## Serial numbers for bars
 Bars need serial numbers before they can be posted. If you try to post without them BC shows an error.

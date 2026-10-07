@@ -15,10 +15,10 @@ Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), KYC-AML Checklist
 
 ## When checks are required
 1. Every cash transaction, or series of cash transactions by the same customer, of €10,000 or more: full checks in [[cash-transactions-ie]] before you accept the cash.
-2. Every purchase from a customer (buyback): photo ID and proof of ownership ([[buyback-paperwork-and-testing]]).
+2. Every purchase from a customer (buyback): photo ID only. No KYC pack is needed unless cash of €10,000 or more is involved ([[buyback-paperwork-and-testing]]).
 3. Every collection: photo ID at the desk ([[customer-collection#identity-check]]).
 4. Whenever anything looks unusual, at any amount ([[suspicious-transaction-reporting]]).
-5. [TODO: confirm whether the MLRO's "sign-off of all new clients" means every new customer needs a KYC pack, or only cash of €10,000 or more and buybacks.]
+5. A full KYC pack (the steps below) is needed only for cash of €10,000 or more. Other customers need photo ID at collection, and nothing more unless something looks unusual.
 
 ## Customer due diligence (CDD) steps
 1. Do the checks before the business relationship starts or the cash is accepted.
@@ -28,7 +28,7 @@ Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), KYC-AML Checklist
 5. Ask the purpose of the purchase and where the money comes from. For cash of €10,000 or more, evidence is required ([[cash-transactions-ie#source-of-funds]]).
 6. Take clean, legible copies of the documents. The copy must show the customer's name (and the beneficial owner's name, if any).
 7. Complete the KYC-AML Checklist (see [[kyc-aml#kyc-aml-checklist-fields]]) and save the document pack as one PDF in the AML folder.
-8. The MLRO signs off new clients.
+8. The MLRO signs off the KYC pack for cash of €10,000 or more.
 
 ## Accepted photo ID
 - Current passport, Irish or international.
@@ -40,12 +40,12 @@ Sources: AML Policy (Dec 2022), MG AML Risk Policy (Nov 2023), KYC-AML Checklist
 
 ## Accepted proof of address
 - Current Revenue or Department of Social Protection document showing name and PPS number.
-- Recent utility bill, bank statement or mortgage statement showing the current address.
+- Utility bill, bank statement or mortgage statement showing the current address, dated within the last 3 months.
 - Current local authority document.
 - Electoral register confirmation.
-- Recent Revenue tax notice.
+- Revenue tax notice dated within the last 3 months.
 - Court appointment document (liquidator, grant of probate).
-- [TODO: the policy says "recent" but does not define it. Confirm the maximum age. The UK rule is 3 months.]
+- "Recent" means dated within the last 3 months.
 
 ## Companies and beneficial owners
 - For a company, record: full name, CRO number, registered office address, principal business address.

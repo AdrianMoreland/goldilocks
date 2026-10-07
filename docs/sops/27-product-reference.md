@@ -24,7 +24,7 @@ Answer customer questions about bars and coins. Specifications are from the Iris
 |---|---|---|---|
 | Krugerrand | 22 | 0.9167 | Gross 34g, 31.1g gold |
 | American Eagle | 22 | 0.9167 | Gross 33.9g, 31.1g gold |
-| Sovereign | 22 | 0.9167 | Gross 7.98g, 7.322g gold. UK legal tender, nominal value £1 |
+| Sovereign | 22 | 0.9167 | Gross 7.98g, 7.322g gold. Nominal value £1 |
 | Maple Leaf | 24 | 0.9999 | 31.1g gold |
 | American Buffalo | 24 | 0.9999 | 31.1g gold |
 | Britannia | 24 | 0.9999 | 31.1g gold. Royal Mint |
@@ -36,7 +36,7 @@ Royal Canadian Mint, PAMP, Credit Suisse, Argor Heraeus, Valcambi, Perth Mint, U
 
 ## Tax points
 - Investment gold is VAT-exempt ([[pricing#vat]]).
-- Royal Mint coins such as the Sovereign and the gold and silver Britannia are exempt from capital gains tax in the UK. The customer is responsible for their own tax ([[customer-terms-summary]]).
+- The customer is responsible for their own tax ([[customer-terms-summary]]).
 
 ## Testing
 Every item is weighed and tested before it is given to a customer ([[buyback-paperwork-and-testing#testing]]).
