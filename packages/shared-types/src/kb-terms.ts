@@ -21,10 +21,7 @@ export interface KbTerm {
 export const KB_TERMS: KbTerm[] = [
   { id: 'price-lock', phrases: ['price is locked', 'lock the price', 'locks the price', 'price lock', 'locked price', 'hedged', 'hedging', 'hedge'], target: { slug: 'payment-lock-and-hedge', anchor: 'core-rule' } },
   { id: 'funds-landed', phrases: ['funds have landed', 'funds landed', 'funds land', 'confirm the funds', 'confirming funds'], target: { slug: 'payment-lock-and-hedge', anchor: 'confirming-funds' } },
-  { id: 'limit-orders', phrases: ['limit orders', 'limit order'], target: { slug: 'limit-orders' } },
   { id: 'customer-safe', phrases: ['customer safe', 'CST Safe'], target: { slug: 'stock-management', anchor: 'customer-safe-cst-safe' } },
-  { id: 'available-vs-net', phrases: ['NET'], target: { slug: 'stock-management', anchor: 'available-vs-net' }, caseSensitive: true },
-  { id: 'stock-sheet', phrases: ['stock sheet', 'Stock - IE'], target: { slug: 'stock-management', anchor: 'the-stock-sheet' } },
   { id: 'bonded-silver', phrases: ['bonded silver', 'bonded warehouse', 'in bond'], target: { slug: 'bonded-silver-storage' } },
   { id: 'scrap', phrases: ['non-standard items', 'scrap'], target: { slug: 'pricing', anchor: 'scrap-and-non-standard-items' } },
   { id: 'spot-price', phrases: ['live spot', 'spot price'], target: { slug: 'pricing', anchor: 'spot-price' } },
