@@ -3,7 +3,7 @@ slug: desk-security-and-dual-control
 title: Desk security, deliveries and dual control
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -41,18 +41,16 @@ All deliveries, testing and dealings involving gold are done under the departmen
 
 ## Security bags
 1. Each customer order goes in its own security bag.
-2. Write on the bag in capital letters: the customer reference number, the customer name and the contents.
+2. Write on the bag in capital letters: the transaction reference code, the customer name and the contents.
 3. Keep bagged orders in the customer safe ([[stock-management#customer-safe-cst-safe]]).
 
-## Customer reference number
-- Every customer gets a unique reference number built from the date, month, year and position on that day's sheet, for example 31062001, 31062002, 31062003.
-- [TODO: the example "31062001" reads as day 31, month 06, year 20, position 01. Confirm the exact format, and whether BC customer numbers or the S-prefixed references such as S20260505 have replaced it.]
+## Transaction reference code
+- Write the transaction reference code on the bag, for example DU-G202610823.
 
 ## Gold mailbox
 - The shared Gold mailbox is checked constantly.
 - Answer every gold email query as soon as possible ([[customer-email-wording]]).
 
 ## Related
-- [[supplier-orders]]
 - [[stock-management]]
 - [[buyback-paperwork-and-testing]]

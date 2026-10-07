@@ -3,7 +3,7 @@ slug: bc-new-customer
 title: Business Central — add a new customer
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

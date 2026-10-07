@@ -3,10 +3,10 @@ slug: payment-lock-and-hedge
 title: Receiving payment, locking the price and hedging
 category: trading
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
-version: 3
-updatedAt: 2026-09-30
+version: 4
+updatedAt: 2026-10-07
 ---
 
 ## Purpose
@@ -34,9 +34,9 @@ The price is locked and hedged only when the customer's funds have landed. A quo
 1. Confirm the funds have landed (see [[payment-lock-and-hedge#confirming-funds]]).
 2. If spot has moved since the quote, follow [[customer-inquiry-to-quote#price-changed-before-funds-landed]].
 3. Lock the price at current spot. Record the locked spot, time, product, weight and premium on the order.
-4. Ask a manager to place the hedge. Only managers place hedges. The manager chooses StoneX or CoinInvest based on price and availability.
-5. Convert the quote to an invoice in BC.
-6. Decide fulfilment: bag the items from stock into the customer safe, or order from the supplier ([[stock-management]]).
+4. Send a message to a manager asking them to hedge the order. Only managers place hedges.
+5. Make the Sales Order in BC and post the prepayment invoice ([[bc-customer-sales-workflow]]).
+6. Decide fulfilment: bag the items from stock into the customer safe, or, if the item is not in stock, a manager orders it from the supplier ([[stock-management]]).
 7. Tell the customer the final locked price and the expected collection or delivery date.
 
 ## Funds left on account
@@ -48,5 +48,4 @@ PAID → HEDGED → COLLECTED
 ## Related
 - [[customer-inquiry-to-quote]]
 - [[kyc-aml]]
-- [[limit-orders]]
 - [[customer-collection]]

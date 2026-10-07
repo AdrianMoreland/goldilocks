@@ -3,7 +3,7 @@ slug: anti-bribery
 title: Anti-corruption and anti-bribery
 category: compliance
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -33,7 +33,6 @@ Offering, promising, giving, accepting or asking for any inducement (gift, loan,
 ## Raising a concern
 - Reports are confidential and made in good faith without reprisal.
 - Tell your line manager if unsure.
-- [TODO: the Nov 2023 policy dropped the earlier disciplinary and whistleblowing section. Confirm this was intended.]
 
 ## Related
 - [[aml-governance-and-training]]

@@ -3,7 +3,7 @@ slug: merrion-vaults-storage
 title: Merrion Vaults safe deposit boxes
 category: storage
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

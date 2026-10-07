@@ -3,7 +3,7 @@ slug: confirmation-letters
 title: Confirmation letters and customer statements
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

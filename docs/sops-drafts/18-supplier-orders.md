@@ -3,7 +3,7 @@ slug: supplier-orders
 title: Ordering from suppliers
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

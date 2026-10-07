@@ -3,7 +3,7 @@ slug: bc-sales-quote
 title: Business Central — create and send a Sales Quote
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

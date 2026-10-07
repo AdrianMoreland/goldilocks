@@ -3,7 +3,7 @@ slug: customer-terms-summary
 title: Customer terms and conditions — what staff must know
 category: sales
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07

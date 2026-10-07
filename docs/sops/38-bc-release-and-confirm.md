@@ -3,7 +3,7 @@ slug: bc-release-and-confirm
 title: Business Central — Release the order and send the confirmation
 category: systems
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: draft
 version: 1
 updatedAt: 2026-10-07
@@ -23,7 +23,7 @@ Release the Sales Order so the hedge can be placed, then tell the customer their
 5. Check the confirmation shows the payment received and any amount still outstanding.
 6. Send it.
 7. Tell the customer the final locked price and the expected collection or delivery date ([[payment-lock-and-hedge#steps]]).
-8. Decide fulfilment: bag the items from stock into the customer safe, or order from the supplier ([[stock-management]], [[supplier-orders]]).
+8. Decide fulfilment: bag the items from stock into the customer safe, or, if the item is not in stock, ask a manager to order it from the supplier ([[stock-management]]).
 
 ## After this
 - Price and ownership are locked. Do not edit the order. If you need to change it, ask a manager.

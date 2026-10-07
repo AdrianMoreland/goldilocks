@@ -3,7 +3,7 @@ slug: customer-buyback
 title: Buying bullion and gold from customers
 category: operations
 jurisdiction: IE
-owner: Adrian
+owner: Merrion Gold
 status: approved
 version: 4
 updatedAt: 2026-10-07
@@ -13,18 +13,19 @@ updatedAt: 2026-10-07
 Buy product from customers at a correct price and record it in stock.
 
 ## Steps
-1. Identify the customer. Find or create them in BC and run the identity and AML checks ([[kyc-aml]]).
-2. Authenticate the item (see [[customer-buyback#authentication]]).
-3. Price it with the buy price ([[pricing#buy-price]]). For scrap or non-standard items, use [[pricing#scrap-and-non-standard-items]], which requires manager approval.
+1. Identify the customer. Find or create them in BC and check their photo ID ([[kyc-aml]]).
+2. Test the item (see [[customer-buyback#testing]]). Check its condition too.
+3. Price it with the buy price ([[pricing#buy-price]]), using the item's condition. For scrap or non-standard items, use [[pricing#scrap-and-non-standard-items]], which requires manager approval.
 4. Agree the price with the customer.
 5. Record the purchase in BC. Use the standard product name.
 6. Pay the customer by bank transfer (see [[customer-buyback#paying-the-customer]]).
-7. Put the item into stock. Until BC stock is set up, it appears under **Bought** on the stock sheet ([[stock-management]]).
+7. Put the item into stock ([[stock-management]]).
 
-## Authentication
+## Testing
 1. Test the item with the tester.
 2. Check its weight and dimensions against the product's specification.
-3. If either check fails or you are unsure, do not buy. Ask a manager.
+3. Check the item's condition (scratches, dents, damage, tarnish). The condition decides which price you give.
+4. If a check fails or you are unsure, do not buy. Ask a manager.
 
 ## Paying the customer
 - Customers are paid by bank transfer only. No cash.
@@ -33,7 +34,7 @@ Buy product from customers at a correct price and record it in stock.
   - up to 15 working days for larger payments (over €50,000).
 
 ## Purchase records
-- Record every purchase in BC. The Raw GP purchase inventory sheet is no longer used.
+- Record every purchase in BC.
 
 ## Related
 - [[pricing]]
