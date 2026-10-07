@@ -20,7 +20,7 @@ Inquiries arrive by Outlook, the website form, WhatsApp, phone or walk-in. Every
 2. Confirm what the customer wants: product, quantity, whether they are buying or selling, and whether they want collection, storage or delivery.
 3. Price the order using [[pricing]].
 4. Check the item is available. If it is not in stock, a manager orders it from the supplier.
-5. Create the quote in BC.
+5. Create the quote in BC ([[bc-sales-quote]]). If the customer is new, create them first ([[bc-new-customer]]).
 6. Send or give the quote to the customer, and tell them it is indicative (see [[customer-inquiry-to-quote#quote-validity]]).
 
 ## Quote validity
