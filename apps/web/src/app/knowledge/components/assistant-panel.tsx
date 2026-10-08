@@ -457,9 +457,11 @@ function Citations({ citations, onNavigate, library }: { citations: AiCitation[]
                             )}
                         >
                             {unconfirmed && <TriangleAlert className="size-3 shrink-0" aria-hidden />}
-                            {unconfirmed && <span className="font-semibold">Not confirmed yet · </span>}
-                            {citation.title}
-                            {citation.heading && <span className="text-muted-foreground"> › {citation.heading}</span>}
+                            <span className="min-w-0">
+                                {unconfirmed && <span className="font-semibold">Not confirmed yet · </span>}
+                                {citation.title}
+                                {citation.heading && <span className="text-muted-foreground"> › {citation.heading}</span>}
+                            </span>
                         </Link>
                     </li>
                 );
