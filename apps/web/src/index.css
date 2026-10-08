@@ -38,6 +38,10 @@
   --color-buyback-text: var(--buyback-text);
   --color-warning: var(--warning);
   --color-warning-text: var(--warning-text);
+  --color-stop: var(--stop);
+  --color-stop-bg: var(--stop-bg);
+  --color-stop-border: var(--stop-border);
+  --color-stop-ink: var(--stop-ink);
   --color-primary-text: var(--primary-text);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -104,6 +108,12 @@
      them explicitly (Merrion Gold does). */
   --warning: #fff4e0;
   --warning-text: #6b3f06;
+  /* STOP: the red that means "do not carry on until". A solid fill, a pale surface, its border and the ink that
+     reads on that surface. Used by the Knowledge Center's STOP gates and sections; not for errors (that's --destructive). */
+  --stop: #dc2626;
+  --stop-bg: #fef2f2;
+  --stop-border: #fca5a5;
+  --stop-ink: #7f1d1d;
   --price: #1eb8a5;
   --buyback: #e0558f;
   --price-text: oklch(from var(--price) min(l, 0.45) c h);
@@ -149,6 +159,10 @@
   --sidebar-ring: oklch(0.556 0 0);
   --warning: #3b2a0c;
   --warning-text: #f3c98b;
+  --stop: #ef4444;
+  --stop-bg: #2a1212;
+  --stop-border: #7f1d1d;
+  --stop-ink: #fecaca;
   --price-text: oklch(from var(--price) max(l, 0.78) c h);
   --buyback-text: oklch(from var(--buyback) max(l, 0.78) c h);
   --primary-text: oklch(from var(--primary) max(l, 0.78) c h);

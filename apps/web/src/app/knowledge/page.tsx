@@ -8,9 +8,9 @@ import { useAuth } from '@/contexts/auth-context';
 import { useKnowledgeLibrary } from '@/hooks/use-knowledge.hook';
 import { KnowledgeLayout } from './components/knowledge-layout';
 import { SearchResultList } from './components/search-results';
-import { GuideFlow } from './components/guide-flow';
+import { GuideSwimlane } from './components/guide-swimlane';
 import { KnowledgePage } from './components/knowledge-page';
-import { BusinessCentralStrip, QuickLinks, ToolTiles } from './components/guide-shortcuts';
+import { BusinessCentralBanner, QuickLinks, ToolTiles } from './components/guide-shortcuts';
 import { formatDay, plural } from './utils/format';
 
 const SEARCH_LIMIT = 30;
@@ -159,7 +159,7 @@ export default function KnowledgeCenterPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-12">
+                        <div className="flex flex-col gap-10">
                             {isAdmin && dueForReview.length > 0 && <ReviewDueNotice items={dueForReview} />}
 
                             <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
@@ -167,9 +167,9 @@ export default function KnowledgeCenterPage() {
                                 <ToolTiles library={library} />
                             </div>
 
-                            <BusinessCentralStrip library={library} />
+                            <BusinessCentralBanner library={library} />
 
-                            <GuideFlow library={library} />
+                            <GuideSwimlane library={library} />
 
                             <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-muted-foreground">
                                 <p className="tabular-nums">
