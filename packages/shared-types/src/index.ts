@@ -59,6 +59,7 @@ export * from './kb.schema';
 export * from './kb-markdown';
 export * from './kb-search';
 export * from './kb-guide';
+export * from './kb-layout';
 export * from './kb-terms';
 export * from './kb-review';
 export * from './ai.schema';
