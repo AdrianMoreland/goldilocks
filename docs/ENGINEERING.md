@@ -57,6 +57,8 @@ apps/api/src/modules/
 
 The Knowledge Center's parsing rules (frontmatter, section anchors, `[[slug#section]]` links, `[TODO: …]` detection, search) are pure functions in `packages/shared-types/src/kb-*.ts`, used by the importer and the web reader alike. The SOP file format is specified in `docs/sops/00-README.md`; SOP content is the owners' to edit — don't rewrite it.
 
+How a procedure page is laid out is decided the same way: `kb-layout.ts` turns an SOP section's Markdown into render blocks (steps rail, form table, mini flow, checklist, STOP card, right/wrong) by heuristics, with no change to the SOP files. `kb-guide.ts` holds the home-page swimlane, the Business Central hub and the flow bars; its test checks every link against the real SOP headings, so renaming a heading fails a test.
+
 Frontend dashboard code mirrors this under `apps/web/src/app/dashboard/components/<feature>/` (`pricing-tools/`, `table/`), with cross-cutting state in `apps/web/src/app/dashboard/context/` (pricing tools panel state, pricing-settings/market-mode state) and `apps/web/src/contexts/` (app-wide: auth, theme, sidebar).
 
 ### Naming

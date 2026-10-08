@@ -1,4 +1,5 @@
 import {
+    extractSources,
     indexKbDocument,
     kbArticlePath,
     splitSections,
@@ -14,7 +15,7 @@ export interface KnowledgeArticle {
     sections: KbSection[];
     /** How many sections still contain an unconfirmed `[TODO: …]` fact. */
     todoSectionCount: number;
-    /** One plain-text line for the library list — the opening of the first section. */
+    /** One plain-text line for the library list — the opening of the first section, without its Sources line. */
     summary: string;
 }
 
@@ -32,7 +33,8 @@ const SUMMARY_LENGTH = 190;
 function summarise(sections: KbSection[]): string {
     const first = sections.find((section) => section.markdown.trim() !== '');
     if (!first) return '';
-    const text = toPlainText(first.markdown);
+    // The Purpose ends with a "Sources: …" line; it is a footnote, not what the procedure is for.
+    const text = toPlainText(extractSources(first.markdown).markdown);
     if (text.length <= SUMMARY_LENGTH) return text;
     const cut = text.slice(0, SUMMARY_LENGTH);
     return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 60))}…`;
