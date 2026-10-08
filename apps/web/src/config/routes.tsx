@@ -10,6 +10,7 @@ const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
+const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
 const KnowledgeArticle = lazy(() => import('@/app/knowledge/article/page'))
 const Mail = lazy(() => import('@/app/mail/page'))
 const Tasks = lazy(() => import('@/app/tasks/page'))
@@ -88,6 +89,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/knowledge/all",
     element: <RequireAuth><KnowledgeAll /></RequireAuth>
+  },
+  {
+    path: "/knowledge/business-central",
+    element: <RequireAuth><KnowledgeBusinessCentral /></RequireAuth>
   },
   {
     path: "/knowledge/articles/:slug",

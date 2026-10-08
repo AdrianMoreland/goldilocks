@@ -43,14 +43,17 @@ export function useAiAssistant(enabled: boolean) {
     });
 
     const send = useCallback(
-        async (question: string, mode: AiMode) => {
+        async (question: string, mode: AiMode, about?: string) => {
             const trimmed = question.trim();
             if (!trimmed || mutation.isPending) return;
 
             const id = Date.now();
             setExchanges((current) => [...current, { id, mode, question: trimmed }]);
             try {
-                const response = await mutation.mutateAsync({ question: trimmed, mode });
+                // The API has no field for "which procedure", so a question asked from a procedure names it up front.
+                // Only a question about the procedures is shaped this way; a pasted customer message is never touched.
+                const sent = about && mode === 'procedures' ? `About “${about}”: ${trimmed}` : trimmed;
+                const response = await mutation.mutateAsync({ question: sent, mode });
                 setExchanges((current) => current.map((item) => (item.id === id ? { ...item, response } : item)));
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Something went wrong.';
