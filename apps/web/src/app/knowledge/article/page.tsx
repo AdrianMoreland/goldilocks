@@ -140,7 +140,8 @@ export default function KnowledgeArticlePage() {
                             {editing ? (
                                 <ArticleEditor article={article} library={library} onDone={() => setEditing(false)} />
                             ) : (
-                                layout && <ArticleSections article={article} library={library} layout={layout} />
+                                // Keyed by slug so another procedure starts with its own cards folded or open.
+                                layout && <ArticleSections key={article.doc.slug} article={article} library={library} layout={layout} />
                             )}
                         </article>
 

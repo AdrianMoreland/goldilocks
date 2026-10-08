@@ -199,6 +199,11 @@ describe('collapse default', () => {
     expect(long.length + short.length).toBeGreaterThan(0);
   });
 
+  it('keeps the main steps section open however long it is', () => {
+    const layout = buildArticleLayout(docs.get('bc-customer-sales-workflow')?.sections ?? []);
+    expect(layout.entries.find((e) => e.section.anchor === 'the-steps')?.collapsed).toBe(false);
+  });
+
   it('never folds a steps, STOP or Before you start card', () => {
     for (const doc of docs.values()) {
       const layout = buildArticleLayout(doc.sections);

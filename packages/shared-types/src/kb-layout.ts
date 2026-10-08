@@ -345,6 +345,9 @@ export interface KbArticleLayout {
 
 export const COLLAPSE_ABOVE_CHARACTERS = 700;
 
+/** The procedure itself, whatever its length: folding it would hide the page's main content. */
+const MAIN_SECTION_ANCHORS = new Set(['steps', 'the-steps', 'workflow']);
+
 /** Pulls a "Source(s): …" line (and the lines that continue it) out of Markdown. */
 export function extractSources(markdown: string): { markdown: string; sources: string | null } {
   const lines = markdown.split('\n');
@@ -427,7 +430,7 @@ export function buildArticleLayout(sections: KbSection[]): KbArticleLayout {
       section,
       kind,
       blocks: buildBlocks(markdown, kind),
-      collapsed: (kind === 'ref' && text.length > COLLAPSE_ABOVE_CHARACTERS) || kind === 'proposal',
+      collapsed: (kind === 'ref' && text.length > COLLAPSE_ABOVE_CHARACTERS && !MAIN_SECTION_ANCHORS.has(section.anchor)) || kind === 'proposal',
       preview: firstSentence(text),
       itemCount: countItems(blocks),
     };

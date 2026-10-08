@@ -321,8 +321,6 @@ export function ArticleSections({ article, library, layout }: { article: Knowled
     useEffect(() => {
         if (targetAnchor) setOpen((current) => (current[targetAnchor] === true ? current : { ...current, [targetAnchor]: true }));
     }, [targetAnchor]);
-    // Another procedure starts from its own defaults.
-    useEffect(() => setOpen({}), [doc.slug]);
 
     const foldable = cards.filter((entry) => entry.collapsed);
 
@@ -367,14 +365,14 @@ export function ArticleSections({ article, library, layout }: { article: Knowled
                     <button
                         type="button"
                         onClick={() => setOpen(Object.fromEntries(foldable.map((entry) => [entry.section.anchor, true])))}
-                        className={cn('inline-flex min-h-9 items-center rounded-lg border bg-card px-3 text-[13px] font-medium hover:bg-muted', FOCUS)}
+                        className={cn('inline-flex min-h-10 items-center rounded-lg border bg-card px-3 text-[13px] font-medium hover:bg-muted', FOCUS)}
                     >
                         Expand all
                     </button>
                     <button
                         type="button"
                         onClick={() => setOpen(Object.fromEntries(foldable.map((entry) => [entry.section.anchor, false])))}
-                        className={cn('inline-flex min-h-9 items-center rounded-lg border bg-card px-3 text-[13px] font-medium hover:bg-muted', FOCUS)}
+                        className={cn('inline-flex min-h-10 items-center rounded-lg border bg-card px-3 text-[13px] font-medium hover:bg-muted', FOCUS)}
                     >
                         Collapse all
                     </button>
