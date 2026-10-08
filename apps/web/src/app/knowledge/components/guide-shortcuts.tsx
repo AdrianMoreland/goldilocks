@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Blocks } from 'lucide-react';
+import { ArrowRight, Blocks, OctagonMinus } from 'lucide-react';
 import { KB_GUIDE, type KbGuideShortcut } from '@goldilocks/shared-types';
 import { cn } from '@/lib/utils';
 import type { KnowledgeLibrary } from '../utils/library';
 import { GUIDE_ICONS, resolveTarget } from '../utils/guide';
+import { FOCUS } from '../utils/tone';
 
-const FOCUS = 'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none';
 
 function resolve(library: KnowledgeLibrary, shortcuts: KbGuideShortcut[]) {
     return shortcuts.flatMap((shortcut) => {
@@ -106,51 +106,43 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
     );
 }
 
-/** Business Central has its own row: the how-tos are the part of the desk's day most people have to look up. */
-export function BusinessCentralStrip({ library }: { library: KnowledgeLibrary }) {
-    const { title, hint, start, links } = KB_GUIDE.businessCentral;
+/** Business Central's front door: learn it, see both flows on one page, or get unstuck. */
+export function BusinessCentralBanner({ library }: { library: KnowledgeLibrary }) {
+    const { title, hint, start, hub, stuck } = KB_GUIDE.businessCentral;
     const startHref = resolveTarget(library, start.target);
-    const items = links.flatMap((link) => {
-        const href = resolveTarget(library, link.target);
-        return href ? [{ ...link, href }] : [];
-    });
-    if (!startHref && items.length === 0) return null;
+    const hubHref = resolveTarget(library, hub.target);
+    const stuckHref = resolveTarget(library, stuck.target);
+    if (!startHref && !hubHref && !stuckHref) return null;
 
+    const button = 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-3.5 text-sm font-medium transition-colors';
     return (
-        <section aria-labelledby="business-central" className="rounded-xl border bg-card p-5">
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-                <div className="flex items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-                        <Blocks className="size-5" aria-hidden />
-                    </span>
-                    <div>
-                        <h2 id="business-central" className="type-h4">
-                            {title}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">{hint}</p>
-                    </div>
-                </div>
+        <section aria-labelledby="business-central" className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border bg-card px-4.5 py-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+                <Blocks className="size-5.5" aria-hidden />
+            </span>
+            <div className="min-w-56 flex-1">
+                <h2 id="business-central" className="type-h4">
+                    {title}
+                </h2>
+                <p className="text-sm text-muted-foreground">{hint}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
                 {startHref && (
-                    <Link
-                        to={startHref}
-                        className={cn('inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground', FOCUS)}
-                    >
+                    <Link to={startHref} className={cn(button, 'border-primary bg-primary text-primary-foreground hover:bg-primary/90', FOCUS)}>
                         {start.label} <ArrowRight className="size-4" aria-hidden />
                     </Link>
                 )}
+                {hubHref && (
+                    <Link to={hubHref} className={cn(button, 'bg-card hover:bg-muted', FOCUS)}>
+                        {hub.label}
+                    </Link>
+                )}
+                {stuckHref && (
+                    <Link to={stuckHref} className={cn(button, 'bg-card hover:bg-muted', FOCUS)}>
+                        <OctagonMinus className="size-4 text-stop" aria-hidden /> {stuck.label}
+                    </Link>
+                )}
             </div>
-            <ul className="mt-4 flex flex-wrap gap-2">
-                {items.map((link) => (
-                    <li key={link.label}>
-                        <Link
-                            to={link.href}
-                            className={cn('inline-flex items-center rounded-md border bg-background px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50', FOCUS)}
-                        >
-                            {link.label}
-                        </Link>
-                    </li>
-                ))}
-            </ul>
         </section>
     );
 }
