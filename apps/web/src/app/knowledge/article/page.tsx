@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Archive, ArrowLeft, CalendarClock, CircleDashed, FileQuestion, RefreshCw, TriangleAlert } from 'lucide-react';
-import { kbReviewStatus, type KbJurisdiction, type KbReviewStatus } from '@goldilocks/shared-types';
+import { Archive, ArrowLeft, CalendarClock, CircleDashed, FileQuestion, RefreshCw, Sparkles, TriangleAlert } from 'lucide-react';
+import { KB_CATEGORY_INFO, buildArticleLayout, flowBarFor, kbReviewStatus, type KbJurisdiction, type KbReviewStatus } from '@goldilocks/shared-types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -13,6 +13,7 @@ import {
     BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useAuth } from '@/contexts/auth-context';
+import { useAssistantDock } from '@/contexts/docks-context';
 import { useKnowledgeLibrary } from '@/hooks/use-knowledge.hook';
 import { KnowledgeLayout } from '../components/knowledge-layout';
 import { ArticleAdminBar } from '../components/article-admin-bar';
@@ -20,6 +21,7 @@ import { ArticleEditor } from '../components/article-editor';
 import { ArticleSections } from '../components/article-sections';
 import { KnowledgePage } from '../components/knowledge-page';
 import { ArticleToc } from '../components/article-toc';
+import { FlowBar, FlowStepper } from '../components/flow-bar';
 import { StatusBadge, UnconfirmedBadge } from '../components/status-badges';
 import { formatDay } from '../utils/format';
 
@@ -55,6 +57,9 @@ export default function KnowledgeArticlePage() {
     // Only approved procedures are on the 6-month review cycle; a draft isn't "due" for anything.
     const review = article && article.doc.status === 'approved' ? kbReviewStatus(article.doc.contentUpdatedOn) : null;
 
+    const layout = useMemo(() => (article ? buildArticleLayout(article.sections) : null), [article]);
+    const tocEntries = layout?.contents ?? [];
+
     useScrollToHash(Boolean(article) && !editing, slug);
     // Moving to another procedure never carries an open editor with it.
     useEffect(() => setEditing(false), [slug]);
@@ -89,8 +94,8 @@ export default function KnowledgeArticlePage() {
                         }
                     />
                 ) : (
-                    <div className="grid items-start gap-x-10 gap-y-6 xl:grid-cols-[minmax(0,1fr)_14rem]">
-                        <article className="min-w-0">
+                    <div className="grid items-start gap-x-10 gap-y-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
+                        <article className="min-w-0 max-w-[760px]">
                             <Breadcrumb className="mb-4">
                                 <BreadcrumbList>
                                     <BreadcrumbItem>
@@ -100,17 +105,23 @@ export default function KnowledgeArticlePage() {
                                     </BreadcrumbItem>
                                     <BreadcrumbSeparator />
                                     <BreadcrumbItem>
-                                        <BreadcrumbPage className="truncate">{article.doc.title}</BreadcrumbPage>
+                                        <BreadcrumbLink asChild>
+                                            <Link to={`/knowledge/all?topic=${article.doc.category}`}>{KB_CATEGORY_INFO[article.doc.category].label}</Link>
+                                        </BreadcrumbLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        <BreadcrumbPage className="truncate">{article.doc.title.replace(/^Business Central — /, 'BC · ')}</BreadcrumbPage>
                                     </BreadcrumbItem>
                                 </BreadcrumbList>
                             </Breadcrumb>
 
-                            <header className="mb-6 max-w-[70ch] space-y-3">
-                                <h1 className="type-h2 text-balance">{article.doc.title}</h1>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                            <header className="mb-5 space-y-3">
+                                <h1 className="text-[1.65rem] leading-tight font-extrabold tracking-tight text-balance md:text-[2.1rem]">{article.doc.title}</h1>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                                     <StatusBadge status={article.doc.status} />
                                     <UnconfirmedBadge count={article.todoSectionCount} />
-                                    <p className="text-sm text-muted-foreground tabular-nums">
+                                    <p className="text-[13.5px] text-muted-foreground tabular-nums">
                                         Owner {article.doc.owner} · v{article.doc.version} · Updated {formatDay(article.doc.contentUpdatedOn)} ·{' '}
                                         {JURISDICTION_LABEL[article.doc.jurisdiction]}
                                         {review && <> · Next review {formatDay(review.dueOn)}</>}
@@ -121,27 +132,47 @@ export default function KnowledgeArticlePage() {
                                 {isAdmin && <ArticleAdminBar article={article} editing={editing} onEdit={() => setEditing(true)} />}
                             </header>
 
-                            {/* Phones and narrow windows get the contents above the text; wide ones get the sticky rail. */}
-                            {!editing && (
-                                <ArticleToc slug={article.doc.slug} sections={article.sections} className="mb-6 max-w-[70ch] rounded-lg border p-3 xl:hidden" />
-                            )}
+                            {!editing && <FlowBar slug={article.doc.slug} library={library} />}
+
+                            {/* Phones and narrow windows get the contents as pills under the header; wide ones get the sticky rail. */}
+                            {!editing && <ArticleToc slug={article.doc.slug} entries={tocEntries} variant="pills" className="xl:hidden" />}
 
                             {editing ? (
                                 <ArticleEditor article={article} library={library} onDone={() => setEditing(false)} />
                             ) : (
-                                <div className="max-w-[70ch]">
-                                    <ArticleSections article={article} library={library} />
-                                </div>
+                                layout && <ArticleSections article={article} library={library} layout={layout} />
                             )}
                         </article>
 
-                        <aside className="sticky top-[calc(var(--header-height)+1rem)] hidden xl:block">
-                            {!editing && <ArticleToc slug={article.doc.slug} sections={article.sections} />}
+                        <aside aria-label="Page tools" className="sticky top-[calc(var(--header-height)+1rem)] hidden flex-col gap-4 xl:flex">
+                            {!editing && (
+                                <>
+                                    <ArticleToc slug={article.doc.slug} entries={tocEntries} variant="rail" />
+                                    {flowBarFor(article.doc.slug) && <FlowStepper slug={article.doc.slug} library={library} />}
+                                    <AskCard slug={article.doc.slug} title={article.doc.title} />
+                                </>
+                            )}
                         </aside>
                     </div>
                 )}
             </KnowledgePage>
         </KnowledgeLayout>
+    );
+}
+
+/** Opens the assistant already pointed at this procedure. */
+function AskCard({ slug, title }: { slug: string; title: string }) {
+    const { askAbout } = useAssistantDock();
+    return (
+        <div className="rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-3">
+            <p className="flex items-center gap-1.5 text-sm font-semibold">
+                <Sparkles className="size-4" aria-hidden /> Ask about this procedure
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Answers come only from approved SOPs, with the section cited.</p>
+            <Button type="button" variant="outline" size="sm" className="mt-2 w-full bg-card" onClick={() => askAbout({ slug, title })}>
+                Ask a question
+            </Button>
+        </div>
     );
 }
 

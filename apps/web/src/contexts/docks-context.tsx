@@ -14,7 +14,20 @@ function useDockState(): Dock {
     )
 }
 
-const AssistantDockContext = React.createContext<Dock | null>(null)
+/** What the assistant was opened from, so it can say what it is being asked about. */
+export interface AssistantContext {
+    slug: string
+    title: string
+}
+
+interface AssistantDock extends Dock {
+    context: AssistantContext | null
+    /** Opens the panel for a question about one procedure. */
+    askAbout: (context: AssistantContext) => void
+    clearContext: () => void
+}
+
+const AssistantDockContext = React.createContext<AssistantDock | null>(null)
 const ThemeEditorContext = React.createContext<Dock | null>(null)
 
 /**
@@ -24,7 +37,20 @@ const ThemeEditorContext = React.createContext<Dock | null>(null)
  * the state survives navigating between pages.
  */
 export function DocksProvider({ children }: { children: React.ReactNode }) {
-    const assistant = useDockState()
+    const base = useDockState()
+    const [context, setContext] = React.useState<AssistantContext | null>(null)
+    const assistant = React.useMemo<AssistantDock>(
+        () => ({
+            ...base,
+            context,
+            askAbout: (next) => {
+                setContext(next)
+                if (!base.open) base.toggle()
+            },
+            clearContext: () => setContext(null),
+        }),
+        [base, context],
+    )
     const themeEditor = useDockState()
     return (
         <AssistantDockContext.Provider value={assistant}>
@@ -33,7 +59,7 @@ export function DocksProvider({ children }: { children: React.ReactNode }) {
     )
 }
 
-export function useAssistantDock(): Dock {
+export function useAssistantDock(): AssistantDock {
     const ctx = React.useContext(AssistantDockContext)
     if (!ctx) throw new Error("useAssistantDock must be used within DocksProvider")
     return ctx
