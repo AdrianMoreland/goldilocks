@@ -109,7 +109,7 @@ export function AssistantToggle() {
  * survives closing and reopening the panel.
  */
 export function AssistantDock() {
-    const { open, close } = useAssistantDock();
+    const { open, close, context, clearContext } = useAssistantDock();
     const { library } = useKnowledgeLibrary();
     const assistant = useAiAssistant(open);
     const [mode, setMode] = useState<AiMode | null>(null);
@@ -121,6 +121,11 @@ export function AssistantDock() {
     useEffect(() => {
         endRef.current?.scrollIntoView({ block: 'end' });
     }, [assistant.exchanges, assistant.pending]);
+
+    // Opened from a procedure: the question is about the procedures, so skip the picker.
+    useEffect(() => {
+        if (context && open) setMode((current) => current ?? 'procedures');
+    }, [context, open]);
 
     // Choosing a mode puts the cursor in the box, ready to type or paste.
     useEffect(() => {
@@ -136,7 +141,7 @@ export function AssistantDock() {
         if (!mode || !canSend) return;
         const text = draft;
         setDraft('');
-        await assistant.send(text, mode);
+        await assistant.send(text, mode, context?.title);
     };
 
     return (
@@ -193,6 +198,19 @@ export function AssistantDock() {
                 )}
 
                 <div className="flex-1 space-y-5 overflow-y-auto p-4">
+                    {context && (
+                        <p className="flex w-fit max-w-full items-center gap-1 rounded-full border border-dashed py-0.5 pr-1 pl-2.5 text-xs text-muted-foreground">
+                            <span className="min-w-0 truncate">Asking about: {context.title}</span>
+                            <button
+                                type="button"
+                                onClick={clearContext}
+                                aria-label="Stop asking about this procedure"
+                                className="flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                            >
+                                <X className="size-3" aria-hidden />
+                            </button>
+                        </p>
+                    )}
                     {mode === null && assistant.exchanges.length === 0 ? (
                         <ul className="flex flex-col gap-3">
                             {MODE_ORDER.map((id) => {
@@ -338,7 +356,7 @@ function ExchangeView({ exchange, library, onNavigate }: { exchange: Exchange; l
                         </div>
                     )}
 
-                    {response.citations.length > 0 && <Citations citations={response.citations} onNavigate={onNavigate} />}
+                    {response.citations.length > 0 && <Citations citations={response.citations} onNavigate={onNavigate} library={library} />}
                 </div>
             )}
         </div>
@@ -418,22 +436,34 @@ function StatusBadge({ status, isDraft }: { status: AiAnswerStatus; isDraft: boo
     );
 }
 
-/** Each citation opens the article at that section, with the gold "You're here" frame. */
-function Citations({ citations, onNavigate }: { citations: AiCitation[]; onNavigate: () => void }) {
+/**
+ * Each citation opens the article at that section, with the gold "You're here" frame.
+ * A section that still has a fact to confirm is marked amber: the answer leaned on something nobody has signed off.
+ */
+function Citations({ citations, onNavigate, library }: { citations: AiCitation[]; onNavigate: () => void; library: KnowledgeLibrary }) {
     return (
         <ul className="flex flex-wrap gap-1.5" aria-label="Sections used">
-            {citations.map((citation) => (
-                <li key={`${citation.slug}#${citation.anchor ?? ''}`}>
-                    <Link
-                        to={kbArticlePath(citation.slug, citation.anchor)}
-                        onClick={onNavigate}
-                        className="inline-flex items-center rounded-md border px-2 py-1 text-xs text-primary-text transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                    >
-                        {citation.title}
-                        {citation.heading && <span className="text-muted-foreground"> › {citation.heading}</span>}
-                    </Link>
-                </li>
-            ))}
+            {citations.map((citation) => {
+                const section = citation.anchor ? library.bySlug.get(citation.slug)?.sections.find((candidate) => candidate.anchor === citation.anchor) : undefined;
+                const unconfirmed = Boolean(section?.hasTodo);
+                return (
+                    <li key={`${citation.slug}#${citation.anchor ?? ''}`}>
+                        <Link
+                            to={kbArticlePath(citation.slug, citation.anchor)}
+                            onClick={onNavigate}
+                            className={cn(
+                                'inline-flex min-h-8 items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                                unconfirmed ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300' : 'text-primary-text',
+                            )}
+                        >
+                            {unconfirmed && <TriangleAlert className="size-3 shrink-0" aria-hidden />}
+                            {unconfirmed && <span className="font-semibold">Not confirmed yet · </span>}
+                            {citation.title}
+                            {citation.heading && <span className="text-muted-foreground"> › {citation.heading}</span>}
+                        </Link>
+                    </li>
+                );
+            })}
         </ul>
     );
 }

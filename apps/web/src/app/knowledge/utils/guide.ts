@@ -56,10 +56,3 @@ export function resolveTarget(library: KnowledgeLibrary, target: KbGuideTarget):
     if (target.anchor && !article.sections.some((section) => section.anchor === target.anchor)) return null;
     return kbArticlePath(target.slug, target.anchor);
 }
-
-/** Section headings that are framing rather than something you'd jump to. */
-const FRAMING_ANCHORS = new Set(['purpose', 'summary', 'note', 'related']);
-
-export function jumpSections(article: { sections: { anchor: string; heading: string }[] }) {
-    return article.sections.filter((section) => section.heading && section.anchor && !FRAMING_ANCHORS.has(section.anchor));
-}
