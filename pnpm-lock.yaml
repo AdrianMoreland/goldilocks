@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@saotesi/figma-bridge':
+        specifier: 0.1.0
+        version: 0.1.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -3110,6 +3113,11 @@ packages:
     resolution: {integrity: sha512-X+zaP2x+j4RXGfbp/seSoRHWnPxzApilDszisZxbYH5C/jTxFhCtDNdPGZb9lJyYPs24wGxruPF7Y+sIXt9Gzw==}
     cpu: [x64]
     os: [win32]
+
+  '@saotesi/figma-bridge@0.1.0':
+    resolution: {integrity: sha512-LUC4FfI4w2SqTTAqrtTF4cVY2ol1ykuDjpijy59Je3m+mNGv3ytBIKA9CGbw3gkhQxnadHOFSMeSGePlMGpQMA==}
+    engines: {node: '>=22.12'}
+    hasBin: true
 
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
@@ -11516,6 +11524,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.61.1':
     optional: true
+
+  '@saotesi/figma-bridge@0.1.0':
+    dependencies:
+      zod: 4.4.3
 
   '@scarf/scarf@1.4.0': {}
 
