@@ -18,9 +18,10 @@
 		"lint": "turbo run lint",
 		"check-types": "turbo run check-types",
 		"test": "turbo run test",
-		"figma:build": "node tools/figma-plugin/build.mjs"
+		"figma:build": "figma-bridge build --config design/figma/figma-bridge.config.mjs"
 	},
 	"devDependencies": {
+		"@saotesi/figma-bridge": "0.1.0",
 		"prettier": "^3.8.3",
 		"turbo": "^2.9.16",
 		"typescript": "~5.9.3"
