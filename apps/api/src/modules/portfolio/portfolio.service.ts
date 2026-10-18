@@ -24,7 +24,7 @@ import {
 } from '../../common/utils/pricing.util';
 
 /**
- * PortfolioService — P/L subtab (profit analysis) and the Builder subtab.
+ * PortfolioService - P/L subtab (profit analysis) and the Builder subtab.
  * Scenario is pure client-side arithmetic (no server round trip needed).
  *
  * Builder is a straight port of the Apps Script tool's Api.Portfolio.gs:

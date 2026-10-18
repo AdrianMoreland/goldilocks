@@ -1,14 +1,14 @@
 /**
- * Auth provider abstraction — everything the rest of the app needs from
+ * Auth provider abstraction - everything the rest of the app needs from
  * "whatever handles logins" boiled down to five operations. AuthService only
  * ever talks to this interface, never to Supabase directly, so swapping the
  * identity provider later (Auth0, Cognito, a hand-rolled one, whatever)
  * means writing one new class that implements this and changing the single
- * DI binding in auth.module.ts — nothing else in the app changes.
+ * DI binding in auth.module.ts - nothing else in the app changes.
  *
  * `id` here is expected to double as the app's own User.id (see
  * SupabaseAuthProvider) so the rest of the app never has to think about a
- * separate "external identity id" — there's just one id per person.
+ * separate "external identity id" - there's just one id per person.
  */
 export interface AuthIdentity {
     id: string;

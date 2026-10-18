@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link } from 'react-router-dom';
-import { Check, CircleHelp, OctagonMinus, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, CircleHelp, OctagonMinus, X } from 'lucide-react';
 import {
     KB_UNRESOLVED_HREF_PREFIX,
     isStopStep,
@@ -25,7 +25,11 @@ const TODO_MARKER_HREF = '#todo';
  * Code spans are left alone, so the README can document its own syntax.
  */
 function prepare(markdown: string, fromSlug: string, library: KnowledgeLibrary): string {
-    const linked = rewriteKbLinks(markdown, (ref) => library.resolveLink(ref, fromSlug));
+    const linked = rewriteKbLinks(markdown, (ref) => {
+        const resolved = library.resolveLink(ref, fromSlug);
+        // A pointer to another SOP reads "See more"; the full name stays as the hover text. A link within this SOP keeps its section name.
+        return resolved && ref.slug !== fromSlug ? { ...resolved, label: 'See more', title: resolved.label } : resolved;
+    }).replace(/\bsee(?: also)?:?\s+(\[See more\]\()/gi, '$1'); // "See [See more]" would read twice
     return mapOutsideCode(linked, (text) =>
         text.replace(/\[TODO:?\s*([^\]]*)\]/gi, (_match, detail: string) => `[${detail.trim() || 'to be confirmed'}](${TODO_MARKER_HREF})`),
     );
@@ -113,7 +117,7 @@ const baseComponents: Components = {
         const className =
             'font-medium text-primary-text underline decoration-primary-text/40 decoration-2 underline-offset-4 transition-colors hover:decoration-primary-text';
         return href.startsWith('/') ? (
-            <Link to={href} className={className}>
+            <Link to={href} title={title} className={className}>
                 {children}
             </Link>
         ) : (
@@ -134,61 +138,101 @@ function nodeText(node: unknown): string {
 
 const lineOf = (node: unknown): number | undefined => (node as { position?: { start: { line: number } } } | undefined)?.position?.start.line;
 
+/** True inside a step's own content, so a list there is a sub-list, not more steps. */
+const InStep = createContext(false);
+
+function StepOl({ children }: { children?: ReactNode }) {
+    const nested = useContext(InStep);
+    return nested ? (
+        <ol className="mt-2 list-decimal space-y-1 pl-5 marker:text-muted-foreground">{children}</ol>
+    ) : (
+        <ol className="my-3 list-none p-0 [counter-reset:step] first:mt-0 last:mb-0">{children}</ol>
+    );
+}
+
 /** The numbered rail: a circle per step, joined by a line. A step that is itself a warning gets the STOP look. */
 function stepsComponents(itemLines: number[], idPrefix: string, highlightId: string | null): Components {
-    return {
-        ol: ({ children }) => <ol className="my-3 list-none p-0 [counter-reset:step] first:mt-0 last:mb-0">{children}</ol>,
-        li: ({ node, children }) => {
-            const stop = isStopStep(nodeText(node));
-            const line = lineOf(node);
-            const index = line === undefined ? -1 : itemLines.indexOf(line);
-            const id = index >= 0 ? `${idPrefix}-step-${index + 1}` : undefined;
-            return (
-                <li
-                    id={id}
+    // Sub-points inside a step are plain bullets. They used to get a circle and rail line each, which
+    // numbered them as steps and pushed their text under the circle.
+    const SubItem = ({ children }: { children?: ReactNode }) => <li className="pl-1 text-base leading-7 [&>p]:my-0">{children}</li>;
+
+    const StepItem = ({ node, children }: { node: unknown; children?: ReactNode }) => {
+        const nested = useContext(InStep);
+        if (nested) return <SubItem>{children}</SubItem>;
+
+        const stop = isStopStep(nodeText(node));
+        const line = lineOf(node);
+        const index = line === undefined ? -1 : itemLines.indexOf(line);
+        const id = index >= 0 ? `${idPrefix}-step-${index + 1}` : undefined;
+        return (
+            <li
+                id={id}
+                className={cn(
+                    'relative scroll-mt-[calc(var(--header-height)+2rem)] pb-4 pl-12 text-base leading-7 [counter-increment:step] last:pb-1',
+                    // the line down to the next step
+                    'before:absolute before:top-9 before:bottom-0 before:left-4 before:w-0.5 before:-translate-x-1/2 before:bg-border last:before:hidden',
+                    '[&>p]:my-0',
+                    stop && 'text-stop-ink',
+                )}
+            >
+                <span
+                    aria-hidden
                     className={cn(
-                        'relative scroll-mt-[calc(var(--header-height)+2rem)] pb-4 pl-12 text-base leading-7 [counter-increment:step] last:pb-1',
-                        // the line down to the next step
-                        'before:absolute before:top-9 before:bottom-0 before:left-[15px] before:w-0.5 before:bg-border last:before:hidden',
-                        '[&>ol]:mt-2 [&>p]:my-0 [&>ul]:mt-2',
-                        stop && 'text-stop-ink',
+                        'absolute top-0 left-0 flex size-8 items-center justify-center rounded-full text-sm font-extrabold tabular-nums transition-shadow',
+                        stop ? 'bg-stop text-white' : 'bg-(--kb-tone,var(--primary)) text-(--kb-tone-ink,var(--primary-foreground))',
+                        id && id === highlightId && 'ring-4 ring-primary/55',
                     )}
                 >
-                    <span
-                        aria-hidden
-                        className={cn(
-                            'absolute top-0 left-0 flex size-8 items-center justify-center rounded-full text-sm font-extrabold tabular-nums transition-shadow',
-                            stop ? 'bg-stop text-white' : 'bg-(--kb-tone,var(--primary)) text-(--kb-tone-ink,var(--primary-foreground))',
-                            id && id === highlightId && 'ring-4 ring-primary/55',
-                        )}
-                    >
-                        {stop ? <OctagonMinus className="size-4" /> : <span className="before:content-[counter(step)]" />}
-                    </span>
-                    <div className="pt-0.5">{children}</div>
-                </li>
-            );
-        },
+                    {stop ? <OctagonMinus className="size-4" /> : <span className="before:content-[counter(step)]" />}
+                </span>
+                <div className="pt-0.5">
+                    <InStep.Provider value>{children}</InStep.Provider>
+                </div>
+            </li>
+        );
+    };
+
+    return {
+        ol: ({ children }) => <StepOl>{children}</StepOl>,
+        ul: ({ children }) => <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-muted-foreground">{children}</ul>,
+        li: ({ node, children }) => <StepItem node={node}>{children}</StepItem>,
     };
 }
 
-const miniflowComponents: Components = {
-    ol: ({ children }) => (
-        <ol className="my-3 grid list-none gap-3 p-0 [counter-reset:abc] first:mt-0 last:mb-0 md:auto-cols-fr md:grid-flow-col">{children}</ol>
-    ),
-    li: ({ children }) => (
+/**
+ * A short chain of lettered steps. Side by side from `md` up, with each arrow centred in the gap between
+ * two cards (a real icon, not a glyph, so it sits exactly on the middle); stacked on phones.
+ */
+function MiniflowOl({ children }: { children?: ReactNode }) {
+    return (
+        <ol className="my-3 grid list-none gap-5 p-0 [counter-reset:abc] first:mt-0 last:mb-0 md:auto-cols-fr md:grid-flow-col md:gap-6">{children}</ol>
+    );
+}
+
+function MiniflowLi({ children }: { children?: ReactNode }) {
+    return (
         <li
             className={cn(
-                'relative rounded-xl border bg-card px-3 py-2.5 text-[15px] leading-snug [counter-increment:abc] [&>p]:my-0',
+                'group relative flex flex-col gap-1.5 rounded-xl border bg-card px-3.5 py-3 text-[15px] leading-snug [counter-increment:abc] [&>p]:my-0',
                 'border-[color-mix(in_oklab,var(--kb-tone,var(--primary))_50%,var(--border))]',
-                'before:mb-0.5 before:block before:text-lg before:font-extrabold before:text-(--kb-tone-text,var(--primary-text)) before:content-[counter(abc,upper-alpha)]',
-                // the arrow to the next card: downwards when they stack, sideways when they sit in a row
-                'not-last:after:absolute not-last:after:-bottom-3.5 not-last:after:left-1/2 not-last:after:z-10 not-last:after:-translate-x-1/2 not-last:after:bg-card not-last:after:font-bold not-last:after:text-muted-foreground not-last:after:content-["↓"]',
-                'md:not-last:after:top-1/2 md:not-last:after:right-[-0.85rem] md:not-last:after:bottom-auto md:not-last:after:left-auto md:not-last:after:-translate-y-1/2 md:not-last:after:translate-x-0 md:not-last:after:content-["→"]',
+                // the letter, as a small badge
+                'before:flex before:size-6 before:items-center before:justify-center before:rounded-full before:bg-(--kb-tone,var(--primary)) before:text-xs before:font-extrabold before:text-(--kb-tone-ink,var(--primary-foreground)) before:content-[counter(abc,upper-alpha)]',
             )}
         >
-            {children}
+            <div className="min-w-0 [&>p]:my-0">{children}</div>
+            {/* Half a gap beyond the card, then pulled back by half its own size: dead centre in the gap. */}
+            <ArrowDown aria-hidden className="absolute -bottom-2.5 left-1/2 size-4 -translate-x-1/2 translate-y-1/2 text-muted-foreground group-last:hidden md:hidden" />
+            <ArrowRight
+                aria-hidden
+                className="absolute top-1/2 -right-3 hidden size-4 translate-x-1/2 -translate-y-1/2 text-muted-foreground group-last:hidden md:block"
+            />
         </li>
-    ),
+    );
+}
+
+const miniflowComponents: Components = {
+    ol: ({ children }) => <MiniflowOl>{children}</MiniflowOl>,
+    li: ({ children }) => <MiniflowLi>{children}</MiniflowLi>,
 };
 
 const checklistComponents: Components = {

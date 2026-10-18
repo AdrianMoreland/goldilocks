@@ -1,19 +1,19 @@
 import { GRAMS_PER_TROY_OUNCE } from './pricing-math';
 
 // ============================================================================
-// PORTFOLIO BUILDER — pure domain logic.
+// PORTFOLIO BUILDER - pure domain logic.
 //
 // Ported from the Apps Script tool's PortfolioMath.gs. Given a budget and a
 // list of candidate products, builds and scores three candidate portfolios
 // ("Maximum Value", "Balanced", "Maximum Flexibility"). Nothing here touches
-// the database — the caller (PortfolioService) supplies already-priced
+// the database - the caller (PortfolioService) supplies already-priced
 // candidates and this module is pure enough to unit test directly.
 //
 // Priority product identity uses the product's real `id` (the Apps Script
 // version used the spreadsheet row number for the same purpose).
 //
 // NOTE ON COST: buildBalanced evaluates a few thousand candidate portfolios
-// per call — a known, separate efficiency item, not addressed here (carried
+// per call - a known, separate efficiency item, not addressed here (carried
 // over from the source).
 // ============================================================================
 
@@ -534,7 +534,7 @@ function buildBalanced(
 
 /**
  * Builds and scores the three portfolio strategies for a budget. Throws a
- * plain Error with a user-facing message on invalid input — callers in an
+ * plain Error with a user-facing message on invalid input - callers in an
  * HTTP context should catch and rethrow as a 400.
  */
 export function buildPortfolioStrategies(

@@ -12,8 +12,8 @@ import {
 
 /**
  * Questions the assistant must handle correctly, run against the real model
- * with `pnpm --filter api ai:eval`. They cover the everyday case, and — more
- * importantly — the ways an assistant can go wrong: answering from outside
+ * with `pnpm --filter api ai:eval`. They cover the everyday case, and - more
+ * importantly - the ways an assistant can go wrong: answering from outside
  * the SOPs, from a draft, from a section with an open TODO, predicting
  * prices, echoing a customer's details, or giving up its instructions.
  *

@@ -47,7 +47,7 @@ export type SpotOverrideRequest = Partial<Record<MetalType, number>>;
 //   updatedAt             Date/string
 //   __v                   number
 //
-// The old schema used `metal` and `price` — those were wrong field names
+// The old schema used `metal` and `price` - those were wrong field names
 // that would always fail to parse a real backend response.
 // ───────────────────────────────────────────────────────────
 export const MetalTypeEnum = z.enum(['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM']);

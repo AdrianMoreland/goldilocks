@@ -177,7 +177,7 @@ export type KbRenderBlock =
 export interface KbFormRow {
   label: string;
   value: string;
-  /** The row says "negative", "never" or "do not" — the one that goes wrong. */
+  /** The row says "negative", "never" or "do not" - the one that goes wrong. */
   danger: boolean;
 }
 
@@ -322,21 +322,11 @@ export interface KbLayoutEntry {
   itemCount: number;
 }
 
-export interface KbGlanceChip {
-  label: string;
-  /** The section to jump to. */
-  anchor: string;
-  /** When the chip stands for step N of a numbered list, so the page can scroll to and flash that step. */
-  step?: number;
-  stop?: boolean;
-}
-
 export interface KbArticleLayout {
   /** One entry per section, in order: every section is accounted for. */
   entries: KbLayoutEntry[];
   /** "Sources: …" lifted out of the lead, shown as a footnote. */
   sources: string | null;
-  glance: KbGlanceChip[];
   /** The first link in the "Next" section, if it has one. */
   next: KbLinkRef | null;
   /** "On this page": every section with a heading except the lead and Related. */
@@ -376,37 +366,6 @@ function countItems(blocks: KbBlock[]): number {
   return blocks.reduce((total, block) => total + (block.type === 'list' ? block.items.length : 0), 0);
 }
 
-function buildGlance(entries: KbLayoutEntry[], parsed: Map<string, KbBlock[]>): KbGlanceChip[] {
-  const procedure = entries.filter((entry) => !['lead', 'related', 'next', 'before', 'proposal'].includes(entry.kind));
-
-  // 1. The main numbered list, when the procedure has one of a readable size.
-  const main = procedure.find((entry) => entry.kind === 'steps' && ['steps', 'the-steps', 'workflow'].includes(entry.section.anchor));
-  const mainList = main ? parsed.get(main.section.anchor)?.find((block) => block.type === 'list' && block.ordered) : undefined;
-  if (main && mainList?.type === 'list' && mainList.items.length >= 4 && mainList.items.length <= 9) {
-    const isForm = mainList.items.filter((item) => splitField(item)).length / mainList.items.length >= 0.7;
-    if (!isForm) {
-      return mainList.items.map((item, index) => ({ label: shorten(item.text, 46), anchor: main.section.anchor, step: index + 1 }));
-    }
-  }
-
-  // 2. Otherwise the section headings, with a red chip for the STOP section.
-  const parts = procedure.filter((entry) => entry.kind !== 'stop');
-  if (parts.length >= 3 && !(parts.every((entry) => entry.kind === 'ref') && parts.length > 6)) {
-    const chips: KbGlanceChip[] = parts.slice(0, 7).map((entry) => ({ label: entry.section.heading, anchor: entry.section.anchor }));
-    const stop = procedure.find((entry) => entry.kind === 'stop');
-    if (stop) chips.push({ label: stop.section.heading, anchor: stop.section.anchor, stop: true });
-    return chips;
-  }
-
-  // 3. Otherwise the first numbered list there is.
-  const firstSteps = procedure.find((entry) => entry.kind === 'steps');
-  const list = firstSteps ? parsed.get(firstSteps.section.anchor)?.find((block) => block.type === 'list' && block.ordered) : undefined;
-  if (firstSteps && list?.type === 'list') {
-    return list.items.slice(0, 9).map((item, index) => ({ label: shorten(item.text.replace(/\s*\(see.*$/i, ''), 46), anchor: firstSteps.section.anchor, step: index + 1 }));
-  }
-  return [];
-}
-
 /** Everything the procedure page needs to know about an article's sections. Never throws. */
 export function buildArticleLayout(sections: KbSection[]): KbArticleLayout {
   let sources: string | null = null;
@@ -440,7 +399,6 @@ export function buildArticleLayout(sections: KbSection[]): KbArticleLayout {
   return {
     entries,
     sources,
-    glance: buildGlance(entries, parsed),
     next: nextEntry ? (findLinks(nextEntry.section.markdown)[0] ?? null) : null,
     contents: entries
       .filter((entry) => entry.kind !== 'lead' && entry.kind !== 'related' && entry.section.heading && entry.section.anchor)

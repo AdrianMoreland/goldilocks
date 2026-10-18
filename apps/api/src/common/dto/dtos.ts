@@ -12,6 +12,8 @@ import {
     BackfillHistoryQuerySchema,
     SessionUserSchema,
     CreateUserRequestSchema,
+    SetUserBranchRequestSchema,
+    SetKbVisibilityRequestSchema,
     BranchSchema,
     MarketModeStateSchema,
     RoadmapDocumentSchema,
@@ -73,6 +75,16 @@ export class LoginResponseDto extends createDto(
 export class SessionUserDto extends createDto(
     SessionUserSchema,
     'SessionUserDto',
+) {}
+
+export class SetUserBranchRequestDto extends createDto(
+    SetUserBranchRequestSchema,
+    'SetUserBranchRequestDto',
+) {}
+
+export class SetKbVisibilityRequestDto extends createDto(
+    SetKbVisibilityRequestSchema,
+    'SetKbVisibilityRequestDto',
 ) {}
 
 export class CreateUserRequestDto extends createDto(

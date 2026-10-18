@@ -73,7 +73,7 @@ const STATUS_LABEL: Record<AiAnswerStatus, { label: string; icon: typeof BadgeCh
     answered: { label: 'Answered from the SOPs', icon: BadgeCheck, className: '' },
     refused: { label: 'Not covered by approved SOPs', icon: CircleHelp, className: 'text-muted-foreground' },
     uncited: {
-        label: 'No valid citation — check before using',
+        label: 'No valid citation - check before using',
         icon: TriangleAlert,
         className: 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-400',
     },
@@ -427,7 +427,7 @@ function Warnings({ warnings }: { warnings: string[] }) {
 function StatusBadge({ status, isDraft }: { status: AiAnswerStatus; isDraft: boolean }) {
     const base = STATUS_LABEL[status];
     // A draft is not "answered from the SOPs"; it is a reply to check and send.
-    const label = isDraft ? (status === 'refused' ? 'Couldn’t draft a reply' : 'Draft ready — check before sending') : base.label;
+    const label = isDraft ? (status === 'refused' ? 'Couldn’t draft a reply' : 'Draft ready - check before sending') : base.label;
     const Icon = base.icon;
     return (
         <Badge variant="outline" className={cn(base.className)}>

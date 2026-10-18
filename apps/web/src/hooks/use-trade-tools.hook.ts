@@ -28,7 +28,7 @@ interface CartItemState {
 }
 
 // transactionType 'buying' = customer buys from us (our sell side, premium);
-// 'selling' = customer sells to us (our buy side, discount) — see
+// 'selling' = customer sells to us (our buy side, discount) - see
 // pricing-settings-context's getAdjustmentDelta, which speaks in those terms.
 function defaultPercentFor(
     products: TradeProduct[],
@@ -44,7 +44,7 @@ function defaultPercentFor(
 }
 
 /**
- * Trade tab state + calculations — buy/sell cart and melt/scrap calculator,
+ * Trade tab state + calculations - buy/sell cart and melt/scrap calculator,
  * scoped to a single metal mode. Ported from the Merrion Gold Apps Script
  * tool's Scripts.Trade.html + Api.Trade.gs/Api.Melt.gs.
  *
@@ -63,7 +63,7 @@ export function useTradeTools(
     const { spot, detached: spotDetached, setSpot, reset: resetSpot } = useToolSpot('trade', metal);
     const { transactionType, setTransactionType: setTransactionTypeState } = usePricingTools();
 
-    // Cart + spot are kept per metal, not reset on every switch — leaving
+    // Cart + spot are kept per metal, not reset on every switch - leaving
     // metal X's quote and looking at metal Y (or its dashboard card) must
     // not discard what was being built for X, so the panel can work like a
     // running quote per metal instead of a single throwaway scratchpad.
@@ -74,7 +74,7 @@ export function useTradeTools(
 
     // A ref rather than state: syncing the product-table selection can add
     // several items in one pass (see the effect below), which needs several
-    // fresh ids synchronously — state's next-render-only update can't do that.
+    // fresh ids synchronously - state's next-render-only update can't do that.
     const nextItemIdRef = useRef(1);
     const newItemId = useCallback(() => nextItemIdRef.current++, []);
 
@@ -104,7 +104,7 @@ export function useTradeTools(
     );
 
     // Seed a metal's quote the FIRST time it's ever visited in this session
-    // only — switching away and back later leaves whatever's there alone.
+    // only - switching away and back later leaves whatever's there alone.
     useEffect(() => {
         if (!bootstrapQuery.data || initializedMetals.current.has(metal)) return;
         initializedMetals.current.add(metal);
@@ -144,13 +144,13 @@ export function useTradeTools(
             },
         ]);
         clearPendingTradeProduct();
-        // transactionType/adjustmentDeltaPct read at trigger time only — this
+        // transactionType/adjustmentDeltaPct read at trigger time only - this
         // must fire once per pending id, not every time either one changes.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pendingTradeProductId, products, clearPendingTradeProduct, setItemsForMetal, newItemId]);
 
     // Mirror the product table's row-selection checkboxes into this metal's
-    // cart: whatever's checked there (and belongs to this metal — the table
+    // cart: whatever's checked there (and belongs to this metal - the table
     // selection isn't cleared when its own tab switches) is what shows up
     // here, priced with its own premium/discount. Existing quantity/percent
     // edits are preserved for products that stay selected; an empty
@@ -180,7 +180,7 @@ export function useTradeTools(
     }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal]);
 
     // Price/Buyback lives in the pricing-tools context so a keyboard shortcut
-    // can flip it from anywhere — so re-default the cart's premium/discount
+    // can flip it from anywhere - so re-default the cart's premium/discount
     // whenever it changes, not just when this tab's own toggle is clicked.
     const lastTransactionType = useRef(transactionType);
     useEffect(() => {
@@ -243,7 +243,7 @@ export function useTradeTools(
     /**
      * Prices the same items from the other side of the trade (Buyback when
      * quoting Price, and vice versa) at each product's own default
-     * premium/discount plus any active market mode — for customer messages
+     * premium/discount plus any active market mode - for customer messages
      * that show both figures. The cart on screen is left untouched.
      */
     const quoteOppositeSide = useCallback(

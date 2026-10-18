@@ -1,3 +1,4 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -17,6 +18,7 @@ import { MarketModeService } from './market-mode.service';
 import type { MarketModeState } from '@goldilocks/shared-types';
 
 @ApiTags('market-mode')
+@RequiresCapability('pricingWorkbook')
 @Controller('market-mode')
 export class MarketModeController {
     constructor(private readonly service: MarketModeService) {}

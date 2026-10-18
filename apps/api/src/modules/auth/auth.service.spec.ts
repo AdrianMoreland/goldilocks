@@ -12,6 +12,7 @@ const dto: CreateUserRequest = {
     lastName: 'Person',
     role: 'SALES',
     admin: false,
+    branchId: null,
 };
 
 function build() {

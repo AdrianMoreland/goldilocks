@@ -23,7 +23,7 @@ export function MarketModeBanner() {
         >
             <Activity className="size-4 shrink-0" aria-hidden />
             <span className="tracking-wide" title={modeChangedBy ? `Set by ${modeChangedBy}` : undefined}>{activeStatusLabel} MODE ON</span>
-            <span className="hidden font-normal opacity-80 sm:inline">— Trade quotes use adjusted premiums/discounts; the price grid shows standard prices.</span>
+            <span className="hidden font-normal opacity-80 sm:inline">- Trade quotes use adjusted premiums/discounts; the price grid shows standard prices.</span>
             {canChangeModes && (
             <button
                 type="button"

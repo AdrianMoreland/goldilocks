@@ -3,7 +3,7 @@ import { MetalTypeEnum } from './spot-price.schema';
 import type { PortfolioProductTypeFilter, PriorityStrength } from './portfolio-builder-math';
 
 // ============================================================================
-// PORTFOLIO — P/L subtab (profit analysis)
+// PORTFOLIO - P/L subtab (profit analysis)
 //
 // Ported from the Apps Script tool's Api.Pricing.gs calculateProfitAnalysis,
 // built on the solveMissingPurchaseField/computeCurrentBuybackValue/
@@ -47,14 +47,14 @@ export const ProfitAnalysisResponseSchema = z.object({
 export type ProfitAnalysisResponse = z.infer<typeof ProfitAnalysisResponseSchema>;
 
 // ============================================================================
-// PORTFOLIO — Builder subtab
+// PORTFOLIO - Builder subtab
 //
 // Ported from Api.Portfolio.gs / PortfolioMath.gs. See portfolio-builder-math.ts
 // for the actual candidate-building/scoring algorithm.
 // ============================================================================
 
 // The plain TS union types these validate against live in
-// portfolio-builder-math.ts (the pure-math module) — imported here rather
+// portfolio-builder-math.ts (the pure-math module) - imported here rather
 // than redeclared, so there's exactly one definition of each.
 export const PortfolioProductTypeFilterEnum = z.enum(['either', 'bar', 'coin']) satisfies z.ZodType<PortfolioProductTypeFilter>;
 
@@ -66,7 +66,7 @@ export const PortfolioBuildRequestSchema = z.object({
   productType: PortfolioProductTypeFilterEnum,
   priorityProductId: z.number().optional(),
   priorityStrength: PriorityStrengthEnum,
-  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  /** The spot the user is quoting from (a card override) - omitted means the server's latest market spot. */
   customSpot: z.number().positive().optional(),
 });
 export type PortfolioBuildRequest = z.infer<typeof PortfolioBuildRequestSchema>;

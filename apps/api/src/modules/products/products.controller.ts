@@ -1,3 +1,4 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import {
     Controller,
     Get,
@@ -32,6 +33,7 @@ import {
 import { RawProduct } from '@goldilocks/shared-types';
 
 @ApiTags('products')
+@RequiresCapability('pricingWorkbook')
 @Controller('products')
 export class ProductsController {
     constructor(private readonly service: ProductsService) {}
@@ -88,7 +90,7 @@ export class ProductsController {
         return this.service.update(id, body, req.user.email);
     }
 
-    // Was guarded by JwtAuthGuard only — any signed-in user could change
+    // Was guarded by JwtAuthGuard only - any signed-in user could change
     // stock. Now admin-only like every other product write.
     @Patch('admin/products/:id/stock')
     @UseGuards(JwtAuthGuard, RolesGuard)
@@ -130,7 +132,7 @@ export class ProductsController {
 
     @ApiOperation({
         summary:
-            'Soft-delete a product (admin) — hidden everywhere, restorable',
+            'Soft-delete a product (admin) - hidden everywhere, restorable',
     })
     @Delete(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
@@ -142,7 +144,7 @@ export class ProductsController {
     ) {
         // service.delete() already throws NotFoundException for a missing
         // product, and the global PrismaExceptionFilter handles any raw
-        // Prisma error — nothing left for this handler to catch.
+        // Prisma error - nothing left for this handler to catch.
         await this.service.delete(id, req.user.email);
         return { message: `Product ${id} deleted` };
     }

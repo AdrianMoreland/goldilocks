@@ -1,6 +1,6 @@
 ---
 slug: uk-aml-and-cash
-title: UK desk — AML checks and cash handling
+title: UK desk - AML checks and cash handling
 category: compliance
 jurisdiction: UK
 owner: Adrian

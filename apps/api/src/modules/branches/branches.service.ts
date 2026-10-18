@@ -14,6 +14,7 @@ export class BranchesService {
             id: row.id,
             name: row.name,
             address: row.address,
+            region: row.region,
             currency: row.currency,
             createdAt: row.createdAt.toISOString(),
         }));
@@ -24,6 +25,7 @@ export class BranchesService {
             data: {
                 name: dto.name,
                 address: dto.address,
+                region: dto.region,
                 currency: dto.currency,
             },
         });
@@ -32,6 +34,7 @@ export class BranchesService {
             id: row.id,
             name: row.name,
             address: row.address,
+            region: row.region,
             currency: row.currency,
             createdAt: row.createdAt.toISOString(),
         };

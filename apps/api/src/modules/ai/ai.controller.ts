@@ -1,3 +1,4 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import {
     Body,
     Controller,
@@ -44,6 +45,7 @@ function cancelOnClose(response: Response): AbortSignal {
 // Open to every signed-in user. The per-user daily and per-minute limits, the cost log and the
 // company-wide daily spend breaker (docs/AI-AGENT-PLAN.md, phase 2) are what bound the cost.
 @ApiTags('ai')
+@RequiresCapability('assistant')
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -67,7 +69,7 @@ export class AiController {
     @ApiOperation({
         summary: 'Ask the assistant a question',
         description:
-            'Answers only from approved SOPs and cites the sections it used. One question in, one answer out — no conversation history. Subject to a per-user rate and daily allowance (429) and a company-wide daily spend limit (503).',
+            'Answers only from approved SOPs and cites the sections it used. One question in, one answer out - no conversation history. Subject to a per-user rate and daily allowance (429) and a company-wide daily spend limit (503).',
     })
     @ApiResponse({ status: 201, type: AskResponseDto })
     async askQuestion(
@@ -83,7 +85,7 @@ export class AiController {
     @ApiOperation({
         summary: 'Ask the assistant, streaming the answer as it is written',
         description:
-            'Server-sent events (AskStreamEvent): `delta` pieces, then `done` with the validated answer, which replaces what was streamed. Problems found before the first byte (limits, switched off, out of credit) are ordinary HTTP errors; later ones arrive as an `error` event. Read it with fetch — EventSource cannot POST or send the Authorization header.',
+            'Server-sent events (AskStreamEvent): `delta` pieces, then `done` with the validated answer, which replaces what was streamed. Problems found before the first byte (limits, switched off, out of credit) are ordinary HTTP errors; later ones arrive as an `error` event. Read it with fetch - EventSource cannot POST or send the Authorization header.',
     })
     async askQuestionStream(
         @Body() body: AskRequestDto,

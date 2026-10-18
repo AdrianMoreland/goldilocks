@@ -1,6 +1,6 @@
 ---
 slug: uk-delivery-and-dispatch
-title: UK desk — parcels, collections and dispatch
+title: UK desk - parcels, collections and dispatch
 category: operations
 jurisdiction: UK
 owner: Adrian

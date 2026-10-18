@@ -2,7 +2,7 @@ import { formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import { productColumnLabels } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
 
-/** Columns that make sense as plain-text/table data — excludes selection checkboxes, the row-actions menu, and the hidden filter-only columns (productType, priceBucket). */
+/** Columns that make sense as plain-text/table data - excludes selection checkboxes, the row-actions menu, and the hidden filter-only columns (productType, priceBucket). */
 const EXPORTABLE_COLUMN_IDS = [
     "name", "metalType", "weight", "marketValue", "priceSell", "spreadSell", "priceBuy", "spreadBuy", "priceSellVatExcl",
 ] as const

@@ -100,7 +100,7 @@ export function SettingsTab() {
                     </div>
                 ))}
                 <p className="text-muted-foreground text-xs">
-                    Modes stack — e.g. Weekend + Metal Shortage applies both adjustments together.
+                    Modes stack - e.g. Weekend + Metal Shortage applies both adjustments together.
                     {" "}The mode is company-wide{canChangeModes ? "" : " and only a manager or admin can change it"}
                     {modeChangedBy && modeChangedAt ? ` (last set by ${modeChangedBy}, ${new Date(modeChangedAt).toLocaleString("en-IE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}).` : "."}
                 </p>

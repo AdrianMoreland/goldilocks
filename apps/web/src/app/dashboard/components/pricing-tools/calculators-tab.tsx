@@ -384,7 +384,7 @@ function WeightConverter() {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-muted-foreground text-xs">
-                Type a value into any unit — every other field updates to match.
+                Type a value into any unit - every other field updates to match.
             </p>
 
             <div className="flex flex-col gap-2">
@@ -439,7 +439,7 @@ function CgtPanel() {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-muted-foreground text-xs">
-                Capital Gains Tax on a bullion sale — standard rate 33%, with the annual €1,270 personal exemption.
+                Capital Gains Tax on a bullion sale - standard rate 33%, with the annual €1,270 personal exemption.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -479,7 +479,7 @@ function VatPanel() {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-muted-foreground text-xs">
-                Quick VAT-inclusive / VAT-exclusive converter — gold is VAT-exempt as investment metal, silver/
+                Quick VAT-inclusive / VAT-exclusive converter - gold is VAT-exempt as investment metal, silver/
                 platinum/palladium are standard-rated (23%).
             </p>
 

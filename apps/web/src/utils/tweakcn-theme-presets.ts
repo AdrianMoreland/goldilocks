@@ -715,7 +715,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
         "popover-foreground": "#1f1f1f",
         primary: "#b71c1c",
         "primary-foreground": "#ffffff",
-        // Mid-grey background/card — the global text-tone ceiling in
+        // Mid-grey background/card - the global text-tone ceiling in
         // index.css isn't dark enough here, so pin readable (≥4.5:1) tones.
         "price-text": "oklch(0.34 0.07 182)",
         "buyback-text": "oklch(0.38 0.14 358)",

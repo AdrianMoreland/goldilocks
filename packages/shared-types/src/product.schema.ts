@@ -38,7 +38,7 @@ export const ProductSchema = z.object({
 
   // Calculated fields
   // Raw market value of this product's own weight at the current spot price
-  // (spot / troy oz * weight) — no premium/discount/VAT applied. Distinct
+  // (spot / troy oz * weight) - no premium/discount/VAT applied. Distinct
   // from `spotPrice`, which is the flat per-ounce metal price and is the
   // same for every product of a metal; this is what the product table's
   // "Market Price" column shows per row.
@@ -54,10 +54,10 @@ export const ProductSchema = z.object({
   createdAt: isoDateString,
 });
 
-// Raw product — what the data source actually stores, before any pricing
+// Raw product - what the data source actually stores, before any pricing
 // calculation is applied. This is the type providers (Prisma/Redis-aware)
 // hand to pure pricing functions and services. No spotPrice, no priceSell/
-// priceBuy, no isActive — those only exist after calculateProductPrice().
+// priceBuy, no isActive - those only exist after calculateProductPrice().
 export const RawProductSchema = z.object({
   id: z.number(),
   sku: z.string(),

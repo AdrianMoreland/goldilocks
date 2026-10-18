@@ -20,7 +20,7 @@ import {
 } from '../../modules/error-log/error-log.service';
 
 // Prisma codes that mean "can't reach / can't talk to the database" rather
-// than "this query was wrong" — answered as 503 so the client can say so.
+// than "this query was wrong" - answered as 503 so the client can say so.
 const CONNECTIVITY_CODES = new Set([
     'P1001',
     'P1002',
@@ -36,7 +36,7 @@ function truncate(value: string, max = 2000): string {
 /**
  * The single app-wide exception filter. Replaces the old Prisma-only filter
  * (which answered "Unexpected database error." and recorded nothing):
- *  - 4xx HttpExceptions pass through unchanged — they're answers, not faults.
+ *  - 4xx HttpExceptions pass through unchanged - they're answers, not faults.
  *  - Prisma P2002/P2025 still become clean 409/404.
  *  - Everything else is recorded in the error log with method, path, user,
  *    Prisma code and stack, and the response carries a short `reference`

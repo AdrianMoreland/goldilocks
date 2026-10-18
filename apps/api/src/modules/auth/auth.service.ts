@@ -1,7 +1,9 @@
 import {
+    BadRequestException,
     Inject,
     Injectable,
     Logger,
+    NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -14,11 +16,12 @@ import {
 import type {
     CreateUserRequest,
     LoginResponse,
+    SessionBranch,
     SessionUser,
 } from '@goldilocks/shared-types';
 import type { User } from '../../../prisma/generated/client';
 
-// Never select the password hash for anything that ends up on request.user —
+// Never select the password hash for anything that ends up on request.user -
 // it has no business leaving the DB query, let alone sitting in memory on
 // every authenticated request. See docs/ENGINEERING.md §6 "Secrets".
 const SAFE_USER_SELECT = {
@@ -32,18 +35,22 @@ const SAFE_USER_SELECT = {
     createdAt: true,
     updatedAt: true,
     lastLoginAt: true,
+    branchId: true,
+    branch: { select: { id: true, name: true, region: true } },
 } as const;
 
-export type AuthenticatedUser = Omit<User, 'password'>;
+export type AuthenticatedUser = Omit<User, 'password'> & {
+    branch: SessionBranch | null;
+};
 
 /**
- * AuthService — the app's only entry point for "who is this and are they
+ * AuthService - the app's only entry point for "who is this and are they
  * allowed in". Everything identity-provider-specific lives behind
  * AuthProviderPort (see auth-provider.port.ts); this class only knows about
  * that interface plus this app's own User table.
  *
  * Deliberately closed: this is a small internal tool with a handful of
- * known staff accounts, provisioned via prisma/provision-users.ts — there's
+ * known staff accounts, provisioned via prisma/provision-users.ts - there's
  * no public self-registration, so a valid provider token with no matching
  * User row is treated as unauthorized rather than auto-provisioned.
  */
@@ -86,17 +93,20 @@ export class AuthService {
         };
     }
 
-    /** Used by JwtAuthGuard — the returned row is attached to request.user (password hash excluded at the query level, never fetched). */
+    /** Used by JwtAuthGuard - the returned row is attached to request.user (password hash excluded at the query level, never fetched). */
     async validateToken(token: string): Promise<AuthenticatedUser> {
         const identity = await this.authProvider.verifyToken(token);
         return this.loadActiveUser(identity);
     }
 
-    /** Admin-only: provisions a new staff account (identity at the auth provider + matching Prisma User row, same id — see prisma/provision-users.ts for the reference pattern). */
+    /** Admin-only: provisions a new staff account (identity at the auth provider + matching Prisma User row, same id - see prisma/provision-users.ts for the reference pattern). */
     async createUser(
         dto: CreateUserRequest,
         actor: string,
     ): Promise<SessionUser> {
+        // Checked first so a bad branch can't leave an identity at the provider to roll back.
+        if (dto.branchId !== null) await this.requireBranch(dto.branchId);
+
         const identity = await this.authProvider.createIdentity(
             dto.email,
             dto.password,
@@ -115,6 +125,7 @@ export class AuthService {
                         password: '', // the auth provider owns the real credential
                         role: dto.role,
                         admin: dto.admin,
+                        branchId: dto.branchId,
                         isActive: true,
                     },
                     select: SAFE_USER_SELECT,
@@ -137,7 +148,7 @@ export class AuthService {
                 .deleteIdentity(identity.id)
                 .catch((cleanupError: unknown) => {
                     this.logger.error(
-                        `Could not roll back auth identity ${identity.id} after the User row failed — delete it manually`,
+                        `Could not roll back auth identity ${identity.id} after the User row failed - delete it manually`,
                         cleanupError instanceof Error
                             ? cleanupError.stack
                             : String(cleanupError),
@@ -145,6 +156,45 @@ export class AuthService {
                 });
             throw error;
         }
+    }
+
+    /** Admin-only: moves a staff member to another branch, or clears it (which behaves as an Irish branch). */
+    async setUserBranch(
+        userId: string,
+        branchId: number | null,
+        actor: string,
+    ): Promise<SessionUser> {
+        const existing = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+        });
+        if (!existing) throw new NotFoundException('User not found.');
+        if (branchId !== null) await this.requireBranch(branchId);
+
+        const user = await this.prisma.$transaction(async (tx) => {
+            const updated = await tx.user.update({
+                where: { id: userId },
+                data: { branchId },
+                select: SAFE_USER_SELECT,
+            });
+            await this.audit.record(
+                actor,
+                'user',
+                `moved ${existing.email} to ${updated.branch ? `${updated.branch.name} (${updated.branch.region})` : 'no branch'}`,
+                tx,
+            );
+            return updated;
+        });
+        return this.toSessionUser(user);
+    }
+
+    private async requireBranch(branchId: number): Promise<void> {
+        const branch = await this.prisma.branch.findUnique({
+            where: { id: branchId },
+            select: { id: true },
+        });
+        if (!branch)
+            throw new BadRequestException('That branch does not exist.');
     }
 
     async me(userId: string): Promise<SessionUser> {
@@ -181,6 +231,7 @@ export class AuthService {
             lastName: user.lastName,
             role: user.role,
             admin: user.admin,
+            branch: user.branch,
         };
     }
 }

@@ -6,26 +6,26 @@ import { MetalType } from "./generated/enums";
 const prisma = new PrismaService(new ConfigService());
 
 /**
- * One-off data-sync script — NOT part of the initial `seed.ts` bootstrap.
+ * One-off data-sync script - NOT part of the initial `seed.ts` bootstrap.
  *
  * Source of truth: "New Pricing Workbook.xlsx" (the live sheet shared in
  * chat, superseding the earlier PW3.xlsx-based schedule). Unlike the old
  * schedule, this workbook does NOT share one universal bars/coins table
- * across metals — each metal's GOLD/SILVER/PGM sheet has its own weight
+ * across metals - each metal's GOLD/SILVER/PGM sheet has its own weight
  * tiers and its own premium/discount schedule (confirmed by reading each
  * sheet's header row directly rather than assuming a shared layout; Silver
- * even carries two parallel bar/coin schedules — "Bonded" storage product
- * vs standard VAT-paid stock — for some of the same weights at different
+ * even carries two parallel bar/coin schedules - "Bonded" storage product
+ * vs standard VAT-paid stock - for some of the same weights at different
  * prices). So every metal below is its own explicit list, not a shared one.
  *
  * This app prices products live from (spot / troy oz) * weight *
  * (1 + spreadSell/spreadBuy), so only weight + the two percentages are
- * needed — the sheet's own pre-computed price columns aren't used here.
+ * needed - the sheet's own pre-computed price columns aren't used here.
  *
  * Naming: coin names deliberately drop the redundant "{Metal} Coin" suffix
  * and the space in "N oz" (e.g. "1oz Britannia", not "1 oz Britannia Gold
- * Coin") — this matches the workbook's own product names and what's asked
- * for. Bar names keep the existing "{weight} {Metal} Bar" pattern — the
+ * Coin") - this matches the workbook's own product names and what's asked
+ * for. Bar names keep the existing "{weight} {Metal} Bar" pattern - the
  * frontend's product-grouping.ts detects bars via /bar/i on the name and
  * strips the metal word for display (`stripMetalWord`), so a bar's DB name
  * must keep the literal words "Bar" and the metal name for that to keep
@@ -33,14 +33,14 @@ const prisma = new PrismaService(new ConfigService());
  *
  * PAMP/CombiBar brand-stamp variants and any row the sheet marks
  * unavailable ("-" or a zero premium placeholder) are deliberately left out
- * — same call as the previous round, still true of this workbook.
+ * - same call as the previous round, still true of this workbook.
  *
  * Every write is idempotent (safe to re-run) and never touches `stock` on a
- * product that already exists — inventory counts are managed separately
+ * product that already exists - inventory counts are managed separately
  * from pricing. After upserting the authoritative catalogue below, this
  * script also DELETES any product row for these four metals whose SKU is
  * no longer part of that catalogue (stale tiers from the old shared
- * schedule — e.g. a platinum 250g bar, or gold coin mints the old script
+ * schedule - e.g. a platinum 250g bar, or gold coin mints the old script
  * invented that this workbook doesn't actually carry) so the products
  * table ends up identical to the workbook, not a superset of it.
  */
@@ -82,7 +82,7 @@ const coin = (skuSuffix: string, name: string, weightGrams: number, premium: num
 });
 
 // ============================================================================
-// GOLD — no 10oz bar (workbook lists it with a 0% placeholder premium, i.e.
+// GOLD - no 10oz bar (workbook lists it with a 0% placeholder premium, i.e.
 // not actually offered); sovereigns and the 1g/fractional coins are gold-only.
 // ============================================================================
 const GOLD_ENTRIES: Entry[] = [
@@ -118,12 +118,12 @@ const GOLD_ENTRIES: Entry[] = [
 ];
 
 // ============================================================================
-// SILVER — three parallel sub-schedules in the workbook: "Bonded" (deferred-
+// SILVER - three parallel sub-schedules in the workbook: "Bonded" (deferred-
 // VAT storage product), standard VAT-paid bars, and mint coins. Bonded and
 // standard bars share some weight labels (1kg, 100oz) at different
 // prices, so the Bonded ones get their own "Bonded Bar"/"Bonded Coins" name
 // to stay visually distinct in the product table instead of colliding.
-// "Market bar" and the "-" (unavailable) 10oz/5kg bar rows are skipped —
+// "Market bar" and the "-" (unavailable) 10oz/5kg bar rows are skipped -
 // no fixed weight or no live premium to price them from.
 // ============================================================================
 const SILVER_ENTRIES: Entry[] = [
@@ -154,7 +154,7 @@ const SILVER_ENTRIES: Entry[] = [
 ];
 
 // ============================================================================
-// PGM (Platinum / Palladium) — the workbook stops at 100g bars (no 250g,
+// PGM (Platinum / Palladium) - the workbook stops at 100g bars (no 250g,
 // 500g, 1kg, or 10oz tier like gold/silver) and only lists two coin mints.
 // ============================================================================
 const PLATINUM_ENTRIES: Entry[] = [
@@ -248,7 +248,7 @@ async function main() {
         }
     }
 
-    console.log(`✅ Done — ${created} created, ${updated} updated, ${deleted} removed.`);
+    console.log(`✅ Done - ${created} created, ${updated} updated, ${deleted} removed.`);
 }
 
 main()

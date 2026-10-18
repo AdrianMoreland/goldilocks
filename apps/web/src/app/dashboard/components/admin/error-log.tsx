@@ -34,7 +34,7 @@ const KIND_EXPLANATION: Record<ErrorLogKind, string> = {
     http: "The API answered with an error status. For 5xx errors, the matching server entry (same reference) has the full cause.",
     network: "This browser got no answer from the API at all: the API was down or restarting, the network dropped, or something (VPN, firewall, CORS) blocked the request.",
     "external-api": "The metal-price vendor didn't answer or returned an error. Prices fall back to the last stored values until a later fetch succeeds.",
-    response: "The API answered, but the data didn't match what this version of the app expects — usually the API and web app were deployed at different versions.",
+    response: "The API answered, but the data didn't match what this version of the app expects - usually the API and web app were deployed at different versions.",
     crash: "An unexpected error in the code. The stack trace shows where it happened.",
 }
 

@@ -13,7 +13,7 @@ import { ProductCacheStore } from './product-cache.store';
         AuthModule, // needed by JwtAuthGuard/RolesGuard on admin endpoints
         AuditLogModule,
         PrismaModule, // ProductsProvider reads/writes product rows
-        RedisModule, // ProductsProvider caches the product list — wasn't imported before
+        RedisModule, // ProductsProvider caches the product list - wasn't imported before
         // NOTE: MetalsModule is intentionally NOT imported here.
         // Products must never depend on Metals.
     ],

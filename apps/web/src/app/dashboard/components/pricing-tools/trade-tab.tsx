@@ -38,7 +38,7 @@ export function TradeTab() {
                 <Tooltip><TooltipTrigger asChild><button
                     type="button"
                     aria-pressed={!isPrice}
-                    aria-label={isPrice ? "Quoting Price — switch to Buyback" : "Quoting Buyback — switch to Price"}
+                    aria-label={isPrice ? "Quoting Price - switch to Buyback" : "Quoting Buyback - switch to Price"}
                     title={isPrice ? "Switch to Buyback" : "Switch to Price"}
                     onClick={() => trade.setTransactionType(isPrice ? "selling" : "buying")}
                     className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-full px-3.5 py-2.5 text-[var(--tab-accent-on)] transition-colors"

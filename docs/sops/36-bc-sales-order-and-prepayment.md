@@ -1,6 +1,6 @@
 ---
 slug: bc-sales-order-and-prepayment
-title: Business Central — turn a quote into a paid Sales Order and Prepayment Invoice
+title: Business Central - turn a quote into a paid Sales Order and Prepayment Invoice
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

@@ -1,4 +1,4 @@
-# SOP drafts — rollout notes
+# SOP drafts - rollout notes
 
 Updated 2026-10-07. The Ireland drafts (SOPs 12 to 17, 19 to 24, 26, 27 and 33 to 41) were reviewed with the owner and moved to `docs/sops/` as `status: draft`. They are visible in the Knowledge Center with the "Not yet approved" banner and are not used by the AI assistant until a manager approves them. This folder keeps the guide and the SOPs set aside for later.
 

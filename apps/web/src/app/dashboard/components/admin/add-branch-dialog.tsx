@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAdminApi } from "@/api/admin.api"
 import { queryKeys } from "@/lib/query-keys"
-import { CurrencyEnum } from "@goldilocks/shared-types"
+import { CurrencyEnum, type BranchRegion } from "@goldilocks/shared-types"
 import { z } from "zod"
 
 interface AddBranchDialogProps {
@@ -24,6 +24,7 @@ const EMPTY_FORM = {
     name: "",
     address: "",
     currency: "EUR" as Currency,
+    region: "IE" as BranchRegion,
 }
 
 /** Admin-only "add branch" dialog, opened from the Admin Panel. */
@@ -49,6 +50,7 @@ export function AddBranchDialog({ open, onOpenChange }: AddBranchDialogProps) {
                 name: form.name.trim(),
                 address: form.address.trim() || undefined,
                 currency: form.currency,
+                region: form.region,
             })
             await queryClient.invalidateQueries({ queryKey: queryKeys.admin.branches })
             toast.success(`${form.name} created`)
@@ -87,6 +89,18 @@ export function AddBranchDialog({ open, onOpenChange }: AddBranchDialogProps) {
                                 {CURRENCIES.map((c) => (
                                     <SelectItem key={c} value={c}>{c}</SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <Label className="text-xs">Region</Label>
+                        <Select value={form.region} onValueChange={(v) => setForm((f) => ({ ...f, region: v as BranchRegion }))}>
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="IE">Ireland (full app)</SelectItem>
+                                <SelectItem value="UK">UK (no Pricing Workbook)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

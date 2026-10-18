@@ -1,6 +1,6 @@
 ---
 slug: bc-quick-start
-title: Business Central quick start — the two flows and how to find things
+title: Business Central quick start - the two flows and how to find things
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

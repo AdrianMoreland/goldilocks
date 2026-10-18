@@ -122,7 +122,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
                 <div className="text-lg font-bold tabular-nums">
                     {pl.result
                         ? `${pl.result.profit >= 0 ? "+" : "-"}${formatEuro(Math.abs(pl.result.profit))} (${pl.result.profitPercent >= 0 ? "+" : ""}${pl.result.profitPercent.toFixed(1)}%)`
-                        : "—"}
+                        : "-"}
                 </div>
             </div>
 
@@ -138,7 +138,7 @@ function ProfitLossPanel({ metal }: { metal: MetalType }) {
             <div className="flex items-center justify-between text-sm">
                 <span>Move required</span>
                 <span className="font-medium tabular-nums">
-                    {pl.moveRequired !== null ? `${pl.moveRequired >= 0 ? "+" : ""}${pl.moveRequired.toFixed(2)}% from current` : "—"}
+                    {pl.moveRequired !== null ? `${pl.moveRequired >= 0 ? "+" : ""}${pl.moveRequired.toFixed(2)}% from current` : "-"}
                 </span>
             </div>
             <div className="flex items-center justify-between text-sm">

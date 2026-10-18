@@ -11,6 +11,8 @@ import {
     splitFrontmatter,
     splitSections,
     findLinks,
+    type Capabilities,
+    type KbVisibility,
     type BrokenKbLink,
     type KbDocument,
     type KbStatus,
@@ -81,6 +83,7 @@ function toDocument(row: KbDocumentRow): KbDocument {
         jurisdiction: row.jurisdiction,
         owner: row.owner,
         status: row.status,
+        visibility: row.visibility,
         version: row.version,
         contentUpdatedOn: toDay(row.contentUpdatedOn),
         markdown: row.markdown,
@@ -109,13 +112,22 @@ export class KnowledgeService {
     ) {}
 
     /**
-     * Every SOP the caller may read. Draft SOPs are included — the reader shows
-     * them with a "Not yet approved" banner (README) — but retired ones are
+     * Every SOP the caller may read. Draft SOPs are included - the reader shows
+     * them with a "Not yet approved" banner (README) - but retired ones are
      * kept for audit only and are visible to admins alone.
      */
-    async listDocuments(isAdmin: boolean): Promise<KbDocument[]> {
+    async listDocuments(
+        isAdmin: boolean,
+        capabilities: Capabilities,
+    ): Promise<KbDocument[]> {
         const rows = await this.prisma.kbDocument.findMany({
-            where: isAdmin ? undefined : { status: { not: 'retired' } },
+            where: {
+                ...(isAdmin ? {} : { status: { not: 'retired' as const } }),
+                // Branch scope is applied in the query, so a SOP a branch may not read never leaves the database.
+                ...(capabilities.knowledge === 'shared'
+                    ? { visibility: 'all' as const }
+                    : {}),
+            },
             orderBy: { slug: 'asc' },
         });
 
@@ -226,7 +238,7 @@ export class KnowledgeService {
     /**
      * Moves a SOP through the approval workflow: draft → approved, approved →
      * draft, or retired. Approving is what bumps the version and dates the SOP
-     * (README), and it is refused while any `[TODO]` is left — step one of the
+     * (README), and it is refused while any `[TODO]` is left - step one of the
      * approval checklist is "resolve every TODO".
      */
     async setStatus(
@@ -281,6 +293,31 @@ export class KnowledgeService {
         return toDocument(updated);
     }
 
+    /** Chooses which branches may read a SOP. Does not touch the approval workflow: sharing is not editing. */
+    async setVisibility(
+        slug: string,
+        visibility: KbVisibility,
+        actor: string,
+    ): Promise<KbDocument> {
+        const existing = await this.requireDocument(slug);
+        if (existing.visibility === visibility) return toDocument(existing);
+
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data: { visibility },
+            });
+            await this.audit.record(
+                actor,
+                'sop',
+                `set "${slug}" visibility ${existing.visibility} → ${visibility}`,
+                tx,
+            );
+            return row;
+        });
+        return toDocument(updated);
+    }
+
     private async requireDocument(slug: string): Promise<KbDocumentRow> {
         const row = await this.prisma.kbDocument.findUnique({
             where: { slug },
@@ -325,7 +362,7 @@ export class KnowledgeService {
                     slug,
                     action: 'rejected',
                     errors: [
-                        `Duplicate slug "${slug}" — already used by ${first}.`,
+                        `Duplicate slug "${slug}" - already used by ${first}.`,
                     ],
                 });
             } else {

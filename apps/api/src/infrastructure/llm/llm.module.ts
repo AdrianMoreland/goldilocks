@@ -6,7 +6,7 @@ import { OpenAiLlmClient } from './openai-llm.client';
 /**
  * Infrastructure module for the language-model vendor, alongside
  * PrismaModule/RedisModule/MetalPriceApiModule. Consumers depend on the
- * LLM_PROVIDER token (LlmPort), never on OpenAiLlmClient — swap vendors by
+ * LLM_PROVIDER token (LlmPort), never on OpenAiLlmClient - swap vendors by
  * changing this one binding.
  */
 @Module({
