@@ -11,7 +11,7 @@
 
 const EMAIL = /[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]+/g;
 const IBAN = /\b[A-Za-z]{2}\d{2}(?:[ ]?[A-Za-z0-9]{2,4}){3,8}\b/g;
-// Nine or more digits in a row, allowing the usual phone separators — but not commas,
+// Nine or more digits in a row, allowing the usual phone separators - but not commas,
 // so "€12,000 and €50,000" is left alone.
 const PHONE = /\+?\d(?:[\s().-]?\d){8,}/g;
 const TITLE = /\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?(?=\s)/g;
@@ -33,7 +33,7 @@ export const REDACTED_ACCOUNT = '[account]';
 
 export interface ScrubResult {
     text: string;
-    /** True if anything at all was replaced — such a question is never cached (two different people would share one key). */
+    /** True if anything at all was replaced - such a question is never cached (two different people would share one key). */
     redacted: boolean;
 }
 

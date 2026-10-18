@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { MetalTypeEnum } from './spot-price.schema';
 
 // ============================================================================
-// TRADE TAB — buy/sell cart + melt calculator
+// TRADE TAB - buy/sell cart + melt calculator
 //
 // Ported from the Merrion Gold Apps Script tool's Api.Trade.gs /
 // Api.Melt.gs. Unlike the spreadsheet version, there is no per-row
-// "productSpot" snapshot to scale against — Goldilocks always prices a
+// "productSpot" snapshot to scale against - Goldilocks always prices a
 // product live from (spot / troy-ounce) * weight, so the scaling step
 // (computeAdjustedProductSpot in the original) is unnecessary here.
 // ============================================================================
@@ -14,7 +14,7 @@ import { MetalTypeEnum } from './spot-price.schema';
 export const TradeTransactionTypeEnum = z.enum(['buying', 'selling']);
 export type TradeTransactionType = z.infer<typeof TradeTransactionTypeEnum>;
 
-// A product as offered in the Trade tab's dropdown — premium/discount are
+// A product as offered in the Trade tab's dropdown - premium/discount are
 // just the product's own spreadSell/spreadBuy expressed as a percentage,
 // so no display-string parsing (unlike the spreadsheet version) is needed.
 export const TradeProductSchema = z.object({
@@ -78,7 +78,7 @@ export type TradeCartResponse = z.infer<typeof TradeCartResponseSchema>;
 // ============================================================================
 // MELT / SCRAP CALCULATOR
 //
-// Only GOLD and SILVER have configured melt categories — Merrion Gold does
+// Only GOLD and SILVER have configured melt categories - Merrion Gold does
 // not melt-buy platinum/palladium, matching the original MG_MELT_DATA.
 // ============================================================================
 
@@ -95,7 +95,7 @@ export type MeltCategoryData = z.infer<typeof MeltCategoryDataSchema>;
 export const MeltCalculatorRequestSchema = z.object({
   category: MeltCategoryKeyEnum,
   weight: z.coerce.number().positive(),
-  /** The spot the user is quoting from (a card override) — omitted means the server's latest market spot. */
+  /** The spot the user is quoting from (a card override) - omitted means the server's latest market spot. */
   customSpot: z.number().positive().optional(),
 });
 export type MeltCalculatorRequest = z.infer<typeof MeltCalculatorRequestSchema>;
@@ -113,7 +113,7 @@ export const MeltCalculatorResponseSchema = z.object({
 export type MeltCalculatorResponse = z.infer<typeof MeltCalculatorResponseSchema>;
 
 // ============================================================================
-// STATIC CONFIG — ported verbatim from the Apps Script tool's Config.gs
+// STATIC CONFIG - ported verbatim from the Apps Script tool's Config.gs
 // ============================================================================
 
 export const TRADE_METAL_SLIDER_BOUNDS: Record<

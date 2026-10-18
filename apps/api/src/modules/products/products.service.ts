@@ -27,7 +27,7 @@ export class ProductsService {
 
     /**
      * One product as stored. Pricing needs live spot, which this module is
-     * deliberately not allowed to know about (see ProductsModule) — the
+     * deliberately not allowed to know about (see ProductsModule) - the
      * priced view of every product comes from GET /market-data.
      */
     async getById(id: number): Promise<RawProduct> {
@@ -51,7 +51,7 @@ export class ProductsService {
         if (dto.sku && dto.sku.toLowerCase() !== existing.sku.toLowerCase()) {
             await this.assertSkuAvailable(dto.sku);
         }
-        // Only the stored columns — the DTO schema also allows calculated
+        // Only the stored columns - the DTO schema also allows calculated
         // fields (priceSell, marketValue, …) that don't exist on the row.
         const {
             name,
@@ -85,7 +85,7 @@ export class ProductsService {
         );
     }
 
-    /** Soft delete — the row is kept (and can be restored), just hidden everywhere. */
+    /** Soft delete - the row is kept (and can be restored), just hidden everywhere. */
     async delete(id: number, actor: string) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {

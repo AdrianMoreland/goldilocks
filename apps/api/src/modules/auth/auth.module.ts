@@ -21,7 +21,7 @@ import { SupabaseAuthProvider } from './providers/supabase-auth.provider';
     controllers: [AuthController],
     providers: [
         AuthService,
-        // Swap identity providers by changing this one binding — nothing
+        // Swap identity providers by changing this one binding - nothing
         // else in the app references Supabase directly for auth.
         { provide: AUTH_PROVIDER, useClass: SupabaseAuthProvider },
     ],

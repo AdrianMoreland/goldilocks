@@ -41,7 +41,7 @@ export interface PricedCatalogue {
 const ALL_METALS: MetalType[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
 
 /**
- * MarketDataService — the composition layer.
+ * MarketDataService - the composition layer.
  *
  * This is the ONLY place in the codebase that knows both Metals and
  * Products exist. Products never imports Metals; Metals never imports
@@ -62,7 +62,7 @@ export class MarketDataService {
      * Fetches and combines the latest market data, including spot prices,
      * historic spot prices, and product prices. Spot prices are resolved
      * via the launch cascade (cache → DB → live API last resort, see
-     * MetalsProvider.getAllLatestForLaunch) — this is the initial page load
+     * MetalsProvider.getAllLatestForLaunch) - this is the initial page load
      * and its periodic refetch, where any recent-enough non-zero price is
      * fine, so cache/DB are preferred over always paying for a live call.
      */
@@ -77,7 +77,7 @@ export class MarketDataService {
      * Manual spot-price overrides from the UI.
      *
      * These are NOT persisted to Redis/Prisma and never flow back into
-     * MetalsProvider — they're a temporary "what if" view layered on top
+     * MetalsProvider - they're a temporary "what if" view layered on top
      * of the live prices for this one response only.
      *
      * Recalculates product prices based on manual spot-price overrides.
@@ -142,7 +142,7 @@ export class MarketDataService {
      * point of clicking it) via MetalsProvider.refreshAll, falling back to
      * the last stored DB price per metal only where the API didn't return
      * one. Composes its own response rather than delegating to
-     * getMarketData() — that would re-run the cache/DB-first launch cascade
+     * getMarketData() - that would re-run the cache/DB-first launch cascade
      * (including its own live-API-last-resort) right after refreshAll
      * already tried the API for everything, doubling up the external call
      * for no benefit.
@@ -192,13 +192,13 @@ export class MarketDataService {
             spotPrices: enrichedSpotPrices,
             historicSpot,
             products,
-            // The actual snapshot time, not "now" — the oldest timestamp
+            // The actual snapshot time, not "now" - the oldest timestamp
             // across spotPrices, so a cache/DB hit correctly shows as
             // however old it really is rather than as freshly fetched.
             fetchedAt: this.getSnapshotTimestamp(enrichedSpotPrices),
             priceWarning:
                 degradedMetals.length > 0
-                    ? `Live price unavailable for ${degradedMetals.join(', ')} — showing €0.00 until the price feed recovers.`
+                    ? `Live price unavailable for ${degradedMetals.join(', ')} - showing €0.00 until the price feed recovers.`
                     : null,
             degradedMetals,
         };

@@ -24,7 +24,7 @@ const MAX_DEPTH = 5;
 
 /**
  * The list of routes the endpoint tester offers. Built from the same OpenAPI
- * document Swagger uses — but held here, so the tester keeps working in
+ * document Swagger uses - but held here, so the tester keeps working in
  * production where the public /docs page is switched off.
  */
 @Injectable()
@@ -121,7 +121,7 @@ export class ApiCatalogueService {
         return current;
     }
 
-    /** A starter value for a schema — enough to see the field names and types, not a valid fixture. */
+    /** A starter value for a schema - enough to see the field names and types, not a valid fixture. */
     private example(doc: OpenAPIObject, node: Schema, depth: number): unknown {
         const schema = this.resolve(doc, node) as Schema;
         if (!schema || depth > MAX_DEPTH) return null;

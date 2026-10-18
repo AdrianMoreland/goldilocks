@@ -9,7 +9,7 @@ export interface MetalRate {
     gbp: number;
 }
 
-/** Only the metals the vendor actually gave a rate for — never zero-filled (see MetalsProvider.fetchFromExternalApi). */
+/** Only the metals the vendor actually gave a rate for - never zero-filled (see MetalsProvider.fetchFromExternalApi). */
 export type MetalRates = Partial<Record<MetalType, MetalRate>>;
 
 const METAL_SYMBOLS = Object.entries(SYMBOL_MAP) as [MetalType, string][];

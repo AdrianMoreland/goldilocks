@@ -10,7 +10,7 @@ import {
 import type { MetalType } from '@/lib/types';
 
 /**
- * Trade tab — buy/sell cart pricing + the melt/scrap calculator.
+ * Trade tab - buy/sell cart pricing + the melt/scrap calculator.
  * Mirrors the Apps Script tool's Api.Trade.gs / Api.Melt.gs endpoints.
  */
 export function useTradeApi() {

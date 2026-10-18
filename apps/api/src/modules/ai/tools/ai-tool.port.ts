@@ -12,7 +12,7 @@ export interface AiToolContext {
  * A read-only lookup the model may ask for (docs/AI-AGENT-PLAN.md §6). The
  * Zod schema is the single definition of its arguments: it validates what the
  * model wrote, and is also what the model is shown. A tool returns finished
- * figures from the application's own code — the model quotes them, it never
+ * figures from the application's own code - the model quotes them, it never
  * does price arithmetic.
  */
 export interface AiTool<TArgs = unknown> {

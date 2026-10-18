@@ -9,7 +9,7 @@ import { formatEuro, formatPercent, formatPrice } from "../../utils/formatters"
 import { tabThemeStyle } from "./tab-theme"
 
 function formatDate(value: string | undefined) {
-    if (!value) return "—"
+    if (!value) return "-"
     return new Intl.DateTimeFormat("en-IE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
 }
 

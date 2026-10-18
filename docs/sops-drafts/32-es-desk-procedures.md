@@ -1,6 +1,6 @@
 ---
 slug: es-desk-procedures
-title: Spain desk — estimates, sales and purchases
+title: Spain desk - estimates, sales and purchases
 category: sales
 jurisdiction: ES
 owner: Adrian

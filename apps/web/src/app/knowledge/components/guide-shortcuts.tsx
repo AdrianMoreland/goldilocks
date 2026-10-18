@@ -75,7 +75,7 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
                             <span className="mt-auto pt-4">
                                 <span className="block text-base leading-5 font-semibold">{tool.label}</span>
                                 <span className={cn('mt-1 block text-xs leading-4', tool.href ? 'text-background/75' : 'text-muted-foreground')}>
-                                    {tool.href ? tool.hint : 'Coming soon — not written yet'}
+                                    {tool.href ? tool.hint : 'Coming soon - not written yet'}
                                 </span>
                             </span>
                         </>
@@ -107,7 +107,7 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
 }
 
 /** Business Central's front door: learn it, see both flows on one page, or get unstuck. */
-export function BusinessCentralBanner({ library }: { library: KnowledgeLibrary }) {
+export function BusinessCentralBanner({ library, showHub = true }: { library: KnowledgeLibrary; showHub?: boolean }) {
     const { title, hint, start, hub, stuck } = KB_GUIDE.businessCentral;
     const startHref = resolveTarget(library, start.target);
     const hubHref = resolveTarget(library, hub.target);
@@ -132,7 +132,7 @@ export function BusinessCentralBanner({ library }: { library: KnowledgeLibrary }
                         {start.label} <ArrowRight className="size-4" aria-hidden />
                     </Link>
                 )}
-                {hubHref && (
+                {showHub && hubHref && (
                     <Link to={hubHref} className={cn(button, 'bg-card hover:bg-muted', FOCUS)}>
                         {hub.label}
                     </Link>

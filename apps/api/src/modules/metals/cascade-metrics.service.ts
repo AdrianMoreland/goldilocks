@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * In-memory cache hit/miss counters for the launch read cascade
- * (MetalsProvider.getAllLatestForLaunch — the one that runs on every
+ * (MetalsProvider.getAllLatestForLaunch - the one that runs on every
  * dashboard page load). Deliberately not persisted: this is a live gauge
  * ("how warm is the cache right now"), not a historical record, and it's
- * fine for it to reset on every deploy/restart — unlike FetchAttemptService,
+ * fine for it to reset on every deploy/restart - unlike FetchAttemptService,
  * which tracks the external API calls that actually matter to keep.
  */
 @Injectable()

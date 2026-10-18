@@ -99,7 +99,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     /**
      * Adds one to a counter and, when it is first created, gives it an expiry.
-     * Returns the new count, or null when Redis is unavailable — callers that
+     * Returns the new count, or null when Redis is unavailable - callers that
      * enforce a limit must treat null as "refuse", not "allow".
      */
     async increment(key: string, ttlSeconds: number): Promise<number | null> {
@@ -126,7 +126,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    /** Prepend to a list and trim it to `maxLength` — a capped, newest-first log. Returns false if Redis is unavailable. */
+    /** Prepend to a list and trim it to `maxLength` - a capped, newest-first log. Returns false if Redis is unavailable. */
     async pushCapped(
         key: string,
         value: unknown,
@@ -162,7 +162,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     /**
      * Adds to several hash fields in one round trip and (re)sets the key's
-     * expiry — the building block for hourly traffic buckets. Fire-and-forget
+     * expiry - the building block for hourly traffic buckets. Fire-and-forget
      * by design: a metrics write must never fail the request it describes.
      */
     async hashIncrementMany(
@@ -203,7 +203,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    /** For GET /health — true once the client has connected, never set back by a missing REDIS_URL (there's simply no client to report on). */
+    /** For GET /health - true once the client has connected, never set back by a missing REDIS_URL (there's simply no client to report on). */
     isHealthy(): boolean {
         return this.isConnected;
     }

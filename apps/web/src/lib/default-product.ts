@@ -5,7 +5,7 @@ const BAR_NAME_RE = /bar/i;
 const BONDED_NAME_RE = /bonded/i;
 
 /**
- * The product shown when nothing has been picked — on the Product tab, the
+ * The product shown when nothing has been picked - on the Product tab, the
  * Trade cart and the P/L calculator alike, so they never disagree. Plain 1oz
  * bars for gold/platinum/palladium and a 1kg bar for silver (how each metal
  * is actually traded in bulk). Picked by shape (bar) + weight rather than

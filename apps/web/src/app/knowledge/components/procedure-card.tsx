@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { flowBarFor, kbArticlePath } from '@goldilocks/shared-types';
+import { kbArticlePath, procedureFlow } from '@goldilocks/shared-types';
 import { cn } from '@/lib/utils';
 import type { KnowledgeArticle } from '../utils/library';
 import { TONE } from '../utils/tone';
@@ -12,7 +12,7 @@ import { StatusBadge, UnconfirmedBadge } from './status-badges';
  */
 export function ProcedureCard({ article }: { article: KnowledgeArticle }) {
     const { doc } = article;
-    const flow = flowBarFor(doc.slug)?.bar;
+    const flow = procedureFlow(doc.slug)?.bar;
     const flowLabel = flow?.label.split('·')[1]?.trim();
 
     return (

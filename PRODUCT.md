@@ -14,7 +14,7 @@ The account roles `ADMIN | MANAGER | SALES | ACCOUNTING | AUDITOR` exist in the 
 
 ## Product Purpose
 
-The Merrion Gold Pricing Workbook is the internal pricing and trading dashboard for Merrion Gold, an Irish bullion dealer. It replaces a Google Sheets / Apps Script workbook ("Merrion Gold — Pricing Control Centre") that the business used before. It shows:
+The Merrion Gold Pricing Workbook is the internal pricing and trading dashboard for Merrion Gold, an Irish bullion dealer. It replaces a Google Sheets / Apps Script workbook ("Merrion Gold - Pricing Control Centre") that the business used before. It shows:
 
 - live metal spot prices;
 - a per-product pricing table (buy/sell, premiums, discounts, VAT);

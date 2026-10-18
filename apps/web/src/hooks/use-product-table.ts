@@ -18,7 +18,7 @@ function filterByMetalTab(data: DisplayProduct[], tab: MetalTabValue): DisplayPr
     return metalType ? data.filter((p) => p.metalType === metalType) : data
 }
 
-/** Global search — matches name or SKU, independent of which columns are currently visible. */
+/** Global search - matches name or SKU, independent of which columns are currently visible. */
 function filterBySearch(data: DisplayProduct[], search: string): DisplayProduct[] {
     const term = search.trim().toLowerCase()
     if (!term) return data
@@ -31,14 +31,14 @@ export function useProductTable(
     setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
 ) {
     const { user } = useAuth()
-    // Sort/filter/search state is persisted per user, not per session — a
+    // Sort/filter/search state is persisted per user, not per session - a
     // "budget only" filter or a "Premium" sort should still be there
     // tomorrow. Keyed by user id so switching accounts on the same browser
     // doesn't leak one user's filters into another's.
     const storagePrefix = `product-table:${user?.id ?? "anon"}`
 
     const [data, setData] = React.useState<Product[]>(initialData)
-    // Market Value and Weight are reference columns, not quoting ones — hidden
+    // Market Value and Weight are reference columns, not quoting ones - hidden
     // by default, still available from "Customize Columns".
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         metalType: false,
@@ -52,7 +52,7 @@ export function useProductTable(
 
     // Bars / Coins / Bonded are sorted as independent sections: the section
     // is always the first sort key, so a Price sort gives every bar in price
-    // order, then every coin in price order — never the two interleaved.
+    // order, then every coin in price order - never the two interleaved.
     // TanStack's sort is stable, so with no user sort the original
     // buildDisplayProducts order inside each section is kept. The section key
     // is added here and stripped on write, so it never reaches storage or
@@ -78,7 +78,7 @@ export function useProductTable(
     }, [initialData])
 
     // Bars (by weight) then coins (reverse weight), with small fractional
-    // coins collapsed to one generic row per weight — see product-grouping.ts.
+    // coins collapsed to one generic row per weight - see product-grouping.ts.
     const displayProducts = React.useMemo(() => buildDisplayProducts(data), [data])
 
     const filteredData = React.useMemo(
@@ -88,7 +88,7 @@ export function useProductTable(
 
     // Gold is VAT-exempt as investment metal (see the Calculators tab's VAT
     // panel), so "Price ex. VAT" would just repeat the Price for every gold
-    // row — the column is dropped entirely for gold rather than merely
+    // row - the column is dropped entirely for gold rather than merely
     // hidden, so it also can't be re-enabled via "Customize Columns".
     const columns = React.useMemo(
         () => (selectedTab === "gold" ? productColumns.filter((c) => c.id !== "priceSellVatExcl") : productColumns),
@@ -113,7 +113,7 @@ export function useProductTable(
     })
 
     // The rows currently checked via the per-row toggle, in current sort/
-    // filter order — exposed separately (rather than making callers dig
+    // filter order - exposed separately (rather than making callers dig
     // through TanStack's row model) so the Trade tab and the "Copy" button
     // can both use them directly.
     const selectedProducts = React.useMemo(

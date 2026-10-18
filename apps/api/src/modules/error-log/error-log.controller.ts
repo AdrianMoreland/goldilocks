@@ -43,7 +43,7 @@ export class ErrorLogController {
         return { message: 'Error log cleared' };
     }
 
-    // Any signed-in user — the failures worth knowing about happen on every
+    // Any signed-in user - the failures worth knowing about happen on every
     // clerk's screen, not just admins'. The body schema caps size and count.
     // Anyone can post here, so cap it: a broken screen in a render loop must not flood the error log.
     @Throttle({ default: { limit: 20, ttl: 60_000 } })

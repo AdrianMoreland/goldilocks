@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 /**
  * Thin wrapper over the Supabase SDK. Only SupabaseAuthProvider should call
- * it — everything else goes through AuthProviderPort. Methods throw the SDK's
+ * it - everything else goes through AuthProviderPort. Methods throw the SDK's
  * own error (with `status`/`code`) so the provider can tell "wrong password"
  * from "Supabase is down".
  */
@@ -32,7 +32,7 @@ export class SupabaseService {
         this.supabase = createClient(supabaseUrl, supabaseKey);
     }
 
-    // Lazily created — the service-role key is only ever needed for the
+    // Lazily created - the service-role key is only ever needed for the
     // admin "create user" action, so it's never touched on the hot path of
     // a normal login/session request.
     private get admin(): SupabaseClient {

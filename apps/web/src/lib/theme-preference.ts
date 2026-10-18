@@ -43,7 +43,7 @@ export interface ThemePreference {
     /** Per-mode colour edits, keyed by CSS variable ("--primary"). Applied on top of the preset. */
     colorOverrides: { light: Record<string, string>; dark: Record<string, string> }
     font: string
-    /** Root font-size multiplier — everything sized in rem scales with it. */
+    /** Root font-size multiplier - everything sized in rem scales with it. */
     fontScale: number
     density: Density
     /** In em, applied to the whole document. */
@@ -108,6 +108,6 @@ export function saveThemePreference(userId: string, preference: ThemePreference)
     try {
         localStorage.setItem(storageKey(userId), JSON.stringify(preference))
     } catch {
-        // Best-effort — a private-browsing quota error shouldn't break theming.
+        // Best-effort - a private-browsing quota error shouldn't break theming.
     }
 }

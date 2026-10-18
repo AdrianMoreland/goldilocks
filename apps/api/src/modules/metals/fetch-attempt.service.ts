@@ -20,7 +20,7 @@ interface RecordAttemptInput {
 const METRICS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Persists and queries FetchAttempt rows — one per call to the external
+ * Persists and queries FetchAttempt rows - one per call to the external
  * metal-price vendor API. Backs the admin System Status panel's "last N
  * attempts" log and its success-rate/latency metrics.
  */
@@ -42,7 +42,7 @@ export class FetchAttemptService {
                 severity: 'warning',
                 kind: 'external-api',
                 message: `Spot price fetch failed (${entry.triggeredBy})`,
-                detail: `${entry.errorMessage ?? 'No error message'} — after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
+                detail: `${entry.errorMessage ?? 'No error message'} - after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
             });
         }
         await this.prisma.fetchAttempt.create({ data: entry });

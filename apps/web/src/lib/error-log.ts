@@ -54,7 +54,7 @@ function write(entries: LocalErrorEntry[]) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)))
     } catch {
-        // Storage full or blocked — the in-page toast still told the user.
+        // Storage full or blocked - the in-page toast still told the user.
     }
     listeners.forEach((listener) => listener())
 }
@@ -136,7 +136,7 @@ export async function flushClientErrors(): Promise<void> {
         const sent = new Set(pending.map((e) => e.id))
         write(read().map((e) => (sent.has(e.id) ? { ...e, synced: true } : e)))
     } catch {
-        // Still offline — they stay pending for the next successful request.
+        // Still offline - they stay pending for the next successful request.
     } finally {
         flushing = false
     }

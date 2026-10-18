@@ -12,7 +12,7 @@ import { SPOT_STALE_AFTER_MS } from '@goldilocks/shared-types';
 /** Shared with the assistant (see shared-types), so the cards and the assistant never disagree about whether a price is stale. */
 export const STALE_THRESHOLD_MS = SPOT_STALE_AFTER_MS;
 
-/** To-the-second timestamp for the "prices fetched at" toast — deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
+/** To-the-second timestamp for the "prices fetched at" toast - deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
 function formatFetchedAtTime(fetchedAt?: string | null): string | null {
     if (!fetchedAt) return null;
 
@@ -25,7 +25,7 @@ function formatFetchedAtTime(fetchedAt?: string | null): string | null {
 
 /**
  * Replaces the old useMetalSpotPrices + the read half of useProducts.
- * One query, one snapshot — spotPrices and products always agree with
+ * One query, one snapshot - spotPrices and products always agree with
  * each other because they came from the same backend response.
  */
 export function useMarketData() {
@@ -42,7 +42,7 @@ export function useMarketData() {
     const { data, isLoading, isFetching, error } = query;
 
     // Fetch FAILURE (the request itself errored) is a different kind of
-    // problem than stale-but-successful data (see isStale below) — surfaced
+    // problem than stale-but-successful data (see isStale below) - surfaced
     // as its own toast so "the feed is down" doesn't get lost inside "the
     // feed is just old". Only fires on the transition into an error, not on
     // every re-render while it stays errored.
@@ -51,9 +51,9 @@ export function useMarketData() {
         if (error && !hasShownErrorToast.current) {
             hasShownErrorToast.current = true;
             // An ApiError already produced its own, more specific toast (with
-            // a reference) and an error-log entry — don't stack a second one.
+            // a reference) and an error-log entry - don't stack a second one.
             if (!(error instanceof ApiError)) {
-                toast.error('Could not fetch spot prices — check your connection or try refreshing.');
+                toast.error('Could not fetch spot prices - check your connection or try refreshing.');
             }
         }
         if (!error) hasShownErrorToast.current = false;
@@ -61,7 +61,7 @@ export function useMarketData() {
 
     // The backend sets this when a metal fell all the way through
     // cache → DB → the live API without finding a usable price (still
-    // 0.00 on screen) — surfaced once per distinct message, not on every
+    // 0.00 on screen) - surfaced once per distinct message, not on every
     // refetch that happens to repeat the same warning.
     const lastWarningShown = useRef<string | null>(null);
     useEffect(() => {
@@ -72,7 +72,7 @@ export function useMarketData() {
         lastWarningShown.current = warning;
     }, [data?.priceWarning]);
 
-    // Bottom-right "prices fetched at" toast on initial page load — fires
+    // Bottom-right "prices fetched at" toast on initial page load - fires
     // once for the first snapshot the query resolves with. The equivalent
     // toast for a manual refresh lives in refreshMutation's onSuccess below,
     // since that's a separate fetch outside this query's own lifecycle.
@@ -85,7 +85,7 @@ export function useMarketData() {
     }, [data?.fetchedAt]);
 
     // Ages are computed from Date.now(), so without a tick they'd freeze at
-    // whatever they were when the snapshot last changed — and with a short
+    // whatever they were when the snapshot last changed - and with a short
     // stale threshold, that would leave a price looking fresh long after it isn't.
     const [nowTick, setNowTick] = useState(0);
     useEffect(() => {
@@ -114,7 +114,7 @@ export function useMarketData() {
         mutationFn: (overrides: SpotOverrideRequest) => recalculate(overrides),
 
         onSuccess: (pricedProducts) => {
-            // The backend's /recalculate only returns the new products —
+            // The backend's /recalculate only returns the new products -
             // spotPrices/historicSpot/fetchedAt are untouched (overrides are
             // ephemeral UI state, never persisted), so patch just that slice.
             queryClient.setQueryData<MarketDataResponse>(queryKeys.marketData.all, (old) =>
@@ -132,11 +132,11 @@ export function useMarketData() {
                 marketData,
             );
 
-            // The HTTP call succeeding just means the backend responded —
+            // The HTTP call succeeding just means the backend responded -
             // it can still mean "the live fetch failed and this is the
             // last-known-good DB price" (isFallback) or "no usable price
             // anywhere" (priceWarning). Neither of those is "updated", so
-            // don't say so — and skip the "fetched at" toast too, since
+            // don't say so - and skip the "fetched at" toast too, since
             // touting a specific fetch time makes a failure read as a
             // success. See CardFreshnessEnum's 'fallback' state for the
             // matching per-card indicator.
@@ -146,7 +146,7 @@ export function useMarketData() {
                 toast.warning(marketData.priceWarning);
                 lastWarningShown.current = marketData.priceWarning;
             } else if (anyFallback) {
-                toast.error('Live price fetch failed — showing the last known prices from the database.');
+                toast.error('Live price fetch failed - showing the last known prices from the database.');
             } else {
                 const time = formatFetchedAtTime(marketData.fetchedAt);
                 if (time) toast(`Prices fetched at ${time}`);
@@ -156,7 +156,7 @@ export function useMarketData() {
 
         onError: (error) => {
             console.error('Failed to refresh market data', error);
-            toast.error('Price refresh failed — showing the last known prices.');
+            toast.error('Price refresh failed - showing the last known prices.');
         },
     });
 

@@ -85,7 +85,7 @@ export type AskEvent =
 
 /**
  * The "ask" use case. It coordinates; every decision lives in a collaborator
- * it is given — the model behind LlmPort, the SOPs behind SopContextProvider,
+ * it is given - the model behind LlmPort, the SOPs behind SopContextProvider,
  * the live lookups in ToolRegistry, the answer rules in interpretAnswer and
  * interpretDraft, the limits in QuotaService, the privacy rules in
  * scrubPersonalData.
@@ -112,7 +112,7 @@ export class AskService {
         return { enabled: this.settings.enabled, model: this.llm.model };
     }
 
-    /** The whole answer at once — what the evaluation script and simple clients use. */
+    /** The whole answer at once - what the evaluation script and simple clients use. */
     async ask(
         input: AskInput,
         actor: Actor,
@@ -228,7 +228,7 @@ export class AskService {
                 };
             };
 
-            // Nothing approved means nothing to answer from — don't pay for a model call to say so.
+            // Nothing approved means nothing to answer from - don't pay for a model call to say so.
             if (prompt.documents === 0) {
                 yield {
                     type: 'done',
@@ -462,7 +462,7 @@ export class AskService {
         }
     }
 
-    /** Pauses the assistant — not the app — once today's spend reaches the configured ceiling. */
+    /** Pauses the assistant - not the app - once today's spend reaches the configured ceiling. */
     private async assertUnderBudget(): Promise<void> {
         const spent = await this.questionLog.spentSince(
             startOfDublinDay(new Date()),

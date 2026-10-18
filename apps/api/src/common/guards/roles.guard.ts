@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import type { RequestWithUser } from './jwt-auth.guard';
 
 /**
- * Checks the User row JwtAuthGuard already attached to the request —
+ * Checks the User row JwtAuthGuard already attached to the request -
  * previously this queried a Supabase `profiles` table that doesn't exist in
  * this schema (this app's role/admin fields live on Prisma's own `users`
  * table), so every admin-gated route was unconditionally forbidden. Must

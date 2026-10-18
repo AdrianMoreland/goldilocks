@@ -5,7 +5,7 @@ export type MessageChannel = "whatsapp" | "email"
 
 interface MessageInput {
     channel: MessageChannel
-    /** Which side the clerk is quoting — decides the closing paragraph. */
+    /** Which side the clerk is quoting - decides the closing paragraph. */
     transactionType: TradeTransactionType
     inStock: boolean
     /** The quote on screen. */

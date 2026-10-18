@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAdminApi } from "@/api/admin.api"
-import { SessionUserRoleEnum } from "@goldilocks/shared-types"
+import { SessionUserRoleEnum, type Branch } from "@goldilocks/shared-types"
 import { z } from "zod"
 
 interface AddUserDialogProps {
@@ -25,6 +25,7 @@ const EMPTY_FORM = {
     lastName: "",
     role: "SALES" as Role,
     admin: false,
+    branchId: "none",
 }
 
 /** Admin-only "create staff account" dialog, opened from the Admin Panel. */
@@ -32,9 +33,13 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     const api = useAdminApi()
     const [form, setForm] = React.useState(EMPTY_FORM)
     const [saving, setSaving] = React.useState(false)
+    const [branches, setBranches] = React.useState<Branch[]>([])
 
     React.useEffect(() => {
-        if (open) setForm(EMPTY_FORM)
+        if (!open) return
+        setForm(EMPTY_FORM)
+        api.getBranches().then(setBranches).catch(() => setBranches([]))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
 
     const handleSave = async () => {
@@ -52,6 +57,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
                 lastName: form.lastName.trim(),
                 role: form.role,
                 admin: form.admin,
+                branchId: form.branchId === "none" ? null : Number(form.branchId),
             })
             toast.success(`${form.firstName} ${form.lastName} created`)
             onOpenChange(false)
@@ -109,6 +115,20 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
                             <SelectContent>
                                 <SelectItem value="no">No</SelectItem>
                                 <SelectItem value="yes">Yes</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="col-span-2 flex flex-col gap-1">
+                        <Label className="text-xs">Branch</Label>
+                        <Select value={form.branchId} onValueChange={(v) => setForm((f) => ({ ...f, branchId: v }))}>
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">No branch (treated as Irish)</SelectItem>
+                                {branches.map((b) => (
+                                    <SelectItem key={b.id} value={String(b.id)}>{b.name} ({b.region})</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

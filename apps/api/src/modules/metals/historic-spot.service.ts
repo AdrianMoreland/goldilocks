@@ -25,7 +25,7 @@ export interface BackfillWindowReport {
 /**
  * Historic (end-of-day) spot prices: reading them for the chart, and the
  * backfill/daily-close jobs that fill the table. Split from MetalsProvider,
- * which is about the *latest* price — different tables, callers and cadence.
+ * which is about the *latest* price - different tables, callers and cadence.
  */
 @Injectable()
 export class HistoricSpotService {
@@ -46,7 +46,7 @@ export class HistoricSpotService {
 
         if (rows.length === 0) {
             this.logger.warn(
-                'No historic spot data found — has the cron run yet?',
+                'No historic spot data found - has the cron run yet?',
             );
         }
 

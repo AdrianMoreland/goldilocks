@@ -15,7 +15,7 @@ export interface KnowledgeArticle {
     sections: KbSection[];
     /** How many sections still contain an unconfirmed `[TODO: …]` fact. */
     todoSectionCount: number;
-    /** One plain-text line for the library list — the opening of the first section, without its Sources line. */
+    /** One plain-text line for the library list - the opening of the first section, without its Sources line. */
     summary: string;
 }
 

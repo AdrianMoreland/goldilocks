@@ -1,6 +1,6 @@
 /**
  * Resolve any CSS colour string (hex, rgb, oklch, a relative-colour
- * expression, …) to sRGB by painting it onto a 1×1 canvas — the browser does
+ * expression, …) to sRGB by painting it onto a 1×1 canvas - the browser does
  * the parsing and gamut mapping, so this handles every format a theme uses.
  */
 let ctx: CanvasRenderingContext2D | null = null

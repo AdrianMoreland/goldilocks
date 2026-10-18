@@ -14,7 +14,7 @@ export abstract class CacheAsideStore<TKey, TValue> {
 
     /**
      * Whether a value is good enough to serve/cache as-is. Defaults to
-     * "anything non-null" — override when a technically-present value can
+     * "anything non-null" - override when a technically-present value can
      * still be garbage (e.g. a spot price of exactly 0 from an upstream
      * failure that got persisted before this check existed). An unusable
      * cached value is treated like a miss (falls through to fetchFromSource)
@@ -37,7 +37,7 @@ export abstract class CacheAsideStore<TKey, TValue> {
 
         if (cached !== null) {
             this.storeLogger.warn(
-                `Cached value for "${redisKey}" is unusable — querying source instead`,
+                `Cached value for "${redisKey}" is unusable - querying source instead`,
             );
         } else {
             this.storeLogger.debug(
@@ -56,7 +56,7 @@ export abstract class CacheAsideStore<TKey, TValue> {
             await this.set(key, fresh);
         } else {
             this.storeLogger.warn(
-                `Source value for "${redisKey}" is unusable — not caching it`,
+                `Source value for "${redisKey}" is unusable - not caching it`,
             );
         }
 

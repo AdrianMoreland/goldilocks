@@ -10,14 +10,14 @@ const SAMPLE = [
   '',
   '- plain bullet',
   '',
-  '# PHASE 0 — Harden',
+  '# PHASE 0 - Harden',
   '',
   '**Goal:** safe.',
   '',
   '## 0.1 Core pricing 🔴',
   '',
-  '- [x] Done thing — S',
-  '- [ ] Parent — M *(note)*',
+  '- [x] Done thing - S',
+  '- [ ] Parent - M *(note)*',
   '  - [ ] Child one',
   '  - [x] Child two',
   '  - *(a caveat under the parent)*',
@@ -38,13 +38,13 @@ describe('parseRoadmap', () => {
 
   it('finds sections with ids, priority, note and dependency', () => {
     const money = sections.find((s) => s.id === '0.2')!;
-    expect(money).toMatchObject({ title: 'Money', priority: 'P1', note: 'quick win', depends: '0.1', group: 'PHASE 0 — Harden' });
+    expect(money).toMatchObject({ title: 'Money', priority: 'P1', note: 'quick win', depends: '0.1', group: 'PHASE 0 - Harden' });
     expect(sections.find((s) => s.key === 'icebox')?.body).toBe('Ideas.');
   });
 
   it('builds the task tree with notes and line numbers', () => {
     const core = sections.find((s) => s.id === '0.1')!;
-    expect(core.tasks.map((t) => t.text)).toEqual(['Done thing — S', 'Parent — M *(note)*', 'Last top-level']);
+    expect(core.tasks.map((t) => t.text)).toEqual(['Done thing - S', 'Parent - M *(note)*', 'Last top-level']);
     const parent = core.tasks[1]!;
     expect(parent.children.map((c) => [c.text, c.checked])).toEqual([['Child one', false], ['Child two', true]]);
     expect(parent.notes).toEqual(['*(a caveat under the parent)*']);
@@ -69,7 +69,7 @@ describe('applyRoadmapEdit', () => {
 
   it('toggles only the one line', () => {
     const out = applyRoadmapEdit(SAMPLE, { type: 'toggle', line: core.tasks[0]!.line, text: core.tasks[0]!.text, checked: false });
-    expect(out.split('\n').filter((l, i) => l !== SAMPLE.split('\n')[i])).toEqual(['- [ ] Done thing — S']);
+    expect(out.split('\n').filter((l, i) => l !== SAMPLE.split('\n')[i])).toEqual(['- [ ] Done thing - S']);
   });
 
   it('refuses a stale line', () => {
@@ -110,7 +110,7 @@ describe('applyRoadmapEdit', () => {
     const t = core.tasks[0]!;
     const out = applyRoadmapEdit(SAMPLE, { type: 'edit', line: t.line, text: t.text, newText: 'Renamed' });
     expect(out).toContain('- [x] Renamed');
-    expect(lineOf('- [x] Done thing — S')).toBeGreaterThan(0);
+    expect(lineOf('- [x] Done thing - S')).toBeGreaterThan(0);
   });
 
   it('preserves CRLF line endings', () => {

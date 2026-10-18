@@ -7,7 +7,7 @@ import {
     type PortfolioBuildRequest,
 } from '@goldilocks/shared-types';
 
-/** Portfolio tab — P/L, Builder subtabs. Mirrors Api.Pricing.gs/Api.Portfolio.gs. */
+/** Portfolio tab - P/L, Builder subtabs. Mirrors Api.Pricing.gs/Api.Portfolio.gs. */
 export function usePortfolioApi() {
     const client = useApiClient();
 

@@ -31,7 +31,7 @@ describe('headingAnchor', () => {
     ['Identity check', 'identity-check'],
     ['Customer safe (CST Safe)', 'customer-safe-cst-safe'],
     ['Scrap and non-standard items', 'scrap-and-non-standard-items'],
-    ['VAT — Ireland', 'vat-ireland'],
+    ['VAT - Ireland', 'vat-ireland'],
     ['Available vs NET', 'available-vs-net'],
     ['Proposed controls (not yet in force)', 'proposed-controls-not-yet-in-force'],
     ['  Café rules!  ', 'cafe-rules'],

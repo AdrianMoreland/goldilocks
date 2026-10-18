@@ -12,6 +12,7 @@ const doc = (
     jurisdiction: 'IE',
     owner: 'Adrian',
     status: 'approved',
+    visibility: 'ie_only',
     version: 3,
     contentUpdatedOn: '2026-09-30',
     markdown,
@@ -71,7 +72,7 @@ describe('buildPrompt', () => {
         ]);
 
         expect(systemPrompt).toContain(
-            'cite as [[limit-orders#payment]] — NOT CONFIRMED',
+            'cite as [[limit-orders#payment]] - NOT CONFIRMED',
         );
         expect(systemPrompt).toContain('ask Adrian');
         expect(systemPrompt).toContain('(text withheld until confirmed)');
@@ -95,7 +96,7 @@ describe('buildPrompt', () => {
         ]);
 
         expect(systemPrompt).toContain(
-            '--- Section: Introduction — cite as [[intro]]',
+            '--- Section: Introduction - cite as [[intro]]',
         );
         expect([...sections.keys()]).toEqual(['intro#later']);
     });

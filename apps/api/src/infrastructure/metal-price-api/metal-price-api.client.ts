@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
- * metalpriceapi.com SDK wrapper — exactly the calls MetalPriceApiPort
+ * metalpriceapi.com SDK wrapper - exactly the calls MetalPriceApiPort
  * declares. The SDK offers more (hourly, convert, carat, usage…); add a
  * method here together with its port entry when something actually needs it.
  */
@@ -65,7 +65,7 @@ export class MetalPriceApiClient {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Response types — MetalsProvider relies on these (response.success,
+// Response types - MetalsProvider relies on these (response.success,
 // response.rates) being correctly typed, not `any`.
 // ─────────────────────────────────────────────────────────────────────────────
 
