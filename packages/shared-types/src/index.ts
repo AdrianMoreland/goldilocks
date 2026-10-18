@@ -51,6 +51,7 @@ export * from './portfolio-builder-math';
 export * from './session.schema';
 export * from './query.schema';
 export * from './branch.schema';
+export * from './branch-access';
 export * from './market-mode.schema';
 export * from './fetch-attempt.schema';
 export * from './error-log.schema';

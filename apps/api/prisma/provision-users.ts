@@ -14,7 +14,7 @@ const prisma = new PrismaService(new ConfigService());
  * Prisma `User` row with the SAME id, which is what AuthService looks up
  * on every login/token check (see auth.service.ts's loadActiveUser).
  *
- * Uses the service-role key (admin API) — this script must only ever run
+ * Uses the service-role key (admin API) - this script must only ever run
  * from a trusted machine/CI, never shipped to the client.
  */
 
@@ -76,7 +76,7 @@ async function findOrCreateSupabaseUser(seed: SeedUser) {
     const existing = await findExistingSupabaseUser(seed.email);
     if (!existing) throw error;
 
-    // Keep the password in sync with what's configured here — harmless if unchanged.
+    // Keep the password in sync with what's configured here - harmless if unchanged.
     await supabase.auth.admin.updateUserById(existing.id, { password: seed.password });
     return existing;
 }
@@ -107,7 +107,7 @@ async function main() {
             },
         });
 
-        console.log(`✅ ${seed.email} — role=${seed.role} admin=${seed.admin} (id ${authUser.id})`);
+        console.log(`✅ ${seed.email} - role=${seed.role} admin=${seed.admin} (id ${authUser.id})`);
     }
 }
 

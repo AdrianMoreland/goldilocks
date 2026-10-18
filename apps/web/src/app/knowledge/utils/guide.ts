@@ -44,8 +44,8 @@ export const GUIDE_ICONS: Record<KbGuideIcon, LucideIcon> = {
 };
 
 /**
- * Where a guide target leads, or null when it can't be reached (the SOP — or
- * the section — isn't in the library, e.g. it's retired or not written yet).
+ * Where a guide target leads, or null when it can't be reached (the SOP - or
+ * the section - isn't in the library, e.g. it's retired or not written yet).
  * The page then leaves that step out instead of rendering a link that 404s.
  */
 export function resolveTarget(library: KnowledgeLibrary, target: KbGuideTarget): string | null {

@@ -17,7 +17,7 @@ export interface Exchange {
 }
 
 /**
- * The assistant panel's state. One message in, one answer out — nothing from
+ * The assistant panel's state. One message in, one answer out - nothing from
  * earlier exchanges is sent to the model, the list is only what the panel
  * shows. It lives in memory and is gone on refresh.
  *

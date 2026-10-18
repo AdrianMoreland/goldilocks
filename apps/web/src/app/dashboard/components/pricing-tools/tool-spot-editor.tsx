@@ -91,7 +91,7 @@ export function ToolSpotEditor({ tool, metal, slider = true, id, label = "Spot p
                         <span className="inline-flex items-center gap-1 font-bold text-[var(--tab-accent-text)]">
                             <Snowflake className="size-3" aria-hidden /> Frozen
                         </span>
-                        {marketSpot ? <> — live market {formatSpot(metal, marketSpot)}</> : null}
+                        {marketSpot ? <> - live market {formatSpot(metal, marketSpot)}</> : null}
                         {cardFrozen && cardSpot ? <> · Card frozen at {formatSpot(metal, cardSpot)}</> : null}
                     </>
                 ) : (

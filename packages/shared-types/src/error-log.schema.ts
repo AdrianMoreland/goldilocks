@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ============================================================================
-// ERROR LOG — what went wrong, where, and for whom. Server-side failures are
+// ERROR LOG - what went wrong, where, and for whom. Server-side failures are
 // recorded by the API's global exception filter; the web app reports its own
 // failures (network drops, bad responses, crashes) via POST /errors/client.
 // Surfaced in the Admin panel's Error log.
@@ -66,7 +66,7 @@ export type ErrorLogEntry = z.infer<typeof ErrorLogEntrySchema>;
 export type ClientErrorReport = z.infer<typeof ClientErrorReportSchema>;
 export type ClientErrorReportBatch = z.infer<typeof ClientErrorReportBatchSchema>;
 
-/** "E-7F3K2" — short enough to read out over the phone. */
+/** "E-7F3K2" - short enough to read out over the phone. */
 export function createErrorReference(): string {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let out = '';

@@ -1,6 +1,6 @@
 ---
 slug: bc-release-and-confirm
-title: Business Central — Release the order and send the confirmation
+title: Business Central - Release the order and send the confirmation
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

@@ -4,7 +4,7 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 export interface QuestionLogEntry {
     userId: string;
-    /** Already scrubbed of personal details — never pass the raw question. For an email or WhatsApp draft, a placeholder: the customer's message is not kept. */
+    /** Already scrubbed of personal details - never pass the raw question. For an email or WhatsApp draft, a placeholder: the customer's message is not kept. */
     question: string;
     mode: AiMode;
     /** The live lookups used (names only, never their results). */

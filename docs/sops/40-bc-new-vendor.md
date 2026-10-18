@@ -1,6 +1,6 @@
 ---
 slug: bc-new-vendor
-title: Business Central — add a new vendor (supplier or customer selling to us)
+title: Business Central - add a new vendor (supplier or customer selling to us)
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

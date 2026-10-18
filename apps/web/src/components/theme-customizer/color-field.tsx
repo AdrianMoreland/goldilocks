@@ -42,7 +42,7 @@ export function ColorField({ label, cssVar, value, isOverridden, onChange, onRes
                 {ratio !== null && contrastWith && (
                     <span
                         className={cn("text-[11px] tabular-nums", passes ? "text-muted-foreground" : "text-destructive font-semibold")}
-                        title={`Contrast against ${contrastWith.label} — needs ${contrastWith.minContrast}:1`}
+                        title={`Contrast against ${contrastWith.label} - needs ${contrastWith.minContrast}:1`}
                     >
                         {ratio.toFixed(1)}:1 on {contrastWith.label}
                         {!passes && " · too low"}

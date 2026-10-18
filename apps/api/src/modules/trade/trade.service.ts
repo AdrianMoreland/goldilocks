@@ -25,14 +25,14 @@ import { ProductsService } from '../products/products.service';
 const roundPct = (value: number) => Math.round(value * 1e4) / 1e4;
 
 /**
- * TradeService — buy/sell cart pricing + the melt/scrap calculator.
+ * TradeService - buy/sell cart pricing + the melt/scrap calculator.
  *
  * Ported from the Merrion Gold Apps Script tool's Api.Trade.gs / Api.Melt.gs,
  * with PricingMath.gs/MeltMath.gs lifted verbatim into
  * @goldilocks/shared-types (computeTransactionPrice / computeMeltValue).
  *
  * Unlike the spreadsheet version, there's no per-row "productSpot" snapshot
- * to scale a live spot against — every product here is priced live from
+ * to scale a live spot against - every product here is priced live from
  * (spot / troy-ounce) * weight, so the original's computeAdjustedProductSpot
  * step is unnecessary and intentionally not ported.
  */
@@ -67,8 +67,8 @@ export class TradeService {
                 metalType: p.metalType,
                 premiumPct: roundPct(p.spreadSell * 100),
                 // spreadBuy is stored signed (negative = below spot); the
-                // discount % here — like Apps Script's own 0-99.99 discount
-                // input — is always a positive magnitude.
+                // discount % here - like Apps Script's own 0-99.99 discount
+                // input - is always a positive magnitude.
                 discountPct: roundPct(Math.abs(p.spreadBuy) * 100),
             }));
 
@@ -95,7 +95,7 @@ export class TradeService {
             customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / GRAMS_PER_TROY_OUNCE;
 
-        // Each item's product lookup is independent of the others — fetch
+        // Each item's product lookup is independent of the others - fetch
         // them all in parallel instead of one round-trip per cart line.
         const products = await Promise.all(
             items.map((item) => this.productsService.findById(item.productId)),

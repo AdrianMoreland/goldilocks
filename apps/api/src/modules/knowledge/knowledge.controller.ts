@@ -20,12 +20,14 @@ import {
     JwtAuthGuard,
     type RequestWithUser,
 } from '../../common/guards/jwt-auth.guard';
+import { capabilitiesOf } from '../../common/guards/capability.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
     KbDocumentDto,
     KbDocumentListResponseDto,
     SetKbStatusRequestDto,
+    SetKbVisibilityRequestDto,
     UpdateKbDocumentRequestDto,
 } from '../../common/dto/dtos';
 import { KnowledgeService } from './knowledge.service';
@@ -50,7 +52,10 @@ export class KnowledgeController {
         @Req() request: RequestWithUser,
     ): Promise<KbDocumentListResponseDto> {
         return {
-            documents: await this.knowledge.listDocuments(request.user.admin),
+            documents: await this.knowledge.listDocuments(
+                request.user.admin,
+                capabilitiesOf(request.user),
+            ),
         };
     }
 
@@ -88,5 +93,27 @@ export class KnowledgeController {
         @Req() request: RequestWithUser,
     ): Promise<KbDocumentDto> {
         return this.knowledge.setStatus(slug, body.status, request.user.email);
+    }
+
+    @Post('documents/:slug/visibility')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: 'Choose which branches can read a SOP (admin)',
+        description:
+            "'all' shows it to UK branches too; 'ie_only' (the default) keeps it to Irish branches. Does not change the SOP's approval status.",
+    })
+    @ApiResponse({ status: 201, type: KbDocumentDto })
+    async setVisibility(
+        @Param('slug', new ZodValidationPipe(KbSlugSchema)) slug: string,
+        @Body() body: SetKbVisibilityRequestDto,
+        @Req() request: RequestWithUser,
+    ): Promise<KbDocumentDto> {
+        return this.knowledge.setVisibility(
+            slug,
+            body.visibility,
+            request.user.email,
+        );
     }
 }

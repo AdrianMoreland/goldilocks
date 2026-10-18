@@ -2,7 +2,7 @@
  * Everything the AI feature needs from "whatever language model we use",
  * boiled down to one call. AskService depends on this interface and the
  * LLM_PROVIDER token, never on a vendor SDK, so changing model vendor means
- * writing one new class and changing one binding in llm.module.ts — the same
+ * writing one new class and changing one binding in llm.module.ts - the same
  * shape as AUTH_PROVIDER and METAL_PRICE_API (docs/ENGINEERING.md §15).
  *
  * A tool is a read-only lookup the model may ask for (a price, a spot). The
@@ -17,7 +17,7 @@ export interface LlmToolSpec {
     parameters: Record<string, unknown>;
 }
 
-/** The model asking for a lookup. `arguments` is the raw JSON text it wrote — untrusted until validated. */
+/** The model asking for a lookup. `arguments` is the raw JSON text it wrote - untrusted until validated. */
 export interface LlmToolCall {
     id: string;
     name: string;
@@ -68,13 +68,13 @@ export type LlmStreamEvent =
     | { type: 'done'; result: LlmResult };
 
 /**
- * Why a call failed, in terms the application can act on — vendor errors are
+ * Why a call failed, in terms the application can act on - vendor errors are
  * translated to these at the adapter so nothing above it parses SDK errors.
- *  unavailable   — network problem, timeout or vendor 5xx; worth trying again later
- *  rate_limited  — too many requests; slow down and retry
- *  out_of_credit — the account has no credit or has hit its spending limit; a person must top it up
- *  misconfigured — missing/invalid key or an unknown model; a person must fix it
- *  rejected      — the vendor refused this particular request
+ *  unavailable   - network problem, timeout or vendor 5xx; worth trying again later
+ *  rate_limited  - too many requests; slow down and retry
+ *  out_of_credit - the account has no credit or has hit its spending limit; a person must top it up
+ *  misconfigured - missing/invalid key or an unknown model; a person must fix it
+ *  rejected      - the vendor refused this particular request
  */
 export type LlmFailureKind =
     | 'unavailable'
@@ -95,7 +95,7 @@ export class LlmError extends Error {
 }
 
 export interface LlmPort {
-    /** The model calls are made with — shown in the admin UI and recorded with every answer. */
+    /** The model calls are made with - shown in the admin UI and recorded with every answer. */
     readonly model: string;
     generate(request: LlmRequest): Promise<LlmResult>;
     /** Like generate(), but yields the text as it is written so a screen can show it early. Failures throw LlmError, as generate() does. */

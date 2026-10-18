@@ -54,7 +54,7 @@ export function calculateProductPrice(
         spotPrice: round2(marketPrice),
         marketValue: round2(basePrice),
         // Quoted prices are whole euros, rounded in the dealer's favour:
-        // what we charge rounds up, what we pay rounds down — the same rule
+        // what we charge rounds up, what we pay rounds down - the same rule
         // the Trade tool's computeTransactionPrice applies.
         priceSell: roundSellPrice(priceSell),
         priceSellVatExcl: roundSellPrice(priceSellVatExcl),

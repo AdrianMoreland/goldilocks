@@ -5,7 +5,7 @@ import type {
 } from './metal-price-api.client';
 
 /**
- * Abstraction over the metals-price vendor — MetalsProvider depends on this,
+ * Abstraction over the metals-price vendor - MetalsProvider depends on this,
  * never on MetalPriceApiClient directly, so the vendor can be swapped (one
  * new class + one binding change, see metal-price-api.module.ts) or faked in
  * tests without touching MetalsProvider. Scoped to only the three calls

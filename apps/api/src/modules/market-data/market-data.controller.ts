@@ -1,3 +1,4 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -20,6 +21,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { getYesterday } from '../../common/utils/date.utils';
 
+@RequiresCapability('pricingWorkbook')
 @ApiTags('market-data')
 @Controller('market-data')
 export class MarketDataController {
@@ -70,7 +72,7 @@ export class MarketDataController {
         description: 'Market data refreshed successfully',
         type: MarketDataResponseDto,
     })
-    // Any signed-in user (the desk's Refresh button) — the global JwtAuthGuard
+    // Any signed-in user (the desk's Refresh button) - the global JwtAuthGuard
     // already requires a token; this is deliberately not admin-only.
     // Each call spends paid vendor quota, so it is limited far below the global ceiling.
     @Throttle({ default: { limit: 6, ttl: 60_000 } })

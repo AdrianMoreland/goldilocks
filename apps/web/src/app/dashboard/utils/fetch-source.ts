@@ -1,6 +1,6 @@
 import type { FetchSource } from "@goldilocks/shared-types"
 
-/** How far each tier is from a fresh vendor call — the summary badge shows the furthest one, because a single cached or database-served metal is what a clerk needs to know about. */
+/** How far each tier is from a fresh vendor call - the summary badge shows the furthest one, because a single cached or database-served metal is what a clerk needs to know about. */
 const FETCH_SOURCE_DISTANCE: Record<FetchSource, number> = { live: 0, cache: 1, db: 2 }
 
 export const FETCH_SOURCE_LABEL: Record<FetchSource, string> = {

@@ -1,3 +1,4 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MetalType, MetalTypeEnum } from '@goldilocks/shared-types';
@@ -12,6 +13,7 @@ import {
 } from '../../common/dto/dtos';
 
 @ApiTags('trade')
+@RequiresCapability('pricingWorkbook')
 @Controller('trade')
 export class TradeController {
     constructor(private readonly tradeService: TradeService) {}
@@ -50,7 +52,7 @@ export class TradeController {
     @ApiOperation({
         summary: 'Calculate melt/scrap value',
         description:
-            'Gold and silver only — Merrion Gold does not melt-buy platinum/palladium.',
+            'Gold and silver only - Merrion Gold does not melt-buy platinum/palladium.',
     })
     @ApiResponse({ status: 200, type: MeltCalculatorResponseDto })
     async calculateMelt(

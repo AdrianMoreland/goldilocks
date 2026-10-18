@@ -1,6 +1,6 @@
 ---
 slug: bc-collection-and-shipment
-title: Business Central — collection, serial numbers, part shipment and final posting
+title: Business Central - collection, serial numbers, part shipment and final posting
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

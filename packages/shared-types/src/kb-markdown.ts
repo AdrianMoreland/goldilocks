@@ -35,7 +35,7 @@ export interface RawKbFile {
   body: string;
 }
 
-/** Flat `key: value` frontmatter between `---` fences. Nothing nested — the SOP format doesn't need it. */
+/** Flat `key: value` frontmatter between `---` fences. Nothing nested - the SOP format doesn't need it. */
 export function splitFrontmatter(raw: string): RawKbFile | null {
   const text = raw.replace(/^﻿/, '').replace(/\r\n/g, '\n');
   const match = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
@@ -76,11 +76,11 @@ export interface KbSection {
   heading: string;
   /** Section body without its heading line. */
   markdown: string;
-  /** Contains at least one `[TODO: …]` — the fact is unconfirmed, so nobody (human or AI) should rely on it. */
+  /** Contains at least one `[TODO: …]` - the fact is unconfirmed, so nobody (human or AI) should rely on it. */
   hasTodo: boolean;
   /** The text of each TODO, for showing "what needs confirming". */
   todos: string[];
-  /** "Proposed controls (not yet in force)" — intended practice, not current practice. */
+  /** "Proposed controls (not yet in force)" - intended practice, not current practice. */
   isProposed: boolean;
 }
 
@@ -158,9 +158,11 @@ export function findLinks(markdown: string): KbLinkRef[] {
 export interface ResolvedKbLink {
   label: string;
   href: string;
+  /** Hover text, and what a screen reader hears beyond the label. */
+  title?: string;
 }
 
-/** Path of an article in the web app — also what the README says the importer rewrites links to. */
+/** Path of an article in the web app - also what the README says the importer rewrites links to. */
 export function kbArticlePath(slug: string, anchor?: string | null): string {
   return `/knowledge/articles/${slug}${anchor ? `#${anchor}` : ''}`;
 }
@@ -179,7 +181,7 @@ export function rewriteKbLinks(markdown: string, resolve: (ref: KbLinkRef) => Re
       const ref = { slug, anchor: anchor ?? null };
       const resolved = resolve(ref);
       return resolved
-        ? `[${resolved.label}](${resolved.href})`
+        ? `[${resolved.label}](${resolved.href}${resolved.title ? ` "${resolved.title.replace(/"/g, "'")}"` : ''})`
         : `[${slug}](${KB_UNRESOLVED_HREF_PREFIX}${slug})`;
     }),
   );

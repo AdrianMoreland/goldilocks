@@ -255,7 +255,7 @@ The scale mirrors the Figma text styles one-to-one. Each has a `type-*` utility 
 - **label** (500, 12/16) and **section label** (700, 11px, tracked 0.025em): badges, captions, and field-group headers inside tool tabs. Not yet in Figma; add them.
 
 ### Number formats
-- **Quoted prices** (Price, Buyback, Price ex. VAT, market value, trade and portfolio totals, melt payout): whole euros, no cents (`formatPrice`). The API rounds them in the dealer's favour — Price up, Buyback down.
+- **Quoted prices** (Price, Buyback, Price ex. VAT, market value, trade and portfolio totals, melt payout): whole euros, no cents (`formatPrice`). The API rounds them in the dealer's favour - Price up, Buyback down.
 - **Spot prices** (`formatSpot`): whole euros for gold, platinum and palladium; silver keeps its cents.
 - **Precise figures** (€/gram, average €/g, spot per gram, P/L analysis): two decimals (`formatEuro`).
 

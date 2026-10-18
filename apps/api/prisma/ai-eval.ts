@@ -202,10 +202,10 @@ async function main() {
         }
 
         console.log(
-            `${cases.length - failed}/${cases.length} passed — ${corpus}`,
+            `${cases.length - failed}/${cases.length} passed - ${corpus}`,
         );
         console.log(
-            `Tokens: ${inputTokens} in (${cachedTokens} cached), ${outputTokens} out — about $${(micros / 1_000_000).toFixed(4)}`,
+            `Tokens: ${inputTokens} in (${cachedTokens} cached), ${outputTokens} out - about $${(micros / 1_000_000).toFixed(4)}`,
         );
         process.exitCode = failed === 0 ? 0 : 1;
     } finally {

@@ -30,7 +30,7 @@ const LIFTED = new Set([
  * The most recent log lines, kept in memory so the admin console can show
  * them without a log-shipping service. A plain module-level singleton,
  * because pino's destination has to exist before Nest's container does.
- * Lost on restart — the stdout stream (Railway's own log view) is the
+ * Lost on restart - the stdout stream (Railway's own log view) is the
  * durable copy.
  */
 class LogBuffer {

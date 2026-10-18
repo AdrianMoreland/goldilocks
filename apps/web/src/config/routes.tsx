@@ -1,6 +1,8 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
-import { RequireAdmin, RequireAuth } from '@/components/auth/require-auth'
+import { homePathFor } from '@goldilocks/shared-types'
+import { useAuth } from '@/contexts/auth-context'
+import { RequireAdmin, RequireAuth, RequireCapability } from '@/components/auth/require-auth'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -46,6 +48,12 @@ const AppearanceSettings = lazy(() => import('@/app/settings/appearance/page'))
 const NotificationSettings = lazy(() => import('@/app/settings/notifications/page'))
 const ConnectionSettings = lazy(() => import('@/app/settings/connections/page'))
 
+/** The landing page differs by branch: UK branches have no Pricing Workbook. */
+function HomeRedirect() {
+  const { capabilities } = useAuth()
+  return <Navigate to={homePathFor(capabilities).slice(1)} replace />
+}
+
 export interface RouteConfig {
   path: string
   element: React.ReactNode
@@ -57,7 +65,7 @@ export const routes: RouteConfig[] = [
   // Use relative path "dashboard" instead of "/dashboard" for basename compatibility
   {
     path: "/",
-    element: <Navigate to="dashboard" replace />
+    element: <RequireAuth><HomeRedirect /></RequireAuth>
   },
 
   // Landing Page
@@ -69,7 +77,7 @@ export const routes: RouteConfig[] = [
   // Dashboard Routes
   {
     path: "/dashboard",
-    element: <RequireAuth><Dashboard /></RequireAuth>
+    element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
   },
   // Admin console — admins only; the API enforces the same on every call it makes
   {

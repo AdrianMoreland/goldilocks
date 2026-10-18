@@ -38,7 +38,7 @@ describe('calculateProductPrice', () => {
         const expectedVatExcl = basePrice * (1 + baseProduct.spreadSell);
         const expectedSell = expectedVatExcl * (1 + baseProduct.vatRate);
 
-        // Whole euros, rounded up — we're charging.
+        // Whole euros, rounded up - we're charging.
         expect(priced.priceSellVatExcl).toBe(
             Math.ceil(Math.round(expectedVatExcl * 100) / 100),
         );
@@ -52,7 +52,7 @@ describe('calculateProductPrice', () => {
         const basePrice =
             (spotMap.GOLD / GRAMS_PER_TROY_OUNCE) * baseProduct.weight;
 
-        // Whole euros, rounded down — we're paying.
+        // Whole euros, rounded down - we're paying.
         expect(priced.priceBuy).toBe(
             Math.floor(
                 Math.round(basePrice * (1 + baseProduct.spreadBuy) * 100) / 100,
@@ -93,7 +93,7 @@ describe('calculateProductPrice', () => {
 
         for (const value of [priced.marketValue, priced.spotPrice]) {
             // value * 100 must be within float-noise distance of a whole
-            // integer — Number.isInteger(value * 100) is too strict here since
+            // integer - Number.isInteger(value * 100) is too strict here since
             // float multiplication (e.g. 123.45 * 100 === 12344.999999999998)
             // makes even genuinely-2dp values fail an exact-integer check.
             expect(
@@ -130,7 +130,7 @@ describe('mergeMetalPrices', () => {
         expect(merged.PLATINUM).toBe(base.PLATINUM);
     });
 
-    it('accepts an explicit 0 override — 0 is a valid price, not "no override"', () => {
+    it('accepts an explicit 0 override - 0 is a valid price, not "no override"', () => {
         // A truthy-style check (`if (value)`) would wrongly skip a 0 override;
         // this pins the correct `value !== undefined` behavior.
         expect(mergeMetalPrices(base, { SILVER: 0 }).SILVER).toBe(0);

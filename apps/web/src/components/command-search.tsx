@@ -1,5 +1,6 @@
 "use client"
 
+import { useAuth } from "@/contexts/auth-context"
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { Command as CommandPrimitive } from "cmdk"
@@ -126,9 +127,13 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const navigate = useNavigate()
   const commandRef = React.useRef<HTMLDivElement>(null)
 
+  const { capabilities } = useAuth()
+
   const searchItems: SearchItem[] = [
     // Dashboards
-    { title: "Dashboard 1", url: "/dashboard", group: "Dashboards", icon: LayoutDashboard },
+    ...(capabilities.pricingWorkbook
+      ? [{ title: "Dashboard 1", url: "/dashboard", group: "Dashboards", icon: LayoutDashboard } satisfies SearchItem]
+      : []),
     { title: "Dashboard 2", url: "/dashboard-2", group: "Dashboards", icon: LayoutPanelLeft },
 
     // Apps

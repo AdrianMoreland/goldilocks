@@ -1,6 +1,6 @@
 ---
 slug: buyback-paperwork-and-testing
-title: Buying from customers — testing and paperwork
+title: Buying from customers - testing and paperwork
 category: operations
 jurisdiction: IE
 owner: Merrion Gold

@@ -214,19 +214,6 @@ describe('collapse default', () => {
   });
 });
 
-describe('At a glance', () => {
-  it('uses the sections of a payment how-to, with the STOP section as a red chip', () => {
-    const layout = buildArticleLayout(docs.get('bc-record-customer-payment')?.sections ?? []);
-    expect(layout.glance.map((chip) => chip.label)).toEqual(['Fill in the journal', 'Link the payment to the invoice', 'Final check, then post', 'If it does not match']);
-    expect(layout.glance.at(-1)?.stop).toBe(true);
-  });
-
-  it('uses the numbered steps when the procedure has one list of a readable length', () => {
-    const chips = buildArticleLayout(docs.get('customer-collection')?.sections ?? []).glance;
-    for (const chip of chips) expect(chip.label.length).toBeLessThanOrEqual(46);
-  });
-});
-
 describe('Next and Related', () => {
   it('reads the first link of the Next section', () => {
     const layout = buildArticleLayout(docs.get('bc-record-customer-payment')?.sections ?? []);
@@ -259,8 +246,6 @@ describe('every SOP in the library', () => {
         // A non-empty section always renders something.
         if (e.section.markdown.trim() !== '') expect(e.blocks.length, e.section.heading).toBeGreaterThan(0);
       });
-      // Step chips point at a list that exists.
-      for (const chip of layout.glance) expect(sections.some((s) => s.anchor === chip.anchor), chip.label).toBe(true);
       // Contents never list the lead or Related.
       expect(layout.contents.some((c) => c.anchor === 'related')).toBe(false);
     },

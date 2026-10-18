@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, TriangleAlert } from 'lucide-react';
-import { KB_CATEGORY_INFO, type KbCategory } from '@goldilocks/shared-types';
+import { KB_CATEGORY_INFO, compareProcedures, type KbCategory } from '@goldilocks/shared-types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -33,7 +33,11 @@ export default function KnowledgeAllPage() {
     const visible = useMemo(() => library.articles.filter((article) => isAdmin || article.doc.status !== 'retired'), [library, isAdmin]);
     const groups = useMemo(
         () =>
-            TOPIC_ORDER.map((category) => ({ category, articles: visible.filter((article) => article.doc.category === category) })).filter(
+            TOPIC_ORDER.map((category) => ({
+                category,
+                // Working order (general, then Price from new customer to collection, then buy-in); the library's title order breaks ties.
+                articles: visible.filter((article) => article.doc.category === category).sort((a, b) => compareProcedures(a.doc.slug, b.doc.slug)),
+            })).filter(
                 (group) => group.articles.length > 0,
             ),
         [visible],

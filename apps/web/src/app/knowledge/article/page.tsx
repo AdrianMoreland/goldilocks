@@ -95,7 +95,7 @@ export default function KnowledgeArticlePage() {
                     />
                 ) : (
                     <div className="grid items-start gap-x-10 gap-y-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
-                        <article className="min-w-0 max-w-[760px]">
+                        <article className="min-w-0">
                             <Breadcrumb className="mb-4">
                                 <BreadcrumbList>
                                     <BreadcrumbItem>
@@ -111,7 +111,7 @@ export default function KnowledgeArticlePage() {
                                     </BreadcrumbItem>
                                     <BreadcrumbSeparator />
                                     <BreadcrumbItem>
-                                        <BreadcrumbPage className="truncate">{article.doc.title.replace(/^Business Central — /, 'BC · ')}</BreadcrumbPage>
+                                        <BreadcrumbPage className="truncate">{article.doc.title.replace(/^Business Central [—-] /, 'BC · ')}</BreadcrumbPage>
                                     </BreadcrumbItem>
                                 </BreadcrumbList>
                             </Breadcrumb>
@@ -163,7 +163,11 @@ export default function KnowledgeArticlePage() {
 
 /** Opens the assistant already pointed at this procedure. */
 function AskCard({ slug, title }: { slug: string; title: string }) {
+    const { capabilities } = useAuth();
     const { askAbout } = useAssistantDock();
+    if (!capabilities.assistant) return null;
+
+
     return (
         <div className="rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-3">
             <p className="flex items-center gap-1.5 text-sm font-semibold">

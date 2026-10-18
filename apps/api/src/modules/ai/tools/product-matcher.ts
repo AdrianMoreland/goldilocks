@@ -67,7 +67,7 @@ export function parseWeightsGrams(text: string): number[] {
 }
 
 /**
- * Finds the catalogue products a free-text request is about — "100g gold
+ * Finds the catalogue products a free-text request is about - "100g gold
  * bar", "1oz Krugerrand", "silver coins". Pure and deterministic. A request
  * with no metal, weight or product word matches nothing: "gold" alone is
  * every gold product, which is a question to ask the customer, not an answer.

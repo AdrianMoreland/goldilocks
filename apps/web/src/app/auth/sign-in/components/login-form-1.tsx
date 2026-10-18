@@ -5,6 +5,7 @@ import { useNavigate, useLocation, Navigate } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { homePathFor } from "@goldilocks/shared-types"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { ApiError } from "@/hooks/useApi"
@@ -46,7 +47,7 @@ export function LoginForm1({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, capabilities } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [error, setError] = React.useState<string | null>(null)
@@ -64,7 +65,7 @@ export function LoginForm1({
   // or back to wherever RequireAuth redirected from.
   if (isAuthenticated) {
     const from = (location.state as { from?: Location })?.from
-    return <Navigate to={from?.pathname || "/dashboard"} replace />
+    return <Navigate to={from?.pathname || homePathFor(capabilities)} replace />
   }
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -72,7 +73,8 @@ export function LoginForm1({
     setSubmitting(true)
     try {
       await login(values.email, values.password)
-      navigate("/dashboard", { replace: true })
+      // The new session isn't in this render's closure yet, so land on "/" and let it pick the branch's home page.
+      navigate("/", { replace: true })
     } catch (err) {
       setError(loginErrorMessage(err))
     } finally {

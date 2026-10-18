@@ -4,15 +4,15 @@ import type { MetalType } from "@/lib/types"
 interface GlobalShortcutsOptions {
     onToggleTools: () => void
     onToggleChart: () => void
-    /** a — go to the admin console (admins only). */
+    /** a - go to the admin console (admins only). */
     onOpenAdmin?: () => void
-    /** 1–4 — jump to Gold / Silver / Platinum / Palladium. */
+    /** 1–4 - jump to Gold / Silver / Platinum / Palladium. */
     onSelectMetal: (metal: MetalType) => void
-    /** p — flip the Trade tab between Price and Buyback. */
+    /** p - flip the Trade tab between Price and Buyback. */
     onFlipTransaction: () => void
-    /** q — open Trade and focus its quantity field. */
+    /** q - open Trade and focus its quantity field. */
     onFocusQuantity: () => void
-    /** Ctrl+Z — unfreeze every metal and untick every selected row. */
+    /** Ctrl+Z - unfreeze every metal and untick every selected row. */
     onResetAll: () => void
 }
 
@@ -30,7 +30,7 @@ function isTypingTarget(target: EventTarget | null): target is HTMLElement {
     return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable
 }
 
-// Checkboxes and buttons are INPUTs too, but Ctrl+Z means nothing to them —
+// Checkboxes and buttons are INPUTs too, but Ctrl+Z means nothing to them -
 // only fields that have their own native undo should keep the key.
 function isTextEntry(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false
@@ -49,11 +49,11 @@ function isDialogOpen(): boolean {
  * tools panel / chart, a to open the admin console, 1–4 to switch metal, p to flip
  * Price/Buyback, q to jump to the Trade quantity, and Ctrl+Z to reset the
  * working state. Row navigation (arrow keys) lives separately in
- * use-row-navigation.hook.ts since it needs the table's live row model —
+ * use-row-navigation.hook.ts since it needs the table's live row model -
  * this hook only knows about page-level actions.
  *
  * Single letters (no modifier) are used rather than Ctrl/Cmd combos so they
- * don't fight the browser's own shortcuts — guarded to never fire while
+ * don't fight the browser's own shortcuts - guarded to never fire while
  * typing in a field or while a dialog is open. Ctrl+Z is the one exception,
  * and it steps aside whenever a text field has focus so native undo still works.
  */

@@ -1,3 +1,4 @@
+import { capabilitiesFor } from '@goldilocks/shared-types';
 import { KnowledgeService, type KbImportFile } from './knowledge.service';
 import type { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
@@ -49,6 +50,9 @@ function build(
     };
 }
 
+const IE = capabilitiesFor({ branchRegion: 'IE', admin: false });
+const UK = capabilitiesFor({ branchRegion: 'UK', admin: false });
+
 describe('KnowledgeService.listDocuments', () => {
     const row = (slug: string, status: 'draft' | 'approved' | 'retired') => ({
         slug,
@@ -69,25 +73,65 @@ describe('KnowledgeService.listDocuments', () => {
             row('b', 'approved'),
         ]);
 
-        await service.listDocuments(false);
+        await service.listDocuments(false, IE);
 
         expect(prisma.kbDocument.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ where: { status: { not: 'retired' } } }),
         );
     });
 
+    it('shows UK branches only SOPs classified for everyone, filtered in the query', async () => {
+        const { service, prisma } = build();
+        await service.listDocuments(false, UK);
+        expect(prisma.kbDocument.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { status: { not: 'retired' }, visibility: 'all' },
+            }),
+        );
+    });
+
+    it("changes a SOP's visibility without touching its status", async () => {
+        const stored = { ...row('a', 'approved'), visibility: 'ie_only' };
+        const update = jest
+            .fn()
+            .mockResolvedValue({ ...stored, visibility: 'all' });
+        const prisma = {
+            kbDocument: {
+                findUnique: jest.fn().mockResolvedValue(stored),
+                update,
+            },
+            $transaction: jest.fn((fn: (tx: unknown) => unknown) =>
+                fn({ kbDocument: { update } }),
+            ),
+        };
+        const audit = { record: jest.fn() };
+        const service = new KnowledgeService(
+            prisma as unknown as PrismaService,
+            audit as never,
+        );
+
+        const doc = await service.setVisibility('a', 'all', 'admin@x.ie');
+
+        expect(update).toHaveBeenCalledWith({
+            where: { slug: 'a' },
+            data: { visibility: 'all' },
+        });
+        expect(doc.visibility).toBe('all');
+        expect(audit.record).toHaveBeenCalled();
+    });
+
     it('shows everything, retired included, to admins', async () => {
         const { service, prisma } = build();
-        await service.listDocuments(true);
+        await service.listDocuments(true, IE);
         expect(prisma.kbDocument.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ where: undefined }),
+            expect.objectContaining({ where: {} }),
         );
     });
 
     it('returns the SOP date as a plain day, not a timestamp', async () => {
         const { service, prisma } = build();
         prisma.kbDocument.findMany.mockResolvedValue([row('a', 'draft')]);
-        const [doc] = await service.listDocuments(false);
+        const [doc] = await service.listDocuments(false, IE);
         expect(doc).toMatchObject({
             slug: 'a',
             contentUpdatedOn: '2026-09-30',

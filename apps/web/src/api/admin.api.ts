@@ -21,7 +21,7 @@ const MessageResponseSchema = z.object({ message: z.string() });
 const SessionUserResponseSchema = z.object({ id: z.string() }).passthrough();
 const ErrorLogResponseSchema = z.object({ entries: z.array(ErrorLogEntrySchema), persisted: z.boolean() });
 
-/** Admin Panel actions — every call here is gated server-side by JwtAuthGuard + RolesGuard('admin'). */
+/** Admin Panel actions - every call here is gated server-side by JwtAuthGuard + RolesGuard('admin'). */
 export function useAdminApi() {
     const client = useApiClient();
 

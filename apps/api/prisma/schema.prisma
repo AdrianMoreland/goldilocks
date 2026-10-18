@@ -25,7 +25,12 @@ model User {
   createdAt   DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
   lastLoginAt DateTime?
+  /// The branch this person works from. Null behaves as an Irish branch (see branch-access.ts in
+  /// shared-types), so accounts that predate branches keep what they had.
+  branchId    Int?
+  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
+  @@index([branchId])
   @@map("users")
 }
 
@@ -97,11 +102,14 @@ model HistoricSpotPrice {
 }
 
 model Branch {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   name      String
   address   String?
-  currency  Currency @default(EUR)
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  /// IE branches see the whole app; UK branches lose the Pricing Workbook and see only shared SOPs.
+  region    BranchRegion @default(IE)
+  currency  Currency     @default(EUR)
+  createdAt DateTime     @default(now()) @db.Timestamptz(6)
+  users     User[]
 
   @@map("branches")
 }
@@ -171,6 +179,7 @@ model KbDocument {
   jurisdiction     KbJurisdiction
   owner            String
   status           KbStatus       @default(draft)
+  visibility       KbVisibility   @default(ie_only)
   version          Int            @default(1)
   /// The SOP's own date (frontmatter `updatedAt`) — drives the 6-month review reminder, unlike the row's `updatedAt`.
   contentUpdatedOn DateTime       @db.Date
@@ -203,6 +212,17 @@ enum KbJurisdiction {
   IE
   UK
   ES
+}
+
+/// Which branches may read a SOP. Defaults to the pre-branch behaviour (Irish only); an admin opts a SOP in.
+enum KbVisibility {
+  all
+  ie_only
+}
+
+enum BranchRegion {
+  IE
+  UK
 }
 
 enum KbStatus {

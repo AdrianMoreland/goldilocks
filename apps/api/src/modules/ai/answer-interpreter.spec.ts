@@ -9,6 +9,7 @@ const doc = (slug: string, title: string, markdown: string): KbDocument => ({
     jurisdiction: 'IE',
     owner: 'Adrian',
     status: 'approved',
+    visibility: 'ie_only',
     version: 1,
     contentUpdatedOn: '2026-09-30',
     markdown,

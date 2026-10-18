@@ -3,14 +3,14 @@ import { RecalculateOverridesSchema } from './market-data.schema';
 
 /**
  * Internal AI assistant (roadmap 1.5; plan in docs/AI-AGENT-PLAN.md).
- * One question in, one answer out — no conversation history is sent.
+ * One question in, one answer out - no conversation history is sent.
  */
 
 /**
  * What the staff member wants from the assistant:
- *  procedures — answer a question about how the desk works (from the approved SOPs)
- *  email      — they pasted a customer's email; draft a reply to send back
- *  whatsapp   — the same, for a WhatsApp message (shorter, less formal)
+ *  procedures - answer a question about how the desk works (from the approved SOPs)
+ *  email      - they pasted a customer's email; draft a reply to send back
+ *  whatsapp   - the same, for a WhatsApp message (shorter, less formal)
  */
 export const AiModeEnum = z.enum(['procedures', 'email', 'whatsapp']);
 export type AiMode = z.infer<typeof AiModeEnum>;
@@ -30,7 +30,7 @@ export const AskRequestSchema = z
     question: z.string().trim().min(1).max(AI_MESSAGE_MAX_LENGTH),
     mode: AiModeEnum.default('procedures'),
     /**
-     * The spot the product table is quoting from, when the user has frozen or typed one — otherwise
+     * The spot the product table is quoting from, when the user has frozen or typed one - otherwise
      * the live spot is used. Sent so a price the assistant quotes matches the price on screen.
      */
     spotOverrides: RecalculateOverridesSchema.optional(),
@@ -44,9 +44,9 @@ export type AskRequest = z.infer<typeof AskRequestSchema>;
 export type AskRequestInput = z.input<typeof AskRequestSchema>;
 
 /**
- * answered — answered from the SOPs, with at least one valid citation
- * refused  — the approved SOPs don't cover it (or it isn't confirmed), and the assistant said so
- * uncited  — the model answered but cited nothing the library recognises; shown with a warning
+ * answered - answered from the SOPs, with at least one valid citation
+ * refused  - the approved SOPs don't cover it (or it isn't confirmed), and the assistant said so
+ * uncited  - the model answered but cited nothing the library recognises; shown with a warning
  */
 export const AiAnswerStatusEnum = z.enum(['answered', 'refused', 'uncited']);
 export type AiAnswerStatus = z.infer<typeof AiAnswerStatusEnum>;
@@ -87,7 +87,7 @@ export const AskResponseSchema = z.object({
   model: z.string(),
   usage: AiUsageSchema,
   latencyMs: z.number().int(),
-  /** Which SOPs the answer was based on — the audit trail for "what did it know when it said that?". */
+  /** Which SOPs the answer was based on - the audit trail for "what did it know when it said that?". */
   corpus: z.object({ documents: z.number().int(), hash: z.string() }),
   /** Served from the answer cache: no model call, so usage is zero. */
   cached: z.boolean(),
@@ -110,10 +110,10 @@ export type AiStatus = z.infer<typeof AiStatusSchema>;
 
 /**
  * What POST /ai/ask/stream sends, one JSON object per server-sent event:
- *  delta — a piece of the answer as the model writes it (shown live, may still be corrected)
- *  tool  — the assistant is looking something up (e.g. a price); no text yet
- *  done  — the final, validated answer; the reader replaces whatever it streamed with this
- *  error — the question could not be answered; `status` is the HTTP status it would have had
+ *  delta - a piece of the answer as the model writes it (shown live, may still be corrected)
+ *  tool  - the assistant is looking something up (e.g. a price); no text yet
+ *  done  - the final, validated answer; the reader replaces whatever it streamed with this
+ *  error - the question could not be answered; `status` is the HTTP status it would have had
  */
 export const AskStreamEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('delta'), text: z.string() }),

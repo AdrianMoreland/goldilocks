@@ -30,7 +30,7 @@ function hourKey(hour: Date): string {
 export class RequestMetricsService {
     constructor(private readonly redis: RedisService) {}
 
-    /** Express middleware — counts each finished request. Never delays or fails the request. */
+    /** Express middleware - counts each finished request. Never delays or fails the request. */
     middleware() {
         return (req: Request, res: Response, next: NextFunction) => {
             const startedAt = process.hrtime.bigint();

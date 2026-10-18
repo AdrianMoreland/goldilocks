@@ -18,7 +18,7 @@ export class AppService {
         };
     }
 
-    /** GET /health — Railway (or any uptime monitor) hits this to confirm the app can actually reach its dependencies, not just that the process is up. */
+    /** GET /health - Railway (or any uptime monitor) hits this to confirm the app can actually reach its dependencies, not just that the process is up. */
     async getHealth() {
         const db = await this.prisma.$queryRaw`SELECT 1`
             .then(() => true)

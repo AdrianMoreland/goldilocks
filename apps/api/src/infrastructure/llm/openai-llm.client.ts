@@ -37,7 +37,7 @@ const toUsage = (usage: Usage) => ({
 });
 
 /**
- * OpenAI implementation of LlmPort — the only file in the app that imports the
+ * OpenAI implementation of LlmPort - the only file in the app that imports the
  * OpenAI SDK. Uses Chat Completions, with the model, key and optional
  * temperature taken from configuration (AI_MODEL, OPENAI_API_KEY,
  * AI_TEMPERATURE). Temperature is left unset unless configured, because some
@@ -262,7 +262,7 @@ export class OpenAiLlmClient implements LlmPort {
         return this.client;
     }
 
-    /** The deepest error code or message in a chain of causes — the real reason behind "fetch failed". */
+    /** The deepest error code or message in a chain of causes - the real reason behind "fetch failed". */
     private rootCause(error: unknown): string | undefined {
         let current: unknown = error;
         let found: string | undefined;
@@ -287,7 +287,7 @@ export class OpenAiLlmClient implements LlmPort {
             (error instanceof Error ? error.message : String(error)) +
             (rootCause ? ` [${rootCause}]` : '') +
             (rootCause && TLS_INTERCEPTION_CODES.has(rootCause)
-                ? ' — something on this machine or network is re-signing HTTPS traffic (antivirus HTTPS scanning or a proxy). Trust its root certificate with NODE_EXTRA_CA_CERTS, or exclude api.openai.com from scanning. Never disable certificate checks: that exposes the API key.'
+                ? ' - something on this machine or network is re-signing HTTPS traffic (antivirus HTTPS scanning or a proxy). Trust its root certificate with NODE_EXTRA_CA_CERTS, or exclude api.openai.com from scanning. Never disable certificate checks: that exposes the API key.'
                 : '');
         this.logger.warn(
             `OpenAI call failed (status ${typeof status === 'number' ? status : 'none'}): ${detail}`,

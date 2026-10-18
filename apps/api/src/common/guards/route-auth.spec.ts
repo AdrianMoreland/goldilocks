@@ -7,6 +7,7 @@ import request from 'supertest';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
+import { CapabilityGuard } from './capability.guard';
 import { AppController } from '../../app.controller';
 import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
@@ -137,10 +138,17 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
     let app: INestApplication;
     const user = { id: 'u1', email: 'staff@example.com', admin: false };
     const admin = { id: 'u2', email: 'boss@example.com', admin: true };
+    const ukStaff = {
+        id: 'u3',
+        email: 'glasgow@example.com',
+        admin: false,
+        branch: { id: 9, name: 'Glasgow', region: 'UK' },
+    };
     const authService = {
         validateToken: jest.fn(async (token: string) => {
             if (token === 'staff') return user;
             if (token === 'admin') return admin;
+            if (token === 'uk') return ukStaff;
             throw new (await import('@nestjs/common')).UnauthorizedException(
                 'Invalid or expired token',
             );
@@ -162,6 +170,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             providers: [
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
                 { provide: APP_GUARD, useClass: RolesGuard },
+                { provide: APP_GUARD, useClass: CapabilityGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 { provide: AuthService, useValue: authService },
                 {
@@ -325,6 +334,53 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 'staff',
             ).expect(201);
             expect(marketData.refresh).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // The API is the real boundary for branch rules: a UK branch calling these directly is refused,
+    // whatever the web app shows. The controllers are the ones marked @RequiresCapability.
+    describe('branch capabilities', () => {
+        const gated = (cap: string) =>
+            protectedRoutes.filter((r) =>
+                [
+                    Reflect.getMetadata(
+                        'requiredCapability',
+                        CONTROLLERS.find(
+                            (c) =>
+                                r.key.split(' ')[1].split('/')[1] ===
+                                Reflect.getMetadata(PATH_METADATA, c),
+                        ) ?? Object,
+                    ),
+                ].includes(cap),
+            );
+
+        it('finds the pricing and assistant routes it is meant to check', () => {
+            expect(gated('pricingWorkbook').length).toBeGreaterThan(8);
+            expect(gated('assistant').length).toBe(3);
+        });
+
+        it.each(
+            [...gated('pricingWorkbook'), ...gated('assistant')].map(
+                (r) => [r.key, r] as const,
+            ),
+        )('%s refuses a UK branch', async (_key, route) => {
+            await send(route, 'uk').expect(403);
+        });
+
+        it('still serves the same routes to an Irish branch', async () => {
+            const res = await send(
+                { method: 'GET', url: '/trade/GOLD/bootstrap' },
+                'staff',
+            );
+            expect([401, 403]).not.toContain(res.status);
+        });
+
+        it('lets a UK branch read the Knowledge Center list', async () => {
+            const res = await send(
+                { method: 'GET', url: '/knowledge/documents' },
+                'uk',
+            );
+            expect([401, 403]).not.toContain(res.status);
         });
     });
 

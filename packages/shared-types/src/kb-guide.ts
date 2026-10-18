@@ -1,17 +1,17 @@
 /**
  * The Knowledge Center's front door: a swimlane that starts from the one
- * question every desk interaction begins with — who is paying whom? — and
+ * question every desk interaction begins with - who is paying whom? - and
  * then lays out the phases of that trade twice: what you do at the desk, and
  * what you click in Business Central (BC). Every node points at the exact SOP
  * section that answers "what do I do now?".
  *
  * This is navigation, not content: the SOP files stay the owners'. It lives
  * here (plain data, no UI imports) so a test can check every target against
- * the real SOP files — an owner renaming a heading must fail a test, not
+ * the real SOP files - an owner renaming a heading must fail a test, not
  * silently break a link on the desk's most-used page.
  *
  * Wording follows the product vocabulary: "Price" is what the customer pays
- * us, "Buyback" is what we pay the customer — never "Sell"/"Buy".
+ * us, "Buyback" is what we pay the customer - never "Sell"/"Buy".
  */
 
 /** Icon names the web app maps to its icon set; kept as strings so this package stays UI-free. */
@@ -129,7 +129,7 @@ export interface KbBcChainLink {
 }
 
 export interface KbBcScreen {
-  /** The page name as BC shows it — what staff actually know. */
+  /** The page name as BC shows it - what staff actually know. */
   title: string;
   hint: string;
   flow: KbFlowTone;
@@ -165,6 +165,8 @@ export interface KbFlowBar {
   sequential: boolean;
   /** "See the whole flow". */
   overview: KbGuideTarget;
+  /** The one-page SOP that covers the whole flow. It carries the flow's badge and leads its list, but is not a step in the stepper. */
+  overviewSlug?: string;
 }
 
 export interface KbGuide {
@@ -224,7 +226,7 @@ export const KB_GUIDE: KbGuide = {
         {
           title: 'Wait for money',
           gate: {
-            title: 'STOP — has the money landed?',
+            title: 'STOP - has the money landed?',
             hint: 'Nothing moves until the funds are confirmed. A screenshot or the customer’s word is not proof.',
             target: { slug: 'payment-lock-and-hedge', anchor: 'confirming-funds' },
           },
@@ -696,6 +698,7 @@ export const KB_FLOW_BARS: KbFlowBar[] = [
     tone: 'price',
     sequential: true,
     overview: { href: KB_BC_HUB_PATH },
+    overviewSlug: 'bc-customer-sales-workflow',
     items: [
       { slug: 'bc-new-customer', label: 'New customer' },
       { slug: 'bc-sales-quote', label: 'Sales Quote' },
@@ -750,6 +753,31 @@ export function flowBarFor(slug: string, bars: KbFlowBar[] = KB_FLOW_BARS): { ba
     if (index >= 0) return { bar, index };
   }
   return null;
+}
+
+/** Which flow a procedure belongs to, counting a flow's one-page overview (position -1, ahead of step 1) as well as its steps. */
+export function procedureFlow(slug: string, bars: KbFlowBar[] = KB_FLOW_BARS): { bar: KbFlowBar; barIndex: number; position: number } | null {
+  for (const [barIndex, bar] of bars.entries()) {
+    if (bar.overviewSlug === slug) return { bar, barIndex, position: -1 };
+    const position = bar.items.findIndex((item) => item.slug === slug);
+    if (position >= 0) return { bar, barIndex, position };
+  }
+  return null;
+}
+
+/**
+ * Order for a list of procedures: general ones first, then the "customer buys from us" flow in the order the work
+ * happens (overview, new customer ... collection), then the "we buy in" flow. Ties fall back to the caller's order.
+ */
+export function compareProcedures(a: string, b: string, bars: KbFlowBar[] = KB_FLOW_BARS): number {
+  const rank = (slug: string): [number, number, number] => {
+    const found = procedureFlow(slug, bars);
+    if (!found) return [0, 0, 0];
+    return [found.bar.tone === 'price' ? 1 : 2, found.barIndex, found.position];
+  };
+  const [a1, a2, a3] = rank(a);
+  const [b1, b2, b3] = rank(b);
+  return a1 - b1 || a2 - b2 || a3 - b3;
 }
 
 /** The slug of the next step in a sequential flow, when the procedure has none of its own "Next" section. */

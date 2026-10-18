@@ -1,7 +1,7 @@
 import type { TradeTransactionType } from './trade.schema';
 
 // ============================================================================
-// PRICING MATH — pure domain logic, no I/O.
+// PRICING MATH - pure domain logic, no I/O.
 //
 // Ported from the Merrion Gold Apps Script tool's PricingMath.gs / MeltMath.gs
 // (the source comments there literally flagged these as "the file to lift
@@ -61,10 +61,10 @@ export function computeMeltValue(
 }
 
 // ============================================================================
-// PROFIT ANALYSIS — Portfolio P/L subtab.
+// PROFIT ANALYSIS - Portfolio P/L subtab.
 //
 // Ported from PricingMath.gs. `productMultiplier` there was
-// baseProductSpot / masterSpot — a per-row snapshot ratio. Goldilocks has no
+// baseProductSpot / masterSpot - a per-row snapshot ratio. Goldilocks has no
 // such snapshot (every price is computed live from spot), and since
 // baseProductSpot itself is just spot * weight/troyOunce at read time, the
 // ratio collapses to a spot-independent constant: weight / troyOunce. Callers
@@ -75,7 +75,7 @@ export type ProfitAnalysisMissingField = 'spot' | 'premium' | 'price';
 
 /**
  * Exactly one of {spot, premium, price} is unknown; the other two determine
- * it. Throws a plain Error with a user-facing message on invalid input —
+ * it. Throws a plain Error with a user-facing message on invalid input -
  * callers in an HTTP context should catch and rethrow as a 400.
  */
 export function solveMissingPurchaseField(

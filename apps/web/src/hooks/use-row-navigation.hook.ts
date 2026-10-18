@@ -8,7 +8,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 /**
  * Arrow-key navigation over the table's currently visible rows (already
- * sorted/filtered) — Up/Down moves a keyboard-only focus highlight, Enter
+ * sorted/filtered) - Up/Down moves a keyboard-only focus highlight, Enter
  * or Space toggles that row's selection checkbox. Scoped to this table
  * (not the page-wide shortcuts in use-global-shortcuts.hook.ts) since it
  * needs the live row model to know what "next row" even means.
@@ -46,7 +46,7 @@ export function useRowNavigation<TData>(rows: Row<TData>[]) {
     }, [rows, focusedRowId])
 
     // A filter/search/sort change can make the focused row disappear from
-    // the current row model — drop the stale focus rather than pointing at
+    // the current row model - drop the stale focus rather than pointing at
     // a row that's no longer shown.
     React.useEffect(() => {
         if (focusedRowId && !rows.some((row) => row.id === focusedRowId)) {

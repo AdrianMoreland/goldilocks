@@ -8,7 +8,7 @@ import { describeProductChange } from './product-audit';
 import { ProductCacheStore } from './product-cache.store';
 
 /**
- * ProductsProvider — "give me product data."
+ * ProductsProvider - "give me product data."
  *
  * Knows: Redis, Prisma.
  * Does NOT know: spot prices, Metals, pricing calculations.
@@ -40,7 +40,7 @@ export class ProductsProvider {
         return product ? toRawProduct(product) : null;
     }
 
-    /** Includes soft-deleted rows — the SKU column is unique across both. */
+    /** Includes soft-deleted rows - the SKU column is unique across both. */
     async findBySku(
         sku: string,
     ): Promise<{ id: number; deletedAt: Date | null } | null> {

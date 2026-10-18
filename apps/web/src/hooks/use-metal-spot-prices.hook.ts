@@ -83,7 +83,7 @@ export function useMetalSpotPrices() {
 
         onSuccess: (freshPrices) => {
             // Directly populate the query cache with the fresh data the backend
-            // already returned — no second GET needed.
+            // already returned - no second GET needed.
             queryClient.setQueryData<SpotPrice[]>(QUERY_KEY, freshPrices);
             toast.success('Spot prices updated');
         },
@@ -99,7 +99,7 @@ export function useMetalSpotPrices() {
         loadingSpot: isLoading || isFetching,
         errorSpot: error,
         isRefreshing: isFetching,
-        refreshPrices,   // () => void  — call on button click
+        refreshPrices,   // () => void  - call on button click
         lastUpdatedLabel,
     };
 }

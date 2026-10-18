@@ -19,7 +19,7 @@ const ONE_OZ_TOLERANCE_G = 0.5
 const MERGE_TOLERANCE_G = 0.05
 
 // The only fractional coin weights that get collapsed into one generic row
-// per metal. 1oz coins and sovereigns keep their specific mint/name — see
+// per metal. 1oz coins and sovereigns keep their specific mint/name - see
 // isConcreteCoin below.
 const COIN_MERGE_TARGETS: { label: string; weightGrams: number }[] = [
     { label: "1/10oz Coin", weightGrams: GRAMS_PER_TROY_OUNCE / 10 },
@@ -54,7 +54,7 @@ function isOneOz(weightGrams: number): boolean {
     return Math.abs(weightGrams - GRAMS_PER_TROY_OUNCE) < ONE_OZ_TOLERANCE_G
 }
 
-/** 1oz coins and sovereigns are the only coins with "concrete" (mint-specific) names — everything else is a merge candidate. */
+/** 1oz coins and sovereigns are the only coins with "concrete" (mint-specific) names - everything else is a merge candidate. */
 function isConcreteCoin(product: Product): boolean {
     return isOneOz(product.weight) || isSovereign(product.name)
 }
@@ -64,7 +64,7 @@ function findCoinMergeLabel(weightGrams: number): string | null {
     return match?.label ?? null
 }
 
-/** "1 oz Gold Bar" -> "1oz Bar", "500 g Gold Bar" -> "500g Bar" — drops the
+/** "1 oz Gold Bar" -> "1oz Bar", "500 g Gold Bar" -> "500g Bar" - drops the
  * metal word and tightens the number/unit spacing to match the coin naming
  * convention ("1oz Britannia") for a more compact, readable table. */
 function stripMetalWord(name: string, metalType: MetalType): string {
@@ -109,13 +109,13 @@ function mergeCoinGroup(metalType: MetalType, label: string, group: Product[]): 
 
 /**
  * Builds the display-ready product list: bars renamed to drop the metal
- * word (weight order), then coins (reverse weight order) — with 1oz coins
+ * word (weight order), then coins (reverse weight order) - with 1oz coins
  * and sovereigns kept as their specific mint/name, and every other
  * fractional coin weight (1/2oz, 1/4oz, 1/10oz, 1g) collapsed into one
  * generic "{fraction} Coin" row per metal, averaging price/premium across
  * whichever mint variants exist at that weight and summing their stock.
  *
- * This is purely a display transform — the underlying per-mint products in
+ * This is purely a display transform - the underlying per-mint products in
  * the database are untouched, so per-mint stock tracking still works.
  */
 export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
@@ -126,7 +126,7 @@ export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
 
     for (const product of products) {
         // "Bonded" (deferred-VAT storage) products get their own section
-        // under Coins, regardless of whether they're bar- or coin-shaped —
+        // under Coins, regardless of whether they're bar- or coin-shaped -
         // they're priced differently from the standard stock and shouldn't
         // blend into either regular list. Only Silver has these today.
         if (isBonded(product.name)) {
@@ -154,7 +154,7 @@ export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
 
         const mergeLabel = findCoinMergeLabel(product.weight)
         if (!mergeLabel) {
-            // Doesn't match a known merge weight — fall back to showing it as-is.
+            // Doesn't match a known merge weight - fall back to showing it as-is.
             concreteCoins.push({ ...product, productType: "coin" })
             continue
         }

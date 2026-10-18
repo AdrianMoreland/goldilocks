@@ -17,7 +17,7 @@ import { SpotPriceRetentionService } from './spot-price-retention.service';
         AuthModule, // needed by JwtAuthGuard/RolesGuard on the refresh endpoint
         RedisModule, // MetalsProvider reads/writes the spot-price cache
         PrismaModule, // MetalsProvider reads/writes spot history
-        MetalPriceApiModule, // external vendor API — infra concern, not a "metals" concern
+        MetalPriceApiModule, // external vendor API - infra concern, not a "metals" concern
     ],
     controllers: [MetalsController],
     providers: [
@@ -30,7 +30,7 @@ import { SpotPriceRetentionService } from './spot-price-retention.service';
         SpotPriceRetentionService,
     ],
     exports: [
-        MetalsProvider, // MarketDataModule needs this — MetalsService no longer exists
+        MetalsProvider, // MarketDataModule needs this - MetalsService no longer exists
         HistoricSpotService, // MarketDataModule reads the chart history and runs the manual backfills
         FetchAttemptService, // AppModule's /health endpoint needs "last successful API call"
     ],

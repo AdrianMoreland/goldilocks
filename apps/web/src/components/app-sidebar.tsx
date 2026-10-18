@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, KanbanSquare, LayoutDashboard, ShieldCheck } from "lucide-react"
+import { BookOpen, KanbanSquare, LayoutDashboard, ShieldCheck, type LucideIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
@@ -21,7 +21,15 @@ import {
 // BaseLayout shows this sidebar to non-admins too, so the admin group below is
 // added only for admins. That is discoverability only: /admin and every API
 // route behind it enforce admin on their own.
-const navGroups = [
+interface NavItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  /** Hidden for branches without this capability. */
+  requires?: "pricingWorkbook"
+}
+
+const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Navigation",
     items: [
@@ -29,6 +37,7 @@ const navGroups = [
         title: "Pricing Workbook",
         url: "/dashboard",
         icon: LayoutDashboard,
+        requires: "pricingWorkbook",
       },
       {
         title: "Knowledge Center",
@@ -56,8 +65,13 @@ const adminGroup = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isAdmin } = useAuth()
-  const groups = isAdmin ? [...navGroups, adminGroup] : navGroups
+  const { user, isAdmin, capabilities } = useAuth()
+  // Hidden when the branch lacks the capability; the API refuses the same pages' data on its own.
+  const visibleNavGroups = navGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.requires || capabilities[item.requires]),
+  }))
+  const groups = isAdmin ? [...visibleNavGroups, adminGroup] : visibleNavGroups
 
   return (
     <Sidebar {...props}>
@@ -65,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
+              <Link to="/">
                 <div className="flex aspect-square size-8 items-center justify-center">
                   <Logo size={32} />
                 </div>

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react"
 
 /**
- * Per-tab accents — each pricing tool tab gets its own accent instead of one
+ * Per-tab accents - each pricing tool tab gets its own accent instead of one
  * flat app-wide color (originally inspired by the Apps Script tool's
  * `.theme-buy`/`.theme-sell`/etc.). Applied via CSS custom properties on a
  * wrapper div so plain Tailwind arbitrary-value utilities (`text-[var(--tab-accent)]`,
@@ -13,7 +13,7 @@ import type { CSSProperties } from "react"
  */
 export type TabThemeName = "price" | "buyback" | "invest" | "calc" | "settings"
 
-// The one theme token each tab's accent is built from — every other value
+// The one theme token each tab's accent is built from - every other value
 // (soft background tint, two text strengths, text-on-fill) is derived from
 // it. Price and Buyback use the dedicated --price/--buyback tokens rather
 // than primary/secondary, so the two sides of a trade keep the same colour
@@ -44,7 +44,7 @@ function accentStyleFrom(base: string, text?: string): CSSProperties {
         "--tab-accent-text-soft": `color-mix(in srgb, ${text ?? base} ${text ? 80 : 45}%, var(--foreground))`,
         // Text on a solid accent fill: near-black ink on light accents (the
         // teal and gold both sit above L 0.6), near-white on dark ones. White
-        // on the Merrion teal/gold was ~2.6:1 / ~1.7:1 — well under AA.
+        // on the Merrion teal/gold was ~2.6:1 / ~1.7:1 - well under AA.
         "--tab-accent-on": `oklch(from ${base} clamp(0.2, (0.62 - l) * 100, 0.99) 0.02 h)`,
     } as CSSProperties
 }
@@ -54,7 +54,7 @@ export function tabThemeStyle(theme: TabThemeName): CSSProperties {
 }
 
 /**
- * Per-metal accent (not from the Apps Script tool — it has no equivalent) —
+ * Per-metal accent (not from the Apps Script tool - it has no equivalent) -
  * used by the metal spot-price cards and the price chart, whose subject is
  * "which metal" rather than a workflow direction like Price/Buyback. Colors
  * evoke the metal itself: warm gold, cool silver, blue-steel platinum,

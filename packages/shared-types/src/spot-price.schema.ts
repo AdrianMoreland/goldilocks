@@ -13,7 +13,7 @@ export const MetalTypeEnum = z.enum(['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'])
 
 export const MetalSymbolSchema = z.enum(['XAU', 'XAG', 'XPT', 'XPD']);
 
-/** Which tier actually satisfied this read — Redis cache, Postgres, or a fresh call to the live vendor API. Optional: only the two "how did we get this price" cascades (getAllLatestForLaunch/refreshAll) bother tagging it. */
+/** Which tier actually satisfied this read - Redis cache, Postgres, or a fresh call to the live vendor API. Optional: only the two "how did we get this price" cascades (getAllLatestForLaunch/refreshAll) bother tagging it. */
 export const FetchSourceEnum = z.enum(['cache', 'db', 'live']);
 
 
@@ -34,7 +34,7 @@ export const SpotPriceSchema = z.object({
   timestamp: z.iso.datetime(),
   createdAt: z.iso.datetime(),
   fetchSource: FetchSourceEnum.optional(),
-  /** True when a live fetch was actually attempted for this metal and failed, and this price is the last-known-good value served instead — distinct from a cache/DB hit that's just the normal cascade preference. */
+  /** True when a live fetch was actually attempted for this metal and failed, and this price is the last-known-good value served instead - distinct from a cache/DB hit that's just the normal cascade preference. */
   isFallback: z.boolean().optional(),
 });
 

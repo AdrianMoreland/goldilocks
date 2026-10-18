@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useKnowledgeLibrary } from '@/hooks/use-knowledge.hook';
 import { KnowledgeLayout } from './components/knowledge-layout';
 import { SearchResultList } from './components/search-results';
+import { HubBody } from './components/bc-hub-body';
 import { GuideSwimlane } from './components/guide-swimlane';
 import { KnowledgePage } from './components/knowledge-page';
 import { BusinessCentralBanner, QuickLinks, ToolTiles } from './components/guide-shortcuts';
@@ -16,7 +17,9 @@ import { formatDay, plural } from './utils/format';
 const SEARCH_LIMIT = 30;
 
 export default function KnowledgeCenterPage() {
-    const { isAdmin } = useAuth();
+    const { isAdmin, capabilities } = useAuth();
+    // Branches that see only part of the library (UK) get Business Central laid out in full on the home page.
+    const sharedView = capabilities.knowledge === 'shared';
     const { library, isLoading, isError, refetch } = useKnowledgeLibrary();
     const [params, setParams] = useSearchParams();
     const searchRef = useRef<HTMLInputElement>(null);
@@ -162,14 +165,16 @@ export default function KnowledgeCenterPage() {
                         <div className="flex flex-col gap-10">
                             {isAdmin && dueForReview.length > 0 && <ReviewDueNotice items={dueForReview} />}
 
-                            <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-                                <QuickLinks library={library} />
-                                <ToolTiles library={library} />
-                            </div>
+                            {!sharedView && (
+                                <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+                                    <QuickLinks library={library} />
+                                    <ToolTiles library={library} />
+                                </div>
+                            )}
 
-                            <BusinessCentralBanner library={library} />
+                            <BusinessCentralBanner library={library} showHub={!sharedView} />
 
-                            <GuideSwimlane library={library} />
+                            {sharedView ? <HubBody library={library} /> : <GuideSwimlane library={library} />}
 
                             <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-muted-foreground">
                                 <p className="tabular-nums">

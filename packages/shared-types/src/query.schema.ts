@@ -8,7 +8,7 @@ import { LogLevelEnum } from './admin.schema';
 const boundedInt = (defaultValue: number, max: number) =>
   z.coerce.number().int().min(1).max(max).default(defaultValue);
 
-/** `?limit=` — the newest N rows of a log-style list. */
+/** `?limit=` - the newest N rows of a log-style list. */
 export const limitQuery = (defaultValue: number, max: number) =>
   z.object({ limit: boundedInt(defaultValue, max) });
 
