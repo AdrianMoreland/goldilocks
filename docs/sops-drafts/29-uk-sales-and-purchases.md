@@ -1,6 +1,6 @@
 ---
 slug: uk-sales-and-purchases
-title: UK desk — selling to and buying from customers
+title: UK desk - selling to and buying from customers
 category: sales
 jurisdiction: UK
 owner: Adrian

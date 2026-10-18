@@ -4,6 +4,9 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Param,
+    ParseUUIDPipe,
+    Patch,
     Post,
     Req,
     UseGuards,
@@ -22,6 +25,7 @@ import {
     LoginResponseDto,
     RefreshRequestDto,
     SessionUserDto,
+    SetUserBranchRequestDto,
 } from '../../common/dto/dtos';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 
@@ -81,5 +85,26 @@ export class AuthController {
         @Req() req: RequestWithUser,
     ): Promise<SessionUserDto> {
         return this.authService.createUser(body, req.user.email);
+    }
+
+    @Patch('admin/users/:id/branch')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: "Set a staff member's branch (admin)",
+        description:
+            'UK branches lose the Pricing Workbook and see only SOPs classified for everyone. No branch behaves as an Irish branch.',
+    })
+    async setUserBranch(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() body: SetUserBranchRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<SessionUserDto> {
+        return this.authService.setUserBranch(
+            id,
+            body.branchId,
+            req.user.email,
+        );
     }
 }

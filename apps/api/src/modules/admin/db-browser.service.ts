@@ -65,8 +65,8 @@ function toParam(value: unknown): string | null {
 
 /**
  * A Supabase-style table browser over the `public` schema. Table and column
- * names are only ever taken from the Postgres catalogue — a name from the
- * request is looked up there, never interpolated — and every value is a bound
+ * names are only ever taken from the Postgres catalogue - a name from the
+ * request is looked up there, never interpolated - and every value is a bound
  * parameter.
  */
 @Injectable()

@@ -13,7 +13,7 @@ const prisma = new PrismaService(new ConfigService());
  * normalised by the API itself (see products.provider.ts), so this only
  * needs to run once for the rows that already exist.
  *
- *   pnpm --filter api exec ts-node --transpile-only prisma/normalize-product-names.ts          # dry run — prints the changes
+ *   pnpm --filter api exec ts-node --transpile-only prisma/normalize-product-names.ts          # dry run - prints the changes
  *   pnpm --filter api exec ts-node --transpile-only prisma/normalize-product-names.ts --apply  # writes them, then clears the products cache
  *
  * Includes soft-deleted products, so a restored one comes back tidy too.
@@ -27,7 +27,7 @@ async function main() {
         .filter((p) => p.next !== p.name);
 
     if (changes.length === 0) {
-        console.log(`Checked ${products.length} products — every name is already tidy.`);
+        console.log(`Checked ${products.length} products - every name is already tidy.`);
         return;
     }
 
@@ -35,7 +35,7 @@ async function main() {
     console.log(`\n${changes.length} of ${products.length} products would change.`);
 
     if (!apply) {
-        console.log('Dry run only — re-run with --apply to write these.');
+        console.log('Dry run only - re-run with --apply to write these.');
         return;
     }
 
@@ -46,7 +46,7 @@ async function main() {
     console.log(`Updated ${changes.length} products.`);
 
     // The API caches the product list for 5 minutes and a raw script write
-    // doesn't invalidate it (docs/ENGINEERING.md §8) — drop the key so the change shows now.
+    // doesn't invalidate it (docs/ENGINEERING.md §8) - drop the key so the change shows now.
     if (process.env.REDIS_URL) {
         const redis = new Redis(process.env.REDIS_URL);
         try {
@@ -56,7 +56,7 @@ async function main() {
             redis.disconnect();
         }
     } else {
-        console.log('REDIS_URL not set — the product list will refresh within 5 minutes.');
+        console.log('REDIS_URL not set - the product list will refresh within 5 minutes.');
     }
 }
 

@@ -1,6 +1,6 @@
 ---
 slug: bc-new-customer
-title: Business Central — add a new customer
+title: Business Central - add a new customer
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

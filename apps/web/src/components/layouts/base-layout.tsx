@@ -9,6 +9,7 @@ import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 import {
   SidebarInset,
   SidebarProvider,
@@ -33,6 +34,9 @@ interface BaseLayoutProps {
 
 export function BaseLayout({ children, title, showLogo, description, headerActions, fillViewport }: BaseLayoutProps) {
   const { config } = useSidebarConfig()
+  // A branch with a single page has no menu to offer; the API doesn't depend on this.
+  const { capabilities } = useAuth()
+  const hasSidebar = capabilities.sidebar
   // Remembered, so the sidebar stays as it was left when moving between pages (each page mounts its own layout).
   const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", false)
   // The theme editor takes the sidebar's slot while it is open, rather than sitting beside it. The
@@ -76,14 +80,16 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
     >
       {config.side === "left" ? (
         <>
-          <AppSidebar
-            variant={config.variant}
-            collapsible={config.collapsible}
-            side={config.side}
-          />
+          {hasSidebar && (
+            <AppSidebar
+              variant={config.variant}
+              collapsible={config.collapsible}
+              side={config.side}
+            />
+          )}
           <ThemeEditorDock />
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger showSearch={false} />
+            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
@@ -92,15 +98,17 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
           <>
             <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger showSearch={false} />
+              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>
-          <AppSidebar
-            variant={config.variant}
-            collapsible={config.collapsible}
-            side={config.side}
-          />
+          {hasSidebar && (
+            <AppSidebar
+              variant={config.variant}
+              collapsible={config.collapsible}
+              side={config.side}
+            />
+          )}
         </>
       )}
 

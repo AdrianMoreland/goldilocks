@@ -20,7 +20,7 @@ const DEBOUNCE_MS = 150;
 type PurchaseMode = 'premium' | 'price';
 
 /**
- * Portfolio P/L subtab — ported from Scripts.Portfolio.html's P/L panel +
+ * Portfolio P/L subtab - ported from Scripts.Portfolio.html's P/L panel +
  * Api.Pricing.gs's calculateProfitAnalysis. Shares the Trade tab's bootstrap
  * query (same query key), so opening both doesn't double the network calls.
  */
@@ -37,7 +37,7 @@ export function usePortfolioPL(metal: MetalType) {
     const products = useMemo(() => bootstrapQuery.data?.products ?? [], [bootstrapQuery.data]);
 
     // The current spot is this tool's own: the card's spot until edited, then
-    // held here — never written back to the card.
+    // held here - never written back to the card.
 
     const [productId, setProductId] = useState<number | null>(null);
     const [purchMode, setPurchMode] = useState<PurchaseMode>('premium');
@@ -148,9 +148,9 @@ export function usePortfolioPL(metal: MetalType) {
 }
 
 /**
- * Portfolio Scenario subtab — pure client arithmetic, no backend involved.
+ * Portfolio Scenario subtab - pure client arithmetic, no backend involved.
  * Ported from Scripts.Portfolio.html's Scenario panel (the slider there is
- * replaced with a plain percentage input — this project has no Slider
+ * replaced with a plain percentage input - this project has no Slider
  * primitive).
  */
 export function usePortfolioScenario() {
@@ -173,9 +173,9 @@ export function usePortfolioScenario() {
 }
 
 /**
- * Portfolio Builder subtab — ported from Scripts.Portfolio.html's Builder
+ * Portfolio Builder subtab - ported from Scripts.Portfolio.html's Builder
  * panel + Api.Portfolio.gs's buildPortfolio. Unlike P/L/Scenario, this is an
- * explicit "Build portfolio options" action rather than live-debounced —
+ * explicit "Build portfolio options" action rather than live-debounced -
  * matching the original UX, and appropriate given the backend evaluates
  * a few thousand candidate portfolios per call.
  */

@@ -6,7 +6,7 @@ import { recordClientError } from '@/lib/error-log';
 /**
  * Validates a response against its schema. A mismatch means the API and the
  * web app disagree about a shape (usually a deploy of one without the
- * other) — recorded and sent to the error log with the exact Zod issues,
+ * other) - recorded and sent to the error log with the exact Zod issues,
  * instead of surfacing as a confusing crash further down.
  */
 function parseResponse<TSchema extends z.ZodTypeAny>(schema: TSchema, result: unknown, method: string, url: string): z.infer<TSchema> {
@@ -24,7 +24,7 @@ function parseResponse<TSchema extends z.ZodTypeAny>(schema: TSchema, result: un
         method,
         path: url,
     });
-    toast.error("The server sent data the app didn't expect.", { description: `Ref ${reference} — details in Admin panel → Error log.` });
+    toast.error("The server sent data the app didn't expect.", { description: `Ref ${reference} - details in Admin panel → Error log.` });
     throw new ApiError('Unexpected response shape', null, reference);
 }
 

@@ -55,14 +55,14 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide }:
             } else {
                 await navigator.clipboard.writeText(text)
             }
-            toast.success(`${CHANNEL_LABEL[channel]} message copied — paste it into your reply`)
+            toast.success(`${CHANNEL_LABEL[channel]} message copied - paste it into your reply`)
             setOpen(false)
             reset()
         } catch {
             toast.error(
                 both
                     ? `Couldn't build the message with both prices. Try "${selectedLabel} only", or check your connection.`
-                    : "Couldn't copy — your browser blocked clipboard access",
+                    : "Couldn't copy - your browser blocked clipboard access",
             )
         } finally {
             setBusy(false)
@@ -116,7 +116,7 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide }:
                         <>
                             <p className="text-sm font-bold">Are the items in stock?</p>
                             <ChoiceButton icon={<PackageCheck className="size-4" />} label="In stock" hint="Collect once payment is received" onClick={() => setInStock(true)} />
-                            <ChoiceButton icon={<PackageX className="size-4" />} label="Not in stock" hint="We order it in — 4 to 6 weeks" onClick={() => setInStock(false)} />
+                            <ChoiceButton icon={<PackageX className="size-4" />} label="Not in stock" hint="We order it in - 4 to 6 weeks" onClick={() => setInStock(false)} />
                         </>
                     )}
 

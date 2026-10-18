@@ -60,7 +60,7 @@ async function bootstrap() {
     app.enableShutdownHooks();
 
     // Failures outside any HTTP request (cron jobs, fire-and-forget promises)
-    // never reach the exception filter — record them too, so the Admin
+    // never reach the exception filter - record them too, so the Admin
     // panel's error log isn't blind to background work.
     const errorLog = app.get(ErrorLogService);
     process.on('unhandledRejection', (reason) => {
@@ -77,7 +77,7 @@ async function bootstrap() {
         void errorLog
             .record({
                 kind: 'crash',
-                message: 'Uncaught exception — API process exiting',
+                message: 'Uncaught exception - API process exiting',
                 error,
             })
             .finally(() => process.exit(1));
@@ -96,7 +96,7 @@ async function bootstrap() {
 
     // Railway hosts the API and the web app on different origins, so the
     // allowed origin has to come from an env var rather than being hardcoded
-    // to the local dev server — see docs/ENGINEERING.md §13.
+    // to the local dev server - see docs/ENGINEERING.md §13.
     const frontendUrl = config.get<string>(
         'FRONTEND_URL',
         'http://localhost:5173',
@@ -106,7 +106,7 @@ async function bootstrap() {
         credentials: true,
     });
 
-    // Swagger lists every route, admin ones included, without authentication —
+    // Swagger lists every route, admin ones included, without authentication -
     // on by default for local dev, off in production unless SWAGGER_ENABLED=true.
     const swaggerEnabled =
         config.get<string>(

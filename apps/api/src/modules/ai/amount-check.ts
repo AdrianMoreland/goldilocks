@@ -1,6 +1,6 @@
 /**
  * The guard behind "the model never makes up a price": every euro amount in a
- * reply must be a figure the assistant was actually given — by a price lookup,
+ * reply must be a figure the assistant was actually given - by a price lookup,
  * by the question itself, or by the procedures. Anything else (a hallucinated
  * price, a total the model worked out itself) is reported so the staff member
  * checks it before it reaches a customer.

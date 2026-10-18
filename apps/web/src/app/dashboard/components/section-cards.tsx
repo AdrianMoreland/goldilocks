@@ -21,7 +21,7 @@ const FRESHNESS_DOT_COLOR: Record<MetalCardData["freshness"], string> = {
 const FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
     fresh: "Fresh",
     stale: "Stale",
-    fallback: "Live fetch failed — showing last known price",
+    fallback: "Live fetch failed - showing last known price",
     failed: "Failed to fetch",
 }
 
@@ -196,7 +196,7 @@ export function SectionCards({
                         )}
                     </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Click to type your own spot price — Enter to apply, Esc to cancel</TooltipContent>
+                <TooltipContent side="bottom">Click to type your own spot price - Enter to apply, Esc to cancel</TooltipContent>
             </Tooltip>
 
             {isFrozen ? (

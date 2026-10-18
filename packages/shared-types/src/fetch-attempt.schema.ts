@@ -20,7 +20,7 @@ export const FetchMetricsSchema = z.object({
   totalAttempts24h: z.number(),
   failureCount24h: z.number(),
   avgLatencyMs: z.number(),
-  /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit — in-memory since process start, not a 24h window. */
+  /** Fraction (0-1) of the launch-page-load cascade's cache reads that hit - in-memory since process start, not a 24h window. */
   cacheHitRatio: z.number(),
 });
 

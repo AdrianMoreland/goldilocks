@@ -67,7 +67,7 @@ export class ErrorLogService {
         };
         await this.store(entry);
         this.logger.error(
-            `[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` — ${entry.detail}` : ''}`,
+            `[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` - ${entry.detail}` : ''}`,
         );
         return reference;
     }

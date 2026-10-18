@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
@@ -26,7 +26,6 @@ import {
     planAutolinks,
     shareTermsAcrossBlocks,
     type KbArticleLayout,
-    type KbGlanceChip,
     type KbLayoutEntry,
     type KbRenderBlock,
     type KbSectionKind,
@@ -79,7 +78,6 @@ function Callout({ tone, icon, title, children }: { tone: 'unconfirmed' | 'propo
 interface RenderContext {
     article: KnowledgeArticle;
     library: KnowledgeLibrary;
-    highlightStep: string | null;
 }
 
 /** One piece of a section body, drawn the way the layout rules decided. */
@@ -98,7 +96,6 @@ function Block({ block, ctx, anchor, terms, className }: { block: KbRenderBlock;
                     variant={block.variant}
                     itemLines={block.itemLines}
                     idPrefix={anchor || 'intro'}
-                    highlightId={ctx.highlightStep}
                 />
             );
 
@@ -242,55 +239,16 @@ function NextCard({ layout, article, library, id }: { layout: KbArticleLayout; a
         >
             <span className="min-w-0">
                 <span className={cn('block text-xs font-extrabold tracking-wider uppercase', tone ? TONE[tone].text : 'text-primary-text')}>Next step</span>
-                <span className="block text-lg leading-snug font-bold">{title.replace(/^Business Central — /, '')}</span>
+                <span className="block text-lg leading-snug font-bold">{title.replace(/^Business Central [—-] /, '')}</span>
             </span>
             <ArrowRight className={cn('ml-auto size-6 shrink-0', tone ? TONE[tone].text : 'text-primary-text')} aria-hidden />
         </Link>
     );
 }
 
-function AtAGlance({ chips, tone, onJump }: { chips: KbGlanceChip[]; tone: 'price' | 'buyback' | null; onJump: (chip: KbGlanceChip) => void }) {
-    if (chips.length === 0) return null;
-    return (
-        <section aria-label="At a glance" className="mb-5 rounded-2xl border bg-muted/40 px-4 pt-3.5 pb-4">
-            <p className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                <ListOrdered className="size-3.5" aria-hidden /> At a glance
-                <span className="font-medium tracking-normal normal-case">· tap a step to jump to it</span>
-            </p>
-            <ol className="flex flex-wrap items-stretch gap-x-1 gap-y-2">
-                {chips.map((chip, index) => (
-                    <li key={`${chip.anchor}-${chip.step ?? index}`} className="flex items-center gap-1">
-                        {index > 0 && <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden />}
-                        <button
-                            type="button"
-                            onClick={() => onJump(chip)}
-                            className={cn(
-                                'flex min-h-10 items-center gap-2 rounded-[10px] border bg-card py-1.5 pr-3 pl-2 text-left text-sm leading-snug font-medium transition-colors hover:bg-muted',
-                                chip.stop ? 'border-stop-border bg-stop-bg text-stop-ink hover:bg-stop-bg' : 'border-border',
-                                FOCUS,
-                            )}
-                        >
-                            <span
-                                className={cn(
-                                    'flex size-[22px] shrink-0 items-center justify-center rounded-full text-xs font-extrabold',
-                                    chip.stop ? 'bg-stop text-white' : tone ? TONE[tone].fill : 'bg-primary text-primary-foreground',
-                                )}
-                            >
-                                {chip.stop ? <OctagonMinus className="size-3.5" aria-label="Stop" /> : index + 1}
-                            </span>
-                            {chip.label}
-                        </button>
-                    </li>
-                ))}
-            </ol>
-        </section>
-    );
-}
-
 export function ArticleSections({ article, library, layout }: { article: KnowledgeArticle; library: KnowledgeLibrary; layout: KbArticleLayout }) {
     const { doc, sections } = article;
     const { hash } = useLocation();
-    const navigate = useNavigate();
     const tone = flowBarFor(doc.slug)?.bar.tone ?? null;
 
     // Which words link to another SOP, decided once for the whole article so each concept is linked at its first mention only.
@@ -313,39 +271,19 @@ export function ArticleSections({ article, library, layout }: { article: Knowled
     const cards = layout.entries.filter(asCard);
 
     const [open, setOpen] = useState<Record<string, boolean>>({});
-    // A section with no heading has no button to open it, so it is never folded.
-    const isOpen = (entry: KbLayoutEntry) => !entry.section.heading || (open[entry.section.anchor] ?? !entry.collapsed);
+    // Every section starts folded, on every visit (the state is not remembered). Two exceptions: a section with no
+    // heading has no button to open it, and a STOP card stays open because a hidden warning is no warning.
+    const isOpen = (entry: KbLayoutEntry) => !entry.section.heading || (open[entry.section.anchor] ?? entry.kind === 'stop');
     const setCard = useCallback((anchor: string, value: boolean) => setOpen((current) => ({ ...current, [anchor]: value })), []);
 
-    // A link to a folded section opens it, so the reader lands on text and not on a closed card.
+    // A link to a section opens that section and folds the rest, so the reader lands on it alone.
     useEffect(() => {
-        if (targetAnchor) setOpen((current) => (current[targetAnchor] === true ? current : { ...current, [targetAnchor]: true }));
+        if (targetAnchor) setOpen({ [targetAnchor]: true });
     }, [targetAnchor]);
 
-    const foldable = cards.filter((entry) => entry.collapsed);
+    const foldable = cards.filter((entry) => entry.section.heading && entry.kind !== 'stop');
 
-    const [highlightStep, setHighlightStep] = useState<string | null>(null);
-    const timer = useRef<number | undefined>(undefined);
-    useEffect(() => () => window.clearTimeout(timer.current), []);
-
-    const jump = (chip: KbGlanceChip) => {
-        if (!chip.step) {
-            navigate(kbArticlePath(doc.slug, chip.anchor), { replace: true });
-            return;
-        }
-        setCard(chip.anchor, true);
-        const id = `${chip.anchor}-step-${chip.step}`;
-        requestAnimationFrame(() => {
-            const element = document.getElementById(id);
-            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            element?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
-            setHighlightStep(id);
-            window.clearTimeout(timer.current);
-            timer.current = window.setTimeout(() => setHighlightStep(null), 1700);
-        });
-    };
-
-    const ctx: RenderContext = { article, library, highlightStep };
+    const ctx: RenderContext = { article, library };
 
     return (
         <div style={toneStyle(tone)}>
@@ -357,8 +295,6 @@ export function ArticleSections({ article, library, layout }: { article: Knowled
                     <Blocks entry={lead} ctx={ctx} terms={autolinks.get(lead.section.anchor)} className="text-foreground/85 [&_p]:text-[19px] [&_p]:leading-[1.55] [&_p]:text-pretty" />
                 </section>
             )}
-
-            <AtAGlance chips={layout.glance} tone={tone} onJump={jump} />
 
             {foldable.length > 0 && (
                 <div className="mb-2.5 flex justify-end gap-2">
@@ -505,13 +441,11 @@ function SectionCard({
                 </div>
             )}
 
-            {!open && entry.preview && <p className="-mt-1.5 px-4 pr-5 pb-3.5 pl-[3.5rem] text-sm leading-snug text-muted-foreground">{entry.preview}</p>}
-
             <div id={bodyId} hidden={!open} className="px-4.5 pt-0.5 pb-4.5">
                 {section.hasTodo && (
                     <Callout tone="unconfirmed" icon={<TriangleAlert className="size-4" aria-hidden />} title="Not confirmed yet">
                         {plural(section.todos.length, 'fact')} in this section still {section.todos.length === 1 ? 'needs' : 'need'} confirming. Don’t rely on it with a
-                        customer — ask {owner}.
+                        customer - ask {owner}.
                     </Callout>
                 )}
                 {section.isProposed && (

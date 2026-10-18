@@ -8,7 +8,7 @@ export const queryKeys = {
     marketMode: ['market-mode'] as const,
     roadmap: ['roadmap'] as const,
     trade: {
-        // Shared by the Trade tab and Portfolio's P/L subtab — same key on
+        // Shared by the Trade tab and Portfolio's P/L subtab - same key on
         // purpose (see usePortfolioPL), so opening both doesn't double the
         // network call for the same bootstrap data.
         bootstrap: (metal: string) => ['trade', 'bootstrap', metal] as const,

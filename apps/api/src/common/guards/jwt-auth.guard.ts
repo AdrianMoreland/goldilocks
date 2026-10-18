@@ -16,7 +16,7 @@ export interface RequestWithUser extends Request {
 
 /**
  * Registered globally (APP_GUARD) so a route is protected unless it is
- * explicitly marked @Public() — a forgotten decorator fails closed. Routes
+ * explicitly marked @Public() - a forgotten decorator fails closed. Routes
  * that still declare @UseGuards(JwtAuthGuard) keep working: the second run
  * sees request.user already populated and skips, rather than repeating the
  * Supabase + DB lookup for the same token.

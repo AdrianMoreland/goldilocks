@@ -13,7 +13,7 @@ describe('computeTransactionPrice float noise', () => {
 });
 
 describe('computeTransactionPrice', () => {
-  describe('buying (dealer sells to customer — rounds UP, favors the dealer)', () => {
+  describe('buying (dealer sells to customer - rounds UP, favors the dealer)', () => {
     it('adds the premium on top of the base price', () => {
       expect(computeTransactionPrice(1000, 'buying', 10)).toBe(1100);
     });
@@ -34,7 +34,7 @@ describe('computeTransactionPrice', () => {
     });
   });
 
-  describe('selling (dealer buys from customer — rounds DOWN, favors the dealer)', () => {
+  describe('selling (dealer buys from customer - rounds DOWN, favors the dealer)', () => {
     it('subtracts the discount from the base price', () => {
       expect(computeTransactionPrice(1000, 'selling', 10)).toBe(900);
     });

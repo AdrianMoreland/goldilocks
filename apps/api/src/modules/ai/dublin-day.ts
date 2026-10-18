@@ -7,7 +7,7 @@ export function dublinDate(at: Date): string {
     return at.toLocaleDateString('en-CA', { timeZone: 'Europe/Dublin' });
 }
 
-/** The instant the current Irish day began — UTC midnight, or an hour earlier during summer time. */
+/** The instant the current Irish day began - UTC midnight, or an hour earlier during summer time. */
 export function startOfDublinDay(at: Date): Date {
     const today = dublinDate(at);
     const [year, month, day] = today.split('-').map(Number);

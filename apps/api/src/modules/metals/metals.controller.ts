@@ -31,7 +31,7 @@ import {
 } from '../../common/dto/dtos';
 
 /**
- * Ops-only controller. The frontend gets spot prices via GET /market-data —
+ * Ops-only controller. The frontend gets spot prices via GET /market-data -
  * this controller exists purely for admin-only operational actions: a
  * manual refresh, pausing/resuming the 10-minute price-refresh cron, and
  * clearing the spot-price cache.
@@ -75,7 +75,7 @@ export class MetalsController {
     @ApiOperation({
         summary: 'Pause or resume the 10-minute price-refresh cron (admin)',
         description:
-            'A manual runtime pause — resets to running on the next restart/redeploy, not a persisted setting.',
+            'A manual runtime pause - resets to running on the next restart/redeploy, not a persisted setting.',
     })
     async toggleCron(): Promise<{ running: boolean }> {
         const running = await this.metalsCron.setPriceCronEnabled(
@@ -100,7 +100,7 @@ export class MetalsController {
     @ApiOperation({
         summary: 'Retry a live fetch for one metal (admin)',
         description:
-            'The vendor API always returns all four metals in one call — this makes that same call but only stores/reports the one metal retried.',
+            'The vendor API always returns all four metals in one call - this makes that same call but only stores/reports the one metal retried.',
     })
     @ApiResponse({ status: 200, type: RawSpotPriceResponseDto })
     async retryMetal(
@@ -110,7 +110,7 @@ export class MetalsController {
 
         if (!result) {
             throw new NotFoundException(
-                `Retry didn't return a usable rate for ${metal} — the vendor API may still be down.`,
+                `Retry didn't return a usable rate for ${metal} - the vendor API may still be down.`,
             );
         }
 

@@ -16,7 +16,7 @@ import { KnowledgeService } from '../src/modules/knowledge/knowledge.service';
  *   pnpm --filter api kb:import --force              # overwrite a stored SOP with a higher version
  *   pnpm --filter api kb:import --dir <path>
  *
- * Built by hand rather than through Nest's container — the service only
+ * Built by hand rather than through Nest's container - the service only
  * needs Prisma, so a full application context (Supabase, Redis, cron…) would
  * be pure overhead for a one-off script.
  */
@@ -82,7 +82,7 @@ async function main() {
         if (!report.applied) {
             console.log(
                 flag('dry-run')
-                    ? '\nDry run — nothing written.'
+                    ? '\nDry run - nothing written.'
                     : '\nNothing written: fix the problems above and re-run.',
             );
             process.exit(

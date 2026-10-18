@@ -1,6 +1,6 @@
 ---
 slug: bc-purchase-orders
-title: Business Central — buying from a seller (Purchase Order)
+title: Business Central - buying from a seller (Purchase Order)
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

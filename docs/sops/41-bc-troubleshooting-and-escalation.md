@@ -1,6 +1,6 @@
 ---
 slug: bc-troubleshooting-and-escalation
-title: Business Central — when something goes wrong, and when to stop
+title: Business Central - when something goes wrong, and when to stop
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

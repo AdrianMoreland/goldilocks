@@ -272,7 +272,7 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
                             />
                         </span>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Select every row shown — they all go into the Trade cart and can be copied as a table</TooltipContent>
+                    <TooltipContent side="bottom">Select every row shown - they all go into the Trade cart and can be copied as a table</TooltipContent>
                 </Tooltip>
             </div>
         ),

@@ -1,6 +1,6 @@
 ---
 slug: bc-sales-quote
-title: Business Central — create and send a Sales Quote
+title: Business Central - create and send a Sales Quote
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

@@ -13,7 +13,7 @@ export function useRefreshSpotPrices() {
         mutationFn: refreshMarketData,
 
         onSuccess: () => {
-            // The refresh endpoint only updates spot prices in the DB/cache —
+            // The refresh endpoint only updates spot prices in the DB/cache -
             // it does NOT return priced products. Invalidate the combined
             // market-data query rather than patching a spot-price slice in
             // isolation, so products get recalculated against fresh prices too.

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { KB_BC_HUB, KB_FLOW_BARS, KB_GUIDE, flowBarFor, flowNextSlug, guideLibraryTargets } from './kb-guide';
+import { KB_BC_HUB, KB_FLOW_BARS, KB_GUIDE, compareProcedures, flowBarFor, flowNextSlug, guideLibraryTargets, procedureFlow } from './kb-guide';
 import { parseKbDocument } from './kb-markdown';
 
 // The guide is the desk's front door. If an SOP owner renames a heading or a
@@ -69,7 +69,7 @@ describe('KB_GUIDE against the real SOPs (docs/sops)', () => {
 
   it('only marks a SOP as pending while it really does not exist yet', () => {
     for (const target of targets.filter((t) => t.pendingSop)) {
-      expect(docs.has(target.slug), `"${target.slug}" now exists — remove pendingSop`).toBe(false);
+      expect(docs.has(target.slug), `"${target.slug}" now exists - remove pendingSop`).toBe(false);
     }
   });
 
@@ -85,5 +85,24 @@ describe('KB_GUIDE against the real SOPs (docs/sops)', () => {
       ...KB_FLOW_BARS.map((bar) => bar.label),
     ].filter((text) => /^(sell|buy)/i.test(text));
     expect(labels).toEqual([]);
+  });
+});
+
+describe('procedure order', () => {
+  it('puts general SOPs first, then the Price flow in working order, then the buy-in flow', () => {
+    const slugs = ['bc-purchase-orders', 'bc-collection-and-shipment', 'bc-quick-start', 'bc-new-customer', 'bc-customer-sales-workflow', 'bc-new-vendor', 'bc-sales-quote'];
+    expect([...slugs].sort(compareProcedures)).toEqual([
+      'bc-quick-start',
+      'bc-customer-sales-workflow',
+      'bc-new-customer',
+      'bc-sales-quote',
+      'bc-collection-and-shipment',
+      'bc-new-vendor',
+      'bc-purchase-orders',
+    ]);
+  });
+
+  it('counts the one-page sales overview as part of the Price flow', () => {
+    expect(procedureFlow('bc-customer-sales-workflow')?.bar.tone).toBe('price');
   });
 });

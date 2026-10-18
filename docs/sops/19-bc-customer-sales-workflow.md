@@ -1,6 +1,6 @@
 ---
 slug: bc-customer-sales-workflow
-title: Business Central — selling to a customer, start to finish
+title: Business Central - selling to a customer, start to finish
 category: systems
 jurisdiction: IE
 owner: Merrion Gold

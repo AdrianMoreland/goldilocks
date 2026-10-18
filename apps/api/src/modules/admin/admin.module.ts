@@ -17,7 +17,7 @@ import { SystemHealthService } from './system-health.service';
     imports: [
         TerminusModule,
         AuthModule, // JwtAuthGuard / RolesGuard
-        MetalsModule, // FetchAttemptService — last good price fetch
+        MetalsModule, // FetchAttemptService - last good price fetch
         PrismaModule,
         AuditLogModule,
         RequestMetricsModule,

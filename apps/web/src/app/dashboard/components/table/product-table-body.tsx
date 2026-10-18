@@ -38,7 +38,7 @@ export function ProductTableBody({
                 position:sticky: with h-full, this div (and its inner
                 overflow-y-auto child) never actually got a bounded height
                 once a sibling existed above it, so nothing here truly
-                scrolled — sticky had no real scroll container to lock to. */}
+                scrolled - sticky had no real scroll container to lock to. */}
             <div className="min-h-0 flex-1 overflow-y-auto">
                 <Table className="type-table-item text-base">
                     <TableHeader className="bg-muted">

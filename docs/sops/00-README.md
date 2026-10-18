@@ -1,6 +1,6 @@
 ---
 slug: readme
-title: Knowledge Center — How SOPs are written
+title: Knowledge Center - How SOPs are written
 category: meta
 jurisdiction: all
 owner: Merrion Gold
@@ -32,7 +32,7 @@ This folder holds the Standard Operating Procedures (SOPs) for the desk. Each fi
 - No content that exists only as a screenshot.
 
 ## Jurisdiction-specific rules
-Where Ireland and the UK differ (VAT, AML, ID), use one section per jurisdiction, e.g. `## VAT — Ireland` and `## VAT — UK`. Never mix two jurisdictions in one section.
+Where Ireland and the UK differ (VAT, AML, ID), use one section per jurisdiction, e.g. `## VAT - Ireland` and `## VAT - UK`. Never mix two jurisdictions in one section.
 
 ## Links
 - Link to another SOP with `[[slug]]`, or to a section with `[[slug#section]]`.

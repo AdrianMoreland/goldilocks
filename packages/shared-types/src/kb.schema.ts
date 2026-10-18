@@ -26,7 +26,17 @@ export type KbJurisdiction = z.infer<typeof KbJurisdictionEnum>;
 export const KbStatusEnum = z.enum(['draft', 'approved', 'retired']);
 export type KbStatus = z.infer<typeof KbStatusEnum>;
 
-/** Matches the README's slug rule. Never changes after approval — links depend on it. */
+/**
+ * Which branches may read a SOP. `ie_only` (the default) is what every SOP was before branches existed;
+ * `all` is shown to UK branches too. An admin classifies each SOP - nothing is shared by accident.
+ */
+export const KbVisibilityEnum = z.enum(['all', 'ie_only']);
+export type KbVisibility = z.infer<typeof KbVisibilityEnum>;
+
+export const SetKbVisibilityRequestSchema = z.object({ visibility: KbVisibilityEnum });
+export type SetKbVisibilityRequest = z.infer<typeof SetKbVisibilityRequestSchema>;
+
+/** Matches the README's slug rule. Never changes after approval - links depend on it. */
 export const KbSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'slug must be lowercase, hyphenated');
 
 const isoDay = z.iso.date();
@@ -52,6 +62,7 @@ export const KbDocumentSchema = z.object({
   jurisdiction: KbJurisdictionEnum,
   owner: z.string(),
   status: KbStatusEnum,
+  visibility: KbVisibilityEnum.default('ie_only'),
   version: z.number().int(),
   contentUpdatedOn: isoDay,
   markdown: z.string(),

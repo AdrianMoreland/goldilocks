@@ -22,15 +22,15 @@ pnpm dev
 
 This starts the API on `http://localhost:4000` (Swagger docs at `/docs`) and the web app on `http://localhost:5173`.
 
-Each app reads its own `.env` — see `apps/api/.env.example` for the required variables (Supabase, Redis, MetalPrice API).
+Each app reads its own `.env` - see `apps/api/.env.example` for the required variables (Supabase, Redis, MetalPrice API).
 
 ## Scripts
 
-- `pnpm dev` — run both apps in watch mode
-- `pnpm build` — build all packages/apps
-- `pnpm check-types` — type-check the workspace (`shared-types` is not clean yet: its spec files have strict-null errors)
-- `pnpm --filter api exec jest` — API tests
-- `pnpm --filter @goldilocks/shared-types test` — shared-types tests
+- `pnpm dev` - run both apps in watch mode
+- `pnpm build` - build all packages/apps
+- `pnpm check-types` - type-check the workspace (`shared-types` is not clean yet: its spec files have strict-null errors)
+- `pnpm --filter api exec jest` - API tests
+- `pnpm --filter @goldilocks/shared-types test` - shared-types tests
 
 ## CI
 

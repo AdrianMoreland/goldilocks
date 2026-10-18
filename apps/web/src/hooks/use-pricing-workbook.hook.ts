@@ -52,7 +52,7 @@ export function createMetalCard({
  * A metal reads as "failed" if the backend couldn't get a usable price for
  * it anywhere (still degraded even after cache→DB→live); "fallback" if a
  * live fetch was just attempted and failed but a last-known-good DB price
- * exists (checked before the age-based "stale" check — a fallback price
+ * exists (checked before the age-based "stale" check - a fallback price
  * might technically still be within the staleness window but the fact a
  * fetch just failed is the more important thing to surface); "stale" if
  * its snapshot is older than the cron's normal cadence allows; otherwise
@@ -104,11 +104,11 @@ function useDebouncedRecalc(
 
 export function usePricingWorkbook() {
     // Gold selected by default on first launch, matching the chart's default
-    // "selected metal only" view — see ChartAreaInteractive's chartMode.
+    // "selected metal only" view - see ChartAreaInteractive's chartMode.
     // Remembered per user afterwards.
     const [selectedMetal, setSelectedMetal] = useUserPreference<MetalType | null>('selected-metal', 'GOLD');
     // Overrides (a frozen or hand-typed spot) survive a page refresh but not a
-    // closed tab, and belong to the signed-in user — a clerk's manual quote
+    // closed tab, and belong to the signed-in user - a clerk's manual quote
     // shouldn't leak into the next person's session at a shared counter PC.
     const [spotOverrides, setSpotOverrides] = useUserSessionState<Partial<Record<MetalType, number>>>('spot-overrides', {});
 

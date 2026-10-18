@@ -14,10 +14,10 @@ import type {
 } from '../auth-provider.port';
 
 /**
- * Supabase implementation of AuthProviderPort — the only file in the app
+ * Supabase implementation of AuthProviderPort - the only file in the app
  * that should ever call SupabaseService's auth methods. Reuses the existing
  * shared SupabaseService (anon-key client) rather than opening yet another
- * Supabase client — this module previously had three separate `createClient`
+ * Supabase client - this module previously had three separate `createClient`
  * calls scattered around; this is now the one place login/token-verification
  * actually happens.
  */
@@ -37,7 +37,7 @@ export class SupabaseAuthProvider implements AuthProviderPort {
         } catch (error) {
             // Only a definite "no" from Supabase is a credentials problem. A
             // network failure, 5xx or rate limit must not read as "wrong
-            // password" — staff would keep retrying against an outage.
+            // password" - staff would keep retrying against an outage.
             if (isRejectedCredentials(error)) {
                 throw new UnauthorizedException('Invalid email or password');
             }

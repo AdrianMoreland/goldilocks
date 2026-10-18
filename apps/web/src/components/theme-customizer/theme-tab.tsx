@@ -370,7 +370,7 @@ export function ThemeTab({ onImportClick }: ThemeTabProps) {
           </AccordionTrigger>
           <AccordionContent className="space-y-5 border-t px-4 pt-3 pb-4">
             <p className="text-muted-foreground text-xs">
-              Editing {isDarkMode ? "dark" : "light"} mode. Switch mode above to edit the other one — each keeps its own colours.
+              Editing {isDarkMode ? "dark" : "light"} mode. Switch mode above to edit the other one - each keeps its own colours.
             </p>
             {COLOR_GROUPS.map((group) => (
               <div key={group.title} className="space-y-3">

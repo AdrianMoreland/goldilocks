@@ -1,12 +1,14 @@
 import * as React from "react"
 import { useAuthApi } from "@/api/auth.api"
-import type { SessionUser } from "@goldilocks/shared-types"
+import { capabilitiesFor, type Capabilities, type SessionUser } from "@goldilocks/shared-types"
 import { SESSION_EXPIRED_EVENT, tokenStore } from "@/lib/session"
 
 interface AuthContextValue {
     user: SessionUser | null
     isAuthenticated: boolean
     isAdmin: boolean
+    /** What this person's branch allows. UX only — the API refuses the same things on its own. */
+    capabilities: Capabilities
     /** True only while restoring a session from a stored token on first load. */
     isLoading: boolean
     login: (email: string, password: string) => Promise<void>
@@ -72,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             isAuthenticated: user !== null,
             isAdmin: user?.admin === true,
+            capabilities: capabilitiesFor({ branchRegion: user?.branch?.region ?? null, admin: user?.admin === true }),
             isLoading,
             login,
             logout,

@@ -13,7 +13,7 @@ export interface CitableSection {
 export interface BuiltPrompt {
     /** The assistant's rules followed by every approved SOP. Identical input → identical text. */
     systemPrompt: string;
-    /** Which SOPs (and versions) the prompt was built from — recorded with every answer. */
+    /** Which SOPs (and versions) the prompt was built from - recorded with every answer. */
     corpusHash: string;
     documents: number;
     /** Every citable section, keyed `slug#anchor`. */
@@ -117,17 +117,17 @@ function renderDocument(
         if (section.hasTodo) {
             // The README's rule: the assistant never answers from a section with an unresolved TODO. The
             // text is withheld entirely (not merely labelled), so it can't leak into an answer by accident.
-            marker = ` — NOT CONFIRMED: do not answer from this section; tell the user it is not confirmed yet and to ask ${doc.owner}`;
+            marker = ` - NOT CONFIRMED: do not answer from this section; tell the user it is not confirmed yet and to ask ${doc.owner}`;
             out.push(
-                `--- Section: ${label} — cite as ${cite}${marker}`,
+                `--- Section: ${label} - cite as ${cite}${marker}`,
                 '(text withheld until confirmed)',
             );
             continue;
         }
-        if (section.isProposed) marker = ' — PROPOSAL (not in force yet)';
+        if (section.isProposed) marker = ' - PROPOSAL (not in force yet)';
 
         out.push(
-            `--- Section: ${label} — cite as ${cite}${marker}`,
+            `--- Section: ${label} - cite as ${cite}${marker}`,
             hideUnavailableLinks(section.markdown, known),
         );
     }

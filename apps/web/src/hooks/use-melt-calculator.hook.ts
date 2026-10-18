@@ -9,12 +9,12 @@ import { GRAMS_PER_TROY_OUNCE, MELT_CATEGORIES } from '@goldilocks/shared-types'
 const DEBOUNCE_MS = 150;
 
 /**
- * Melt/scrap calculator — split out of useTradeTools so it can be reasoned
+ * Melt/scrap calculator - split out of useTradeTools so it can be reasoned
  * about (and tested) independently of the buy/sell cart, which it shares no
  * state with beyond "is the melt panel currently showing". Ported from the
  * Merrion Gold Apps Script tool's Api.Melt.gs.
  *
- * `enabled` gates the debounced calculation — the Trade tab only shows this
+ * `enabled` gates the debounced calculation - the Trade tab only shows this
  * panel while selling, and only actually queries while it's visible.
  * The spot is Melt's own tool spot for the category's metal: it follows the
  * card until edited, and is independent of the Trade tab's spot.

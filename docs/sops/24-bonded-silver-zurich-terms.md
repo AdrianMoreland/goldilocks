@@ -1,6 +1,6 @@
 ---
 slug: bonded-silver-zurich-terms
-title: Bonded silver in Zurich — fees, withdrawal and sale terms
+title: Bonded silver in Zurich - fees, withdrawal and sale terms
 category: storage
 jurisdiction: IE
 owner: Merrion Gold

@@ -9,7 +9,7 @@ const schema = z.object({
     metal: MetalTypeEnum.describe('The metal to read the spot price of.'),
 });
 
-/** "What is gold at?" — the spot price the dashboard is quoting from for one metal. */
+/** "What is gold at?" - the spot price the dashboard is quoting from for one metal. */
 @Injectable()
 export class GetSpotTool implements AiTool<z.infer<typeof schema>> {
     readonly name = 'getSpot';

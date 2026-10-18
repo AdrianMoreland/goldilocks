@@ -81,7 +81,7 @@ export function useApi() {
                 statusCode: res.status,
                 method,
                 path: url,
-                // A 5xx with a reference is already in the server log — keep
+                // A 5xx with a reference is already in the server log - keep
                 // it here for this browser's history, but don't send a copy.
                 reference: serverReference ?? undefined,
                 reportable: serverFault && !serverReference,
@@ -89,7 +89,7 @@ export function useApi() {
 
             if (serverFault) {
                 toast.error(message || 'Something went wrong on the server.', {
-                    description: `Ref ${reference} — details in Admin panel → Error log.`,
+                    description: `Ref ${reference} - details in Admin panel → Error log.`,
                 });
             } else {
                 toast.error(message || `Request failed (${res.status})`);
@@ -97,7 +97,7 @@ export function useApi() {
             throw new ApiError(message || `HTTP ${res.status}`, res.status, reference);
         }
 
-        // The API is answering — a good moment to send anything recorded while it wasn't.
+        // The API is answering - a good moment to send anything recorded while it wasn't.
         void flushClientErrors();
 
         const ct = res.headers.get('Content-Type');

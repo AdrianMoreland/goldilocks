@@ -69,8 +69,8 @@ function linkableText(markdown: string): string {
 
 /**
  * Decides, once for a whole article, which section links which term. A term
- * is linked only where it first appears — repeating a link on every mention
- * turns a page into a wall of underlines — and never to the article you are
+ * is linked only where it first appears - repeating a link on every mention
+ * turns a page into a wall of underlines - and never to the article you are
  * already reading. `isAvailable` lets the caller drop targets that aren't in
  * the library (retired, or not written yet).
  */

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Archive, BadgeCheck, PencilLine, Undo2 } from 'lucide-react';
+import { Archive, BadgeCheck, Globe, Lock, PencilLine, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useKnowledgeAdmin } from '@/hooks/use-knowledge-admin.hook';
 import type { KnowledgeArticle } from '../utils/library';
@@ -20,9 +20,9 @@ export function ArticleAdminBar({
     onEdit: () => void;
 }) {
     const { doc, todoSectionCount } = article;
-    const { changeStatus } = useKnowledgeAdmin(doc.slug);
+    const { changeStatus, changeVisibility } = useKnowledgeAdmin(doc.slug);
     const [confirmRetire, setConfirmRetire] = useState(false);
-    const busy = changeStatus.isPending;
+    const busy = changeStatus.isPending || changeVisibility.isPending;
 
     const hasNoOwner = /^todo$/i.test(doc.owner.trim());
     const approveBlocked =
@@ -47,7 +47,7 @@ export function ArticleAdminBar({
                     size="sm"
                     onClick={() => changeStatus.mutate('approved')}
                     disabled={busy || approveBlocked !== null || editing}
-                    title={approveBlocked ?? (editing ? 'Save or cancel your edit first' : 'Approve — dates it today and bumps the version')}
+                    title={approveBlocked ?? (editing ? 'Save or cancel your edit first' : 'Approve - dates it today and bumps the version')}
                 >
                     <BadgeCheck aria-hidden /> Approve
                 </Button>
@@ -83,6 +83,17 @@ export function ArticleAdminBar({
                         <Archive aria-hidden /> Retire
                     </Button>
                 ))}
+
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => changeVisibility.mutate(doc.visibility === 'all' ? 'ie_only' : 'all')}
+                disabled={busy}
+                title={doc.visibility === 'all' ? 'Shown to every branch, UK included. Click to keep it to Irish branches.' : 'Shown to Irish branches only. Click to share it with UK branches.'}
+            >
+                {doc.visibility === 'all' ? <Globe aria-hidden /> : <Lock aria-hidden />}
+                {doc.visibility === 'all' ? 'Shared with UK' : 'Irish branches only'}
+            </Button>
 
             {doc.status === 'draft' && approveBlocked && (
                 <span className="text-sm text-muted-foreground">Can’t approve yet: {approveBlocked}.</span>
