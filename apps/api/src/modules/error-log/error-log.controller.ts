@@ -19,13 +19,17 @@ import {
     ErrorLogQueryDto,
 } from '../../common/dto/dtos';
 import { ErrorLogService } from './error-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @ApiTags('errors')
 @Controller('errors')
 @Roles('admin')
 @ApiBearerAuth()
 export class ErrorLogController {
-    constructor(private readonly errorLog: ErrorLogService) {}
+    constructor(
+        private readonly errorLog: ErrorLogService,
+        private readonly audit: AuditLogService,
+    ) {}
 
     @Get()
     @ApiOperation({
@@ -38,7 +42,13 @@ export class ErrorLogController {
 
     @Delete()
     @ApiOperation({ summary: 'Clear the error log (admin)' })
-    async clear() {
+    async clear(@Req() request: RequestWithUser) {
+        // Audited first: clearing destroys evidence, so it must not happen without a record.
+        await this.audit.record(
+            request.user.email,
+            'error-log-clear',
+            'Cleared the error log',
+        );
         await this.errorLog.clear();
         return { message: 'Error log cleared' };
     }
