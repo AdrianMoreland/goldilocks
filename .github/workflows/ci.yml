@@ -57,6 +57,9 @@ jobs:
       - name: ESLint (web)
         run: pnpm --filter web lint
 
+      - name: Web tests
+        run: pnpm --filter web test
+
       # Includes `tsc -b`, so this is also the web type-check.
       - name: Build web
         run: pnpm --filter web build
