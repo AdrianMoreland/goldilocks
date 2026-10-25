@@ -3,6 +3,7 @@ import { MetalsController } from './metals.controller';
 import { MetalsProvider } from './metals.provider';
 import { MetalsCron } from './metals.cron';
 import { AuthModule } from '../auth/auth.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { MetalPriceApiModule } from '../../infrastructure/metal-price-api/metal-price-api.module';
@@ -18,6 +19,7 @@ import { SpotPriceRetentionService } from './spot-price-retention.service';
         RedisModule, // MetalsProvider reads/writes the spot-price cache
         PrismaModule, // MetalsProvider reads/writes spot history
         MetalPriceApiModule, // external vendor API - infra concern, not a "metals" concern
+        AuditLogModule, // the cron pause/resume is audited
     ],
     controllers: [MetalsController],
     providers: [

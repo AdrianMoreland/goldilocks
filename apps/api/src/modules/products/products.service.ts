@@ -65,6 +65,7 @@ export class ProductsService {
             isActive,
             category,
             description,
+            expectedUpdatedAt,
         } = dto;
         return this.productsProvider.update(
             id,
@@ -82,6 +83,7 @@ export class ProductsService {
                 description,
             },
             actor,
+            expectedUpdatedAt,
         );
     }
 

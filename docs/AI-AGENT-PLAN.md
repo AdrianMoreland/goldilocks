@@ -151,7 +151,7 @@ Reasoning-style models can add hidden output tokens (billed as output) and tool 
 
 ## 9. Data model changes
 
-Two additive migrations (same careful process as the Knowledge Center: idempotent SQL, apply, verify the schema diff is empty, then record with `migrate resolve` - **not** `migrate deploy`, because the migration history table is out of sync with the database).
+Two additive migrations (same careful process as the Knowledge Center: idempotent SQL, apply, verify the schema diff is empty, then record with `migrate resolve`; the history was re-checked in sync on 2026-10-25, so `migrate deploy` is the normal route from now on).
 
 1. `branches`: add `region` (text), `phone` (text), `openingHours` (text), all nullable. Extend the shared schema, the admin "add branch" form and its API; seed Dublin and Belfast from the branch-directory SOP. (Overlaps roadmap 0.8, multi-branch data model; do not duplicate it.)
 2. `ai_question_logs`, `ai_answer_cache` (fields in §7). Indexes on `(createdAt)`, `(userId, createdAt)`, and the cache key.

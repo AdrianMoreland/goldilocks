@@ -53,6 +53,13 @@ jobs:
       - name: shared-types tests
         run: pnpm --filter @goldilocks/shared-types test
 
+      # Fails on errors only; the warnings (React hook rules, see apps/web/eslint.config.js) are the visible backlog.
+      - name: ESLint (web)
+        run: pnpm --filter web lint
+
+      - name: Web tests
+        run: pnpm --filter web test
+
       # Includes `tsc -b`, so this is also the web type-check.
       - name: Build web
         run: pnpm --filter web build

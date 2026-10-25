@@ -11,6 +11,7 @@
 		"prisma:generate": "pnpm --filter api prisma:generate",
 
 		"prisma:migrate": "pnpm --filter api prisma:migrate",
+		"prisma:deploy": "pnpm --filter api prisma:deploy",
 
 		"prisma:studio": "pnpm --filter api prisma studio",
 

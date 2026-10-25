@@ -97,6 +97,17 @@ describe('MetalsProvider.refreshAll', () => {
         );
     });
 
+    it('skips rows that already exist, so a repeated vendor timestamp does not fail the refresh', async () => {
+        const { provider, prisma, api } = build();
+        api.livePrices.mockResolvedValue(liveResponse(ALL_RATES));
+
+        await provider.refreshAll('CRON');
+
+        expect(prisma.metalSpotPrice.createMany).toHaveBeenCalledWith(
+            expect.objectContaining({ skipDuplicates: true }),
+        );
+    });
+
     it('falls back to the last stored price, flagged as a fallback, and writes nothing when the vendor fails', async () => {
         const { provider, prisma, api, spotCache, attempts } = build();
         api.livePrices.mockResolvedValue({ success: false, error: 'quota' });
