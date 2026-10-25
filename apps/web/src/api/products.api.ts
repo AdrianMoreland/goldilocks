@@ -14,6 +14,8 @@ export interface UpdateProductBody {
     stock?: number;
     vatRate?: number;
     isActive?: boolean;
+    /** The product's `updatedAt` when the form was opened; the API refuses the save if it has changed since. */
+    expectedUpdatedAt?: string;
     description?: string;
 }
 

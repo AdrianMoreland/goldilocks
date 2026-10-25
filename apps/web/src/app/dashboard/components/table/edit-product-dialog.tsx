@@ -39,7 +39,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
 
         setSaving(true)
         try {
-            await api.updateProduct(product.id, toProductBody(form))
+            await api.updateProduct(product.id, { ...toProductBody(form), expectedUpdatedAt: product.updatedAt })
             await queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all })
             toast.success(`${form.name.trim()} updated`)
             onOpenChange(false)

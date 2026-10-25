@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RawProduct, normalizeProductName } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
@@ -103,13 +103,20 @@ export class ProductsProvider {
         id: number,
         data: Partial<RawProduct>,
         actor: string,
+        expectedUpdatedAt?: string,
     ): Promise<RawProduct> {
-        return this.change(id, actor, 'edited', {
-            ...data,
-            ...(data.name === undefined
-                ? {}
-                : { name: normalizeProductName(data.name) }),
-        });
+        return this.change(
+            id,
+            actor,
+            'edited',
+            {
+                ...data,
+                ...(data.name === undefined
+                    ? {}
+                    : { name: normalizeProductName(data.name) }),
+            },
+            expectedUpdatedAt,
+        );
     }
 
     async softDelete(id: number, actor: string): Promise<RawProduct> {
@@ -138,11 +145,21 @@ export class ProductsProvider {
         actor: string,
         verb: string,
         data: Prisma.ProductUpdateInput,
+        expectedUpdatedAt?: string,
     ): Promise<RawProduct> {
         const after = await this.prisma.$transaction(async (tx) => {
             const previous = await tx.product.findUniqueOrThrow({
                 where: { id },
             });
+            // Checked inside the transaction, against the row we are about to replace.
+            if (
+                expectedUpdatedAt !== undefined &&
+                previous.updatedAt.toISOString() !== expectedUpdatedAt
+            ) {
+                throw new ConflictException(
+                    'This product was changed by someone else since you opened it. Reload the page and try again.',
+                );
+            }
             const next = await tx.product.update({ where: { id }, data });
             const changes = describeProductChange(
                 toRawProduct(previous),
