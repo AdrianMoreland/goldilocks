@@ -18,6 +18,10 @@ This section describes what's actually deployed **today**, not a target architec
 - **Postgres + Auth**: Supabase (already configured - `DATABASE_URL`/`DIRECT_URL` point at it, and Supabase Auth holds the two staff accounts). Nothing changes for deployment; the same project serves both dev and this demo.
 - **Redis**: `apps/api/.env` currently points at `redis://127.0.0.1:6379` - a **local-only** address that will not resolve on Railway. Before deploying, add Railway's Redis plugin (or reuse an existing Upstash instance) and set `REDIS_URL` to that real address. This is a required step, not optional - the product/spot-price cache-aside store will fail without it.
 
+### Database migrations
+
+Schema changes are Prisma migrations in `apps/api/prisma/migrations/` (never edit the database by hand). `prisma migrate status` was checked on 2026-10-25: all 12 migrations are recorded and the database matches the schema. To apply new migrations on each deploy, set the API service's Railway **pre-deploy command** to `pnpm --filter api prisma:deploy` (`prisma migrate deploy`: applies pending migrations only, never resets or prompts). If it fails, Railway aborts that deploy and the previous version keeps running. `DIRECT_URL` must be set on the service, because migrations cannot run through the pooler.
+
 ### Environment variables to set on the API service
 
 ```
