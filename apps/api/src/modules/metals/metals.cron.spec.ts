@@ -117,3 +117,20 @@ describe('MetalsCron pause/resume', () => {
         expect(job.start).toHaveBeenCalled();
     });
 });
+
+describe('MetalsCron.updateMetals', () => {
+    it('refreshes with the CRON trigger', async () => {
+        const { cron, provider } = build();
+        await cron.updateMetals();
+        expect(provider.refreshAll).toHaveBeenCalledWith('CRON');
+    });
+
+    it('does not throw when the refresh fails, so the next tick still runs', async () => {
+        const { cron } = build({
+            refreshAll: jest
+                .fn()
+                .mockRejectedValue(new Error('unique constraint')),
+        });
+        await expect(cron.updateMetals()).resolves.toBeUndefined();
+    });
+});
