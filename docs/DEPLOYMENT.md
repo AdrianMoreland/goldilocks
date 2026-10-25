@@ -6,7 +6,7 @@ Split out of `docs/ENGINEERING.md` (§13 and §14) so the engineering guide that
 
 ## 13. Deployment - current setup (simple, for the initial demo)
 
-This section describes what's actually deployed **today**, not a target architecture. It intentionally skips Docker, a secrets manager, Sentry, rate limiting, and API versioning - those are real production concerns for later, once this is more than an internal two-person tool being shown to one stakeholder. See §14 for what "later" should add.
+This section describes what's actually deployed **today**, not a target architecture. It intentionally skips Docker, a secrets manager, Sentry, and API versioning - those are real production concerns for later, once this is more than an internal two-person tool being shown to one stakeholder. See §14 for what "later" should add.
 
 ### Platform: Railway, two services in one project
 
@@ -33,6 +33,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_KEY=
 METALPRICE_API_KEY=
 REDIS_URL=              # ← must be a real host, see above
+FRONTEND_URL=           # the web app's origin(s), comma-separated; CORS allows only these
 PORT=4000
 NODE_ENV=production
 SWAGGER_ENABLED=        # optional; /docs is off in production unless this is "true"
@@ -57,21 +58,15 @@ AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million t
 VITE_API_URL=https://<the-api-service>.up.railway.app
 ```
 
-### One real code change needed before this works cross-origin
+### CORS
 
-`apps/api/src/main.ts` currently hardcodes CORS to `http://localhost:5173`:
-
-```ts
-app.enableCors({ origin: ['http://localhost:5173'], credentials: true });
-```
-
-This must read from an env var (e.g. `FRONTEND_URL`) before the Railway-hosted frontend can call the Railway-hosted API - flag this to the user as a required fix, don't just deploy and let it silently CORS-fail.
+The web app and the API are on different origins, so `apps/api/src/main.ts` reads the allowed origin(s) from `FRONTEND_URL` (comma-separated; defaults to `http://localhost:5173` for local dev). Set it on the API service to the Railway web URL, or the browser will block every call.
 
 ### Not doing yet (intentionally)
 
 - No Docker/Dockerfile - Railway builds directly from the repo.
 - No secrets manager - Railway's own encrypted environment variables are enough at this scale.
-- No health-check endpoints, Sentry, Helmet, or rate limiting yet (see §14).
+- No Sentry yet (see §14). Already in place: Helmet, rate limiting (`@nestjs/throttler`: 300/min per user, 10/min on login) and a public `GET /health`.
 - No custom domain - Railway's generated `*.up.railway.app` URLs are fine for a demo.
 
 ---
@@ -80,11 +75,8 @@ This must read from an env var (e.g. `FRONTEND_URL`) before the Railway-hosted f
 
 Listed so they aren't added prematurely, and so they're easy to pick up later:
 
-- **Helmet** (`app.use(helmet())`) for security headers.
-- **Rate limiting** (`@nestjs/throttler`) on `/auth/login` at minimum.
 - **Sentry** or similar error tracking.
 - **API versioning** (`app.enableVersioning(...)`) - irrelevant with one internal client; do this only if a second consumer of the API ever appears.
 - A real secrets manager (Railway env vars are fine below a certain team size; revisit if this moves to a platform with more than a couple of people touching production config).
-- Health-check endpoints (`GET /health`, `GET /health/db`) if this ever needs uptime monitoring.
 
 ---
