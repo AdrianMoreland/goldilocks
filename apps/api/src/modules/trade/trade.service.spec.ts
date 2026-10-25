@@ -14,11 +14,16 @@ describe('TradeService.calculateCart VAT', () => {
 
     const build = (found: ReturnType<typeof product>) =>
         new TradeService(
-            { getLatest: jest.fn().mockResolvedValue({ priceEur: SPOT }) } as never,
+            {
+                getLatest: jest.fn().mockResolvedValue({ priceEur: SPOT }),
+            } as never,
             { findById: jest.fn().mockResolvedValue(found) } as never,
         );
 
-    const request = (transactionType: 'buying' | 'selling', percent: number) => ({
+    const request = (
+        transactionType: 'buying' | 'selling',
+        percent: number,
+    ) => ({
         metalType: 'SILVER' as const,
         transactionType,
         items: [{ productId: 1, percent, quantity: 1 }],
