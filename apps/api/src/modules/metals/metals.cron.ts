@@ -79,10 +79,18 @@ export class MetalsCron implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB })
     async updateMetals() {
-        const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
-        if (degradedMetals.length > 0) {
-            this.logger.warn(
-                `No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`,
+        try {
+            const { degradedMetals } =
+                await this.metalsProvider.refreshAll('CRON');
+            if (degradedMetals.length > 0) {
+                this.logger.warn(
+                    `No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`,
+                );
+            }
+        } catch (err) {
+            // A scheduled job must never throw: log it and try again at the next tick.
+            this.logger.error(
+                `Scheduled price refresh failed: ${err instanceof Error ? err.message : String(err)}`,
             );
         }
     }
