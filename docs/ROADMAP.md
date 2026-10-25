@@ -213,7 +213,7 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
   - [x] Branch protection on `master` requiring the CI check
   - [x] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(`master` ruleset requires a PR and the `ci` check; Railway "Wait for CI" is on for `api` and `web`; `ai-eval.yml` is manual-only and needs `OPENAI_API_KEY` + `DATABASE_URL` repo secrets)*
   - [x] `pnpm audit` / Dependabot in the same workflow (see 0.6) *(report-only: 127 findings today, so it is not a required check; Dependabot is configured)*
-  - [ ] Web lint cannot run: `apps/web/package.json` runs `eslint .` but no ESLint config exists under `apps/web`, and CI never lints the web app *(review 2026-10-25, verified)*; add a config, fix the baseline, add it to CI
+  - [x] Web lint cannot run: `apps/web/package.json` runs `eslint .` but no ESLint config exists under `apps/web`, and CI never lints the web app *(done 2026-10-25: `apps/web/eslint.config.js` added, 0 errors, 69 warnings left as backlog (React hook rules, `only-export-components`); template pages and shadcn files are ignored; `ESLint (web)` step added to CI. Review 2026-10-25, verified)*
   - [ ] `apps/api` `test:e2e` points at `./test/jest-e2e.json` but `apps/api/test/` does not exist *(review 2026-10-25, verified)*; write the smoke test (below) or delete the script
   - [ ] Make the dependency audit blocking once the backlog is cleared (`audit.yml` ends in `|| true`)
   - [ ] `shared-types` `check-types` fails on strict-null errors in `kb-markdown.spec.ts`, `kb-search.spec.ts`, `roadmap.spec.ts`; fix them, then add it to CI and make root `pnpm check-types` meaningful
