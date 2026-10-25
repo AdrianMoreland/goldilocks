@@ -156,8 +156,8 @@ describe('PortfolioService.buildPortfolio', () => {
     ): PortfolioBuildRequest => ({
         metalType: 'GOLD',
         budget: 5000,
-        productType: 'all',
-        priorityStrength: 'balanced',
+        productType: 'either',
+        priorityStrength: 'none',
         ...over,
     });
 
