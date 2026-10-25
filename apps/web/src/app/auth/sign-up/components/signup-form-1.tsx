@@ -53,10 +53,8 @@ export function SignupForm1({
     },
   })
 
-  function onSubmit(data: SignupFormValues) {
-    console.log("Signup attempt:", data)
-    // Here you would typically handle the signup
-  }
+  // Template placeholder: there is no public sign-up, so nothing is submitted (and never log the form values).
+  function onSubmit() {}
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
