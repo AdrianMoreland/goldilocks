@@ -94,6 +94,10 @@ export const UpdateProductFullDtoSchema = ProductSchema.omit({ id: true, created
   priceSell: z.number().optional(),
   priceBuy: z.number().optional(),
   isActive: z.boolean().optional(),
+  // The `updatedAt` the edit form was opened with. When given and the product has changed since, the
+  // API refuses the save (409) instead of silently overwriting another admin's change. Optional so
+  // callers that do not send it behave as before.
+  expectedUpdatedAt: z.iso.datetime().optional(),
 });
 
 
