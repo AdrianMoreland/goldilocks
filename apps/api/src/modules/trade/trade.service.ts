@@ -17,6 +17,7 @@ import {
     computeMeltValue,
     computeTransactionPrice,
     effectiveVatRate,
+    roundBuyPrice,
     GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
@@ -197,7 +198,8 @@ export class TradeService {
             meltFactor: category.meltFactor,
             purity: category.purity,
             weight: request.weight,
-            meltValue,
+            // What we pay the customer, so it rounds down like every buyback.
+            meltValue: roundBuyPrice(meltValue),
         };
     }
 

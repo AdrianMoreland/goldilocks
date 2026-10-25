@@ -119,3 +119,24 @@ describe('matchProducts', () => {
         expect(names('500g gold bar')).toEqual([]);
     });
 });
+
+describe('matchProducts bonded wording', () => {
+    const SILVER: Product[] = [
+        product(20, '1 kg Silver Bonded Bar', 'SILVER', 1000),
+        product(21, '1 kg Silver Bar', 'SILVER', 1000),
+        product(22, '100 oz Silver Bonded Bar', 'SILVER', 3110.35),
+    ];
+    const pick = (query: string) =>
+        matchProducts(SILVER, query).products.map((p) => p.name);
+
+    it('"non bonded" and "non-bonded" return only the standard bar', () => {
+        expect(pick('1kg non bonded silver bar')).toEqual(['1 kg Silver Bar']);
+        expect(pick('1kg non-bonded silver bar')).toEqual(['1 kg Silver Bar']);
+    });
+
+    it('"bonded" returns only the bonded bar', () => {
+        expect(pick('1kg bonded silver bar')).toEqual([
+            '1 kg Silver Bonded Bar',
+        ]);
+    });
+});
