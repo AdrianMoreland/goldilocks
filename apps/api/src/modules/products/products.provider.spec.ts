@@ -72,6 +72,35 @@ describe('ProductsProvider writes', () => {
         expect(order).toEqual(['audit', 'commit', 'cache']);
     });
 
+    it('rejects an edit made from a stale copy and writes nothing', async () => {
+        const { provider, tx, audit } = build();
+
+        await expect(
+            provider.update(
+                1,
+                { stock: 1 },
+                'a@b.c',
+                '2026-09-30T00:00:00.000Z',
+            ),
+        ).rejects.toThrow('changed by someone else');
+        expect(tx.product.update).not.toHaveBeenCalled();
+        expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('accepts an edit made from the current copy', async () => {
+        const { provider, tx } = build();
+        tx.product.update.mockResolvedValue(row({ stock: 1 }));
+
+        await provider.update(
+            1,
+            { stock: 1 },
+            'a@b.c',
+            '2026-10-01T00:00:00.000Z',
+        );
+
+        expect(tx.product.update).toHaveBeenCalledTimes(1);
+    });
+
     it('does not rebuild the cache when the audit insert fails', async () => {
         const { provider, tx, audit, order } = build();
         tx.product.update.mockResolvedValue(row({ stock: 9 }));
