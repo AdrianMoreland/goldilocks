@@ -232,7 +232,7 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 - [ ] ADRs (price polling over SSE/WS, no response envelope, runtime-derived prices, BC as source of truth, client-side pricing, three-query market data, `Decimal` at the boundary) - S
 - [ ] Desk user guide with screenshots - M
 - [ ] CHANGELOG + semver tags - S *(no `CHANGELOG.md` and no tags yet)*
-- [ ] Fix stale statements in docs - S *(review 2026-10-25, verified: `docs/ENGINEERING.md:145` says there is no root `.gitignore` (there is one); `docs/DEPLOYMENT.md:58-84` says CORS is hardcoded and that Helmet, rate limiting and a health endpoint do not exist (all are in code); the "~470 tests" figure is unverified (about 390 `it(` declarations in the API); Swagger says version `1.0` while `package.json` says `0.0.1`)*
+- [x] Fix stale statements in docs - S *(done 2026-10-25 for `ENGINEERING.md` and `DEPLOYMENT.md`; the Swagger `1.0` vs `0.0.1` version mismatch in `main.ts` is left. Review 2026-10-25, verified: `docs/ENGINEERING.md:145` says there is no root `.gitignore` (there is one); `docs/DEPLOYMENT.md:58-84` says CORS is hardcoded and that Helmet, rate limiting and a health endpoint do not exist (all are in code); the "~470 tests" figure is unverified (about 390 `it(` declarations in the API); Swagger says version `1.0` while `package.json` says `0.0.1`)*
 - [ ] Management one-pager (time saved per quote, error reduction, fetch success rate) - M
 
 ## 0.11 Spot isolation, rounding and shared market mode 🟠

@@ -142,7 +142,7 @@ On the frontend, the same rule holds one level up: `apps/web/src/contexts/auth-c
 ### Secrets
 
 - Never expose `password` on a `User` - it's stored as an empty string anyway (Supabase owns the real credential); select it out of any response that isn't strictly internal.
-- `.env` is gitignored per app (`apps/api/.gitignore`) - never commit one. There is currently **no root `.gitignore`**; if you add secrets anywhere outside `apps/api` or `apps/web`, check they're covered.
+- `.env` is gitignored by the root `.gitignore` (`.env`, `.env.*`, with `.env.example` kept) - never commit one. If you add secrets in a new place, check they're covered.
 - Supabase now issues two key formats - legacy JWT-style anon/service-role keys, and the newer `sb_publishable_...` / `sb_secret_...` pair. This project uses the new format (`SUPABASE_KEY` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` in `apps/api/.env`). If a Supabase call fails with "Invalid API key," check for a literal placeholder value before assuming code is broken - that was the actual cause once already.
 
 ---
@@ -186,7 +186,7 @@ Existing consumers: `ProductCacheStore` (5-minute TTL on the full product list),
 
 ## 10. Testing
 
-**Current state: the API has a Jest suite (`pnpm --filter api exec jest`, ~470 tests) and `packages/shared-types` has specs for the pricing math and the Knowledge Center parsers. The web app has no tests yet.** Run the suite before claiming a backend change works, and don't claim something is "tested" unless a test covers it. The patterns below are the target for new logic.
+**Current state: the API has a Jest suite (`pnpm --filter api exec jest`, ~660 tests) and `packages/shared-types` has specs for the pricing math and the Knowledge Center parsers. The web app has no tests yet.** Run the suite before claiming a backend change works, and don't claim something is "tested" unless a test covers it. The patterns below are the target for new logic.
 
 ```ts
 describe('TradeService', () => {
@@ -242,7 +242,7 @@ Moved to [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) (Railway services, environment va
 
 ## 14. Future hardening
 
-Moved to [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) (Helmet, rate limiting, Sentry, versioning, secrets manager, health checks).
+Moved to [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) (Sentry, versioning, secrets manager; Helmet, rate limiting and `/health` are already in place).
 
 ---
 
