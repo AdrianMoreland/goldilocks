@@ -108,7 +108,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: "/demo",
-    element: <Dashboard />
+    element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
   },
   {
     path: "/dashboard-2",
