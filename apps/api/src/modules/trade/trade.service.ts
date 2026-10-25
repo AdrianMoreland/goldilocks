@@ -16,6 +16,7 @@ import {
     TradeTransactionType,
     computeMeltValue,
     computeTransactionPrice,
+    effectiveVatRate,
     GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
@@ -123,7 +124,13 @@ export class TradeService {
             // Whole and >= 1 is enforced by TradeCartItemSchema, so the request never carries anything else.
             const quantity = item.quantity;
 
-            const basePrice = spotPerGram * product.weight;
+            // The customer pays VAT on top of the premium (bonded and gold
+            // carry none); a buyback is paid without VAT either way.
+            const vatMultiplier =
+                transactionType === 'buying'
+                    ? 1 + effectiveVatRate(product)
+                    : 1;
+            const basePrice = spotPerGram * product.weight * vatMultiplier;
             const unitPrice = computeTransactionPrice(
                 basePrice,
                 transactionType,

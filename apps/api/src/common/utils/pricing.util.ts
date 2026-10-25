@@ -7,6 +7,7 @@ import {
     RawSpotPrice,
     roundBuyPrice,
     roundSellPrice,
+    effectiveVatRate,
     GRAMS_PER_TROY_OUNCE,
 } from '@goldilocks/shared-types';
 
@@ -36,7 +37,8 @@ export function calculateProductPrice(
     const basePrice = spotPerGram * product.weight;
 
     const priceSellVatExcl = basePrice * (1 + product.spreadSell);
-    const priceSell = priceSellVatExcl * (1 + product.vatRate);
+    const vatRate = effectiveVatRate(product);
+    const priceSell = priceSellVatExcl * (1 + vatRate);
     const priceBuy = basePrice * (1 + product.spreadBuy);
 
     return {
@@ -49,7 +51,7 @@ export function calculateProductPrice(
 
         spreadSell: product.spreadSell,
         spreadBuy: product.spreadBuy,
-        vatRate: product.vatRate,
+        vatRate,
 
         spotPrice: round2(marketPrice),
         marketValue: round2(basePrice),
