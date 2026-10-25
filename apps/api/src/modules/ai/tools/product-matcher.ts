@@ -1,3 +1,4 @@
+import { isBondedProduct } from '@goldilocks/shared-types';
 import type { MetalType, Product } from '@goldilocks/shared-types';
 
 const GRAMS_PER_OUNCE = 31.1035;
@@ -77,7 +78,13 @@ export function matchProducts(
     query: string,
     metal?: MetalType,
 ): ProductMatch {
-    const text = query.toLowerCase();
+    // "non bonded" must not be read as the word "bonded"; the two are
+    // different products with different VAT, so it is a filter, not a keyword.
+    const rawText = query.toLowerCase();
+    const NON_BONDED = /\b(?:non|un|not)[\s-]?bonded\b/g;
+    const wantsNonBonded = NON_BONDED.test(rawText);
+    const text = rawText.replace(NON_BONDED, ' ');
+    const wantsBonded = !wantsNonBonded && /\bbonded\b/.test(text);
 
     const wantedMetal =
         metal ??
@@ -118,6 +125,10 @@ export function matchProducts(
         ) {
             continue;
         }
+
+        const isBonded = isBondedProduct(product.name);
+        if (wantsNonBonded && isBonded) continue;
+        if (wantsBonded && !isBonded) continue;
 
         const label = `${product.name} ${product.sku}`.toLowerCase();
         const isBar = /\bbar\b/.test(product.name.toLowerCase());
