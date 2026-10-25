@@ -9,6 +9,7 @@
   "scripts": {
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "seed": "ts-node --transpile-only prisma/seed.ts",
     "seed:pricing-update": "ts-node --transpile-only prisma/seed-pricing-update.ts",

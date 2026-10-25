@@ -177,7 +177,7 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [ ] 🟠 Sentry on API and web; breadcrumbs on the pricing cascade - S
 - [x] `/health` (`@nestjs/terminus`): DB, Redis, MetalsAPI, last successful fetch - S *(public `/health` for uptime monitors; the admin Overview runs the same checks through Terminus, plus memory and event-loop lag)*
 - [ ] Railway metrics + crash/restart/uptime alerts - S
-- [ ] Prisma migration workflow (no manual DB changes) - S *(review 2026-10-25, verified: the repo's own plan says the migration history is out of sync with the database (`docs/AI-AGENT-PLAN.md:154`), nothing runs `prisma migrate deploy` on deploy or in CI, and the root script runs `migrate dev`. Reconcile with `migrate resolve`, then add `migrate deploy` to the deploy step)*
+- [ ] Prisma migration workflow (no manual DB changes) - S *(partly done 2026-10-25: `prisma migrate status` shows the history is already in sync (all 12 migrations recorded), so the "out of sync" note was stale; `prisma:deploy` script and the Railway pre-deploy instructions added to `docs/DEPLOYMENT.md`. Still yours: set the pre-deploy command `pnpm --filter api prisma:deploy` on the Railway API service, then tick this)*
 - [ ] Database backup + **tested** restore - S
 - [ ] Staging environment on Railway - M *(where the 0.13/0.14 changes get tried first; wire it behind the CI deploy gate in 0.10)*
 - [ ] Redis deployment for production (local `127.0.0.1` will not work on Railway) - S
