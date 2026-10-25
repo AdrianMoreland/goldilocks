@@ -398,8 +398,11 @@ export class MetalsProvider {
     ): Promise<void> {
         this.logger.debug(`Storing ${records.length} metal record(s) in DB…`);
 
+        // The stored timestamp is the vendor's own, so an unchanged vendor timestamp repeats a row
+        // that already exists (unique on metal + timestamp): skip it instead of failing the refresh.
         await this.prisma.metalSpotPrice.createMany({
             data: records,
+            skipDuplicates: true,
         });
 
         this.logger.log(`💾 Saved ${records.length} metal record(s) to DB`);
