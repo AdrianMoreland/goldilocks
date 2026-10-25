@@ -31,6 +31,20 @@ export function roundBuyPrice(value: number): number {
   return Math.floor(Math.round(value * 100) / 100);
 }
 
+/** Bonded (deferred-VAT storage) products are recognised by name, as the product table does. */
+export function isBondedProduct(name: string): boolean {
+  return /bonded/i.test(name);
+}
+
+/**
+ * The VAT rate a customer actually pays. Bonded products carry no VAT, so
+ * the stored rate (the seed gave every non-gold product 23%) is ignored for
+ * them and Price equals Price ex. VAT.
+ */
+export function effectiveVatRate(product: { name: string; vatRate: number }): number {
+  return isBondedProduct(product.name) ? 0 : product.vatRate;
+}
+
 /**
  * Prices one line: a buy (customer pays a premium over spot) or a sell
  * (customer receives a discount off spot).
