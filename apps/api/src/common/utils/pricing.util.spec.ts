@@ -29,6 +29,19 @@ describe('calculateProductPrice', () => {
 
     const spotMap = { GOLD: 2000, SILVER: 25, PLATINUM: 900, PALLADIUM: 1000 };
 
+    it('charges no VAT on bonded products even when the stored rate is 23%', () => {
+        const bonded = {
+            ...baseProduct,
+            metalType: 'SILVER' as const,
+            name: '100 oz Silver Bonded Bar',
+            vatRate: 0.23,
+        };
+        const priced = calculateProductPrice(bonded, spotMap);
+
+        expect(priced.vatRate).toBe(0);
+        expect(priced.priceSell).toBe(priced.priceSellVatExcl);
+    });
+
     it('prices the sell side as basePrice * (1 + premium) * (1 + VAT)', () => {
         const priced = calculateProductPrice(baseProduct, spotMap);
 

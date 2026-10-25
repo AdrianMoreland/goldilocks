@@ -2,6 +2,7 @@ import "dotenv/config";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../src/infrastructure/prisma/prisma.service";
 import { MetalType } from "./generated/enums";
+import { isBondedProduct } from "@goldilocks/shared-types";
 
 const prisma = new PrismaService(new ConfigService());
 
@@ -192,7 +193,7 @@ const CATALOGUE: Record<MetalType, Entry[]> = {
 
 async function upsertEntry(metal: MetalType, entry: Entry) {
     const sku = `${metal}-${entry.skuSuffix}-${entry.kind}`;
-    const vatRate = metal === MetalType.GOLD ? GOLD_VAT : NON_GOLD_VAT;
+    const vatRate = metal === MetalType.GOLD || isBondedProduct(entry.name) ? GOLD_VAT : NON_GOLD_VAT;
 
     const result = await prisma.product.upsert({
         where: { sku },
