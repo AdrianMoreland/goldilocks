@@ -148,8 +148,8 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
   - [ ] Confirm the AI quota and daily budget hold under concurrent requests
 - [x] CORS from `FRONTEND_URL` env, not hardcoded - S
 - [x] 🔴 Helmet security headers - S *(`helmet()`; CSP dropped only while Swagger is on; needs `TRUST_PROXY_HOPS` correct behind Railway - verify after deploy)*
-- [ ] 🔴 **Remove committed credentials** - S *(review 2026-10-25, verified: `apps/api/prisma/provision-users.ts` hard-codes two personal Gmail addresses with the password `1234!` (one is the ADMIN) and re-applies it to an existing account on every run; the live `users` table has 8 rows, so check whether those accounts are real)*
-  - [ ] Read emails and passwords from env or a prompt; never reset an existing account's password
+- [x] 🔴 **Remove committed credentials** - S *(done 2026-10-25: `provision-users.ts` now reads one account from `PROVISION_*` env vars and never resets an existing account's password. Still yours: rotate the two old passwords if the script ever ran against production, and scrub the old file from git history. Review 2026-10-25, verified: `apps/api/prisma/provision-users.ts` hard-codes two personal Gmail addresses with the password `1234!` (one is the ADMIN) and re-applies it to an existing account on every run; the live `users` table has 8 rows, so check whether those accounts are real)*
+  - [x] Read emails and passwords from env or a prompt; never reset an existing account's password
   - [ ] Rotate both passwords now if the script ever ran against production; scrub the file from git history (see the history-rewrite plan)
 - [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check - S *(a root `.gitignore` exists and covers `.env`)*
 - [x] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI - M ← gate for 1.8 and 1.9
