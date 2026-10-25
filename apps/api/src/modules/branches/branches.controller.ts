@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
@@ -8,6 +8,7 @@ import {
 import { BranchesService } from './branches.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
     BranchResponseDto,
@@ -36,7 +37,10 @@ export class BranchesController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Create a new branch (admin)' })
     @ApiResponse({ status: 201, type: BranchResponseDto })
-    async create(@Body() body: CreateBranchRequestDto): Promise<Branch> {
-        return this.service.create(body);
+    async create(
+        @Body() body: CreateBranchRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<Branch> {
+        return this.service.create(body, req.user.email);
     }
 }
