@@ -163,7 +163,7 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 - [ ] 🔴 **Row-Level Security on every public table** - S *(review 2026-10-25, verified against the live Goldilocks project with the Supabase advisor: **RLS is disabled on all 13 public tables**, so anyone holding the project's anon key can read and write them over the Supabase REST API; no migration enables RLS either. The API connects with a privileged database role, so deny-all RLS (no policies) will not break it, but test first)*
   - [ ] Migration that runs `ENABLE ROW LEVEL SECURITY` on every table (including `_prisma_migrations`) and revokes anon/authenticated grants; verify the API still works; add a check so a new table cannot ship without it
   - [ ] Turn on Supabase leaked-password protection (advisor warning)
-  - [ ] Raise the admin-created password minimum from 6 (`session.schema.ts:53`)
+  - [x] Raise the admin-created password minimum from 6 (`session.schema.ts:53`) *(done 2026-10-25: now 10; the leaked-password switch is still a manual Supabase dashboard setting)*
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders - S
 - [ ] Dependency audit (`pnpm audit`, Renovate/Dependabot) - S *(wire into CI, 0.10)*
 
