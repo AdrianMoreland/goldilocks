@@ -211,9 +211,6 @@ export function ChartAreaInteractive({
         return [min - padding, max + padding];
     }, [filteredData, chartMode, selectedMetal]);
 
-    const toggleItemClass =
-        "data-[state=on]:bg-accent data-[state=on]:text-accent-foreground data-[state=on]:font-medium";
-
     return (
         <Card className="@container/card flex h-full min-h-0 flex-col gap-2 py-3">
             <CardHeader className="px-4">

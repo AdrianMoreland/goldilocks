@@ -9,7 +9,6 @@ import { findDefaultProduct } from '@/lib/default-product';
 import type {
     ProfitAnalysisMissingFieldDto,
     ProfitAnalysisRequest,
-    TradeProduct,
     PortfolioBuildResponse,
     PortfolioProductTypeFilter,
     PriorityStrength,

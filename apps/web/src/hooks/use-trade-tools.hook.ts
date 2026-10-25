@@ -9,7 +9,6 @@ import { usePricingTools } from '@/app/dashboard/context/pricing-tools-context';
 import { useMeltCalculator } from './use-melt-calculator.hook';
 import { findDefaultProduct } from '@/lib/default-product';
 import {
-    GRAMS_PER_TROY_OUNCE,
     MeltCategoryKeyEnum,
     type TradeCartRequest,
     type TradeProduct,

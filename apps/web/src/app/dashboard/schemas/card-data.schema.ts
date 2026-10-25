@@ -1,5 +1,5 @@
 import { z } from "zod"
-import {MetalType, MetalTypeEnum, FetchSourceEnum} from "@goldilocks/shared-types";
+import {MetalTypeEnum, FetchSourceEnum} from "@goldilocks/shared-types";
 
 export const ArrowDirectionEnum = z.enum(['up', 'down', 'neutral']);
 
