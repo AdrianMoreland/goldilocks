@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HistoricCloseQuerySchema, RecalculateOverridesSchema } from './market-data.schema';
 import { UpdateStockRequestSchema } from './product.schema';
+import { CreateUserRequestSchema } from './session.schema';
 
 describe('RecalculateOverridesSchema', () => {
   it('accepts a partial map of positive numbers', () => {
@@ -50,5 +51,23 @@ describe('UpdateStockRequestSchema', () => {
 
   it.each([{ stock_quantity: -1 }, { stock_quantity: 1.5 }, { stock_quantity: '5' }, {}])('rejects %j', (body) => {
     expect(UpdateStockRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('CreateUserRequestSchema password', () => {
+  const body = (password: string) => ({
+    email: 'a@merrion.ie',
+    password,
+    firstName: 'A',
+    lastName: 'B',
+    role: 'SALES',
+  });
+
+  it('rejects a password shorter than 10 characters', () => {
+    expect(CreateUserRequestSchema.safeParse(body('123456789')).success).toBe(false);
+  });
+
+  it('accepts a password of 10 characters', () => {
+    expect(CreateUserRequestSchema.safeParse(body('1234567890')).success).toBe(true);
   });
 });
