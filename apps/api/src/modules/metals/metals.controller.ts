@@ -16,11 +16,13 @@ import {
 } from '@nestjs/swagger';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { Throttle } from '@nestjs/throttler';
-import { UseInterceptors } from '@nestjs/common';
+import { Req, UseInterceptors } from '@nestjs/common';
 import { MetalTypeEnum, type MetalType } from '@goldilocks/shared-types';
 import { MetalsProvider } from './metals.provider';
 import { MetalsCron } from './metals.cron';
 import { FetchAttemptService } from './fetch-attempt.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { ALL_METALS } from '../../common/utils/pricing.util';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
@@ -46,6 +48,7 @@ export class MetalsController {
         private readonly metalsProvider: MetalsProvider,
         private readonly metalsCron: MetalsCron,
         private readonly fetchAttempts: FetchAttemptService,
+        private readonly audit: AuditLogService,
     ) {}
 
     // Spends paid vendor quota: limited far below the global ceiling.
@@ -77,10 +80,17 @@ export class MetalsController {
         description:
             'A manual runtime pause - resets to running on the next restart/redeploy, not a persisted setting.',
     })
-    async toggleCron(): Promise<{ running: boolean }> {
-        const running = await this.metalsCron.setPriceCronEnabled(
-            !this.metalsCron.isPriceCronRunning(),
+    async toggleCron(
+        @Req() request: RequestWithUser,
+    ): Promise<{ running: boolean }> {
+        const enable = !this.metalsCron.isPriceCronRunning();
+        // Audited first: pausing the refresh leaves prices going stale, so it must not happen unrecorded.
+        await this.audit.record(
+            request.user.email,
+            'price-cron',
+            enable ? 'Resumed the price refresh' : 'Paused the price refresh',
         );
+        const running = await this.metalsCron.setPriceCronEnabled(enable);
         return { running };
     }
 
