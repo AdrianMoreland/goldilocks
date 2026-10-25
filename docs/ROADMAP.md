@@ -2,7 +2,7 @@
 
 Single source of truth for what to build and in what order. Merges three earlier roadmaps and idea lists, plus the 2026-10-01 code-health review (safety net, defects, money, market-data flow, refactors). Paste-ready for Notion (nested `- [ ]` checklists).
 
-**Last consolidated:** 2026-10-01 · statuses re-checked against the code 2026-10-01
+**Last consolidated:** 2026-10-01 · statuses re-checked against the code 2026-10-25 (full sync plus two external reviews, the Design Audit and the Diagrams review; items taken from them are tagged *(review 2026-10-25)*)
 
 ## How to read this
 
@@ -57,7 +57,8 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) - M *(used by the history seed and the 5-year backfill)*
 - [x] Redis cache on `ProductsRepository.findAllActive`, invalidated on admin edit - S *(5-min TTL; `ProductsProvider` rewrites it after every write, and the admin database editor clears it too)*
 - [x] 🔴 Timeout, retry and circuit breaker around the metal-price API client - M *(confirmed: `infrastructure/metal-price-api` sets no timeout or retry, unlike the OpenAI client's 30 s / 3 retries. A failing vendor is re-called on every launch-cascade miss and burns paid quota. Add a breaker that serves last-known-good)* *(done 2026-10-02: `ResilientMetalPriceApi` behind `METAL_PRICE_API` - 10 s timeout, circuit opens after 3 failures incl. `success=false` quota bodies, 60 s cooldown, falls back to the last stored price; deliberately no automatic retry, each call spends paid quota)*
-- [ ] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats - S *(partly there: `main.ts` fails fast on a list of required variables)*
+- [ ] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats - S *(partly there: `main.ts` fails fast on a list of required variables; `Number(config.get(...))` calls remain)*
+- [ ] Decide whether Redis is required or optional - S *(review 2026-10-25, verified: `REDIS_URL` is in `REQUIRED_ENV_VARS` (`main.ts`), yet `RedisService` logs "running without Redis" and runs without it; AI quotas fail closed; request history is lost if Redis is flushed. Pick one and make code and docs agree)*
 - [ ] Remove dead code/unused deps, resolve TODO/FIXME - S
   - [ ] `apps/web/src/api/api.ts`: redefines `ProductSchema`/`MetalTypeEnum` for a backend shape that no longer exists and nothing imports it - delete
   - [ ] Commented-out `toRawMetalSpotPrice` block in `pricing.util.ts`; orphaned JSDoc on `market-data.service.ts` (seed-history) and above `AssistantToggle`
@@ -65,13 +66,16 @@ Single source of truth for what to build and in what order. Merges three earlier
   - [ ] The one explicit `any` in `apps/api/src` (`redis.service.ts` `set(value: any)`) → `unknown`
   - [ ] Redundant `@@index([sku])` on `Product` (`sku` is already `@unique`) - one migration
   - [ ] Unused no-op `onNavigate={() => undefined}` prop through `ExchangeView`/`Citations`
+  - [ ] *(review 2026-10-25, verified)* Eight API dependencies with no import in `apps/api/src` or `prisma`: `@prisma/extension-accelerate`, `@trpc/server`, `axios`, `cheerio`, `class-transformer`, `class-validator`, `event-emitter`, `jose`; also check the web `package.json` (the review counted 13 unused there)
+  - [ ] *(review 2026-10-25, verified)* `future-impl-ideas/` (7 files importing modules that do not exist); `packages/shared-types/src/invoice.schema.ts` and `quote.schema.ts` (not exported, used by no app, and ground rule 1 says no invoicing); four dead web files (`hooks/use-metals.hook.ts`, `hooks/use-metal-spot-prices.hook.ts`, `hooks/use-fullscreen.ts`, `api/metal-spot-prices.api.ts`) - delete
+  - [ ] *(review 2026-10-25, verified)* 648 tracked files under `dist/` (tracked on purpose for Railway's runtime image, see `.gitignore`, but stale: no audit-log or capability code), plus `goldilocks.iml` and `apps/web/.env`. Decide: stop tracking `dist/` and fix the Railway build, or add a CI check that `dist/` is rebuilt; untrack the IDE file
 
 ## 0.2 Money correctness 🔴
 
 - [x] Rounding guards float noise: `roundSellPrice`/`roundBuyPrice` snap to cents before `ceil`/`floor`, so a whole-euro price is not pushed up by €1 *(checked in `pricing-math.ts`)*
 - [ ] Characterisation tests for the current rounding before any change: values around `.00` and `.5`, negative spreads, zero spot - S
 - [ ] 🔴 **One pricing engine:** move `calculateProductPrice` (+ `mergeMetalPrices`, `enrichSpotPrices`) from `apps/api/src/common/utils/pricing.util.ts` into `packages/shared-types`; Prisma-row mapping stays in the API as an adapter; keep an API re-export so imports don't all change at once; golden-file specs - M *(ground rule 4; prerequisite for 0.13)*
-- [ ] `decimal.js` in all pricing code (shared pricing functions, `TradeService.calculateCart` totals and `averagePerGram`, tools); round only at output; `number` stays at the JSON boundary - M *(`decimal.js` is not yet a dependency of the API or `shared-types`; `toNumber()` in `pricing.util.ts` drops to float immediately)*
+- [ ] 🔴 `decimal.js` in all pricing code (shared pricing functions, `TradeService.calculateCart` totals and `averagePerGram`, tools); round only at output; `number` stays at the JSON boundary; keep ceil/floor as explicit rounding modes - M *(re-checked 2026-10-25: `decimal.js` is still not a dependency of the API or `shared-types`; `toNumber()` in `prisma-mappers.ts:18-22` drops to float immediately; CGT/VAT arithmetic also sits inside `calculators-tab.tsx`)*
 - [x] Prisma `Decimal` for all money fields - S *(no `Float` columns remain in `schema.prisma`; the float risk is in the JS layer above)*
 - [ ] Web calculators (CGT / VAT / percent): decide exact (`Decimal`) or label "approximate reference"; extract the pure functions to `shared-types` with tests - S
 - [ ] Snapshot full pricing context on any committed price (spot, premium, discount, VAT, FX, totals) - M
@@ -144,14 +148,22 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
   - [ ] Confirm the AI quota and daily budget hold under concurrent requests
 - [x] CORS from `FRONTEND_URL` env, not hardcoded - S
 - [x] 🔴 Helmet security headers - S *(`helmet()`; CSP dropped only while Swagger is on; needs `TRUST_PROXY_HOPS` correct behind Railway - verify after deploy)*
-- [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check - S
+- [ ] 🔴 **Remove committed credentials** - S *(review 2026-10-25, verified: `apps/api/prisma/provision-users.ts` hard-codes two personal Gmail addresses with the password `1234!` (one is the ADMIN) and re-applies it to an existing account on every run; the live `users` table has 8 rows, so check whether those accounts are real)*
+  - [ ] Read emails and passwords from env or a prompt; never reset an existing account's password
+  - [ ] Rotate both passwords now if the script ever ran against production; scrub the file from git history (see the history-rewrite plan)
+- [ ] Secrets only in Railway env; `.env.example` current; rotate anything ever committed; root `.gitignore` check - S *(a root `.gitignore` exists and covers `.env`)*
 - [x] 🔴 **Transactional, persistent audit log** for premium, product, settings and role changes (who, what, old → new, when) + admin UI - M ← gate for 1.8 and 1.9
   - [x] A Postgres `audit` table written in the **same `$transaction`** as the change (and followed by the cache refresh), so a change cannot exist without its audit row or the reverse; one small shared helper, used by `ProductsService`, market mode, branches, KB status and user creation
   - [x] Replaces the capped Redis list (500 entries, in-memory fallback, `persisted: false` when Redis is down) and the logger-only `[audit]` lines in `KnowledgeService`; the admin Audit tab reads the new table
   - [x] `AuthService.createUser` does two writes that cannot share a transaction (it compensates by deleting the identity) - document that exception
   - *(done: `audit_log` table and `AuditLogService.record(…, tx)`. Product create/edit/stock/delete/restore (old → new per field), market mode, roadmap edits, SOP edit and status changes, user creation and the admin Database tab all write their entry in the same `$transaction`; the cache is refreshed after the commit. `createUser` cannot join its identity call to a transaction, so the User row and its entry commit together and a failure deletes the identity (commented in the code). Not covered because they do not exist yet: role changes (no endpoint) and branches (0.8) - add `record(…, tx)` when they are built.)*
 - [ ] Per-user admin trail (no blanket admin flag) - part of the audit log
-- [ ] Supabase RLS reviewed - S
+- [ ] Close the audit gaps - S *(review 2026-10-25, verified: `BranchesService.create` writes no audit entry although branches now exist; `DELETE /errors` and `POST /metals/cron-toggle` leave no trace. Role changes still have no endpoint)*
+- [ ] Unused template routes are public - S *(review 2026-10-25, verified: `/demo` renders the dashboard with no `RequireAuth` (the API still answers 401), and the template sign-up form prints the submitted password with `console.log` (`signup-form-1.tsx:57`). Guard or remove those two now; the full prune stays in the Icebox)*
+- [ ] 🔴 **Row-Level Security on every public table** - S *(review 2026-10-25, verified against the live Goldilocks project with the Supabase advisor: **RLS is disabled on all 13 public tables**, so anyone holding the project's anon key can read and write them over the Supabase REST API; no migration enables RLS either. The API connects with a privileged database role, so deny-all RLS (no policies) will not break it, but test first)*
+  - [ ] Migration that runs `ENABLE ROW LEVEL SECURITY` on every table (including `_prisma_migrations`) and revokes anon/authenticated grants; verify the API still works; add a check so a new table cannot ship without it
+  - [ ] Turn on Supabase leaked-password protection (advisor warning)
+  - [ ] Raise the admin-created password minimum from 6 (`session.schema.ts:53`)
 - [ ] Google Drive permission cleanup: ID scans and customer data out of shared folders - S
 - [ ] Dependency audit (`pnpm audit`, Renovate/Dependabot) - S *(wire into CI, 0.10)*
 
@@ -159,24 +171,24 @@ Foundation for 1.6 (templates / inquiry hub). Build the renderer once and reuse 
 
 - [ ] Move the 10-min price fetch to a BullMQ repeatable job - M
 - [ ] ⚪ Conditional: push updates over SSE with Redis pub/sub fan-out - M ← only when a second replica is planned or Phase 2 needs push *(spot polling in 0.3/0.13 is the default until then)*
-- [ ] Remove shared in-memory state (multi-instance safe) - M *(examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; ~~the audit-log memory fallback~~ gone with the Redis audit list)*
+- [ ] Remove shared in-memory state (multi-instance safe) - M *(review 2026-10-25: the `@Cron` price refresh runs on every instance, so a second replica doubles paid vendor calls; add a leader lock (Postgres advisory lock) or use the BullMQ job above; the throttler and log buffer are also per-instance. Examples: the price-cron pause toggle in `metals.cron`, which resets to running on restart; the admin log buffer; ~~the audit-log memory fallback~~ gone with the Redis audit list)*
 - [ ] Prove the Redis-down path: a test that simulates an outage and asserts every `CacheAsideStore.get` falls through to the source - S
 - [x] Pino structured logging + request IDs; log cache hit/miss, DB fallback, external call + duration - S *(`nestjs-pino`: JSON in production, request lines with duration, secrets redacted, an in-memory tail in the admin Logs tab. Request IDs are generated but not yet written to the log line)*
 - [ ] 🟠 Sentry on API and web; breadcrumbs on the pricing cascade - S
 - [x] `/health` (`@nestjs/terminus`): DB, Redis, MetalsAPI, last successful fetch - S *(public `/health` for uptime monitors; the admin Overview runs the same checks through Terminus, plus memory and event-loop lag)*
 - [ ] Railway metrics + crash/restart/uptime alerts - S
-- [ ] Prisma migration workflow (no manual DB changes) - S
+- [ ] Prisma migration workflow (no manual DB changes) - S *(review 2026-10-25, verified: the repo's own plan says the migration history is out of sync with the database (`docs/AI-AGENT-PLAN.md:154`), nothing runs `prisma migrate deploy` on deploy or in CI, and the root script runs `migrate dev`. Reconcile with `migrate resolve`, then add `migrate deploy` to the deploy step)*
 - [ ] Database backup + **tested** restore - S
 - [ ] Staging environment on Railway - M *(where the 0.13/0.14 changes get tried first; wire it behind the CI deploy gate in 0.10)*
 - [ ] Redis deployment for production (local `127.0.0.1` will not work on Railway) - S
 
 ## 0.8 Multi-branch data model 🟠
 
-- [ ] `Branch` table: address, phone, opening hours - S *(partly there: the table has `name`, `address`, `currency`; phone, opening hours and `region` (needed by the AI's `getBranch`, 1.5) are missing)*
+- [ ] `Branch` table: address, phone, opening hours - S *(partly there: the table has `name`, `address`, `currency` and, since migration `20261018120000_add_branch_access`, `region` (IE / UK); phone and opening hours are still missing, and no `getBranch` AI tool exists)*
 - [ ] `branchId` + `currency` on products, prices, orders - M
 - [ ] VAT rules table (per country and metal) instead of hardcoded logic - M
 - [ ] Spot per currency (EUR, GBP) - M
-- [ ] RBAC per role **and** branch - M *(today only `admin` and `manager` are enforced; `SALES`, `ACCOUNTING`, `AUDITOR` exist in the enum but gate nothing. Fail-closed gating is in 0.12)*
+- [ ] RBAC per role **and** branch - M *(half done: branch `region` drives capabilities (`capabilitiesFor` in `branch-access.ts`, `CapabilityGuard`, `@RequiresCapability`, web `RequireCapability`). Still open: only `admin` and `manager` are enforced; `SALES`, `ACCOUNTING`, `AUDITOR` exist in the enum but gate nothing (`roles.guard.ts`). Fail-closed gating is in 0.12)*
 
 ## 0.9 Health and monitoring panel (admin) 🟡
 
@@ -200,9 +212,12 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
   - [x] Branch protection on `master` requiring the CI check
   - [x] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(`master` ruleset requires a PR and the `ci` check; Railway "Wait for CI" is on for `api` and `web`; `ai-eval.yml` is manual-only and needs `OPENAI_API_KEY` + `DATABASE_URL` repo secrets)*
   - [x] `pnpm audit` / Dependabot in the same workflow (see 0.6) *(report-only: 127 findings today, so it is not a required check; Dependabot is configured)*
+  - [ ] Web lint cannot run: `apps/web/package.json` runs `eslint .` but no ESLint config exists under `apps/web`, and CI never lints the web app *(review 2026-10-25, verified)*; add a config, fix the baseline, add it to CI
+  - [ ] `apps/api` `test:e2e` points at `./test/jest-e2e.json` but `apps/api/test/` does not exist *(review 2026-10-25, verified)*; write the smoke test (below) or delete the script
+  - [ ] Make the dependency audit blocking once the backlog is cleared (`audit.yml` ends in `|| true`)
   - [ ] `shared-types` `check-types` fails on strict-null errors in `kb-markdown.spec.ts`, `kb-search.spec.ts`, `roadmap.spec.ts`; fix them, then add it to CI and make root `pnpm check-types` meaningful
 - [ ] 🔴 **Web test runner:** Vitest + MSW + Testing Library, first specs on the pure money/calculator functions (no DOM), then the Trade/Portfolio tabs and the copy output - M *(the web app has no tests and no `test` script)*
-- [ ] 🔴 **`TradeService` and `PortfolioService` specs** - M *(neither has a spec file; the shared-types math is covered, the service-layer validation is not)*
+- [ ] 🔴 **`TradeService` and `PortfolioService` specs** - M *(partly there, re-checked 2026-10-25: `trade.service.spec.ts` covers cart VAT and melt rounding (4 cases); `PortfolioService` and `portfolio-builder-math.ts` (629 lines) have no spec; the error-mapping cases below are still untested)*
   - [ ] `calculateCart`: product not found, wrong metal, bad percent (buying vs selling), quantity coercion, `customSpot`
   - [ ] `calculateProfitAnalysis` / `buildPortfolio`: error mapping to `BadRequestException`
 - [ ] Vitest for the pricing utils and the repository cascade (Redis → Prisma → API) - M *(the API already tests these with Jest: `pricing-math.spec.ts`, `pricing.util.spec.ts`; extend rather than add a second runner)*
@@ -217,7 +232,7 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 - [ ] ADRs (price polling over SSE/WS, no response envelope, runtime-derived prices, BC as source of truth, client-side pricing, three-query market data, `Decimal` at the boundary) - S
 - [ ] Desk user guide with screenshots - M
 - [ ] CHANGELOG + semver tags - S *(no `CHANGELOG.md` and no tags yet)*
-- [ ] Fix stale statements in `docs/ENGINEERING.md`: it says there is no root `.gitignore` (there is one) and that CORS is hardcoded to `localhost:5173` (`main.ts` reads `FRONTEND_URL`); refresh the test counts - S
+- [ ] Fix stale statements in docs - S *(review 2026-10-25, verified: `docs/ENGINEERING.md:145` says there is no root `.gitignore` (there is one); `docs/DEPLOYMENT.md:58-84` says CORS is hardcoded and that Helmet, rate limiting and a health endpoint do not exist (all are in code); the "~470 tests" figure is unverified (about 390 `it(` declarations in the API); Swagger says version `1.0` while `package.json` says `0.0.1`)*
 - [ ] Management one-pager (time saved per quote, error reduction, fetch success rate) - M
 
 ## 0.11 Spot isolation, rounding and shared market mode 🟠
@@ -262,6 +277,8 @@ Found by the 2026-10-01 code review. Do these right after CI (0.10) and before t
   - [x] Spec: unknown table → 404, read-only table → 403, hidden column never returned, identifiers only from the catalogue, **hostile table/column names are rejected** *(`db-browser.service.spec.ts`: 26 tests, also covering bound values, page clamping, key handling, and the audit-then-commit-then-cache order of writes)*
   - [ ] Extend `CACHE_KEYS_BY_TABLE` beyond `products` for any table that is actually cached (check `branches`, the history table and knowledge reads); the new history cache from 0.13 must be registered, or an admin edit serves stale data
   - [ ] Move the DELETE row key into a query param or a POST (some proxies strip DELETE bodies)
+- [ ] **Duplicate vendor timestamp crashes the price write** - S *(review 2026-10-25, verified in code: `MetalsProvider.storeInDb` calls `createMany` without `skipDuplicates` (`metals.provider.ts:401`) on a table unique on `(metalType, timestamp)`; `updateMetals` in `metals.cron.ts` has no try/catch, and a manual Refresh returns 409. Add `skipDuplicates` (as `HistoricSpotService` does), wrap the cron body, and add a spec that repeats a timestamp)*
+- [ ] **Lost updates on products and SOPs** - M *(review 2026-10-25, verified: only the roadmap document is optimistically locked (version in the `WHERE`). `ProductsProvider.update` and `KnowledgeService.updateDocument`/`setStatus` read then write with no check, and the product edit form always sends every field, so saving can undo another admin's stock change. Use `updatedAt` or a version column and return a 409)*
 - [ ] **Characterisation tests before each big refactor** - M each ← depends: the refactor it protects: `KnowledgeService.importDocuments`, `useTradeTools` cart behaviour, `AskService` (only if taken up)
 
 ## 0.13 Market-data flow rework 🟠 ← depends: 0.2 shared pricing engine
@@ -309,6 +326,8 @@ Structural clean-up, ordered by risk (cheap first). Keep the existing architectu
 - [ ] `OpenAiLlmClient`: extract `LlmErrorTranslator` (testable without the SDK); share content-filter and empty-answer checks between `generate` and `stream` - S
 - [ ] `TradeService`/`PortfolioService` tidy ← depends: their specs (0.10) - S: `for…of` instead of throwing inside `.forEach`; bar-vs-coin classification (`/bar/i.test(name)`) belongs with the product model
 - [ ] Split `pricing.util.ts` (mappers, pricing, metal constants, history thinning, enrichment) into `mappers/`, `pricing/`, `history-thinning.ts` after the pricing move (0.2); let the admin controller call `HistoricSpotService` directly instead of the pass-throughs on `MarketDataService` - S
+- [ ] Layering smell: `common/` imports feature modules (`jwt-auth.guard.ts` imports `AuthService`, `all-exceptions.filter.ts` imports `ErrorLogService`) while `auth` and `error-log` import `common` back; works today - move the wiring or add an import-boundary lint rule - S *(review 2026-10-25)*
+- [ ] Small DRY and magic-number items - S *(review 2026-10-25, verified: `24 * 60 * 60 * 1000` appears 11 times in `apps/api/src`; throttle limits and calculator defaults (`1270`, `33`, `23`) are inline)*
 - [ ] Verify and decide: why `AdminModule` is `@Global()` (`ErrorLogModule` is justified by the exception filter); whether `lib/db/prisma.ts` reading `process.env` directly is intentional for seed scripts; whether `ProductsService.getRawProducts` (a one-line pass-through) is used - S
 - [ ] ⚪ Conditional: split the `AskService.askStream` pipeline (~330-line method) into `QuestionPreparer`, `ToolLoopRunner`, `AnswerValidator`, `AskRecorder`, `AnswerCachePolicy`; draft vs procedures as two mode handlers - L ← only when the service has to change (new mode or tool)
 
@@ -407,7 +426,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [x] Approved SOPs in a cached system prompt (prompt caching) - M *(verified against the real model: about 99% of input tokens are served from OpenAI's prompt cache)*
 - [ ] Rules: answer only from SOPs, always cite section link, never answer from a TODO - S *(enforced in code and unit-tested; `pnpm --filter api ai:eval` passes 13–15 of 15 cases per run on gpt-4o-mini - the failures move around run to run - so tick once a model passes reliably, several runs in a row)*
 - [ ] Branch `region`, `phone`, `openingHours` columns + admin form, so `getBranch` reads the database (overlaps 0.8; don't duplicate) - S
-- [ ] Tools: `getSpot`, `getProductPrice`, `getBranch` - M *(`getSpot` and `findProductPrices` are built and pass the real-model evaluation against a fixture catalogue, with a figure check that flags any euro amount no lookup supplied; `getBranch` waits for the branch columns above. Not yet checked end to end in the running app with a live spot)*
+- [ ] Tools: `getSpot`, `getProductPrice`, `getBranch` - M *(re-checked 2026-10-25: `getBranch` still does not exist; `getSpot` and `findProductPrices` are built and pass the real-model evaluation against a fixture catalogue, with a figure check that flags any euro amount no lookup supplied; `getBranch` waits for the branch columns above. Not yet checked end to end in the running app with a live spot)*
 - [ ] Chat panel with clickable citations; thumbs up/down - M *(partly there: `knowledge/components/assistant-panel.tsx` exists and renders citations; no thumbs up/down found)*
 - [ ] Question log + "unanswered questions" report - S *(the log is built: scrubbed question, status, citations, tokens, cost, 90-day retention; the admin report is phase 5)*
 - [x] Per-user daily quota, cost log, throttling - S *(Redis limiter that fails closed: one open question, 5 a minute, 50 a day; exact-integer cost log; company-wide daily spend breaker; all verified against the real database and model)*
@@ -534,6 +553,8 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Scaling-trigger items for anything customer-facing done: rate limiting, public caching, CDN, separate endpoints
 
 ## 2.1 Public site: catalogue, live prices, tools (read-only launch) 🟠
+
+*Status 2026-10-25: `apps/site` and `packages/ui` are scaffolded (React Router v7 prerender, a home route and a components route, one `format` spec, built and tested in CI); no catalogue, price or tool page exists yet.*
 
 Plan: [`docs/SITE-PLAN.md`](SITE-PLAN.md) · decision: `docs/adr/0002-public-site-is-a-prerendered-app-with-shared-ui-package.md`
 
@@ -694,7 +715,7 @@ packages/
 
 # Suggested sequencing (what to do next)
 
-**Next 5 actions:** (1) CI on every PR + branch protection (0.10) → (2) `TradeService`/`PortfolioService` specs and the web test runner (0.10) → (3) throttler, Helmet and the dead `/auth/refresh` fix (0.6, 0.12) → (4) timeout/retry/breaker on the metal-price client (0.1) → (5) start the 1.0 prerequisite conversations (non-code, in parallel).
+**Next 5 actions (updated 2026-10-25; CI, throttler, Helmet, refresh fix and the vendor breaker are done):** (1) RLS on all tables + remove the committed `1234!` credentials (0.6) → (2) duplicate-timestamp price-write fix and lost-update protection (0.12) → (3) `decimal.js` and the shared pricing engine (0.2) → (4) `PortfolioService` spec, web test runner and web lint in CI (0.10) → (5) migration workflow + leader lock before a second replica (0.7).
 
 1. **Safety net first (🔴):** CI + branch protection + deploy gate (0.10) → web test runner, `TradeService`/`PortfolioService` and `DbBrowserService` specs (0.10, 0.12). Everything after this refactors a money system; without CI and tests it is not safe.
 2. **Close defects and cheap exposure (🔴):** throttler, Helmet (0.6) → dead `/auth/refresh` and the two HTTP clients, fail-closed admin gating, Zod query schemas, vendor timeout/breaker (0.12, 0.1) → Sentry, staging, backup/restore, production Redis (0.7).
