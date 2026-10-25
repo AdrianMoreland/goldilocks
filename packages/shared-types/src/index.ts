@@ -47,6 +47,7 @@ export type {
 export * from './trade.schema';
 export * from './portfolio.schema';
 export * from './pricing-math';
+export * from './product-pricing';
 export * from './portfolio-builder-math';
 export * from './session.schema';
 export * from './query.schema';
