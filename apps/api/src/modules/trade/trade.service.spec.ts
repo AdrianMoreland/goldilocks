@@ -1,5 +1,8 @@
 import { TradeService } from './trade.service';
-import { GRAMS_PER_TROY_OUNCE } from '@goldilocks/shared-types';
+import {
+    GRAMS_PER_TROY_OUNCE,
+    MELT_CATEGORIES,
+} from '@goldilocks/shared-types';
 
 describe('TradeService.calculateCart VAT', () => {
     const SPOT = 50;
@@ -49,5 +52,22 @@ describe('TradeService.calculateCart VAT', () => {
             request('selling', 10),
         );
         expect(cart.lines[0].unitPrice).toBe(4500);
+    });
+});
+
+describe('TradeService.calculateMelt rounding', () => {
+    it('rounds the payout down, as it is money we pay out', async () => {
+        const service = new TradeService(
+            {
+                getLatest: jest.fn().mockResolvedValue({ priceEur: 1000 }),
+            } as never,
+            {} as never,
+        );
+        const melt = await service.calculateMelt({
+            category: Object.keys(MELT_CATEGORIES)[0] as never,
+            weight: 1.234,
+        });
+        expect(melt.meltValue).toBe(Math.floor(melt.meltValue));
+        expect(melt.meltValue).toBeGreaterThan(0);
     });
 });
