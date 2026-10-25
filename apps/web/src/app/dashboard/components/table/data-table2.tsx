@@ -21,13 +21,19 @@ interface DataTableProps {
     hasError?: boolean
 }
 
+// Start on the tab the page already has selected. Starting on Gold while a remembered
+// metal is, say, Silver makes the two sync effects below overwrite each other forever.
+function initialTabFor(metal?: MetalType | null) {
+    return METAL_TABS.find((t) => t.metalType === metal)?.value ?? "gold"
+}
+
 export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
     const { setActiveMetal, rowSelection, setRowSelection, tableCopySource } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
     const { table, selectedTab, setSelectedTab, selectedProducts, search, setSearch, isFiltered, resetFilters } =
-        useProductTable(data, rowSelection, setRowSelection)
+        useProductTable(data, rowSelection, setRowSelection, initialTabFor(activeMetal))
 
     // The Trade tab's Easy Copy button copies whatever is ticked here, in the
     // columns currently shown. A ref, not state: it is only read on click, and
