@@ -91,7 +91,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
                     </div>
                     <div className="col-span-2 flex flex-col gap-1">
                         <Label className="text-xs">Password</Label>
-                        <Input type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
+                        <Input type="password" placeholder="At least 10 characters" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
                     </div>
                     <div className="flex flex-col gap-1">
                         <Label className="text-xs">Role</Label>
