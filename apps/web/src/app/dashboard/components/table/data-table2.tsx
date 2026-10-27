@@ -21,13 +21,19 @@ interface DataTableProps {
     hasError?: boolean
 }
 
+// Start on the tab the page already has selected. Starting on Gold while a remembered
+// metal is, say, Silver makes the two sync effects below overwrite each other forever.
+function initialTabFor(metal?: MetalType | null) {
+    return METAL_TABS.find((t) => t.metalType === metal)?.value ?? "gold"
+}
+
 export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
     const { setActiveMetal, rowSelection, setRowSelection, tableCopySource } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
     // the matching row here. See use-trade-tools.hook.ts / trade-tab.tsx.
     const { table, selectedTab, setSelectedTab, selectedProducts, search, setSearch, isFiltered, resetFilters } =
-        useProductTable(data, rowSelection, setRowSelection)
+        useProductTable(data, rowSelection, setRowSelection, initialTabFor(activeMetal))
 
     // The Trade tab's Easy Copy button copies whatever is ticked here, in the
     // columns currently shown. A ref, not state: it is only read on click, and
@@ -39,30 +45,31 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
         }
     })
 
-    // Clicking a spot-price card selects that metal — mirror the selection
-    // into the product table's own tab so the cards drive what's displayed.
+    // `activeMetal` (the page's saved/selected metal) is the single source of truth:
+    // it flows one way into the table's tab and the pricing tools' metal mode. A card
+    // click or a restored preference lands here; tab clicks go through handleTabChange.
+    // Syncing the other way in an effect made the two overwrite each other forever.
     React.useEffect(() => {
         if (!activeMetal) return
         const tab = METAL_TABS.find((t) => t.metalType === activeMetal)?.value
         if (tab) setSelectedTab(tab)
-    }, [activeMetal, setSelectedTab])
+        setActiveMetal(activeMetal)
+    }, [activeMetal, setSelectedTab, setActiveMetal])
 
-    // Whatever metal tab the product table is currently showing is also the
-    // metal mode the pricing tools drawer/floating button should open in —
-    // and (via onActiveMetalChange) what the cards/chart consider selected,
-    // so switching metals via the small buttons while cards are hidden
-    // doesn't leave the cards/chart pointed at a stale metal underneath.
-    React.useEffect(() => {
-        const metalType = METAL_TABS.find((t) => t.value === selectedTab)?.metalType
+    // A tab click also moves the pricing tools' metal mode and the cards/chart's
+    // selected metal, so the small tab buttons never leave them on a stale metal.
+    const handleTabChange = (value: string) => {
+        setSelectedTab(value as typeof selectedTab)
+        const metalType = METAL_TABS.find((t) => t.value === value)?.metalType
         if (!metalType) return
         setActiveMetal(metalType)
         onActiveMetalChange?.(metalType)
-    }, [selectedTab, setActiveMetal, onActiveMetalChange])
+    }
 
     return (
         <Tabs
             value={selectedTab}
-            onValueChange={(value) => setSelectedTab(value as typeof selectedTab)}
+            onValueChange={handleTabChange}
             className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
             <TabsContent

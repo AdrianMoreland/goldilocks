@@ -29,6 +29,7 @@ export function useProductTable(
     initialData: Product[],
     rowSelection: Record<string, boolean>,
     setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+    initialTab: MetalTabValue = "gold",
 ) {
     const { user } = useAuth()
     // Sort/filter/search state is persisted per user, not per session - a
@@ -71,7 +72,7 @@ export function useProductTable(
         [setSorting],
     )
     const [search, setSearch] = useLocalStorageState<string>(`${storagePrefix}:search`, "")
-    const [selectedTab, setSelectedTab] = React.useState<MetalTabValue>("gold")
+    const [selectedTab, setSelectedTab] = React.useState<MetalTabValue>(initialTab)
 
     React.useEffect(() => {
         if (initialData?.length) setData(initialData)
