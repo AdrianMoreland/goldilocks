@@ -20,6 +20,13 @@ import {
     RoadmapEditRequestSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
+    CreateStocktakeRequestSchema,
+    UpdateStocktakeRequestSchema,
+    ImportJournalRequestSchema,
+    UpdateStocktakeLineRequestSchema,
+    CreateDiscrepancyRequestSchema,
+    UpdateDiscrepancyRequestSchema,
+    LinkBcItemRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -368,4 +375,43 @@ export class RoadmapDocumentDto extends createDto(
 export class RoadmapEditRequestDto extends createDto(
     RoadmapEditRequestSchema,
     'RoadmapEditRequestDto',
+) {}
+
+// ============================================================================
+// STOCKTAKE DTOs
+// ============================================================================
+
+export class CreateStocktakeRequestDto extends createDto(
+    CreateStocktakeRequestSchema,
+    'CreateStocktakeRequestDto',
+) {}
+
+export class UpdateStocktakeRequestDto extends createDto(
+    UpdateStocktakeRequestSchema,
+    'UpdateStocktakeRequestDto',
+) {}
+
+export class ImportJournalRequestDto extends createDto(
+    ImportJournalRequestSchema,
+    'ImportJournalRequestDto',
+) {}
+
+export class UpdateStocktakeLineRequestDto extends createDto(
+    UpdateStocktakeLineRequestSchema,
+    'UpdateStocktakeLineRequestDto',
+) {}
+
+export class CreateDiscrepancyRequestDto extends createDto(
+    CreateDiscrepancyRequestSchema,
+    'CreateDiscrepancyRequestDto',
+) {}
+
+export class UpdateDiscrepancyRequestDto extends createDto(
+    UpdateDiscrepancyRequestSchema,
+    'UpdateDiscrepancyRequestDto',
+) {}
+
+export class LinkBcItemRequestDto extends createDto(
+    LinkBcItemRequestSchema,
+    'LinkBcItemRequestDto',
 ) {}

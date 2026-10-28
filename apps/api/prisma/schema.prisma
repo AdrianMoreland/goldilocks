@@ -59,6 +59,8 @@ model Product {
   /// is hidden everywhere but can be restored from the admin panel.
   deletedAt   DateTime? @db.Timestamptz(6)
 
+  bcItems     BcItem[]
+
   @@index([metalType])
   @@index([metalType, stock])
   @@index([sku])
@@ -328,4 +330,111 @@ model AuditLog {
 
   @@index([at(sort: Desc)])
   @@map("audit_log")
+}
+
+/// One Business Central item number (a refinery-specific item such as 1015 "Umicore - 250g bar").
+/// Many BC items can point at one Goldilocks product (the generic "250g Gold Bar"), so the catalogue
+/// keeps one row per product, not per refinery. productId stays null until a person confirms the link.
+model BcItem {
+  itemNo      String   @id
+  /// The description exactly as Business Central shows it. Never used to rename a product.
+  description String
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([productId])
+  @@map("bc_items")
+}
+
+enum StocktakeStatus {
+  DRAFT
+  COUNTING
+  RECONCILING
+  FINALISED
+}
+
+enum SerialsChecked {
+  YES
+  NO
+  NA
+}
+
+enum DiscrepancyIssueType {
+  QUANTITY
+  LOCATION
+  SERIAL
+  PAID_NOT_COLLECTED
+  OTHER
+}
+
+/// A month-end count. Reconciles physical stock on countDate to the BC position at cutoffDate.
+model Stocktake {
+  id            Int             @id @default(autoincrement())
+  name          String
+  countDate     DateTime        @db.Date
+  cutoffDate    DateTime        @db.Date
+  status        StocktakeStatus @default(DRAFT)
+  stocktakeLead String?
+  secondChecker String?
+  notes         String?
+  createdBy     String
+  finalisedBy   String?
+  finalisedAt   DateTime?       @db.Timestamptz(6)
+  createdAt     DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(6)
+
+  lines         StocktakeLine[]
+  discrepancies StocktakeDiscrepancy[]
+
+  @@index([status])
+  @@map("stocktakes")
+}
+
+/// One Physical Inventory Journal line. countedNormal/countedCustomer are null until counted: a blank is
+/// not a zero. Variance is derived (calculated minus counts) and never stored.
+model StocktakeLine {
+  id              Int             @id @default(autoincrement())
+  stocktakeId     Int
+  stocktake       Stocktake       @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  itemNo          String
+  description     String
+  locationCode    String
+  qtyCalculated   Int
+  countedNormal   Int?
+  countedCustomer Int?
+  counted         Boolean         @default(false)
+  reason          String?
+  serialsChecked  SerialsChecked?
+  serialNote      String?
+  batchName       String?
+  documentNo      String?
+  entryType       String?
+  unitAmount      Decimal?        @db.Decimal(14, 5)
+  unitCost        Decimal?        @db.Decimal(14, 5)
+
+  @@unique([stocktakeId, itemNo, locationCode])
+  @@map("stocktake_lines")
+}
+
+/// The discrepancy register from the month-end guide. An explanation (action) never sets resolved.
+model StocktakeDiscrepancy {
+  id            Int                  @id @default(autoincrement())
+  stocktakeId   Int
+  stocktake     Stocktake            @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  itemNo        String?
+  description   String
+  issueType     DiscrepancyIssueType
+  bcShows       String               @default("")
+  physicalFound String               @default("")
+  serialNo      String?
+  action        String               @default("")
+  resolved      Boolean              @default(false)
+  createdBy     String
+  createdAt     DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime             @updatedAt @db.Timestamptz(6)
+
+  @@index([stocktakeId])
+  @@map("stocktake_discrepancies")
 }
