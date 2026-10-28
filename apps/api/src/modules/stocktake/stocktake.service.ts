@@ -133,10 +133,13 @@ export class StocktakeService {
      */
     async finalise(id: number, actor: string): Promise<Stocktake> {
         const current = await this.requireOpen(id);
-        const [lines, unresolved] = await Promise.all([
+        const [lines, unresolved, unconfirmedBars] = await Promise.all([
             this.prisma.stocktakeLine.count({ where: { stocktakeId: id } }),
             this.prisma.stocktakeDiscrepancy.count({
                 where: { stocktakeId: id, resolved: false },
+            }),
+            this.prisma.stocktakeBar.count({
+                where: { stocktakeId: id, status: 'UNCONFIRMED' },
             }),
         ]);
         if (lines === 0) {
@@ -156,7 +159,7 @@ export class StocktakeService {
             await this.audit.record(
                 actor,
                 'stocktake-finalise',
-                `${current.name}: ${lines} lines, ${unresolved} unresolved discrepancies`,
+                `${current.name}: ${lines} lines, ${unresolved} unresolved discrepancies, ${unconfirmedBars} unconfirmed bars`,
                 tx,
             );
             return updated;
@@ -358,7 +361,7 @@ export class StocktakeService {
 
     // --- helpers --------------------------------------------------------------
 
-    private async requireOpen(id: number): Promise<StocktakeRow> {
+    async requireOpen(id: number): Promise<StocktakeRow> {
         const row = await this.prisma.stocktake.findUnique({ where: { id } });
         if (!row) throw new NotFoundException(`Stocktake ${id} not found.`);
         if (row.status === 'FINALISED') {

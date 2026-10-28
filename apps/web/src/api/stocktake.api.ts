@@ -2,12 +2,22 @@ import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
 import {
     BcItemsResponseSchema,
+    CarryForwardResultSchema,
+    ImportPhysicalResultSchema,
+    PhysicalRegisterSchema,
+    StocktakeBarSchema,
+    StocktakeCoinSchema,
     DiscrepancySchema,
     ImportJournalResultSchema,
     StocktakeDetailSchema,
     StocktakeLineSchema,
     StocktakeSchema,
+    type AddBarRequest,
+    type AddCoinRequest,
     type CreateDiscrepancyRequest,
+    type StockMetal,
+    type UpdateBarRequest,
+    type UpdateCoinRequest,
     type CreateStocktakeRequest,
     type UpdateDiscrepancyRequest,
     type UpdateStocktakeLineRequest,
@@ -37,6 +47,20 @@ export function useStocktakeApi() {
             client.patch(`${base(id)}/discrepancies/${discrepancyId}`, body, DiscrepancySchema),
         deleteDiscrepancy: (id: number, discrepancyId: number) =>
             client.del(`${base(id)}/discrepancies/${discrepancyId}`, empty),
+        register: (id: number) => client.get(`${base(id)}/register`, PhysicalRegisterSchema),
+        carryForward: (id: number, fromStocktakeId?: number) =>
+            client.post(`${base(id)}/carry-forward`, { fromStocktakeId }, CarryForwardResultSchema),
+        importBars: (id: number, metal: StockMetal, text: string) =>
+            client.post(`${base(id)}/bars/import`, { metal, text }, ImportPhysicalResultSchema),
+        addBar: (id: number, body: AddBarRequest) => client.post(`${base(id)}/bars`, body, StocktakeBarSchema),
+        updateBar: (id: number, barId: number, body: UpdateBarRequest) =>
+            client.patch(`${base(id)}/bars/${barId}`, body, StocktakeBarSchema),
+        deleteBar: (id: number, barId: number) => client.del(`${base(id)}/bars/${barId}`, empty),
+        importCoins: (id: number, metal: StockMetal, text: string) =>
+            client.post(`${base(id)}/coins/import`, { metal, text }, ImportPhysicalResultSchema),
+        addCoin: (id: number, body: AddCoinRequest) => client.post(`${base(id)}/coins`, body, StocktakeCoinSchema),
+        updateCoin: (id: number, coinId: number, body: UpdateCoinRequest) =>
+            client.patch(`${base(id)}/coins/${coinId}`, body, StocktakeCoinSchema),
         bcItems: () => client.get('/stocktake/bc-items', BcItemsResponseSchema),
         linkBcItem: (itemNo: string, productId: number | null) =>
             client.put(`/stocktake/bc-items/${encodeURIComponent(itemNo)}/product`, { productId }, empty),

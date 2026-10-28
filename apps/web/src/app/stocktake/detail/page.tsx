@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { nextStatus, statusLabel } from "../components/status"
 import { CountPanel } from "../components/count-panel"
 import { ImportPanel } from "../components/import-panel"
+import { BarsPanel } from "../components/bars-panel"
+import { CoinsPanel } from "../components/coins-panel"
 import { SerialsPanel } from "../components/serials-panel"
 import { RegisterPanel } from "../components/register-panel"
 import { BcItemsPanel } from "../components/bc-items-panel"
@@ -138,6 +140,8 @@ export default function StocktakeDetailPage() {
                     <TabsList className="flex-wrap">
                         <TabsTrigger value="count">Count</TabsTrigger>
                         <TabsTrigger value="import">Import</TabsTrigger>
+                        <TabsTrigger value="bars">Bars</TabsTrigger>
+                        <TabsTrigger value="coins">Coins</TabsTrigger>
                         <TabsTrigger value="serials">Serials</TabsTrigger>
                         <TabsTrigger value="register">Register ({data.discrepancies.length})</TabsTrigger>
                         <TabsTrigger value="items">BC items</TabsTrigger>
@@ -148,6 +152,12 @@ export default function StocktakeDetailPage() {
                     </TabsContent>
                     <TabsContent value="import">
                         <ImportPanel stocktake={data} locked={locked} onChanged={refresh} />
+                    </TabsContent>
+                    <TabsContent value="bars">
+                        <BarsPanel stocktake={data} locked={locked} />
+                    </TabsContent>
+                    <TabsContent value="coins">
+                        <CoinsPanel stocktake={data} locked={locked} />
                     </TabsContent>
                     <TabsContent value="serials">
                         <SerialsPanel stocktake={data} locked={locked} onChanged={refresh} />

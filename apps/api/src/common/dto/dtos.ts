@@ -27,6 +27,16 @@ import {
     CreateDiscrepancyRequestSchema,
     UpdateDiscrepancyRequestSchema,
     LinkBcItemRequestSchema,
+    AddBarRequestSchema,
+    UpdateBarRequestSchema,
+    ImportPhysicalRequestSchema,
+    AddCoinRequestSchema,
+    UpdateCoinRequestSchema,
+    CarryForwardRequestSchema,
+    CreateCustomerOrderRequestSchema,
+    UpdateCustomerOrderRequestSchema,
+    AddEvidenceRequestSchema,
+    ImportCustomerOrdersRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -414,4 +424,58 @@ export class UpdateDiscrepancyRequestDto extends createDto(
 export class LinkBcItemRequestDto extends createDto(
     LinkBcItemRequestSchema,
     'LinkBcItemRequestDto',
+) {}
+
+export class AddBarRequestDto extends createDto(
+    AddBarRequestSchema,
+    'AddBarRequestDto',
+) {}
+
+export class UpdateBarRequestDto extends createDto(
+    UpdateBarRequestSchema,
+    'UpdateBarRequestDto',
+) {}
+
+export class ImportPhysicalRequestDto extends createDto(
+    ImportPhysicalRequestSchema,
+    'ImportPhysicalRequestDto',
+) {}
+
+export class AddCoinRequestDto extends createDto(
+    AddCoinRequestSchema,
+    'AddCoinRequestDto',
+) {}
+
+export class UpdateCoinRequestDto extends createDto(
+    UpdateCoinRequestSchema,
+    'UpdateCoinRequestDto',
+) {}
+
+export class CarryForwardRequestDto extends createDto(
+    CarryForwardRequestSchema,
+    'CarryForwardRequestDto',
+) {}
+
+// ============================================================================
+// CUSTOMER ORDER DTOs
+// ============================================================================
+
+export class CreateCustomerOrderRequestDto extends createDto(
+    CreateCustomerOrderRequestSchema,
+    'CreateCustomerOrderRequestDto',
+) {}
+
+export class UpdateCustomerOrderRequestDto extends createDto(
+    UpdateCustomerOrderRequestSchema,
+    'UpdateCustomerOrderRequestDto',
+) {}
+
+export class AddEvidenceRequestDto extends createDto(
+    AddEvidenceRequestSchema,
+    'AddEvidenceRequestDto',
+) {}
+
+export class ImportCustomerOrdersRequestDto extends createDto(
+    ImportCustomerOrdersRequestSchema,
+    'ImportCustomerOrdersRequestDto',
 ) {}

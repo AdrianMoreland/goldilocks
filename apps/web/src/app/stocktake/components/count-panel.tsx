@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { computeVariance, type StocktakeDetail, type StocktakeLine } from "@goldilocks/shared-types"
+import { useCustomerOrdersApi } from "@/api/customer-orders.api"
 import { useStocktakeApi } from "@/api/stocktake.api"
+import { queryKeys } from "@/lib/query-keys"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -44,6 +46,7 @@ export function CountPanel({ stocktake, locked, onChanged }: Props) {
 
     return (
         <div className="space-y-3 pt-3">
+            <CustomerSafeReference />
             <div className="flex flex-wrap items-center gap-3">
                 <Input placeholder="Search item or description" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
                 <select
@@ -89,6 +92,32 @@ export function CountPanel({ stocktake, locked, onChanged }: Props) {
                 </Table>
             </div>
         </div>
+    )
+}
+
+/**
+ * What the customer orders say is physically in each branch's customer safe, as a prompt while counting the
+ * customer-safe column. It is a reference, not the count: product names here are the sheet's own wording and
+ * are not matched to BC items automatically.
+ */
+function CustomerSafeReference() {
+    const api = useCustomerOrdersApi()
+    const { data } = useQuery({ queryKey: queryKeys.customerOrders.expected, queryFn: api.expectedStock })
+    if (!data?.length) return null
+    return (
+        <details className="rounded-lg border p-3 text-sm">
+            <summary className="cursor-pointer font-medium">Customer orders say the customer safe should hold ({data.reduce((n, r) => n + r.quantity, 0)} items)</summary>
+            <ul className="mt-2 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+                {data.map((r) => (
+                    <li key={`${r.locationCode}-${r.product}`} className="flex justify-between gap-2">
+                        <span>
+                            {r.locationCode} · {r.product}
+                        </span>
+                        <span className="tabular-nums">{r.quantity}</span>
+                    </li>
+                ))}
+            </ul>
+        </details>
     )
 }
 

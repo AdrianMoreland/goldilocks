@@ -36,6 +36,7 @@ function setup() {
             update: jest.fn(),
         },
         stocktakeDiscrepancy: { count: jest.fn(), create: jest.fn() },
+        stocktakeBar: { count: jest.fn().mockResolvedValue(0) },
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new StocktakeService(
