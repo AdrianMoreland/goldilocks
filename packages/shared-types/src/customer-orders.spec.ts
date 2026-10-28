@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   expectedCustomerStock,
   isPhysicallyHere,
+  linkOrdersToTradesheet,
+  parseTradesheetPaste,
   matchTradeLine,
   normalizeClient,
   normalizeReference,
@@ -107,5 +109,62 @@ describe('expectedCustomerStock', () => {
       { locationCode: 'DU', product: '1oz Krugerrand', quantity: 2, status: 'COLLECTED' },
     ]);
     expect(out).toEqual([{ locationCode: 'DU', product: '1oz Krugerrand', quantity: 9 }]);
+  });
+});
+
+const TRADE = [
+  'Branch:\tInitials:\tClient:\tQTY:\tProduct:\tDate:\tReference:\tCollected:',
+  "DU\tGOD\tTom O'Neill\t20\t1oz Krugerrand\t46296\tDU-G20261002\t46300",
+  'DU\tDH\tArchicon Limited\t26\t1oz Maple\t46296\tDU-G20261003\t',
+  'DU\tDH\tArchicon Limited\t25\t1oz Eagle\t46296\tDU-G20261004\t',
+  'DU\tDH\tArchicon Limited\t5\t1oz Eagle\t46296\tDU-G20261004\t',
+  'DU\tX\t\t\t\t\t\t',
+].join('\n');
+
+describe('tradesheet paste and linking', () => {
+  it('reads headers with trailing colons and keeps the Collected claim as written', () => {
+    const { lines } = parseTradesheetPaste(TRADE);
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toMatchObject({
+      reference: 'DU-G20261002',
+      client: "Tom O'Neill",
+      quantity: 20,
+      product: '1oz Krugerrand',
+      collected: '46300',
+      date: '2026-10-01',
+    });
+    expect(lines[1]?.collected).toBeNull();
+  });
+
+  it('rejects a paste without Client and Reference', () => {
+    expect(parseTradesheetPaste('QTY:\n1').issues[0]?.message).toMatch(/Needs a Client/);
+  });
+
+  it('links on reference and name, flags a quantity mismatch, and notes when the sheet says collected', () => {
+    const { lines } = parseTradesheetPaste(TRADE);
+    const [a, b] = linkOrdersToTradesheet(
+      [
+        { id: 1, reference: 'du-g20261002', client: "TOM O'NEILL", quantity: 20 },
+        { id: 2, reference: 'DU-G20261003', client: 'Archicon Limited', quantity: 20 },
+      ],
+      lines,
+    );
+    expect(a).toMatchObject({ status: 'EXACT', sheetSaysCollected: true, notes: [] });
+    expect(b).toMatchObject({ status: 'EXACT', sheetSaysCollected: false });
+    expect(b?.notes[0]).toMatch(/Quantity differs/);
+  });
+
+  it('sends a misspelt client to review, treats a repeated reference as ambiguous, and never links without a reference', () => {
+    const { lines } = parseTradesheetPaste(TRADE);
+    const out = linkOrdersToTradesheet(
+      [
+        { id: 1, reference: 'DU-G20261002', client: 'Tom Oneil', quantity: 20 },
+        { id: 2, reference: 'DU-G20261004', client: 'Somebody Else', quantity: 25 },
+        { id: 3, reference: null, client: 'Archicon Limited', quantity: 26 },
+      ],
+      lines,
+    );
+    expect(out.map((l) => l.status)).toEqual(['REVIEW', 'AMBIGUOUS', 'NONE']);
+    expect(out[1]?.candidates).toHaveLength(2);
   });
 });

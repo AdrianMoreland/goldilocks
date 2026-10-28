@@ -53,10 +53,10 @@ export interface TradeLineKey {
   client: string;
 }
 
-export type TradeMatch =
-  | { status: 'EXACT'; line: TradeLineKey }
-  | { status: 'REVIEW'; line: TradeLineKey; reason: string }
-  | { status: 'AMBIGUOUS'; lines: TradeLineKey[] }
+export type TradeMatch<T extends TradeLineKey = TradeLineKey> =
+  | { status: 'EXACT'; line: T }
+  | { status: 'REVIEW'; line: T; reason: string }
+  | { status: 'AMBIGUOUS'; lines: T[] }
   | { status: 'NONE' };
 
 const wordSet = (s: string) => new Set(s.split(' ').filter(Boolean));
@@ -66,17 +66,17 @@ const wordSet = (s: string) => new Set(s.split(' ').filter(Boolean));
  * alone never links anything. A reference match with a different name (a typo, or a different customer) is
  * returned for review, never silently accepted. The same reference on several lines is ambiguous.
  */
-export function matchTradeLine(order: TradeLineKey, tradeLines: TradeLineKey[]): TradeMatch {
+export function matchTradeLine<T extends TradeLineKey>(order: TradeLineKey, tradeLines: T[]): TradeMatch<T> {
   const ref = normalizeReference(order.reference);
   if (!ref) return { status: 'NONE' };
   const byRef = tradeLines.filter((t) => normalizeReference(t.reference) === ref);
   if (byRef.length === 0) return { status: 'NONE' };
   const name = normalizeClient(order.client);
   const sameName = byRef.filter((t) => normalizeClient(t.client) === name);
-  if (sameName.length === 1) return { status: 'EXACT', line: sameName[0] as TradeLineKey };
+  if (sameName.length === 1) return { status: 'EXACT', line: sameName[0] as T };
   if (sameName.length > 1) return { status: 'AMBIGUOUS', lines: sameName };
   if (byRef.length === 1) {
-    const only = byRef[0] as TradeLineKey;
+    const only = byRef[0] as T;
     const a = wordSet(name);
     const shared = [...wordSet(normalizeClient(only.client))].filter((w) => a.has(w)).length;
     return {
@@ -272,3 +272,101 @@ export function expectedCustomerStock(
 }
 
 export type { StockMetal };
+
+// --- reading a pasted tradesheet -----------------------------------------------------
+
+export interface TradesheetLine extends TradeLineKey {
+  /** Row number in the paste (1 is the header), for pointing a person back at the sheet. */
+  row: number;
+  quantity: number | null;
+  product: string | null;
+  /** The sheet's Date or Received column as an ISO date, when it is readable. */
+  date: string | null;
+  /** What the sheet's Collected column holds, as written. Non-empty means the sheet claims collection. */
+  collected: string | null;
+}
+
+const stripHeader = (h: string) => h.trim().toLowerCase().replace(/[:?]+$/, '').trim();
+
+/**
+ * Reads one tradesheet tab pasted from Google Sheets (IE - Gold, IE - Silver, ES - Gold ...). Headers carry
+ * trailing colons and differ between tabs, so they are matched loosely: Client, Reference (or Original Reference
+ * is ignored), QTY, Product or Order, Date or Date Received, Collected. Quote-only rows are still read: whether
+ * they matter is for the matcher and the person, not the parser. Nothing is written back to the sheet.
+ */
+export function parseTradesheetPaste(text: string): { lines: TradesheetLine[]; issues: ParseIssue[] } {
+  const table = parseTsv(text);
+  const issues: ParseIssue[] = [];
+  const header = table[0];
+  if (!header) return { lines: [], issues: [{ row: 0, message: 'Nothing to import.' }] };
+  const idx = new Map<string, number>();
+  header.forEach((h, i) => {
+    const k = stripHeader(h);
+    if (k && !idx.has(k)) idx.set(k, i);
+  });
+  const col = (...names: string[]) => names.map((n) => idx.get(n)).find((v) => v !== undefined);
+  const c = {
+    client: col('client'),
+    ref: col('reference'),
+    qty: col('qty', 'quantity'),
+    product: col('product', 'order'),
+    date: col('date', 'received', 'date received'),
+    collected: col('collected'),
+  };
+  if (c.client === undefined || c.ref === undefined) {
+    return { lines: [], issues: [{ row: 1, message: 'Needs a Client column and a Reference column.' }] };
+  }
+  const get = (r: string[], i: number | undefined) => (i === undefined ? '' : (r[i] ?? '').trim());
+  const lines: TradesheetLine[] = [];
+  table.slice(1).forEach((r, n) => {
+    const reference = get(r, c.ref);
+    const client = get(r, c.client);
+    if (!reference && !client) return;
+    if (!reference) return; // a row with no reference cannot be linked; it is not an error worth listing
+    const qty = parseQuantity(get(r, c.qty));
+    lines.push({
+      row: n + 2,
+      reference,
+      client,
+      quantity: qty !== null && Number.isInteger(qty) ? qty : null,
+      product: get(r, c.product) || null,
+      date: parseSheetDate(get(r, c.date)),
+      collected: get(r, c.collected) || null,
+    });
+  });
+  return { lines, issues };
+}
+
+export type LinkStatus = 'EXACT' | 'REVIEW' | 'AMBIGUOUS' | 'NONE';
+
+export interface OrderLink {
+  orderId: number;
+  status: LinkStatus;
+  /** Present for EXACT and REVIEW. */
+  line: TradesheetLine | null;
+  /** Lines to choose from when AMBIGUOUS. */
+  candidates: TradesheetLine[];
+  /** Why a person should look: a different name, or a quantity that disagrees with the order. */
+  notes: string[];
+  /** The sheet says this line was collected. Evidence for the log, never a status change. */
+  sheetSaysCollected: boolean;
+}
+
+/** Matches each order against the pasted tradesheet. Reference first, then name; the name alone never links. */
+export function linkOrdersToTradesheet(
+  orders: { id: number; reference: string | null; client: string; quantity: number }[],
+  lines: TradesheetLine[],
+): OrderLink[] {
+  return orders.map((o) => {
+    const m = matchTradeLine({ reference: o.reference ?? '', client: o.client }, lines);
+    if (m.status === 'NONE') return { orderId: o.id, status: 'NONE', line: null, candidates: [], notes: [], sheetSaysCollected: false };
+    if (m.status === 'AMBIGUOUS') {
+      return { orderId: o.id, status: 'AMBIGUOUS', line: null, candidates: m.lines, notes: ['The same reference is on several tradesheet lines.'], sheetSaysCollected: false };
+    }
+    const notes: string[] = m.status === 'REVIEW' ? [m.reason] : [];
+    if (m.line.quantity !== null && m.line.quantity !== o.quantity) {
+      notes.push(`Quantity differs: order ${o.quantity}, tradesheet ${m.line.quantity}.`);
+    }
+    return { orderId: o.id, status: m.status, line: m.line, candidates: [], notes, sheetSaysCollected: m.line.collected !== null };
+  });
+}
