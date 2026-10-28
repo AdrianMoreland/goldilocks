@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, KanbanSquare, LayoutDashboard, ShieldCheck, type LucideIcon } from "lucide-react"
+import { BookOpen, ClipboardCheck, KanbanSquare, PackageCheck, LayoutDashboard, ShieldCheck, type LucideIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
@@ -48,6 +48,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
 ]
 
+const stocktakeItem: NavItem = { title: "Stocktake", url: "/stocktake", icon: ClipboardCheck }
+const customerOrdersItem: NavItem = { title: "Customer orders", url: "/customer-orders", icon: PackageCheck }
+
 const adminGroup = {
   label: "Admin",
   items: [
@@ -65,13 +68,19 @@ const adminGroup = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isAdmin, capabilities } = useAuth()
+  const { user, isAdmin, isManager, capabilities } = useAuth()
   // Hidden when the branch lacks the capability; the API refuses the same pages' data on its own.
   const visibleNavGroups = navGroups.map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.requires || capabilities[item.requires]),
   }))
-  const groups = isAdmin ? [...visibleNavGroups, adminGroup] : visibleNavGroups
+  // Managers get the stocktake without the rest of the admin group; admins see it inside that group.
+  const managerGroup = { label: "Manager", items: [stocktakeItem, customerOrdersItem] }
+  const groups = isAdmin
+    ? [...visibleNavGroups, { ...adminGroup, items: [stocktakeItem, customerOrdersItem, ...adminGroup.items] }]
+    : isManager
+      ? [...visibleNavGroups, managerGroup]
+      : visibleNavGroups
 
   return (
     <Sidebar {...props}>

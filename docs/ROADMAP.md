@@ -488,7 +488,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 ## 1.12 Inventory audits and forms 🟡 ← depends: 1.0 `[BC]`
 
 - [ ] Monthly count sessions on iPad; barcode/serial scan for bars, quantity for coins - L
-- [ ] Compare to BC inventory; discrepancy log with two-person sign-off - M
+- [ ] Compare to BC inventory; discrepancy log with two-person sign-off - M *(first slice built 2026-10-28, not yet applied to the database: month-end stocktake at `/stocktake` for admins and managers. Paste-in of the BC Physical Inventory Journal, count entry with the normal-safe and customer-safe columns, variance, serial check against Item Tracking Entries, discrepancy register, finalise, CSV and print/PDF export, and BC item to product links. Not yet: carry-forward of last month's bars, customer-order tracking, native `.xlsx`, iPad scanning, two-person sign-off beyond the lead and second-checker names)*
 - [ ] Generic checklist/form module to replace other ad-hoc sheets - M
 - [ ] Inventory intelligence: reserved stock (quotes), stock reconciliation, low-stock signals - M
 

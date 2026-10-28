@@ -20,6 +20,23 @@ import {
     RoadmapEditRequestSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
+    CreateStocktakeRequestSchema,
+    UpdateStocktakeRequestSchema,
+    ImportJournalRequestSchema,
+    UpdateStocktakeLineRequestSchema,
+    CreateDiscrepancyRequestSchema,
+    UpdateDiscrepancyRequestSchema,
+    LinkBcItemRequestSchema,
+    AddBarRequestSchema,
+    UpdateBarRequestSchema,
+    ImportPhysicalRequestSchema,
+    AddCoinRequestSchema,
+    UpdateCoinRequestSchema,
+    CarryForwardRequestSchema,
+    CreateCustomerOrderRequestSchema,
+    UpdateCustomerOrderRequestSchema,
+    AddEvidenceRequestSchema,
+    ImportCustomerOrdersRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -368,4 +385,97 @@ export class RoadmapDocumentDto extends createDto(
 export class RoadmapEditRequestDto extends createDto(
     RoadmapEditRequestSchema,
     'RoadmapEditRequestDto',
+) {}
+
+// ============================================================================
+// STOCKTAKE DTOs
+// ============================================================================
+
+export class CreateStocktakeRequestDto extends createDto(
+    CreateStocktakeRequestSchema,
+    'CreateStocktakeRequestDto',
+) {}
+
+export class UpdateStocktakeRequestDto extends createDto(
+    UpdateStocktakeRequestSchema,
+    'UpdateStocktakeRequestDto',
+) {}
+
+export class ImportJournalRequestDto extends createDto(
+    ImportJournalRequestSchema,
+    'ImportJournalRequestDto',
+) {}
+
+export class UpdateStocktakeLineRequestDto extends createDto(
+    UpdateStocktakeLineRequestSchema,
+    'UpdateStocktakeLineRequestDto',
+) {}
+
+export class CreateDiscrepancyRequestDto extends createDto(
+    CreateDiscrepancyRequestSchema,
+    'CreateDiscrepancyRequestDto',
+) {}
+
+export class UpdateDiscrepancyRequestDto extends createDto(
+    UpdateDiscrepancyRequestSchema,
+    'UpdateDiscrepancyRequestDto',
+) {}
+
+export class LinkBcItemRequestDto extends createDto(
+    LinkBcItemRequestSchema,
+    'LinkBcItemRequestDto',
+) {}
+
+export class AddBarRequestDto extends createDto(
+    AddBarRequestSchema,
+    'AddBarRequestDto',
+) {}
+
+export class UpdateBarRequestDto extends createDto(
+    UpdateBarRequestSchema,
+    'UpdateBarRequestDto',
+) {}
+
+export class ImportPhysicalRequestDto extends createDto(
+    ImportPhysicalRequestSchema,
+    'ImportPhysicalRequestDto',
+) {}
+
+export class AddCoinRequestDto extends createDto(
+    AddCoinRequestSchema,
+    'AddCoinRequestDto',
+) {}
+
+export class UpdateCoinRequestDto extends createDto(
+    UpdateCoinRequestSchema,
+    'UpdateCoinRequestDto',
+) {}
+
+export class CarryForwardRequestDto extends createDto(
+    CarryForwardRequestSchema,
+    'CarryForwardRequestDto',
+) {}
+
+// ============================================================================
+// CUSTOMER ORDER DTOs
+// ============================================================================
+
+export class CreateCustomerOrderRequestDto extends createDto(
+    CreateCustomerOrderRequestSchema,
+    'CreateCustomerOrderRequestDto',
+) {}
+
+export class UpdateCustomerOrderRequestDto extends createDto(
+    UpdateCustomerOrderRequestSchema,
+    'UpdateCustomerOrderRequestDto',
+) {}
+
+export class AddEvidenceRequestDto extends createDto(
+    AddEvidenceRequestSchema,
+    'AddEvidenceRequestDto',
+) {}
+
+export class ImportCustomerOrdersRequestDto extends createDto(
+    ImportCustomerOrdersRequestSchema,
+    'ImportCustomerOrdersRequestDto',
 ) {}
