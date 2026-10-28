@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { TradesheetLink } from "./tradesheet-link"
 
 const select = "border-input bg-background h-9 rounded-md border px-2 text-sm"
 
@@ -160,6 +161,7 @@ export default function CustomerOrdersPage() {
                     </div>
                 )}
 
+                <TradesheetLink orders={data ?? []} onLogged={refresh} />
                 <AddForm onAdded={refresh} />
                 <ImportBox onImported={refresh} />
             </div>
