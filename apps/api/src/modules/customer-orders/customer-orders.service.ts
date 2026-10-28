@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+    compareStockLabels,
     CUSTOMER_ORDER_STATUS_LABELS,
     expectedCustomerStock,
     parseCustomerOrdersPaste,
@@ -56,7 +57,19 @@ export class CustomerOrdersService {
                 { id: 'asc' },
             ],
         });
-        return rows.map(toOrder);
+        // Branch, then product display order (gold first, 1oz and 100g first), then client.
+        return rows
+            .sort(
+                (a, b) =>
+                    a.locationCode.localeCompare(b.locationCode) ||
+                    compareStockLabels(
+                        { metal: a.metal, label: a.product },
+                        { metal: b.metal, label: b.product },
+                    ) ||
+                    a.client.localeCompare(b.client) ||
+                    a.id - b.id,
+            )
+            .map(toOrder);
     }
 
     async create(

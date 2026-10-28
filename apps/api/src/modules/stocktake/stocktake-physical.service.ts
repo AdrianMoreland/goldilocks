@@ -4,6 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import {
+    compareStockLabels,
     findDuplicateSerials,
     isClosingBar,
     normalizeSerial,
@@ -66,8 +67,27 @@ export class StocktakePhysicalService {
         const dup = findDuplicateSerials(bars);
         const flagged = new Set([...dup.values()].flat());
         return {
-            bars: bars.map((b) => toBar(b, flagged.has(b.id))),
-            coins: coins.map(toCoin),
+            // Product display order (gold first, 1oz and 100g first), not id order. Bars stay grouped by branch.
+            bars: [...bars]
+                .sort(
+                    (a, b) =>
+                        compareStockLabels(
+                            { metal: a.metal, label: a.weightLabel },
+                            { metal: b.metal, label: b.weightLabel },
+                        ) ||
+                        a.locationCode.localeCompare(b.locationCode) ||
+                        a.id - b.id,
+                )
+                .map((b) => toBar(b, flagged.has(b.id))),
+            coins: [...coins]
+                .sort(
+                    (a, b) =>
+                        compareStockLabels(
+                            { metal: a.metal, label: a.item },
+                            { metal: b.metal, label: b.item },
+                        ) || a.locationCode.localeCompare(b.locationCode),
+                )
+                .map(toCoin),
         };
     }
 
