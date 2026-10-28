@@ -2,7 +2,7 @@ import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import { homePathFor } from '@goldilocks/shared-types'
 import { useAuth } from '@/contexts/auth-context'
-import { RequireAdmin, RequireAuth, RequireCapability } from '@/components/auth/require-auth'
+import { RequireAdmin, RequireAuth, RequireCapability, RequireManager } from '@/components/auth/require-auth'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -10,6 +10,8 @@ const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
+const Stocktake = lazy(() => import('@/app/stocktake/page'))
+const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
@@ -88,6 +90,15 @@ export const routes: RouteConfig[] = [
   {
     path: "/project",
     element: <RequireAdmin><Project /></RequireAdmin>
+  },
+  // Month-end stocktake: admins and managers; the API enforces the same on every call
+  {
+    path: "/stocktake",
+    element: <RequireManager><Stocktake /></RequireManager>
+  },
+  {
+    path: "/stocktake/:id",
+    element: <RequireManager><StocktakeDetail /></RequireManager>
   },
   // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
   {

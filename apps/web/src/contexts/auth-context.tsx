@@ -7,6 +7,8 @@ interface AuthContextValue {
     user: SessionUser | null
     isAuthenticated: boolean
     isAdmin: boolean
+    /** Admin flag or the MANAGER role: the people who may run the month-end stocktake. UX only; the API checks it too. */
+    isManager: boolean
     /** What this person's branch allows. UX only — the API refuses the same things on its own. */
     capabilities: Capabilities
     /** True only while restoring a session from a stored token on first load. */
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             isAuthenticated: user !== null,
             isAdmin: user?.admin === true,
+            isManager: user?.admin === true || user?.role === 'MANAGER',
             capabilities: capabilitiesFor({ branchRegion: user?.branch?.region ?? null, admin: user?.admin === true }),
             isLoading,
             login,
