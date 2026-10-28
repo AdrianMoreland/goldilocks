@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DISCREPANCY_ISSUE_TYPES } from './stocktake';
+import { BAR_STATUSES, STOCK_METALS } from './stocktake-physical';
 
 export const StocktakeStatusEnum = z.enum(['DRAFT', 'COUNTING', 'RECONCILING', 'FINALISED']);
 export type StocktakeStatus = z.infer<typeof StocktakeStatusEnum>;
@@ -162,3 +163,106 @@ export const BcItemsResponseSchema = z.object({
   products: z.array(BcItemProductOptionSchema),
 });
 export type BcItemsResponse = z.infer<typeof BcItemsResponseSchema>;
+
+// --- Physical register: individual bars and coin counts ------------------------
+
+export const StockMetalEnum = z.enum(STOCK_METALS);
+export const BarStatusEnum = z.enum(BAR_STATUSES);
+
+export const StocktakeBarSchema = z.object({
+  id: z.number(),
+  metal: StockMetalEnum,
+  locationCode: z.string(),
+  weightLabel: z.string(),
+  refinery: z.string().nullable(),
+  serial: z.string().nullable(),
+  grams: z.number().nullable(),
+  details: z.string().nullable(),
+  status: BarStatusEnum,
+  /** The bar row in the earlier stocktake this one was carried from; null for bars found or pasted in. */
+  carriedFromId: z.number().nullable(),
+  /** Another live bar in this stocktake has the same serial. */
+  duplicateSerial: z.boolean(),
+});
+export type StocktakeBar = z.infer<typeof StocktakeBarSchema>;
+
+export const AddBarRequestSchema = z.object({
+  metal: StockMetalEnum,
+  locationCode: z.string().trim().min(1).max(20),
+  weightLabel: z.string().trim().min(1).max(80),
+  refinery: z.string().trim().max(80).nullable().optional(),
+  serial: z.string().trim().max(80).nullable().optional(),
+  grams: z.number().positive().max(100000).nullable().optional(),
+  details: z.string().trim().max(500).nullable().optional(),
+});
+export type AddBarRequest = z.infer<typeof AddBarRequestSchema>;
+
+export const UpdateBarRequestSchema = z.object({
+  status: BarStatusEnum.optional(),
+  weightLabel: z.string().trim().min(1).max(80).optional(),
+  refinery: z.string().trim().max(80).nullable().optional(),
+  serial: z.string().trim().max(80).nullable().optional(),
+  grams: z.number().positive().max(100000).nullable().optional(),
+  details: z.string().trim().max(500).nullable().optional(),
+});
+export type UpdateBarRequest = z.infer<typeof UpdateBarRequestSchema>;
+
+export const ImportPhysicalRequestSchema = z.object({
+  metal: StockMetalEnum,
+  text: z.string().min(1).max(2_000_000),
+});
+export type ImportPhysicalRequest = z.infer<typeof ImportPhysicalRequestSchema>;
+
+export const ImportPhysicalResultSchema = z.object({
+  added: z.number(),
+  skipped: z.number(),
+  issues: z.array(z.object({ row: z.number(), message: z.string() })),
+});
+export type ImportPhysicalResult = z.infer<typeof ImportPhysicalResultSchema>;
+
+export const StocktakeCoinSchema = z.object({
+  id: z.number(),
+  metal: StockMetalEnum,
+  locationCode: z.string(),
+  item: z.string(),
+  /** Last stocktake's counted quantity, for reference only. */
+  previousQty: z.number().nullable(),
+  countedQty: z.number().nullable(),
+  details: z.string().nullable(),
+});
+export type StocktakeCoin = z.infer<typeof StocktakeCoinSchema>;
+
+export const AddCoinRequestSchema = z.object({
+  metal: StockMetalEnum,
+  locationCode: z.string().trim().max(20).default(''),
+  item: z.string().trim().min(1).max(120),
+});
+export type AddCoinRequest = z.infer<typeof AddCoinRequestSchema>;
+
+export const UpdateCoinRequestSchema = z.object({
+  countedQty: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  details: z.string().trim().max(500).nullable().optional(),
+});
+export type UpdateCoinRequest = z.infer<typeof UpdateCoinRequestSchema>;
+
+export const PhysicalRegisterSchema = z.object({
+  bars: z.array(StocktakeBarSchema),
+  coins: z.array(StocktakeCoinSchema),
+});
+export type PhysicalRegister = z.infer<typeof PhysicalRegisterSchema>;
+
+export const CarryForwardRequestSchema = z.object({
+  /** Defaults to the most recent finalised stocktake. */
+  fromStocktakeId: z.number().int().positive().optional(),
+});
+export type CarryForwardRequest = z.infer<typeof CarryForwardRequestSchema>;
+
+export const CarryForwardResultSchema = z.object({
+  fromStocktakeId: z.number(),
+  fromName: z.string(),
+  barsCarried: z.number(),
+  barsAlreadyThere: z.number(),
+  coinsCarried: z.number(),
+  coinsAlreadyThere: z.number(),
+});
+export type CarryForwardResult = z.infer<typeof CarryForwardResultSchema>;

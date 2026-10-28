@@ -387,6 +387,8 @@ model Stocktake {
 
   lines         StocktakeLine[]
   discrepancies StocktakeDiscrepancy[]
+  bars          StocktakeBar[]
+  coins         StocktakeCoin[]
 
   @@index([status])
   @@map("stocktakes")
@@ -437,4 +439,122 @@ model StocktakeDiscrepancy {
 
   @@index([stocktakeId])
   @@map("stocktake_discrepancies")
+}
+
+enum StockMetal {
+  GOLD
+  SILVER
+  PGM
+}
+
+enum BarStatus {
+  UNCONFIRMED
+  CONFIRMED
+  NEW
+  GONE
+}
+
+/// One physical bar in a stocktake's register. A serial identifies a bar when there is one, but a bar without a
+/// serial is still a bar: nothing here is invented. UNCONFIRMED means carried from last month and not yet seen.
+model StocktakeBar {
+  id            Int        @id @default(autoincrement())
+  stocktakeId   Int
+  stocktake     Stocktake  @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  metal         StockMetal
+  locationCode  String
+  weightLabel   String
+  refinery      String?
+  serial        String?
+  grams         Decimal?   @db.Decimal(10, 4)
+  details       String?
+  status        BarStatus  @default(UNCONFIRMED)
+  /// The bar row in the earlier stocktake this was carried from. Makes carrying forward repeat-safe.
+  carriedFromId Int?
+  createdAt     DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(6)
+
+  @@index([stocktakeId])
+  @@index([stocktakeId, serial])
+  @@map("stocktake_bars")
+}
+
+/// Coins are counted by product and quantity, never one row per coin. previousQty is last stocktake's count,
+/// for reference; countedQty stays null until counted.
+model StocktakeCoin {
+  id           Int        @id @default(autoincrement())
+  stocktakeId  Int
+  stocktake    Stocktake  @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  metal        StockMetal
+  locationCode String     @default("")
+  item         String
+  previousQty  Int?
+  countedQty   Int?
+  details      String?
+
+  @@unique([stocktakeId, metal, locationCode, item])
+  @@map("stocktake_coins")
+}
+
+enum CustomerOrderStatus {
+  ORDERED
+  IN_TRANSIT
+  DELIVERED
+  BAGGED
+  COLLECTED
+}
+
+enum EvidenceKind {
+  TRADESHEET_COLLECTED
+  ZOHO_INVOICE
+  SIGNED_INVOICE
+  BC_RECORD
+  STAFF_NOTE
+}
+
+/// Custody of goods held for a customer: where it is, not a competing order ledger. Business Central stays the
+/// system of record; bcOrderNo and reference point at it. Replaces the Customer Orders spreadsheet.
+model CustomerOrderItem {
+  id           Int                 @id @default(autoincrement())
+  locationCode String
+  client       String
+  /// Tradesheet reference as written (matching normalises it; the original is kept).
+  reference    String?
+  bcOrderNo    String?
+  supplierRef  String?
+  metal        StockMetal?
+  product      String
+  bcItemNo     String?
+  quantity     Int
+  refinery     String?
+  serials      String?
+  status       CustomerOrderStatus @default(ORDERED)
+  orderedOn    DateTime?           @db.Date
+  missing      Boolean             @default(false)
+  notes        String?
+  createdBy    String
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+
+  evidence CustomerOrderEvidence[]
+
+  @@index([status])
+  @@index([locationCode, status])
+  @@index([reference])
+  @@map("customer_order_items")
+}
+
+/// Append-only: where each collection claim came from (tradesheet, Zoho or signed invoice, BC). Never edited.
+model CustomerOrderEvidence {
+  id         Int               @id @default(autoincrement())
+  itemId     Int
+  item       CustomerOrderItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  kind       EvidenceKind
+  reference  String?
+  note       String?
+  observedOn DateTime?         @db.Date
+  recordedBy String
+  createdAt  DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([itemId])
+  @@map("customer_order_evidence")
 }

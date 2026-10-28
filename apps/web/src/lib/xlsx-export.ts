@@ -15,7 +15,15 @@ export async function downloadWorkbook(filename: string, sheets: SheetSpec[]) {
         // Excel sheet names: at most 31 characters, none of \ / ? * [ ]
         const ws = wb.addWorksheet(spec.name.replace(/[\\/?*[\]]/g, " ").slice(0, 31))
         ws.addRow([...spec.headers])
-        for (const row of spec.rows) ws.addRow(row)
+        // An ISO date string becomes a real date cell, so Excel sorts and formats it as a date. UTC midnight
+        // keeps the day the same in every time zone.
+        const asDate = (v: string | number) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00Z`) : v)
+        for (const row of spec.rows) {
+            const added = ws.addRow(row.map(asDate))
+            added.eachCell((cell) => {
+                if (cell.value instanceof Date) cell.numFmt = "dd/mm/yyyy"
+            })
+        }
         const header = ws.getRow(1)
         header.font = { bold: true }
         header.alignment = { vertical: "top", wrapText: true }

@@ -6,9 +6,14 @@ export const queryKeys = {
         all: ['market-data'] as const,
     },
     marketMode: ['market-mode'] as const,
+    customerOrders: {
+        list: ['customer-orders', 'list'] as const,
+        expected: ['customer-orders', 'expected'] as const,
+    },
     stocktake: {
         list: ['stocktake', 'list'] as const,
         detail: (id: number) => ['stocktake', 'detail', id] as const,
+        register: (id: number) => ['stocktake', 'register', id] as const,
         bcItems: ['stocktake', 'bc-items'] as const,
     },
     roadmap: ['roadmap'] as const,

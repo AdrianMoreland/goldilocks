@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, ClipboardCheck, KanbanSquare, LayoutDashboard, ShieldCheck, type LucideIcon } from "lucide-react"
+import { BookOpen, ClipboardCheck, KanbanSquare, PackageCheck, LayoutDashboard, ShieldCheck, type LucideIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
@@ -49,6 +49,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 ]
 
 const stocktakeItem: NavItem = { title: "Stocktake", url: "/stocktake", icon: ClipboardCheck }
+const customerOrdersItem: NavItem = { title: "Customer orders", url: "/customer-orders", icon: PackageCheck }
 
 const adminGroup = {
   label: "Admin",
@@ -74,9 +75,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     items: group.items.filter((item) => !item.requires || capabilities[item.requires]),
   }))
   // Managers get the stocktake without the rest of the admin group; admins see it inside that group.
-  const managerGroup = { label: "Manager", items: [stocktakeItem] }
+  const managerGroup = { label: "Manager", items: [stocktakeItem, customerOrdersItem] }
   const groups = isAdmin
-    ? [...visibleNavGroups, { ...adminGroup, items: [stocktakeItem, ...adminGroup.items] }]
+    ? [...visibleNavGroups, { ...adminGroup, items: [stocktakeItem, customerOrdersItem, ...adminGroup.items] }]
     : isManager
       ? [...visibleNavGroups, managerGroup]
       : visibleNavGroups
