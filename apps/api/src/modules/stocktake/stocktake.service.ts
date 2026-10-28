@@ -300,7 +300,13 @@ export class StocktakeService {
             }),
             this.prisma.product.findMany({
                 where: { deletedAt: null },
-                select: { id: true, name: true, weight: true, category: true },
+                select: {
+                    id: true,
+                    name: true,
+                    weight: true,
+                    category: true,
+                    metalType: true,
+                },
             }),
         ]);
         const suggestable = products.map((p) => ({
@@ -308,6 +314,7 @@ export class StocktakeService {
             name: p.name,
             weight: Number(p.weight),
             category: p.category,
+            metalType: p.metalType,
         }));
         const mapped = items.map((i) => {
             const s = i.product
@@ -329,8 +336,17 @@ export class StocktakeService {
         return {
             items: mapped,
             products: products
-                .map((p) => ({ id: p.id, name: p.name }))
-                .sort((a, b) => a.name.localeCompare(b.name)),
+                .map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    metalType: p.metalType,
+                    category: p.category,
+                }))
+                .sort(
+                    (a, b) =>
+                        a.name.localeCompare(b.name) ||
+                        a.metalType.localeCompare(b.metalType),
+                ),
         };
     }
 

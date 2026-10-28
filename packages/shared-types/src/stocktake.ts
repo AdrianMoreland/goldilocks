@@ -273,6 +273,7 @@ export interface SuggestableProduct {
   name: string;
   weight: number;
   category: 'BAR' | 'COIN' | null;
+  metalType?: 'GOLD' | 'SILVER' | 'PLATINUM' | 'PALLADIUM';
 }
 
 /**
@@ -291,6 +292,13 @@ export function parseWeightGrams(description: string): number | null {
   return n;
 }
 
+/** The metal a BC description names ("1oz Gold Britannia", "Platinum Valcambi Suisse 5g bars"), or null when it names none. */
+export function parseMetal(description: string): 'GOLD' | 'SILVER' | 'PLATINUM' | 'PALLADIUM' | null {
+  const d = description.toLowerCase();
+  const found = (['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'] as const).filter((m) => d.split(/[^a-z]+/).includes(m.toLowerCase()));
+  return found.length === 1 ? (found[0] ?? null) : null;
+}
+
 export type MappingSuggestion =
   | { status: 'SUGGESTED'; productId: number }
   | { status: 'AMBIGUOUS'; productIds: number[] }
@@ -306,7 +314,9 @@ export function suggestProductForBcItem(description: string, products: Suggestab
   if (grams === null) return { status: 'NONE' };
   const wantsBar = /\bbar\b/i.test(description);
   const wantsCoin = /\bcoin\b/i.test(description);
+  const metal = parseMetal(description);
   const hits = products.filter((p) => {
+    if (metal && p.metalType && p.metalType !== metal) return false;
     if (Math.abs(p.weight - grams) > Math.max(0.05, grams * 0.005)) return false;
     if (wantsBar && p.category === 'COIN') return false;
     if (wantsCoin && p.category === 'BAR') return false;
@@ -314,7 +324,19 @@ export function suggestProductForBcItem(description: string, products: Suggestab
   });
   if (hits.length === 0) return { status: 'NONE' };
   if (hits.length === 1) return { status: 'SUGGESTED', productId: hits[0]?.id ?? 0 };
-  return { status: 'AMBIGUOUS', productIds: hits.map((p) => p.id) };
+
+  // Same weight and metal, several products (1oz Britannia, Maple, Krugerrand): use the coin's own name to narrow.
+  const skip = new Set(['mixed', 'years', 'year', 'coin', 'coins', 'bars', 'bar', 'gold', 'silver', 'platinum', 'palladium']);
+  const words = (s: string) => s.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4 && !skip.has(w));
+  const wanted = words(description);
+  const score = (p: SuggestableProduct) => {
+    const have = new Set(words(p.name));
+    return wanted.filter((w) => have.has(w)).length;
+  };
+  const best = Math.max(...hits.map(score));
+  const narrowed = best > 0 ? hits.filter((p) => score(p) === best) : hits;
+  if (narrowed.length === 1) return { status: 'SUGGESTED', productId: narrowed[0]?.id ?? 0 };
+  return { status: 'AMBIGUOUS', productIds: narrowed.map((p) => p.id) };
 }
 
 // ============================================================================

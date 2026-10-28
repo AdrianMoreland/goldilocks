@@ -155,6 +155,9 @@ export type LinkBcItemRequest = z.infer<typeof LinkBcItemRequestSchema>;
 export const BcItemProductOptionSchema = z.object({
   id: z.number(),
   name: z.string(),
+  /** Shown beside the name: several products share a name across metals (1oz Britannia in gold and silver). */
+  metalType: z.enum(['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM']),
+  category: z.enum(['BAR', 'COIN']).nullable(),
 });
 
 export const BcItemsResponseSchema = z.object({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  parseMetal,
   buildJournalExportRows,
   buildRegisterExportRows,
   compareSerials,
@@ -213,5 +214,26 @@ describe('register export and csv', () => {
   it('quotes commas and neutralises formula-looking text, but not numbers', () => {
     const csv = toCsv(['a', 'b', 'c'], [['x,y', '=SUM(A1)', -1]]);
     expect(csv.split('\r\n')[1]).toBe('"x,y",\'=SUM(A1),-1');
+  });
+});
+
+describe('metal-aware suggestions', () => {
+  const coins = [
+    { id: 1, name: '1oz Britannia', weight: 31.1035, category: 'COIN' as const, metalType: 'GOLD' as const },
+    { id: 2, name: '1oz Britannia', weight: 31.1035, category: 'COIN' as const, metalType: 'SILVER' as const },
+    { id: 3, name: '1oz Maple', weight: 31.1035, category: 'COIN' as const, metalType: 'GOLD' as const },
+  ];
+  it('reads the metal from a BC description, and none when it names zero or two', () => {
+    expect(parseMetal('1oz Gold Britannia (Mixed Years)')).toBe('GOLD');
+    expect(parseMetal('Platinum Valcambi Suisse 5g bars')).toBe('PLATINUM');
+    expect(parseMetal('1oz Mixed bar')).toBeNull();
+    expect(parseMetal('Gold and Silver set')).toBeNull();
+  });
+  it('picks the one product of the right metal when the description names it', () => {
+    expect(suggestProductForBcItem('1oz Gold Britannia (Mixed Years)', coins)).toEqual({ status: 'SUGGESTED', productId: 1 });
+    expect(suggestProductForBcItem('1oz Silver Britannia', coins)).toEqual({ status: 'SUGGESTED', productId: 2 });
+  });
+  it('stays ambiguous when the description names no metal', () => {
+    expect(suggestProductForBcItem('1oz Britannia coin', coins)).toMatchObject({ status: 'AMBIGUOUS' });
   });
 });

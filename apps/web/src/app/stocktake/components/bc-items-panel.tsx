@@ -26,7 +26,13 @@ export function BcItemsPanel() {
 
     if (isLoading || !data) return <Skeleton className="mt-3 h-32" />
     const rows = data.items.filter((i) => !onlyUnlinked || i.productId === null)
-    const nameOf = (id: number) => data.products.find((p) => p.id === id)?.name ?? `#${id}`
+    // Products share names across metals (1oz Britannia is both gold and silver), so every label carries the metal.
+    const label = (p: { name: string; metalType: string; category: string | null }) =>
+        `${p.name} · ${p.metalType[0]}${p.metalType.slice(1).toLowerCase()}${p.category ? ` ${p.category.toLowerCase()}` : ""}`
+    const nameOf = (id: number) => {
+        const p = data.products.find((x) => x.id === id)
+        return p ? label(p) : `#${id}`
+    }
 
     return (
         <div className="space-y-3 pt-3">
@@ -63,7 +69,7 @@ export function BcItemsPanel() {
                                         <option value="">Not linked</option>
                                         {data.products.map((p) => (
                                             <option key={p.id} value={p.id}>
-                                                {p.name}
+                                                {label(p)}
                                             </option>
                                         ))}
                                     </select>
