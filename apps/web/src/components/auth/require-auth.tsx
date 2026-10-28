@@ -41,6 +41,24 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
 
+/** Admins and managers only (the month-end stocktake). Discoverability only: the API rejects everyone else on its own. */
+export function RequireManager({ children }: { children: React.ReactNode }) {
+    const { isManager, isAuthenticated, isLoading, capabilities } = useAuth()
+
+    if (isLoading) {
+        return (
+            <div className="flex h-svh items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) return <Navigate to="/auth/sign-in" replace />
+    if (!isManager) return <Navigate to={homePathFor(capabilities)} replace />
+
+    return <>{children}</>
+}
+
 /** Like RequireAuth, but a branch without the capability is sent to its own home page. Discoverability only: the API refuses the same calls. */
 export function RequireCapability({
     capability,
