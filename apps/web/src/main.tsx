@@ -8,6 +8,21 @@ import {recordClientError} from '@/lib/error-log'
 import {DevSupport} from "@react-buddy/ide-toolbox";
 import {ComponentPreviews, useInitial} from "@/dev";
 
+// After a deploy the hashed files an already-open tab points at are gone, so opening a lazy page fails with
+// "Importing a module script failed". Reload once to pick up the new build. The timestamp stops a reload loop
+// if the file is missing for another reason; storage can be blocked, in which case we still reload once per load.
+window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault()
+    try {
+        const last = Number(sessionStorage.getItem('chunk-reload-at') ?? 0)
+        if (Date.now() - last < 10_000) return
+        sessionStorage.setItem('chunk-reload-at', String(Date.now()))
+    } catch {
+        // storage blocked: fall through and reload
+    }
+    window.location.reload()
+})
+
 // Anything that escapes React (event handlers, timers, unawaited promises)
 // goes to the error log too. ApiErrors are skipped: useApi already logged
 // them and showed a toast.
