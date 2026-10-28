@@ -10,6 +10,7 @@ import {
     type StocktakeDetail,
 } from "@goldilocks/shared-types"
 import { downloadTextFile } from "@/lib/download"
+import { downloadWorkbook } from "@/lib/xlsx-export"
 import { Button } from "@/components/ui/button"
 import { buildReportHtml } from "./report-html"
 
@@ -38,6 +39,26 @@ export function ReportPanel({ stocktake }: { stocktake: StocktakeDetail }) {
             </ul>
             {sum.uncounted > 0 && <p className="text-sm text-amber-700 dark:text-amber-400">{sum.uncounted} lines are not counted yet; their count and variance columns stay blank in the export.</p>}
             <div className="flex flex-wrap gap-2">
+                <Button
+                    className="cursor-pointer"
+                    disabled={sum.lines === 0}
+                    onClick={() =>
+                        downloadWorkbook(`stocktake-${slug(stocktake.name)}.xlsx`, [
+                            {
+                                name: "Physical Inventory Journals",
+                                headers: JOURNAL_EXPORT_HEADERS,
+                                rows: buildJournalExportRows(stocktake.lines, stocktake.cutoffDate),
+                            },
+                            {
+                                name: "Discrepancies",
+                                headers: REGISTER_EXPORT_HEADERS,
+                                rows: buildRegisterExportRows(stocktake.discrepancies),
+                            },
+                        ]).catch(() => toast.error("Could not build the Excel file."))
+                    }
+                >
+                    <Download /> Excel workbook (.xlsx)
+                </Button>
                 <Button
                     variant="outline"
                     className="cursor-pointer"
