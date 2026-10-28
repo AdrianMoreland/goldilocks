@@ -5,6 +5,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import {
+    compareProducts,
     computeVariance,
     parseJournalPaste,
     suggestProductForBcItem,
@@ -335,18 +336,22 @@ export class StocktakeService {
         });
         return {
             items: mapped,
+            // Display order, not id order: gold first, 1oz and 100g first within a metal.
             products: products
                 .map((p) => ({
                     id: p.id,
                     name: p.name,
                     metalType: p.metalType,
                     category: p.category,
+                    weight: Number(p.weight),
                 }))
-                .sort(
-                    (a, b) =>
-                        a.name.localeCompare(b.name) ||
-                        a.metalType.localeCompare(b.metalType),
-                ),
+                .sort(compareProducts)
+                .map(({ id, name, metalType, category }) => ({
+                    id,
+                    name,
+                    metalType,
+                    category,
+                })),
         };
     }
 
