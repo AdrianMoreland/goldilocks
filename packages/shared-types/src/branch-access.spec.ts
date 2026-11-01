@@ -43,3 +43,10 @@ describe('homePathFor', () => {
     expect(homePathFor(capabilitiesFor({ branchRegion: 'IE', admin: false }))).toBe('/dashboard');
   });
 });
+
+describe('Spain', () => {
+  it('works like Ireland until it is narrowed on purpose', () => {
+    expect(capabilitiesFor({ branchRegion: 'ES', admin: false })).toEqual(capabilitiesFor({ branchRegion: 'IE', admin: false }));
+    expect(homePathFor(capabilitiesFor({ branchRegion: 'ES', admin: false }))).toBe('/dashboard');
+  });
+});

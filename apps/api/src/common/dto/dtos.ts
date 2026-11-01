@@ -37,6 +37,7 @@ import {
     UpdateCustomerOrderRequestSchema,
     AddEvidenceRequestSchema,
     ImportCustomerOrdersRequestSchema,
+    TradesheetImportRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -478,4 +479,9 @@ export class AddEvidenceRequestDto extends createDto(
 export class ImportCustomerOrdersRequestDto extends createDto(
     ImportCustomerOrdersRequestSchema,
     'ImportCustomerOrdersRequestDto',
+) {}
+
+export class TradesheetImportRequestDto extends createDto(
+    TradesheetImportRequestSchema,
+    'TradesheetImportRequestDto',
 ) {}

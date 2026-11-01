@@ -13,6 +13,7 @@ const Project = lazy(() => import('@/app/project/page'))
 const Stocktake = lazy(() => import('@/app/stocktake/page'))
 const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
+const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
@@ -104,6 +105,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/customer-orders",
     element: <RequireManager><CustomerOrders /></RequireManager>
+  },
+  // Monthly trade-sheet import (roadmap 1.19): admins only; the API enforces the same
+  {
+    path: "/tradesheets",
+    element: <RequireAdmin><Tradesheets /></RequireAdmin>
   },
   // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
   {

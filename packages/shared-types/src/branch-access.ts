@@ -26,6 +26,8 @@ export interface CapabilitySubject {
 const BY_REGION: Record<BranchRegion, Capabilities> = {
   IE: { pricingWorkbook: true, assistant: true, sidebar: true, knowledge: 'everything' },
   UK: { pricingWorkbook: false, assistant: false, sidebar: false, knowledge: 'shared' },
+  // Spain works like Ireland for now; narrow it here if Barcelona's pricing or VAT rules need to differ.
+  ES: { pricingWorkbook: true, assistant: true, sidebar: true, knowledge: 'everything' },
 };
 
 export function capabilitiesFor(subject: CapabilitySubject): Capabilities {
