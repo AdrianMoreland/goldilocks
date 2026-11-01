@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
+const Project2 = lazy(() => import('@/app/project2/page'))
 const Stocktake = lazy(() => import('@/app/stocktake/page'))
 const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
@@ -92,6 +93,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/project",
     element: <RequireAdmin><Project /></RequireAdmin>
+  },
+  // The roadmap tool being rebuilt (roadmap 1.20), developed beside /project and replacing it when complete — admins only
+  {
+    path: "/project2",
+    element: <RequireAdmin><Project2 /></RequireAdmin>
   },
   // Month-end stocktake: admins and managers; the API enforces the same on every call
   {
