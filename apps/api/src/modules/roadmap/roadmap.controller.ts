@@ -14,8 +14,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import {
     RoadmapDocumentDto,
     RoadmapEditRequestDto,
+    RoadmapSyncStatusDto,
 } from '../../common/dto/dtos';
 import { RoadmapService } from './roadmap.service';
+import { RoadmapSyncService } from './roadmap-sync.service';
 
 @ApiTags('roadmap')
 @ApiBearerAuth()
@@ -23,13 +25,26 @@ import { RoadmapService } from './roadmap.service';
 @Roles('admin')
 @Controller('roadmap')
 export class RoadmapController {
-    constructor(private readonly service: RoadmapService) {}
+    constructor(
+        private readonly service: RoadmapService,
+        private readonly sync: RoadmapSyncService,
+    ) {}
 
     @Get()
     @ApiOperation({ summary: 'The roadmap Markdown and its version (admin)' })
     @ApiResponse({ status: 200, type: RoadmapDocumentDto })
     get() {
         return this.service.get();
+    }
+
+    @Get('sync')
+    @ApiOperation({
+        summary:
+            'How the app roadmap compares with docs/ROADMAP.md on master (admin, read only)',
+    })
+    @ApiResponse({ status: 200, type: RoadmapSyncStatusDto })
+    syncStatus() {
+        return this.sync.status();
     }
 
     @Post('edit')

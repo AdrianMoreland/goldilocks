@@ -32,6 +32,7 @@ import { MarketModeController } from '../../modules/market-mode/market-mode.cont
 import { MarketModeService } from '../../modules/market-mode/market-mode.service';
 import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
 import { RoadmapService } from '../../modules/roadmap/roadmap.service';
+import { RoadmapSyncService } from '../../modules/roadmap/roadmap-sync.service';
 import { MarketDataController } from '../../modules/market-data/market-data.controller';
 import { MarketDataService } from '../../modules/market-data/market-data.service';
 import { FetchAttemptService } from '../../modules/metals/fetch-attempt.service';
@@ -198,6 +199,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: FetchAttemptService, useValue: {} },
                 { provide: PortfolioService, useValue: {} },
                 { provide: RoadmapService, useValue: {} },
+                { provide: RoadmapSyncService, useValue: {} },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },
             ],
