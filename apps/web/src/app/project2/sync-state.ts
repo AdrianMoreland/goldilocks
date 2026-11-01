@@ -1,4 +1,4 @@
-import type { RoadmapSyncStatus } from "@goldilocks/shared-types"
+import type { RoadmapPullResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
 
 export type SyncTone = "ok" | "warn" | "bad" | "muted"
 
@@ -42,4 +42,41 @@ export function summarize(status: RoadmapSyncStatus): SyncSummary {
                 detail: `${plural(status.appOnlyLines, "line")} only in the app, ${plural(status.masterOnlyLines, "line")} only on master.`,
             }
     }
+}
+
+type LogEntry = RoadmapPullResult["log"][number]
+
+const clip = (text: string, max = 90) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
+
+/** One merge log entry in plain words, for the sync dialog. */
+export function describeEntry(entry: LogEntry): string {
+    const text = clip(entry.text)
+    switch (entry.kind) {
+        case "to-app":
+            return `Brought in from master: ${text}`
+        case "to-file":
+            return `Only in the app (kept, not sent to GitHub yet): ${text}`
+        case "conflict-app-wins":
+            return `Both changed it, the app's version is kept: ${text}`
+        case "kept-file-edit":
+            return `Deleted in the app but changed on master, master's version is kept: ${text}`
+        case "missing-from-file":
+            return `Deleted on master, kept in the app: ${text}`
+        case "both-added":
+            return `Both added lines here, both are kept: ${text}`
+    }
+}
+
+/** The one-line question the sync dialog asks, from what the preview found. */
+export function pullHeadline(result: RoadmapPullResult): string {
+    if (result.mode === "nothing") return "Already up to date with master"
+    if (result.mode === "adopt") return result.appChanged ? "Replace the app's roadmap with master's" : "The app already matches master"
+    return result.appChanged ? "Bring master's changes into the app" : "Nothing to change in the app"
+}
+
+/** Whether Apply does anything: a merge or first run that changes nothing still records the sync point, so it is allowed. */
+export function canApply(result: RoadmapPullResult, confirmed: boolean): boolean {
+    if (result.mode === "nothing") return false
+    if (result.mode === "adopt") return confirmed
+    return true
 }

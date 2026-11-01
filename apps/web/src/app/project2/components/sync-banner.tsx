@@ -1,5 +1,6 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { GitPullRequest, RefreshCw } from "lucide-react"
+import { CloudDownload, GitPullRequest, RefreshCw } from "lucide-react"
 import { useRoadmapSyncApi } from "@/api/roadmap-sync.api"
 import { queryKeys } from "@/lib/query-keys"
 import { cn } from "@/lib/utils"
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { summarize, tokenDaysLeft, type SyncTone } from "../sync-state"
+import { PullDialog } from "./pull-dialog"
 
 /** Same status dots as the price freshness signals (DESIGN.md "Status colours"): a state is never carried by colour alone, the title says it too. */
 const DOT: Record<SyncTone, string> = {
@@ -22,13 +24,14 @@ const TITLE_TEXT: Partial<Record<SyncTone, string>> = {
 }
 
 /**
- * Read-only: where the app's roadmap stands against docs/ROADMAP.md on master (roadmap 1.20, slice 1).
- * Nothing here changes the roadmap or GitHub; the sync buttons arrive in slices 2 and 3. Built from the
+ * Where the app's roadmap stands against docs/ROADMAP.md on master (roadmap 1.20, slices 1 and 2).
+ * Sync from GitHub previews and then pulls master into the app (slice 2); pushing the app's edits to GitHub arrives in slice 3. Built from the
  * shared Card, hairline borders and status dots, with no tinted backgrounds (DESIGN.md).
  */
 export function SyncBanner() {
     const api = useRoadmapSyncApi()
     const query = useQuery({ queryKey: queryKeys.roadmapSync, queryFn: api.getSyncStatus })
+    const [pulling, setPulling] = useState(false)
 
     if (query.isLoading) return <Skeleton className="h-24 w-full rounded-xl" />
     if (query.isError || !query.data) {
@@ -62,9 +65,20 @@ export function SyncBanner() {
                             <p className="text-muted-foreground text-sm">{summary.detail}</p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="shrink-0 cursor-pointer" onClick={() => query.refetch()} disabled={query.isFetching}>
-                        <RefreshCw className={cn(query.isFetching && "animate-spin")} /> Check
-                    </Button>
+                    <div className="flex shrink-0 gap-2">
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => query.refetch()} disabled={query.isFetching}>
+                            <RefreshCw className={cn(query.isFetching && "animate-spin")} /> Check
+                        </Button>
+                        <Button
+                            variant={status.state === "differs" ? "default" : "outline"}
+                            size="sm"
+                            className="cursor-pointer"
+                            disabled={status.state === "unconfigured" || status.state === "unavailable"}
+                            onClick={() => setPulling(true)}
+                        >
+                            <CloudDownload /> Sync from GitHub
+                        </Button>
+                    </div>
                 </div>
 
                 <dl className="text-muted-foreground grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
@@ -106,13 +120,14 @@ export function SyncBanner() {
 
                 {status.preview.length > 0 && (
                     <details className="text-xs">
-                        <summary className="cursor-pointer select-none">Show the difference (app against master)</summary>
+                        <summary className="cursor-pointer select-none">Show the difference (+ only in the app, − only on master)</summary>
                         <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md p-3 font-mono whitespace-pre-wrap">
                             {status.preview.join("\n")}
                         </pre>
                     </details>
                 )}
             </CardContent>
+            <PullDialog open={pulling} onOpenChange={setPulling} />
         </Card>
     )
 }
