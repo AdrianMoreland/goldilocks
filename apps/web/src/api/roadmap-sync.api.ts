@@ -1,5 +1,5 @@
 import { useApiClient } from '@/api/api-client';
-import { RoadmapSyncStatusSchema } from '@goldilocks/shared-types';
+import { RoadmapPullResultSchema, RoadmapSyncStatusSchema, type RoadmapPullRequest } from '@goldilocks/shared-types';
 
 /** How the app's roadmap compares with docs/ROADMAP.md on master (admin only on the server too). */
 export function useRoadmapSyncApi() {
@@ -7,5 +7,6 @@ export function useRoadmapSyncApi() {
 
     return {
         getSyncStatus: () => client.get('/roadmap/sync', RoadmapSyncStatusSchema),
+        pull: (body: RoadmapPullRequest) => client.post('/roadmap/sync/pull', body, RoadmapPullResultSchema),
     };
 }
