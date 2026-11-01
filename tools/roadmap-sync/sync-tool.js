@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
  * Roadmap sync tool. Plain Node, no dependencies. See README.md in this folder.
- *   node tools/roadmap-sync/sync-tool.js sync   docs/ROADMAP.md sections.json out.md base.md
- *   node tools/roadmap-sync/sync-tool.js export docs/ROADMAP.md sections.json [out.md]
- *   node tools/roadmap-sync/sync-tool.js merge  docs/ROADMAP.md sections.json
+ *   node tools/roadmap-sync/sync-tool.js sync         docs/ROADMAP.md sections.json out.md base.md [--partial]
+ *   node tools/roadmap-sync/sync-tool.js changed-keys docs/ROADMAP.md base.md
+ *   node tools/roadmap-sync/sync-tool.js export       docs/ROADMAP.md sections.json [out.md]
+ *   node tools/roadmap-sync/sync-tool.js merge        docs/ROADMAP.md sections.json
  */
 /* ---------- ROADMAP.md parser and merge (also runs in Node for tests) ---------- */
 function parseRoadmapMd(text){
@@ -261,7 +262,8 @@ function _applyFileOps(text,ops){
   return {text:lines.join(crlf?'\r\n':'\n'),notes};
 }
 
-function sync3(baseSecs,fileSecs,pageSecs){
+function sync3(baseSecs,fileSecs,pageSecs,opts){
+  const partial=!!(opts&&opts.partial);
   const bmap=new Map(baseSecs.map(s=>[s.key,s]));
   const pmap=new Map(pageSecs.map(s=>[s.key,s]));
   const fkeys=new Set(fileSecs.map(s=>s.key));
@@ -362,6 +364,7 @@ function sync3(baseSecs,fileSecs,pageSecs){
       for(const f of fileSecs){
         const p=pmap.get(f.key);
         if(!p){
+          if(partial)continue;
           const doc={num:f.num,phase:f.phase,title:f.title,pri:f.pri,tags:f.tags,depends:f.depends,sub:f.sub,intro:f.intro,order:f.order,tasks:f.tasks.map(t=>_freshTask(t))};
           pageChanges.set(f.key,{isNew:true,doc});L('section-new',f.num,`${f.title} (${f.n} tasks)`);continue;
         }
@@ -373,7 +376,7 @@ function sync3(baseSecs,fileSecs,pageSecs){
         if(Object.keys(fields).length)pageChanges.set(f.key,{isNew:false,fields});
       }
       for(const p of pageSecs){
-        if(fkeys.has(p.key)||/^u-/.test(p.key)||p.removedFromFile)continue;
+        if(partial||fkeys.has(p.key)||/^u-/.test(p.key)||p.removedFromFile)continue;
         pageChanges.set(p.key,{isNew:false,fields:{removedFromFile:true}});L('section-removed',p.num,p.title);
       }
       const applied=_applyFileOps(fileText,ops);
@@ -382,24 +385,41 @@ function sync3(baseSecs,fileSecs,pageSecs){
     }
   };
 }
-function runSync3(baseText,fileText,pageSecs){
-  return sync3(parseRoadmapMd(baseText),parseRoadmapMd(fileText),pageSecs).run(fileText);
+function runSync3(baseText,fileText,pageSecs,opts){
+  return sync3(parseRoadmapMd(baseText),parseRoadmapMd(fileText),pageSecs,opts).run(fileText);
+}
+/** Keys of the sections whose tasks differ between two versions of the file (so only those page documents need loading). */
+function changedKeys(baseText,fileText){
+  const strip=ts=>(ts||[]).map(t=>({title:t.title,check:t.check,done:t.done,note:t.note,effort:t.effort,pri:t.pri,tags:t.tags,depends:t.depends,children:strip(t.children)}));
+  const b=new Map(parseRoadmapMd(baseText).map(s=>[s.key,s]));
+  const out=[];
+  for(const f of parseRoadmapMd(fileText)){
+    const o=b.get(f.key);
+    if(!o||!_same(strip(o.tasks),strip(f.tasks))||o.title!==f.title)out.push(f.key);
+  }
+  for(const k of b.keys())if(!parseRoadmapMd(fileText).some(s=>s.key===k))out.push(k);
+  return out;
 }
 
 /* ---------- command line: node sync-tool.js export|merge ROADMAP.md sections.json ---------- */
 if(typeof module!=='undefined'){
-  module.exports={parseRoadmapMd,mergeRoadmap,exportRoadmap,runSync3};
+  module.exports={parseRoadmapMd,mergeRoadmap,exportRoadmap,runSync3,changedKeys};
   if(require.main===module){
     const fs=require('fs');const [,,cmd,mdPath,jsonPath,outPath]=process.argv;
-    if(!cmd||!mdPath||!jsonPath){console.error('usage: node sync-tool.js export|merge|sync ROADMAP.md sections.json [out.md] [base.md]');process.exit(2)}
-    const md=fs.readFileSync(mdPath,'utf8');const raw=JSON.parse(fs.readFileSync(jsonPath,'utf8'));const secs=Array.isArray(raw)?raw:raw&&raw.sections;
-    if(!Array.isArray(secs)){console.error('sections.json must be an array of section documents');process.exit(2)}
+    if(!cmd||!mdPath||!jsonPath){console.error('usage: node sync-tool.js sync|export|merge|changed-keys ROADMAP.md sections.json|base.md [out.md] [base.md] [--partial]');process.exit(2)}
+    const md=fs.readFileSync(mdPath,'utf8');let secs=null;
+    if(cmd!=='changed-keys'){const raw=JSON.parse(fs.readFileSync(jsonPath,'utf8'));secs=Array.isArray(raw)?raw:raw&&raw.sections;
+      if(!Array.isArray(secs)){console.error('sections.json must be an array of section documents');process.exit(2)}}
     if(cmd==='export'){const r=exportRoadmap(md,secs);if(outPath)fs.writeFileSync(outPath,r.text);console.log(JSON.stringify({changed:r.text!==md,changes:r.changes},null,1))}
     else if(cmd==='sync'){
       // node sync-tool.js sync FILE.md sections.json out.md BASE.md
       const baseText=fs.readFileSync(process.argv[6]||mdPath,'utf8');
-      const r=runSync3(baseText,md,secs);if(outPath)fs.writeFileSync(outPath,r.fileText);
+      const r=runSync3(baseText,md,secs,{partial:process.argv.includes('--partial')});if(outPath)fs.writeFileSync(outPath,r.fileText);
       console.log(JSON.stringify({fileChanged:r.fileChanged,log:r.log,pageChanges:[...r.pageChanges].map(([k,v])=>[k,v])}));
+    }
+    else if(cmd==='changed-keys'){
+      // node sync-tool.js changed-keys FILE.md BASE.md   (no sections.json needed)
+      console.log(JSON.stringify(changedKeys(fs.readFileSync(jsonPath,'utf8'),md)));
     }
     else if(cmd==='merge'){const r=mergeRoadmap(secs,parseRoadmapMd(md));console.log(JSON.stringify({changes:[...r.changes].map(([k,v])=>[k,v]),log:r.log}))}
     else{console.error('unknown command');process.exit(2)}
