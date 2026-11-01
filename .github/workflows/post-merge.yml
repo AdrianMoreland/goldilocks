@@ -82,3 +82,106 @@ jobs:
           body="$(printf 'Roadmap: none\n\nTicks the tasks named in merged PRs (starting with #%s). Only docs/ROADMAP.md changes. Merge by hand.' "$PR_NUMBER")"
           gh pr create --repo "$REPO" --base master --head roadmap-sync/auto \
             --title "[roadmap-sync] tick finished tasks" --body "$body"
+
+  # Migrations are applied by Railway's pre-deploy command, and dev and production share one database.
+  # This job fails if a push edits or deletes an existing migration, or adds one that sorts before the
+  # newest existing one (Prisma applies in name order). Otherwise it opens one issue listing what to
+  # check, so a new migration is never silent.
+  migration-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BEFORE: ${{ github.event.before }}
+      SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check migrations
+        run: |
+          set -euo pipefail
+          dir=apps/api/prisma/migrations
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            echo "No usable base commit; nothing to compare." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          changed="$(git diff --name-status --no-renames "$BEFORE" "$SHA" -- "$dir")"
+          [ -n "$changed" ] || { echo "No migration changes." >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          edited="$(awk '$1 != "A" {print $2}' <<<"$changed")"
+          if [ -n "$edited" ]; then
+            { echo '### Existing migration edited or deleted'; echo '```'; echo "$edited"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "Existing migration files must never change: write a new migration instead." >&2
+            exit 1
+          fi
+          new="$(awk '{print $2}' <<<"$changed" | sed -n "s#^$dir/\([^/]*\)/.*#\1#p" | sort -u)"
+          latest_old="$(git ls-tree --name-only "$BEFORE" "$dir/" | sed "s#^$dir/##" | grep -E '^[0-9]{14}_' | sort | tail -1 || true)"
+          for m in $new; do
+            if [ -n "$latest_old" ] && [[ "$m" < "$latest_old" ]]; then
+              echo "Migration $m sorts before the newest existing one ($latest_old); Prisma would apply it out of order." >&2
+              exit 1
+            fi
+          done
+          risky="$(git diff "$BEFORE" "$SHA" -- "$dir" | grep -iE '^\+.*(DROP (TABLE|COLUMN)|TRUNCATE|DELETE FROM)' || true)"
+          list="$(sed 's/^/- /' <<<"$new")"
+          body="$(printf 'New migration(s) merged to master:\n\n%s\n\nThe database is shared by dev and production. Railway applies these in the API pre-deploy step (`pnpm prisma:deploy`).\n\n- [ ] API deploy finished\n- [ ] `prisma migrate status` shows no pending migrations\n- [ ] App still works (stocktake, pricing)\n' "$list")"
+          if [ -n "$risky" ]; then
+            body="$(printf '%s\n\n**Destructive statements found:**\n\n```\n%s\n```\n' "$body" "$risky")"
+          fi
+          gh label create migration --repo "$REPO" --color 5319e7 --description "Migration to apply or check" >/dev/null 2>&1 || true
+          gh issue create --repo "$REPO" --label migration --title "Migration merged: $(echo $new | tr '\n' ' ')" --body "$body"
+
+  # After a deploy-relevant merge, wait for Railway, then call the API's /health and the web root. Report
+  # only: a failure opens (or comments on) one `deploy-failed` issue and never blocks anything. Set the
+  # repository variables API_URL and WEB_URL (Settings > Secrets and variables > Actions > Variables).
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      API_URL: ${{ vars.API_URL }}
+      WEB_URL: ${{ vars.WEB_URL }}
+      BEFORE: ${{ github.event.before }}
+      SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Smoke test after deploy
+        run: |
+          set -uo pipefail
+          if [ -z "$API_URL" ] || [ -z "$WEB_URL" ]; then
+            echo "API_URL / WEB_URL repository variables are not set; smoke test skipped." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          # Same paths as the Railway Watch Paths: anything else does not deploy.
+          if git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            if ! git diff --name-only "$BEFORE" "$SHA" | grep -qE '^(apps/|packages/|docs/ENGINEERING\.md$|DESIGN\.md$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|turbo\.json$)'; then
+              echo "No deploy-relevant change; smoke test skipped." >> "$GITHUB_STEP_SUMMARY"; exit 0
+            fi
+          fi
+          sleep 240
+          fail=""
+          for i in $(seq 1 10); do
+            api="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${API_URL%/}/health" || true)"
+            web="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${WEB_URL%/}/" || true)"
+            if [ "$api" = "200" ] && [ "$web" = "200" ]; then fail=""; break; fi
+            fail="API /health: $api, web /: $web"
+            sleep 30
+          done
+          if [ -z "$fail" ]; then
+            echo "Smoke test passed: API /health 200, web / 200." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          echo "Smoke test FAILED ($fail)" >> "$GITHUB_STEP_SUMMARY"
+          gh label create deploy-failed --repo "$REPO" --color d93f0b --description "Post-deploy smoke test failed" >/dev/null 2>&1 || true
+          open="$(gh issue list --repo "$REPO" --label deploy-failed --state open --json number --jq '.[0].number // empty')"
+          msg="$(printf 'Smoke test failed after %s (%s).\n\nRun: %s/%s/actions/runs/%s' "${SHA:0:7}" "$fail" "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID")"
+          if [ -n "$open" ]; then gh issue comment "$open" --repo "$REPO" --body "$msg"
+          else gh issue create --repo "$REPO" --label deploy-failed --title "Deploy smoke test failed" --body "$msg"; fi
+          exit 0
