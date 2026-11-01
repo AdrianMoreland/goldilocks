@@ -57,7 +57,7 @@ export function SyncBanner() {
     return (
         <Card aria-label="Sync with GitHub" role="region">
             <CardContent className="flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-2.5">
                         <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", DOT[summary.tone])} aria-hidden />
                         <div>
@@ -65,7 +65,7 @@ export function SyncBanner() {
                             <p className="text-muted-foreground text-sm">{summary.detail}</p>
                         </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 flex-wrap gap-2">
                         <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => query.refetch()} disabled={query.isFetching}>
                             <RefreshCw className={cn(query.isFetching && "animate-spin")} /> Check
                         </Button>
