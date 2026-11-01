@@ -91,6 +91,10 @@ async function bootstrap() {
 
     app.use(app.get(RequestMetricsService).middleware());
 
+    // A month of trade-sheet cells (and a pasted Customer Orders sheet) is well over Express's 100kb default.
+    // Every route here needs a login, and the schemas cap row and cell counts.
+    app.useBodyParser('json', { limit: '10mb' });
+
     // Enable global validation with Zod
     app.useGlobalPipes(new ZodValidationPipe());
 

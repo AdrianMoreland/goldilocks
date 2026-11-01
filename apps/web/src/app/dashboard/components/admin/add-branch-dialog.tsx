@@ -101,6 +101,7 @@ export function AddBranchDialog({ open, onOpenChange }: AddBranchDialogProps) {
                             <SelectContent>
                                 <SelectItem value="IE">Ireland (full app)</SelectItem>
                                 <SelectItem value="UK">UK (no Pricing Workbook)</SelectItem>
+                                <SelectItem value="ES">ES (Spain)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

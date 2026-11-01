@@ -19,6 +19,7 @@ import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { StocktakeModule } from './modules/stocktake/stocktake.module';
 import { CustomerOrdersModule } from './modules/customer-orders/customer-orders.module';
+import { TradesheetImportModule } from './modules/tradesheet-import/tradesheet-import.module';
 import { MarketModeModule } from './modules/market-mode/market-mode.module';
 import { RoadmapModule } from './modules/roadmap/roadmap.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
@@ -98,6 +99,7 @@ function prettyStream() {
         BranchesModule,
         StocktakeModule,
         CustomerOrdersModule,
+        TradesheetImportModule,
         MarketModeModule,
         RoadmapModule,
         PrismaModule,
