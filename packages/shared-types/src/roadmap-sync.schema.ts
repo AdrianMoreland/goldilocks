@@ -29,3 +29,57 @@ export const RoadmapSyncStatusSchema = z.object({
 });
 
 export type RoadmapSyncStatus = z.infer<typeof RoadmapSyncStatusSchema>;
+
+/** What a pull may be asked to do (POST /roadmap/sync/pull). */
+export const RoadmapPullRequestSchema = z.object({
+  /** Show what would change and write nothing. */
+  dryRun: z.boolean().optional(),
+  /** The first pull replaces the app's copy; it is refused unless this is true. */
+  confirmReplace: z.boolean().optional(),
+});
+
+const MergeEntrySchema = z.object({
+  kind: z.enum(['to-file', 'to-app', 'conflict-app-wins', 'kept-file-edit', 'missing-from-file', 'both-added']),
+  baseLine: z.number().int(),
+  text: z.string(),
+});
+
+const TaskRefSchema = z.object({
+  /** Section key, e.g. `1.12`. */
+  section: z.string(),
+  title: z.string(),
+  checked: z.boolean(),
+});
+
+/**
+ * The outcome of a pull, or of its preview: what the dry run shows is what the real run returns.
+ * `adopt` is the first run (replaces the app's copy with master's), `merge` every later one, `nothing`
+ * when master has not moved since the last pull.
+ */
+export const RoadmapPullResultSchema = z.object({
+  mode: z.enum(['adopt', 'merge', 'nothing']),
+  /** False for a dry run. */
+  applied: z.boolean(),
+  /** Master commit the pull read. */
+  commit: z.string(),
+  /** Whether the app's text changes (or changed). */
+  appChanged: z.boolean(),
+  /** The merge log: what was brought in, kept, flagged or decided in the app's favour. */
+  log: z.array(MergeEntrySchema),
+  /** First run only: tasks that exist only in the app, so would be replaced. Capped at 50. */
+  appOnlyTasks: z.array(TaskRefSchema),
+  appOnlyTaskCount: z.number().int().nonnegative(),
+  /** First run only: tasks ticked in the app but not on master. Capped at 50. */
+  ticksOnlyInApp: z.array(TaskRefSchema),
+  ticksOnlyInAppCount: z.number().int().nonnegative(),
+  /** Lines only in the app and only on master (first run). */
+  appOnlyLines: z.number().int().nonnegative(),
+  masterOnlyLines: z.number().int().nonnegative(),
+  /** The snapshot of the app's previous text, when one was taken. */
+  snapshotId: z.number().int().nullable(),
+  /** The app's roadmap version after the pull. */
+  appVersion: z.number().int().nonnegative(),
+});
+
+export type RoadmapPullRequest = z.infer<typeof RoadmapPullRequestSchema>;
+export type RoadmapPullResult = z.infer<typeof RoadmapPullResultSchema>;

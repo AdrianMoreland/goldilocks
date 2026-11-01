@@ -50,6 +50,8 @@ async function bootstrap() {
     // bufferLogs holds Nest's own startup lines until pino is attached, so none go to the default logger.
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
         bufferLogs: true,
+        // Keeps the exact request bytes on `req.rawBody`: the GitHub webhook's signature is checked against them.
+        rawBody: true,
     });
     app.useLogger(app.get(PinoLogger));
     const config = app.get(ConfigService);

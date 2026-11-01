@@ -50,6 +50,9 @@ TRUST_PROXY_HOPS=       # optional; proxies in front of the API (Railway: 1, the
 SPOT_PRICE_RETENTION_DAYS= # optional; days of metal_spot_prices ticks kept (default 7)
 AI_CACHE_TTL_DAYS=      # optional; 7
 AI_PRICE_PER_MILLION=   # optional; "input,cachedInput,output" USD per million tokens, for a model the price table doesn't know
+GITHUB_SYNC_TOKEN=      # roadmap sync (roadmap 1.20): fine-grained PAT for this repo only, Contents + Pull requests + Issues read/write, 90-day expiry. Without it /project2 shows sync as "not set up"
+GITHUB_WEBHOOK_SECRET=  # roadmap sync: the secret of the repository webhook (Settings > Webhooks) pointing at POST <api>/roadmap/sync/webhook, content type application/json, push events only. Without it the endpoint refuses every call
+GITHUB_REPO=            # optional; owner/name, defaults to AdrianMoreland/goldilocks
 ```
 
 ### Environment variables to set on the Web service (build-time, Vite)
