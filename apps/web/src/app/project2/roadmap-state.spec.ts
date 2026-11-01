@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { RoadmapSection, RoadmapTask } from "@goldilocks/shared-types"
-import { NO_FILTER, groupSections, isFiltering, phaseName, pickSection, progressOf, sectionMatches, taskDone, upNext } from "./roadmap-state"
+import { NO_FILTER, boardColumns, groupSections, isFiltering, overviewTotals, phaseName, pickSection, priorityMix, progressOf, sectionMatches, taskDone, upNext } from "./roadmap-state"
 
 const task = (text: string, checked: boolean, children: RoadmapTask[] = []): RoadmapTask => ({ line: 0, checked, text, notes: [], children })
 
@@ -99,5 +99,53 @@ describe("pickSection", () => {
         expect(pickSection([a, b], null)?.key).toBe("b")
         expect(pickSection([a], "missing")?.key).toBe("a")
         expect(pickSection([], null)).toBeUndefined()
+    })
+})
+
+describe("boardColumns", () => {
+    const sections = [
+        section("a", { priority: "P1", tasks: [task("1", false), task("2", false), task("3", false)] }),
+        section("b", { priority: "P1", tasks: [task("1", false)] }),
+        section("c", { priority: "P0", tasks: [task("1", true)] }),
+        section("d", { priority: null, tasks: [task("1", false)] }),
+        section("prose", { priority: "P0" }),
+    ]
+
+    it("sorts sections into priority columns, finished ones into Done, and skips sections with no tasks", () => {
+        const columns = boardColumns(sections)
+        expect(columns.map((c) => [c.key, c.items.map((i) => i.section.key)])).toEqual([
+            ["P0", []],
+            ["P1", ["b", "a"]],
+            ["P2", []],
+            ["P3", []],
+            ["none", ["d"]],
+            ["done", ["c"]],
+        ])
+    })
+
+    it("leaves out the no-priority column when it is empty", () => {
+        expect(boardColumns([section("a", { priority: "P2", tasks: [task("1", false)] })]).some((c) => c.key === "none")).toBe(false)
+    })
+})
+
+describe("priorityMix and overviewTotals", () => {
+    const sections = [
+        section("a", { priority: "P0", tasks: [task("1", false), task("2", true)] }),
+        section("b", { priority: "P2", tasks: [task("1", false), task("2", false)] }),
+        section("c", { tasks: [task("1", false)] }),
+    ]
+
+    it("counts open tasks by the priority of their section", () => {
+        expect(priorityMix(sections).map((m) => [m.key, m.open])).toEqual([
+            ["P0", 1],
+            ["P1", 0],
+            ["P2", 2],
+            ["P3", 0],
+            ["none", 1],
+        ])
+    })
+
+    it("totals open and done tasks, open sections, and open Now tasks", () => {
+        expect(overviewTotals(sections)).toEqual({ tasksOpen: 4, tasksDone: 1, sectionsOpen: 3, nowOpen: 1 })
     })
 })
