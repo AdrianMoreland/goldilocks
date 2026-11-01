@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const CurrencyEnum = z.enum(['EUR', 'USD', 'GBP']);
 
 /** Which side of the business a branch belongs to. Drives what its staff may use (see branch-access.ts). */
-export const BranchRegionEnum = z.enum(['IE', 'UK']);
+export const BranchRegionEnum = z.enum(['IE', 'UK', 'ES']);
 export type BranchRegion = z.infer<typeof BranchRegionEnum>;
 
 /** The branch as it travels on a session: just enough for the web app to work out capabilities. */
