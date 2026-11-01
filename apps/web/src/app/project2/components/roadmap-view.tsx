@@ -6,11 +6,11 @@ import { countTasks, parseRoadmap, type RoadmapEdit } from "@goldilocks/shared-t
 import { useRoadmapApi } from "@/api/roadmap.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 import { NO_FILTER, sectionMatches, type RoadmapFilter } from "../roadmap-state"
 import { BoardTab } from "./board-tab"
 import { OverviewTab } from "./overview-tab"
-import { RoadmapTab } from "./roadmap-tab"
+import { RoadmapTree } from "./roadmap-tree"
 import { SectionSheet } from "./section-sheet"
 
 const TABS = [
@@ -23,10 +23,10 @@ type TabKey = (typeof TABS)[number]["key"]
 
 /**
  * The roadmap on /project2 (roadmap 1.20), as three tabs over the same stored copy of docs/ROADMAP.md that /project
- * uses: an overview (numbers, phase rings, open work, up next), the roadmap as phase cards that open in place, and a
- * board by priority whose cards open a drawer. Every edit goes to the API as one small change against the version on
- * screen, so the file stays the format and this page never invents its own. The tab and the open section live in the
- * URL (?tab=board&s=1.20) so a refresh or a shared link lands in the same place.
+ * uses: an overview (numbers, phase rings, an open-work gauge and a run list), the roadmap as a tree of phases and
+ * sections whose tasks are cards, and a board by priority whose cards open a drawer. Every edit goes to the API as
+ * one small change against the version on screen, so the file stays the format and this page never invents its own.
+ * The tab and the open section live in the URL (?tab=board&s=1.20) so a refresh or a shared link lands in the same place.
  */
 export function RoadmapView() {
     const api = useRoadmapApi()
@@ -65,7 +65,7 @@ export function RoadmapView() {
         },
     })
 
-    if (roadmap.isLoading) return <Skeleton className="h-96 w-full rounded-xl" />
+    if (roadmap.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />
     if (roadmap.isError) {
         return (
             <p role="alert" className="text-destructive text-sm">
@@ -75,7 +75,7 @@ export function RoadmapView() {
     }
     if (roadmap.data?.version === 0) {
         return (
-            <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-8 text-center text-sm">
+            <p className="text-muted-foreground rounded-2xl border border-dashed px-4 py-8 text-center text-sm">
                 The roadmap has not been imported yet. Press Sync from GitHub above to bring in master&apos;s copy.
             </p>
         )
@@ -87,23 +87,45 @@ export function RoadmapView() {
     }).length
     const counts: Record<TabKey, number | null> = { overview: null, roadmap: sections.length, board: openSections }
     const runEdit = (change: RoadmapEdit) => edit.mutate(change)
+    const select = (next: TabKey) => update({ tab: next === "overview" ? null : next, s: null })
 
     return (
-        <div className="flex flex-col gap-4">
-            <Tabs value={tab} onValueChange={(value) => update({ tab: value === "overview" ? null : value, s: null })}>
-                <TabsList aria-label="Roadmap views">
-                    {TABS.map(({ key, label }) => (
-                        <TabsTrigger key={key} value={key} className="cursor-pointer gap-2">
-                            {label}
-                            {counts[key] !== null && <span className="text-muted-foreground font-mono text-xs tabular-nums">{counts[key]}</span>}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
-            </Tabs>
+        <div className="flex flex-col gap-5">
+            <div>
+                <h1 className="text-2xl font-semibold tracking-tight">Goldilocks roadmap</h1>
+                <p className="text-muted-foreground mt-1 max-w-prose text-sm">
+                    Every phase, section and task from docs/ROADMAP.md. Tick, add, edit and delete here; the file on master stays the record.
+                </p>
+                {roadmap.data?.updatedAt && (
+                    <p className="text-muted-foreground mt-2 text-xs">
+                        Version <span className="text-foreground font-mono tabular-nums">{roadmap.data.version}</span> · saved {new Date(roadmap.data.updatedAt).toLocaleString()}
+                        {roadmap.data.updatedBy ? ` by ${roadmap.data.updatedBy}` : ""}
+                    </p>
+                )}
+            </div>
 
-            {tab === "overview" && <OverviewTab sections={sections} onOpen={(key) => update({ s: key })} />}
+            <div role="tablist" aria-label="Roadmap views" className="border-border -mb-1 flex gap-1 overflow-x-auto border-b">
+                {TABS.map(({ key, label }) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === key}
+                        onClick={() => select(key)}
+                        className={cn(
+                            "-mb-px flex cursor-pointer items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+                            tab === key ? "border-primary text-foreground" : "text-muted-foreground hover:text-foreground border-transparent",
+                        )}
+                    >
+                        {label}
+                        {counts[key] !== null && <span className="bg-muted rounded-full px-1.5 py-0.5 font-mono text-[11px] tabular-nums">{counts[key]}</span>}
+                    </button>
+                ))}
+            </div>
+
+            {tab === "overview" && <OverviewTab sections={sections} onOpen={(key) => update({ s: key })} onGoBoard={() => select("board")} />}
             {tab === "roadmap" && (
-                <RoadmapTab
+                <RoadmapTree
                     sections={visible}
                     totalSections={sections.length}
                     filter={filter}
@@ -117,13 +139,6 @@ export function RoadmapView() {
             {tab === "board" && <BoardTab sections={sections} onOpen={(key) => update({ s: key })} />}
 
             {tab !== "roadmap" && <SectionSheet section={openSection} hideDone={filter.hideDone} busy={edit.isPending} onEdit={runEdit} onClose={() => update({ s: null })} />}
-
-            {roadmap.data?.updatedAt && (
-                <p className="text-muted-foreground text-xs">
-                    Version <span className="font-mono tabular-nums">{roadmap.data.version}</span>, last saved {new Date(roadmap.data.updatedAt).toLocaleString()}
-                    {roadmap.data.updatedBy ? ` by ${roadmap.data.updatedBy}` : ""}.
-                </p>
-            )}
         </div>
     )
 }

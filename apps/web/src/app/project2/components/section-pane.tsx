@@ -1,7 +1,7 @@
 import { countTasks, type RoadmapEdit, type RoadmapSection } from "@goldilocks/shared-types"
 import { RoadmapMarkdown } from "../../project/components/roadmap-markdown"
 import { PriorityGlyph } from "./priority-glyph"
-import { TaskTree } from "./task-tree"
+import { TaskGrid } from "./task-grid"
 
 /** The heading of a section: priority, mono ID, title, and its note and dependencies. */
 export function SectionHeading({ section }: { section: RoadmapSection }) {
@@ -18,17 +18,27 @@ export function SectionHeading({ section }: { section: RoadmapSection }) {
     )
 }
 
-/** What sits under a section's heading: the prose, then the editable task tree. */
+/** What sits under a section's heading: the prose, then its tasks as cards. */
 export function SectionBody({ section, hideDone, busy, onEdit }: { section: RoadmapSection; hideDone: boolean; busy: boolean; onEdit: (edit: RoadmapEdit) => void }) {
     const { total } = countTasks(section.tasks)
-    // Prose-only sections (ground rules, architecture, icebox) have nothing to tick, so no task box either;
-    // a numbered section always gets one so its first task can be added.
+    // Prose-only sections (ground rules, architecture, icebox) have nothing to tick, so no task cards either;
+    // a numbered section always gets the grid so its first task can be added.
     const hasTasks = total > 0 || section.id !== null
 
     return (
         <div className="flex min-w-0 flex-col gap-4">
             {section.body && <RoadmapMarkdown>{section.body}</RoadmapMarkdown>}
-            {hasTasks && <TaskTree tasks={section.tasks} sectionLine={section.headingLine} hideDone={hideDone} busy={busy} onEdit={onEdit} />}
+            {hasTasks && (
+                <TaskGrid
+                    tasks={section.tasks}
+                    sectionId={section.id}
+                    sectionPriority={section.priority}
+                    sectionLine={section.headingLine}
+                    hideDone={hideDone}
+                    busy={busy}
+                    onEdit={onEdit}
+                />
+            )}
         </div>
     )
 }

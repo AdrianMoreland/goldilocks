@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils"
 
-export type StatusTone = "ok" | "warn" | "bad" | "muted"
+export type StatusTone = "ok" | "warn" | "bad" | "info" | "muted"
 
 /** The 6px status dot of DESIGN.md "Status colours". Colour never carries a state alone: put the state in words beside it. */
 const TONE: Record<StatusTone, string> = {
     ok: "bg-emerald-500",
     warn: "bg-amber-500",
     bad: "bg-red-500",
+    info: "bg-sky-500",
     muted: "bg-muted-foreground/50",
 }
 

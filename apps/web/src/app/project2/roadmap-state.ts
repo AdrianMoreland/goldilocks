@@ -1,5 +1,8 @@
 import { countTasks, type RoadmapSection, type RoadmapTask } from "@goldilocks/shared-types"
 
+/** The separator between a phase's name and what it is about: a spaced hyphen, en dash or em dash. */
+const DASH = /\s[-–—]\s/
+
 export type Priority = NonNullable<RoadmapSection["priority"]>
 
 export const PRIORITIES: Priority[] = ["P0", "P1", "P2", "P3"]
@@ -27,8 +30,11 @@ export function progressOf(sections: RoadmapSection[]): Progress {
     )
 }
 
-/** "PHASE 1 - Internal features" becomes "PHASE 1": the text before the dash, which the file puts in the `# ` heading. */
-export const phaseName = (group: string): string => group.split("—")[0].trim()
+/** "PHASE 1 - Internal features" becomes "PHASE 1": the text before the dash (hyphen or em dash) that the file puts in the `# ` heading. */
+export const phaseName = (group: string): string => group.split(DASH)[0].trim()
+
+/** What follows the dash in a phase heading, or an empty string when it has none. */
+export const phaseSubtitle = (group: string): string => group.split(DASH).slice(1).join(" - ").trim()
 
 export interface SectionGroup {
     name: string

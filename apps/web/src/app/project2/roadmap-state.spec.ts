@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { RoadmapSection, RoadmapTask } from "@goldilocks/shared-types"
-import { NO_FILTER, boardColumns, groupSections, isFiltering, overviewTotals, phaseName, pickSection, priorityMix, progressOf, sectionMatches, taskDone, upNext } from "./roadmap-state"
+import { NO_FILTER, boardColumns, groupSections, isFiltering, overviewTotals, phaseName, phaseSubtitle, pickSection, priorityMix, progressOf, sectionMatches, taskDone, upNext } from "./roadmap-state"
 
 const task = (text: string, checked: boolean, children: RoadmapTask[] = []): RoadmapTask => ({ line: 0, checked, text, notes: [], children })
 
@@ -147,5 +147,14 @@ describe("priorityMix and overviewTotals", () => {
 
     it("totals open and done tasks, open sections, and open Now tasks", () => {
         expect(overviewTotals(sections)).toEqual({ tasksOpen: 4, tasksDone: 1, sectionsOpen: 3, nowOpen: 1 })
+    })
+})
+
+describe("phaseSubtitle", () => {
+    it("reads headings written with a hyphen or an em dash", () => {
+        expect(phaseName("PHASE 0 - Harden and polish")).toBe("PHASE 0")
+        expect(phaseSubtitle("PHASE 0 - Harden and polish")).toBe("Harden and polish")
+        expect(phaseSubtitle("PHASE 1 — Internal features")).toBe("Internal features")
+        expect(phaseSubtitle("Icebox")).toBe("")
     })
 })
