@@ -7,7 +7,7 @@ import { SyncBanner } from "./components/sync-banner"
 /**
  * Project Management, next version (roadmap 1.20; docs/ROADMAP-TOOL-PLAN.md). Built beside /project so
  * the working page is never touched: when this one does everything /project does, /project is removed
- * and this takes its place. Slice 1 has only the read-only sync status. The route is wrapped in
+ * and this takes its place. So far it shows the sync status and pulls master into the app (slices 1 and 2). The route is wrapped in
  * RequireAdmin and the API checks admin again.
  */
 export default function Project2Page() {

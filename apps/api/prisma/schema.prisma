@@ -323,6 +323,32 @@ model RoadmapDocument {
   @@map("roadmap_document")
 }
 
+/// The text the app and master last agreed on, with master's changes taken in (docs/ROADMAP-SYNC-PULL-DESIGN.md).
+/// One row, id = 1. Slice 3 compares the app against it to find the app's own edits.
+model RoadmapSyncState {
+  id           Int      @id
+  baseCommit   String
+  baseMarkdown String
+  syncedAt     DateTime @db.Timestamptz(6)
+  syncedBy     String
+
+  @@map("roadmap_sync_state")
+}
+
+/// The app's roadmap text as it was just before a sync replaced or changed it. Append-only: nothing in the API
+/// updates or deletes a row. Read one back with `pnpm --filter api roadmap:snapshot`.
+model RoadmapSnapshot {
+  id        Int      @id @default(autoincrement())
+  markdown  String
+  version   Int
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("roadmap_snapshot")
+}
+
 /// Who changed what from the admin console, the roadmap page and market mode. Written in the same
 /// transaction as the change it describes, so an entry exists exactly when the change committed.
 /// `actor` is the account email, kept as text so deleting a user never orphans or erases history.
