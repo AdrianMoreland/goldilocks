@@ -1,0 +1,84 @@
+name: Post-merge
+
+# Runs after every push to master. Independent jobs, so one failure never hides another.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  # Ticks the roadmap tasks named in the merged PR body ("Roadmap: 1.12 | task text") and opens or updates
+  # ONE pull request on roadmap-sync/auto that changes only docs/ROADMAP.md. Never merges it.
+  # Uses ROADMAP_BOT_TOKEN (fine-grained PAT, 90-day expiry) because PRs opened with the default token do
+  # not trigger the required `ci` check.
+  roadmap-tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: roadmap-tick
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ secrets.ROADMAP_BOT_TOKEN }}
+      SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Find the merged PR
+        id: pr
+        run: |
+          set -euo pipefail
+          [ -n "$GH_TOKEN" ] || { echo "ROADMAP_BOT_TOKEN is not set" >> "$GITHUB_STEP_SUMMARY"; echo "found=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          json="$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0] // empty')"
+          if [ -z "$json" ]; then echo "found=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          title="$(jq -r .title <<<"$json")"
+          if [[ "$title" == "[roadmap-sync]"* ]]; then echo "found=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          jq -r '.body // ""' <<<"$json" > "$RUNNER_TEMP/pr-body.txt"
+          if grep -qiE '^\s*roadmap:\s*[0-9]+\.[0-9]+' "$RUNNER_TEMP/pr-body.txt"; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "number=$(jq -r .number <<<"$json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.pr.outputs.found == 'true'
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.ROADMAP_BOT_TOKEN }}
+
+      - name: Tick tasks and push
+        if: steps.pr.outputs.found == 'true'
+        id: tick
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          git config user.name "AdrianMoreland"
+          git config user.email "81171185+AdrianMoreland@users.noreply.github.com"
+          branch=roadmap-sync/auto
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch -q origin "$branch"
+            git checkout -q -B "$branch" "origin/$branch"
+            git merge -q --no-edit origin/master
+          else
+            git checkout -q -B "$branch" origin/master
+          fi
+          node tools/roadmap-tick/tick.js docs/ROADMAP.md "$RUNNER_TEMP/pr-body.txt" | tee "$RUNNER_TEMP/report.txt"
+          { echo '### Roadmap tick'; echo '```'; cat "$RUNNER_TEMP/report.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git commit -q -am "roadmap-sync: tick tasks from #$PR_NUMBER"
+          git push -q origin "$branch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request if none is open
+        if: steps.tick.outputs.changed == 'true'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          open="$(gh pr list --repo "$REPO" --head roadmap-sync/auto --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$open" ]; then gh pr comment "$open" --repo "$REPO" --body "Updated for #$PR_NUMBER."; exit 0; fi
+          body="$(printf 'Roadmap: none\n\nTicks the tasks named in merged PRs (starting with #%s). Only docs/ROADMAP.md changes. Merge by hand.' "$PR_NUMBER")"
+          gh pr create --repo "$REPO" --base master --head roadmap-sync/auto \
+            --title "[roadmap-sync] tick finished tasks" --body "$body"
