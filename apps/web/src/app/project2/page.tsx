@@ -27,7 +27,8 @@ export default function Project2Page() {
                 <SyncBanner />
                 <p className="text-muted-foreground text-sm">
                     This page is being built beside <Link to="/project" className="underline">the current one</Link>, which keeps working
-                    unchanged. Roadmap editing, sync, inbox and backlog arrive here slice by slice.
+                    unchanged. Syncing master into the app works here now; roadmap editing, sending the app's changes to GitHub, the inbox and
+                    the backlog arrive slice by slice.
                 </p>
             </div>
         </BaseLayout>
