@@ -36,21 +36,32 @@ pnpm workspace monorepo, orchestrated with Turborepo (`turbo.json`, root scripts
 The backend already follows feature-based structure - keep it that way:
 
 ```
-apps/api/src/modules/
-├── auth/
-│   ├── auth-provider.port.ts       # interface - see §6
-│   ├── providers/supabase-auth.provider.ts
-│   ├── auth.controller.ts
-│   ├── auth.service.ts
-│   └── auth.module.ts
-├── products/
-├── trade/
-├── portfolio/
-├── metals/
-├── market-data/
-├── admin/            # /admin console: health (Terminus), request/login history (Redis hourly buckets), pino log buffer, endpoint catalogue, DB browser
-├── knowledge/        # SOPs (roadmap 1.4) - source files in docs/sops/, loaded with `pnpm --filter api kb:import`
-└── ai/               # internal assistant (roadmap 1.5) - plan in docs/AI-AGENT-PLAN.md; model behind infrastructure/llm (LlmPort)
+apps/api/src/
+├── infrastructure/   # ports and adapters for outside systems: prisma, redis, supabase, github, metal-price-api (circuit breaker), llm
+└── modules/
+    ├── auth/
+    │   ├── auth-provider.port.ts       # interface - see §6
+    │   ├── providers/supabase-auth.provider.ts
+    │   ├── auth.controller.ts
+    │   ├── auth.service.ts
+    │   └── auth.module.ts
+    ├── products/
+    ├── trade/
+    ├── portfolio/
+    ├── metals/
+    ├── market-data/
+    ├── market-mode/       # shared Weekend / Volatile / Shortage state
+    ├── branches/
+    ├── customer-orders/
+    ├── stocktake/
+    ├── tradesheet-import/
+    ├── roadmap/           # roadmap file <-> database import and export
+    ├── audit-log/         # transactional Postgres audit trail
+    ├── request-metrics/   # Redis hourly buckets behind the admin request/login history
+    ├── error-log/
+    ├── admin/             # /admin console: health (Terminus), pino log buffer, endpoint catalogue, DB browser
+    ├── knowledge/         # SOPs (roadmap 1.4) - source files in docs/sops/, loaded with `pnpm --filter api kb:import`
+    └── ai/                # internal assistant (roadmap 1.5) - plan in docs/AI-AGENT-PLAN.md; model behind infrastructure/llm (LlmPort)
 ```
 
 `pnpm --filter api ai:eval` runs the golden questions (`modules/ai/eval`) through the real model; it spends a few cents, so it is opt-in. The assistant's live lookups live in `modules/ai/tools/` (one class per tool, listed under the `AI_TOOLS` token); they read prices through `MarketDataService.getPricedCatalogue()`, never the providers directly (§2 boundary).
