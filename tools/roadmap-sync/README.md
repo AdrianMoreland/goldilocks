@@ -3,9 +3,10 @@
 Keeps `docs/ROADMAP.md` and the Goldilocks Backlog page (a task board kept outside this repo) in step. Plain Node, no dependencies.
 
 ```
-node tools/roadmap-sync/sync-tool.js sync   docs/ROADMAP.md sections.json out.md base.md
-node tools/roadmap-sync/sync-tool.js export docs/ROADMAP.md sections.json [out.md]
-node tools/roadmap-sync/sync-tool.js merge  docs/ROADMAP.md sections.json
+node tools/roadmap-sync/sync-tool.js sync         docs/ROADMAP.md sections.json out.md base.md [--partial]
+node tools/roadmap-sync/sync-tool.js changed-keys docs/ROADMAP.md base.md
+node tools/roadmap-sync/sync-tool.js export       docs/ROADMAP.md sections.json [out.md]
+node tools/roadmap-sync/sync-tool.js merge        docs/ROADMAP.md sections.json
 ```
 
 `sections.json` is an array of the page's roadmap section documents (each with a `key`).
@@ -22,6 +23,9 @@ A three-way compare of the file as it was at the last sync (`base.md`), the file
 - A rename is applied only when the old title appears verbatim in the line; otherwise it is reported for a hand edit.
 
 It prints a log of everything it decided, and writes the new file text to `out.md` when the file would change.
+
+- `--partial` means `sections.json` holds only some of the page's sections: the others are left alone instead of being treated as new or removed.
+- `changed-keys` lists the sections whose tasks differ between the base file and the file now, so only those page sections need loading.
 
 `export` and `merge` are the older one-way commands, kept for reference: `export` only ticks and appends, `merge` only brings file changes into the page.
 
