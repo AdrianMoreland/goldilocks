@@ -70,6 +70,10 @@ CREATE TABLE "roadmap_snapshot" (
 
 -- CreateIndex
 CREATE INDEX "roadmap_snapshot_createdAt_idx" ON "roadmap_snapshot"("createdAt" DESC);
+
+-- Row level security: the API connects as `postgres` (which bypasses it); Supabase's own REST roles get nothing.
+ALTER TABLE "roadmap_sync_state" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "roadmap_snapshot" ENABLE ROW LEVEL SECURITY;
 ```
 
 Prisma models (`apps/api/prisma/schema.prisma`, next to `RoadmapDocument`):
@@ -103,7 +107,7 @@ model RoadmapSnapshot {
 - **Why two tables.** `roadmap_sync_state` is the base for the merge. `roadmap_snapshot` is the safety net: it replaces the manual "export a backup first" step with one that cannot be forgotten, and it covers every later pull that changes the app's text too. Each snapshot is about 80 KB; a pull writes one only when the app's text actually changes.
 - **Safe to apply:** new tables only, nothing references them, no data is touched. Rollback is `DROP TABLE "roadmap_snapshot"; DROP TABLE "roadmap_sync_state";` (the sync then reports "not set up" again).
 - Applied the usual way (Prisma migration, Railway pre-deploy `prisma migrate deploy`) **only after the owner approves**. The migration file is added in the slice 2 PR, not in this one.
-- Existing migrations do not enable row level security on their tables, and these two follow the same pattern. Open question 5.
+- **Row level security** is switched on for both new tables in the same migration (decision 5). Checked read-only against the database on 2026-11-01: the API connects as `postgres`, which bypasses RLS, so this cannot affect it; `anon` and `authenticated` have no privileges on any `public` table and `public` has no default grants, so a new table is not reachable through Supabase's REST API either way. RLS is the second lock. The same switch for the 26 existing tables is a separate plan: `docs/RLS-PLAN.md`.
 
 ## 5. API
 
@@ -149,10 +153,10 @@ Writes use the same guard as today's edits: `updateMany` with `where { version }
 
 About a medium slice: shared-types rule + tests, Prisma models and migration, service, controller and webhook, `main.ts` option, snapshot script, dialog. One PR, with the migration as its own commit so it can be reviewed first. Nothing is applied to the database until you approve it.
 
-## 11. Decisions needed from the owner
+## 11. Decisions (owner, 2026-11-01)
 
-1. **Approve the two tables** (`roadmap_sync_state`, `roadmap_snapshot`) exactly as written in section 4?
-2. **First run:** preview, a confirmation checkbox and an automatic snapshot, as in section 3. Enough, or do you also want a manual export of the old text first?
-3. **Webhook:** a public endpoint with signature checking and the `rawBody` option in `main.ts` (section 6). Approved?
-4. **Start-up pull:** on by default (it only merges, never adopts), or off until you have watched a few webhook pulls?
-5. **Row level security:** none of the existing migrations enable it, and Supabase can expose tables over its own REST API unless it is on. Is the API the only way into this database (REST disabled, or keys never shipped), so the new tables can match the old ones? If unsure I can read Supabase's security advisories (read only) to check before the migration is written.
+1. **Two tables approved** (`roadmap_sync_state`, `roadmap_snapshot`) as written in section 4.
+2. **First run:** preview, confirmation checkbox and automatic snapshot are enough. A manual export of the old text can come later if wanted.
+3. **Webhook approved:** a public endpoint that checks GitHub's signature, plus the `rawBody` option in `main.ts`.
+4. **Start-up pull approved, on by default** (it only merges, never adopts).
+5. **Row level security:** on for the two new tables in this migration; the 26 existing tables are handled by `docs/RLS-PLAN.md`, as its own change with its own approval.
