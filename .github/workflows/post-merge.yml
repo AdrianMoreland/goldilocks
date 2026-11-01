@@ -79,8 +79,6 @@ jobs:
           set -euo pipefail
           open="$(gh pr list --repo "$REPO" --head roadmap-sync/auto --state open --json number --jq '.[0].number // empty')"
           if [ -n "$open" ]; then gh pr comment "$open" --repo "$REPO" --body "Updated for #$PR_NUMBER."; exit 0; fi
+          body="$(printf 'Roadmap: none\n\nTicks the tasks named in merged PRs (starting with #%s). Only docs/ROADMAP.md changes. Merge by hand.' "$PR_NUMBER")"
           gh pr create --repo "$REPO" --base master --head roadmap-sync/auto \
-            --title "[roadmap-sync] tick finished tasks" \
-            --body "Roadmap: none
-
-Ticks the tasks named in merged PRs (starting with #$PR_NUMBER). Only docs/ROADMAP.md changes. Merge by hand."
+            --title "[roadmap-sync] tick finished tasks" --body "$body"
