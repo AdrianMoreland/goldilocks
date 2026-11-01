@@ -78,9 +78,11 @@ Every real push writes an audit entry (`push: opened PR #N, 3 edit(s)` or `push:
 - Two API replicas could race the daily push; today there is one.
 - Branch protection could reject the branch name; the ruleset covers `master` only, as checked for `roadmap-sync/auto`.
 
-## 10. Decisions needed from the owner
+## 10. Decisions (owner, 2026-11-01: approved)
 
-1. **Fixed branch `roadmap-sync/app`**, reset to master on each push (simplest), instead of a dated branch per day?
-2. **Daily push off by default**, switched on later with `ROADMAP_DAILY_PUSH=true`?
-3. **90% length guard** as the only sanity check?
-4. **Pending count in the status call** (one extra database read and one merge per status check), or only compute it inside the dialog?
+1. **Fixed branch `roadmap-sync/app`**, reset to master on each push.
+2. **Daily push off by default**, switched on later with `ROADMAP_DAILY_PUSH=true`.
+3. **The 90% length guard is the only automatic sanity check.** The other safeguards are already there: the preview before Apply, the readable PR diff, your own merge, and the snapshots and base kept by slice 2. More checks would be over-engineering.
+4. **The pending count goes in the status call** (`appEditsToPush`). It costs one small read and one in-memory merge when the page loads or **Check** is pressed, and it means unsent edits are visible without opening the dialog.
+
+Implementation is to be done in a fresh session from `docs/ROADMAP-TOOL-HANDOFF.md`.
