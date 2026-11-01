@@ -117,3 +117,7 @@ jobs:
       - name: Site tests
         if: steps.scope.outputs.docs_only != 'true'
         run: pnpm --filter site test
+
+      - name: Roadmap tool tests
+        if: steps.scope.outputs.docs_only != 'true'
+        run: node --test tools/roadmap-tick/tick.test.js
