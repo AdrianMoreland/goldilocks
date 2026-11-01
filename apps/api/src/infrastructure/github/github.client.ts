@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { GithubFile, GithubPort, GithubPullRequest } from './github.port';
+import type {
+    GithubFile,
+    GithubPort,
+    GithubPullRequest,
+    OpenPullRequest,
+    WriteFileOnBranch,
+} from './github.port';
 
 const API = 'https://api.github.com';
 const TIMEOUT_MS = 10_000;
@@ -38,11 +44,21 @@ export class GithubClient implements GithubPort {
         return this.expiresAt;
     }
 
-    private async request(path: string, accept: string): Promise<Response> {
+    private async request(
+        path: string,
+        accept: string,
+        write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown },
+        /** Explain failures in words; on for writes and the reads inside a write. */
+        friendly = !!write,
+    ): Promise<Response> {
         let res: Response;
         try {
             res = await fetch(`${API}${path}`, {
+                ...(write
+                    ? { method: write.method, body: JSON.stringify(write.body) }
+                    : {}),
                 headers: {
+                    ...(write ? { 'Content-Type': 'application/json' } : {}),
                     Accept: accept,
                     'X-GitHub-Api-Version': '2022-11-28',
                     'User-Agent': 'goldilocks-roadmap-sync',
@@ -70,13 +86,43 @@ export class GithubClient implements GithubPort {
         }
         if (!res.ok) {
             throw new GithubError(
-                res.status === 401 || res.status === 403
-                    ? 'GitHub refused the token (expired or missing a permission)'
-                    : `GitHub answered ${res.status}`,
+                await this.failureMessage(res, friendly),
                 res.status,
             );
         }
         return res;
+    }
+
+    private async failureMessage(res: Response, friendly: boolean) {
+        if (res.status === 401 || res.status === 403) {
+            return 'GitHub refused the token (expired or missing a permission)';
+        }
+        if (!friendly) return `GitHub answered ${res.status}`;
+        let detail = '';
+        try {
+            const body = (await res.json()) as { message?: string };
+            detail = body.message ? `: ${body.message}` : '';
+        } catch {
+            // an unreadable body just leaves the status
+        }
+        if (res.status === 404) {
+            return `GitHub could not find the repository, branch or file${detail}`;
+        }
+        if (res.status === 422) {
+            return `GitHub rejected the change${detail}`;
+        }
+        return `GitHub answered ${res.status}${detail}`;
+    }
+
+    private json(
+        path: string,
+        method: 'POST' | 'PATCH' | 'PUT',
+        body: unknown,
+    ) {
+        return this.request(path, 'application/vnd.github+json', {
+            method,
+            body,
+        });
     }
 
     async readFile(path: string, branch: string): Promise<GithubFile> {
@@ -114,5 +160,72 @@ export class GithubClient implements GithubPort {
             url: r.html_url,
             branch: r.head.ref,
         }));
+    }
+
+    async writeFileOnBranch(input: WriteFileOnBranch) {
+        const { branch, baseCommit, path, content, message } = input;
+        const ref = encodeURIComponent(branch);
+        const repo = `/repos/${this.repo}`;
+
+        let exists = true;
+        try {
+            await this.request(
+                `${repo}/git/ref/heads/${ref}`,
+                'application/vnd.github+json',
+            );
+        } catch (e) {
+            if (!(e instanceof GithubError && e.status === 404)) throw e;
+            exists = false;
+        }
+        if (exists) {
+            await this.json(`${repo}/git/refs/heads/${ref}`, 'PATCH', {
+                sha: baseCommit,
+                force: true,
+            });
+        } else {
+            await this.json(`${repo}/git/refs`, 'POST', {
+                ref: `refs/heads/${branch}`,
+                sha: baseCommit,
+            });
+        }
+
+        // The branch now equals master, so the file's blob sha on it is the one the update must name.
+        const current = await this.request(
+            `${repo}/contents/${path}?ref=${ref}`,
+            'application/vnd.github+json',
+            undefined,
+            true,
+        );
+        const { sha } = (await current.json()) as { sha: string };
+        const res = await this.json(`${repo}/contents/${path}`, 'PUT', {
+            message,
+            content: Buffer.from(content, 'utf8').toString('base64'),
+            sha,
+            branch,
+        });
+        const saved = (await res.json()) as { commit: { sha: string } };
+        return { commit: saved.commit.sha };
+    }
+
+    async openPullRequest(input: OpenPullRequest) {
+        const res = await this.json(`/repos/${this.repo}/pulls`, 'POST', input);
+        const pr = (await res.json()) as {
+            number: number;
+            title: string;
+            html_url: string;
+            head: { ref: string };
+        };
+        return {
+            number: pr.number,
+            title: pr.title,
+            url: pr.html_url,
+            branch: pr.head.ref,
+        };
+    }
+
+    async updatePullRequest(number: number, body: string) {
+        await this.json(`/repos/${this.repo}/pulls/${number}`, 'PATCH', {
+            body,
+        });
     }
 }
