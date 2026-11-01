@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Roadmap sync tool. Plain Node, no dependencies. See README.md in this folder.
+ *   node tools/roadmap-sync/sync-tool.js sync   docs/ROADMAP.md sections.json out.md base.md
  *   node tools/roadmap-sync/sync-tool.js export docs/ROADMAP.md sections.json [out.md]
  *   node tools/roadmap-sync/sync-tool.js merge  docs/ROADMAP.md sections.json
  */
@@ -233,15 +234,173 @@ function exportRoadmap(text,local){
   return {text:lines.join(crlf?'\r\n':'\n'),changes};
 }
 
+/* ---------- three-way sync: base (file at last sync), file (now), page (now) ---------- */
+function _applyFileOps(text,ops){
+  const crlf=text.includes('\r\n');
+  const lines=String(text).replace(/\r\n/g,'\n').split('\n');
+  const notes=[];
+  for(const t of ops.toggles){
+    const l=lines[t.line];
+    lines[t.line]=t.done?l.replace('[ ]','[x]'):l.replace(/\[x\]/i,'[ ]');
+  }
+  for(const r of ops.renames){
+    const l=lines[r.line],i=l.indexOf(r.from);
+    if(i<0){notes.push({k:'skipped-rename',sec:r.sec,text:`${r.from}  →  ${r.to} (line formatting differs, edit by hand)`});continue}
+    lines[r.line]=l.slice(0,i)+r.to+l.slice(i+r.from.length);
+  }
+  const dead=ops.deletes.map(d=>[d.line,d.last]);
+  const inDead=n=>dead.some(([a,b])=>n>=a&&n<=b);
+  const edits=[];
+  for(const [a,b] of dead)edits.push({pos:a,del:b-a+1,ins:[],order:0});
+  ops.inserts.forEach((x,i)=>{
+    if(inDead(x.after)){notes.push({k:'skipped-add',sec:x.sec,text:x.lines[0].trim()+' (its parent is being deleted)'});return}
+    edits.push({pos:x.after+1,del:0,ins:x.lines,order:i+1});
+  });
+  edits.sort((a,b)=>b.pos-a.pos||((b.del>0)-(a.del>0))||b.order-a.order);
+  for(const e of edits)lines.splice(e.pos,e.del,...e.ins);
+  return {text:lines.join(crlf?'\r\n':'\n'),notes};
+}
+
+function sync3(baseSecs,fileSecs,pageSecs){
+  const bmap=new Map(baseSecs.map(s=>[s.key,s]));
+  const pmap=new Map(pageSecs.map(s=>[s.key,s]));
+  const fkeys=new Set(fileSecs.map(s=>s.key));
+  const log=[],pageChanges=new Map();
+  const ops={toggles:[],renames:[],deletes:[],inserts:[]};
+  const L=(k,sec,text)=>log.push({k,sec,text});
+
+  function syncList(B,F,P,sec,parentF,secStart){
+    const nb=t=>_norm(t.title);
+    // base <-> file
+    const bf=new Map(),usedF=new Set();
+    B.forEach(b=>{const f=F.find(x=>!usedF.has(x)&&nb(x)===nb(b));if(f){usedF.add(f);bf.set(b,f)}});
+    B.forEach(b=>{
+      if(bf.has(b))return;let best=null,bs=0.7;
+      for(const f of F){if(usedF.has(f))continue;const s=_sim(b.title,f.title);if(s>=bs){bs=s;best=f}}
+      if(best){usedF.add(best);bf.set(b,best)}
+    });
+    const fb=new Map([...bf].map(([b,f])=>[f,b]));
+    // page <-> base (a page rename keeps the title it started with in `orig`)
+    const pb=new Map(),usedB=new Set();
+    P.forEach(p=>{const k=_norm(p.orig||p.title);const b=B.find(x=>!usedB.has(x)&&nb(x)===k);if(b){usedB.add(b);pb.set(p,b)}});
+    // page <-> file
+    const pf=new Map(),usedPF=new Set();
+    P.forEach(p=>{
+      const b=pb.get(p);let f=b?bf.get(b):null;
+      if(f&&usedPF.has(f))f=null;
+      if(!f){const k=_norm(p.title);f=F.find(x=>!usedPF.has(x)&&!fb.has(x)&&_norm(x.title)===k)||null}
+      if(f){usedPF.add(f);pf.set(p,f)}
+    });
+
+    const out=[],placed=new Map(); // file task -> index in out
+    let anchorF=null; // last file task a page task was matched to, for inserts
+    for(const p of P){
+      const b=pb.get(p),f=pf.get(p);
+      if(f){
+        const n={...p};
+        const ft=f.title,pt=p.title,bt=b?b.title:ft;
+        if(_norm(pt)!==_norm(ft)){
+          const pageChanged=b?_norm(pt)!==_norm(bt):true;
+          if(pageChanged){ops.renames.push({line:f.line,from:ft,to:pt,sec});L('rename-to-file',sec,`${ft}  →  ${pt}`);n.orig=n.orig||ft;n.mod=[...new Set([...(n.mod||[]),'title'])]}
+          else{n.title=ft;delete n.orig;if(n.mod){n.mod=n.mod.filter(x=>x!=='title');if(!n.mod.length)delete n.mod}L('rename-from-file',sec,`${pt}  →  ${ft}`)}
+        }else{delete n.orig;if(n.mod){n.mod=n.mod.filter(x=>x!=='title');if(!n.mod.length)delete n.mod}}
+        n.check=f.check;if(f.group)n.group=true;
+        if(f.check){
+          const pd=!!p.done,fd=!!f.done,bd=b?!!b.done:fd;
+          if(pd!==fd){
+            if(pd!==bd){ops.toggles.push({line:f.line,done:pd});L(pd?'tick-to-file':'untick-to-file',sec,f.title)}
+            else{n.done=fd;if(fd)n.doing=false;L(fd?'tick-from-file':'untick-from-file',sec,f.title)}
+          }
+        }
+        const take=(k,v)=>{if(v===undefined||v===''||(Array.isArray(v)&&!v.length))delete n[k];else n[k]=v};
+        const mod=new Set(p.mod||[]);
+        take('note',f.note);take('tags',f.tags);take('depends',f.depends);
+        if(!mod.has('effort'))take('effort',f.effort);if(!mod.has('pri'))take('pri',f.pri);
+        if(n.removedFromFile){delete n.removedFromFile;L('restored',sec,f.title)}
+        const kids=syncList(b?b.children||[]:[],f.children||[],p.children||[],sec,f,secStart);
+        if(kids.length)n.children=kids;else delete n.children;
+        placed.set(f,out.length);anchorF=f;out.push(n);continue;
+      }
+      if(b){
+        // the file no longer has it
+        const n={...p};
+        const unchanged=_norm(p.title)===_norm(b.title)&&!!p.done===!!b.done;
+        if(!_isUser(n)&&!n.removedFromFile&&unchanged){n.removedFromFile=true;L('removed-in-file',sec,p.title)}
+        out.push(n);continue;
+      }
+      // only in the page: add it to the file after the previous matched sibling
+      const after=anchorF?_lastLine(anchorF):(F.length?_lastLine(F[F.length-1]):(parentF?_lastLine(parentF):secStart));
+      const indent=anchorF?_indentOf(CUR_LINES,anchorF):(F.length?_indentOf(CUR_LINES,F[0]):(parentF?_indentOf(CUR_LINES,parentF)+'  ':''));
+      ops.inserts.push({after,sec,lines:_renderNew(p,indent)});
+      L('add-to-file',sec,p.title+((p.children||[]).length?` (+${p.children.length} subtasks)`:''));
+      out.push({...p});
+    }
+    // only in the file
+    F.forEach((f,i)=>{
+      if(placed.has(f))return;
+      const b=fb.get(f);
+      if(b){
+        // the page deleted it. Honour that only if the file has not touched it since the base.
+        const same=_norm(f.title)===_norm(b.title)&&!!f.done===!!b.done&&_same(_stripKids(f),_stripKids(b));
+        if(same){ops.deletes.push({line:f.line,last:_lastLine(f),sec});L('delete-to-file',sec,f.title);return}
+        L('restored-kept',sec,f.title+' (changed in the file, so kept)');
+      }else L('new-from-file',sec,f.title+(f.children&&f.children.length?` (with ${_countTasks(f)-1} subtask${_countTasks(f)-1===1?'':'s'})`:''));
+      const fresh=_freshTask(f);
+      let at=0;
+      for(let j=i-1;j>=0;j--){if(placed.has(F[j])){at=placed.get(F[j])+1;break}}
+      out.splice(at,0,fresh);
+      // keep the recorded positions of later placed items valid
+      for(const [k,v] of placed)if(v>=at)placed.set(k,v+1);
+    });
+    return out;
+  }
+
+  let CUR_LINES=[];
+  return {
+    run(fileText){
+      CUR_LINES=String(fileText).replace(/\r\n/g,'\n').split('\n');
+      for(const f of fileSecs){
+        const p=pmap.get(f.key);
+        if(!p){
+          const doc={num:f.num,phase:f.phase,title:f.title,pri:f.pri,tags:f.tags,depends:f.depends,sub:f.sub,intro:f.intro,order:f.order,tasks:f.tasks.map(t=>_freshTask(t))};
+          pageChanges.set(f.key,{isNew:true,doc});L('section-new',f.num,`${f.title} (${f.n} tasks)`);continue;
+        }
+        const b=bmap.get(f.key)||{tasks:[]};
+        const tasks=syncList(b.tasks||[],f.tasks||[],p.tasks||[],f.num,null,f.start);
+        const fields={};
+        if(!_same(tasks,p.tasks||[]))fields.tasks=tasks;
+        if(p.removedFromFile){fields.removedFromFile=false}
+        if(Object.keys(fields).length)pageChanges.set(f.key,{isNew:false,fields});
+      }
+      for(const p of pageSecs){
+        if(fkeys.has(p.key)||/^u-/.test(p.key)||p.removedFromFile)continue;
+        pageChanges.set(p.key,{isNew:false,fields:{removedFromFile:true}});L('section-removed',p.num,p.title);
+      }
+      const applied=_applyFileOps(fileText,ops);
+      applied.notes.forEach(n=>log.push(n));
+      return {pageChanges,fileText:applied.text,fileChanged:applied.text!==fileText,log};
+    }
+  };
+}
+function runSync3(baseText,fileText,pageSecs){
+  return sync3(parseRoadmapMd(baseText),parseRoadmapMd(fileText),pageSecs).run(fileText);
+}
+
 /* ---------- command line: node sync-tool.js export|merge ROADMAP.md sections.json ---------- */
 if(typeof module!=='undefined'){
-  module.exports={parseRoadmapMd,mergeRoadmap,exportRoadmap};
+  module.exports={parseRoadmapMd,mergeRoadmap,exportRoadmap,runSync3};
   if(require.main===module){
     const fs=require('fs');const [,,cmd,mdPath,jsonPath,outPath]=process.argv;
-    if(!cmd||!mdPath||!jsonPath){console.error('usage: node sync-tool.js export|merge ROADMAP.md sections.json [out.md]');process.exit(2)}
+    if(!cmd||!mdPath||!jsonPath){console.error('usage: node sync-tool.js export|merge|sync ROADMAP.md sections.json [out.md] [base.md]');process.exit(2)}
     const md=fs.readFileSync(mdPath,'utf8');const raw=JSON.parse(fs.readFileSync(jsonPath,'utf8'));const secs=Array.isArray(raw)?raw:raw&&raw.sections;
     if(!Array.isArray(secs)){console.error('sections.json must be an array of section documents');process.exit(2)}
     if(cmd==='export'){const r=exportRoadmap(md,secs);if(outPath)fs.writeFileSync(outPath,r.text);console.log(JSON.stringify({changed:r.text!==md,changes:r.changes},null,1))}
+    else if(cmd==='sync'){
+      // node sync-tool.js sync FILE.md sections.json out.md BASE.md
+      const baseText=fs.readFileSync(process.argv[6]||mdPath,'utf8');
+      const r=runSync3(baseText,md,secs);if(outPath)fs.writeFileSync(outPath,r.fileText);
+      console.log(JSON.stringify({fileChanged:r.fileChanged,log:r.log,pageChanges:[...r.pageChanges].map(([k,v])=>[k,v])}));
+    }
     else if(cmd==='merge'){const r=mergeRoadmap(secs,parseRoadmapMd(md));console.log(JSON.stringify({changes:[...r.changes].map(([k,v])=>[k,v]),log:r.log}))}
     else{console.error('unknown command');process.exit(2)}
   }
