@@ -10,6 +10,8 @@ pnpm workspace monorepo, orchestrated with Turborepo.
 |---|---|
 | `apps/api` | NestJS 11, Prisma 7 (Postgres via Supabase), Redis (cache-aside), `nestjs-zod`, Supabase Auth |
 | `apps/web` | React + Vite, React Router, TanStack Query + TanStack Table, shadcn/ui + Radix, Tailwind CSS v4 |
+| `apps/site` | The public website (roadmap 2.1): React Router v7 on Vite, prerendered to static HTML, Tailwind CSS v4 |
+| `packages/ui` | shadcn primitives shared by `apps/web` and `apps/site` |
 | `packages/shared-types` | Zod schemas + pure pricing math, built with `tsup` |
 | `packages/typescript-config` | Shared `tsconfig` bases |
 
