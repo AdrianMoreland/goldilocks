@@ -1,0 +1,18 @@
+name: Idea or task
+description: Capture something for the roadmap
+labels: [roadmap]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: One or two lines is enough. It goes to the roadmap inbox.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Idea, Task, Fix]
+    validations:
+      required: false
