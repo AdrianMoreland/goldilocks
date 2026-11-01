@@ -31,6 +31,9 @@ import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
 import { MarketModeController } from '../../modules/market-mode/market-mode.controller';
 import { MarketModeService } from '../../modules/market-mode/market-mode.service';
 import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
+import { RoadmapPullService } from '../../modules/roadmap/roadmap-pull.service';
+import { RoadmapWebhookController } from '../../modules/roadmap/roadmap-webhook.controller';
+import { ConfigService } from '@nestjs/config';
 import { RoadmapService } from '../../modules/roadmap/roadmap.service';
 import { RoadmapSyncService } from '../../modules/roadmap/roadmap-sync.service';
 import { MarketDataController } from '../../modules/market-data/market-data.controller';
@@ -60,6 +63,7 @@ const CONTROLLERS: Type<unknown>[] = [
     PortfolioController,
     ProductsController,
     RoadmapController,
+    RoadmapWebhookController,
     TradeController,
 ];
 
@@ -70,6 +74,8 @@ const PUBLIC_ROUTES = new Set([
     'POST /auth/login',
     // Called after the access token has expired; the refresh token in the body is the credential.
     'POST /auth/refresh',
+    // GitHub cannot sign in. The handler refuses any call without a valid HMAC signature of the raw body (see roadmap-webhook.controller.ts).
+    'POST /roadmap/sync/webhook',
 ]);
 
 const METHOD_NAMES: Record<number, string> = {
@@ -200,6 +206,8 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: PortfolioService, useValue: {} },
                 { provide: RoadmapService, useValue: {} },
                 { provide: RoadmapSyncService, useValue: {} },
+                { provide: RoadmapPullService, useValue: {} },
+                { provide: ConfigService, useValue: { get: () => undefined } },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },
             ],
