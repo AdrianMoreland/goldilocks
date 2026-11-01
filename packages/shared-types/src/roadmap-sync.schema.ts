@@ -26,6 +26,8 @@ export const RoadmapSyncStatusSchema = z.object({
   tokenExpiresAt: z.iso.datetime().nullable(),
   /** Why the state is `unavailable`. */
   error: z.string().nullable(),
+  /** App edits a push would send to GitHub; null when sync is not set up or could not be worked out. */
+  appEditsToPush: z.number().int().nonnegative().nullable(),
 });
 
 export type RoadmapSyncStatus = z.infer<typeof RoadmapSyncStatusSchema>;
@@ -81,5 +83,29 @@ export const RoadmapPullResultSchema = z.object({
   appVersion: z.number().int().nonnegative(),
 });
 
+/** What a push may be asked to do (POST /roadmap/sync/push). */
+export const RoadmapPushRequestSchema = z.object({
+  /** Show what would be sent and write nothing. */
+  dryRun: z.boolean().optional(),
+});
+
+/** The outcome of a push, or of its preview: what the dry run shows is what the real run returns. */
+export const RoadmapPushResultSchema = z.object({
+  mode: z.enum(['push', 'nothing']),
+  /** False for a dry run. */
+  applied: z.boolean(),
+  /** Master commit the push was built on. */
+  commit: z.string(),
+  /** The app's edits being sent (the merge log's `to-file` entries). */
+  edits: z.array(MergeEntrySchema),
+  /** A short `+`/`-` preview of master against the new file, capped. */
+  diffPreview: z.array(z.string()),
+  /** The pull request opened or updated; null for a dry run or when there was nothing to push. */
+  prNumber: z.number().int().nullable(),
+  prUrl: z.string().nullable(),
+});
+
 export type RoadmapPullRequest = z.infer<typeof RoadmapPullRequestSchema>;
 export type RoadmapPullResult = z.infer<typeof RoadmapPullResultSchema>;
+export type RoadmapPushRequest = z.infer<typeof RoadmapPushRequestSchema>;
+export type RoadmapPushResult = z.infer<typeof RoadmapPushResultSchema>;
