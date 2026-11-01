@@ -17,6 +17,7 @@ export const queryKeys = {
         bcItems: ['stocktake', 'bc-items'] as const,
     },
     roadmap: ['roadmap'] as const,
+    roadmapSync: ['roadmap', 'sync'] as const,
     trade: {
         // Shared by the Trade tab and Portfolio's P/L subtab - same key on
         // purpose (see usePortfolioPL), so opening both doesn't double the
