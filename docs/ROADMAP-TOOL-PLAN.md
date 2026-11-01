@@ -135,6 +135,7 @@ Built beside the current `/project` page, which is not touched (owner decision, 
 - Roadmap view: add a sync banner (state, button "Sync with GitHub", link to the open PR), task notes, "not in file" flags, subtask done/total.
 - New Inbox view and a global quick-add (a floating `+` and the `n` key), kinds Idea, Task, Fix; triage buttons: to roadmap (choose section), to backlog, discard, restore.
 - New Backlog view: board by status, Bugs and fixes (with file:line), Decisions (with recommendation).
+- **Goldilocks theme and design system, always** (owner requirement, 2026-11-01): `BaseLayout` and the shared `packages/ui` components (`Card`, `Button`, `Badge`, `Tabs`, `Dialog`, ...); theme tokens and `DESIGN.md` rules only (no hard-coded hex, hairline borders, 6px controls and 12px cards, flat at rest, no tinted section backgrounds, gold only for active and primary states, status shown by the small dots the freshness signals use, `tabular-nums` for figures, icon-only buttons with `title` and `aria-label`). Every view in `/project2` follows this; it also works in the day and night themes and with the theme editor.
 - Mobile first for quick add and tick; keep the existing page shell and routes.
 
 ## 9. Delivery in slices (each its own PR)
