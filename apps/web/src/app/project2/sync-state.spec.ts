@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { RoadmapPullResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
-import { canApply, describeEntry, pullHeadline, summarize, tokenDaysLeft } from "./sync-state"
+import { canApply, describeEntry, entryLabel, entryTone, meterShares, pullHeadline, summarize, summarizeLog, tokenDaysLeft } from "./sync-state"
 
 const status = (over: Partial<RoadmapSyncStatus> = {}): RoadmapSyncStatus => ({
     state: "in-sync",
@@ -97,5 +97,34 @@ describe("pullHeadline and canApply", () => {
         expect(canApply(pulled({ mode: "adopt" }), true)).toBe(true)
         expect(canApply(pulled(), false)).toBe(true)
         expect(canApply(pulled({ mode: "nothing" }), true)).toBe(false)
+    })
+})
+
+describe("meterShares", () => {
+    it("is null when nothing differs", () => {
+        expect(meterShares(0, 0)).toBeNull()
+    })
+
+    it("splits the bar in proportion, and one side can take all of it", () => {
+        expect(meterShares(1, 3)).toEqual({ app: 0.25, master: 0.75 })
+        expect(meterShares(0, 5)).toEqual({ app: 0, master: 1 })
+    })
+})
+
+describe("merge log rows", () => {
+    const entry = (kind: Parameters<typeof entryLabel>[0]["kind"]) => ({ kind, baseLine: 1, text: "x" })
+
+    it("labels every kind and flags only the two-version decisions", () => {
+        expect(entryLabel(entry("to-app"))).toBe("From master")
+        expect(entryTone(entry("to-app"))).toBe("ok")
+        expect(entryTone(entry("to-file"))).toBe("muted")
+        expect(entryTone(entry("conflict-app-wins"))).toBe("warn")
+        expect(entryTone(entry("missing-from-file"))).toBe("warn")
+    })
+
+    it("counts what comes in, what stays only in the app and what needs a look", () => {
+        const log = [entry("to-app"), entry("to-app"), entry("to-file"), entry("both-added"), entry("kept-file-edit")]
+        expect(summarizeLog(log)).toEqual({ fromMaster: 2, appOnly: 1, needLook: 2 })
+        expect(summarizeLog([])).toEqual({ fromMaster: 0, appOnly: 0, needLook: 0 })
     })
 })
