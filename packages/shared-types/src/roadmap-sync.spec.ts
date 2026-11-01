@@ -56,4 +56,34 @@ describe('findAppOnlyTasks', () => {
     const app = master.replace('- [ ] other', '- [ ] one');
     expect(findAppOnlyTasks(app, master).appOnly).toEqual([{ section: '1.2', title: 'one', checked: false }]);
   });
+
+  describe('wording that changed since the stale copy', () => {
+    const masterText =
+      '## 0.1 Core\n\n' +
+      '- [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) - M *(used by the history seed and the 5-year backfill)*\n' +
+      '- [ ] Central config validation: Zod-parse `process.env` at boot - S *(partly there: `main.ts` fails fast; `Number(config.get(...))` calls remain)*\n' +
+      '- [ ] Short one\n';
+
+    it('treats a task with a different dash and a reworded note as the same task', () => {
+      const app =
+        '## 0.1 Core\n\n' +
+        '- [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) \u2014 M *(an older note)*\n' +
+        '- [ ] Central config validation: Zod-parse `process.env` at boot \u2014 S *(partly there: `main.ts` fails fast on a list of required variables)*\n';
+      expect(findAppOnlyTasks(app, masterText)).toEqual({ appOnly: [], ticksOnlyInApp: [] });
+    });
+
+    it('still reports a tick the app made on a reworded task', () => {
+      const app = '## 0.1 Core\n\n- [x] Central config validation: Zod-parse `process.env` at boot \u2014 S *(old note)*\n';
+      expect(findAppOnlyTasks(app, masterText).ticksOnlyInApp).toEqual([
+        { section: '0.1', title: 'Central config validation: Zod-parse `process.env` at boot \u2014 S *(old note)*', checked: true },
+      ]);
+    });
+
+    it('still reports a genuinely different task, and requires a full match for very short titles', () => {
+      const app = '## 0.1 Core\n\n- [ ] A completely different task that master does not have at all\n- [ ] Short two\n';
+      const found = findAppOnlyTasks(app, masterText);
+      expect(found.appOnly.map((t) => t.title)).toEqual(['A completely different task that master does not have at all', 'Short two']);
+    });
+  });
 });
+

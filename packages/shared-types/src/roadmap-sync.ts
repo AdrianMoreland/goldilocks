@@ -24,7 +24,13 @@ export interface AppOnlyTasks {
   ticksOnlyInApp: TaskRef[];
 }
 
-const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+/** A task's text with everything but letters and digits dropped, so dash style, markdown marks, emoji and spacing do not matter. */
+const keyOf = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** How much of the start of a task counts as "the same task" when the end (usually a note in `*( … )*`) was reworded. */
+const HEAD = 48;
+/** Shorter titles than this must match in full: a short prefix is too likely to hit another task. */
+const MIN_HEAD = 24;
 
 function flatten(tasks: RoadmapTask[], into: { text: string; checked: boolean }[]) {
   for (const task of tasks) {
@@ -45,16 +51,26 @@ function tasksBySection(markdown: string) {
 
 /**
  * The tasks a first pull would put at risk: those only the app has, and ticks only the app made.
- * Matching is by section key and task text, ignoring case and spacing.
+ * Matching is by section key and task text, ignoring case, spacing, punctuation, dash style and emoji; a task
+ * whose first part matches counts as the same task even if its trailing note was reworded, so a stale copy
+ * that differs only in wording does not look like hundreds of app-only tasks.
  */
 export function findAppOnlyTasks(app: string, master: string): AppOnlyTasks {
   const mine = tasksBySection(app);
   const theirs = tasksBySection(master);
   const result: AppOnlyTasks = { appOnly: [], ticksOnlyInApp: [] };
   for (const [section, tasks] of mine) {
-    const remote = new Map((theirs.get(section) ?? []).map((t) => [norm(t.text), t]));
+    const remote = theirs.get(section) ?? [];
+    const full = new Map<string, { checked: boolean }>();
+    const head = new Map<string, { checked: boolean }>();
+    for (const task of remote) {
+      const key = keyOf(task.text);
+      if (!full.has(key)) full.set(key, task);
+      if (key.length >= MIN_HEAD && !head.has(key.slice(0, HEAD))) head.set(key.slice(0, HEAD), task);
+    }
     for (const task of tasks) {
-      const match = remote.get(norm(task.text));
+      const key = keyOf(task.text);
+      const match = full.get(key) ?? (key.length >= MIN_HEAD ? head.get(key.slice(0, HEAD)) : undefined);
       if (!match) result.appOnly.push({ section, title: task.text, checked: task.checked });
       else if (task.checked && !match.checked) result.ticksOnlyInApp.push({ section, title: task.text, checked: true });
     }
