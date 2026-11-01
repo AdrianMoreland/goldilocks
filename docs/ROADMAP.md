@@ -535,6 +535,17 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Feedback channel + weekly bug triage - S
 - [ ] Retire monthly tradesheets and ad-hoc sheets - S
 
+## 1.19 Tradesheet import and P-line matching 🟠 ← depends: 0.6 audit log, 0.8 branches; feeds 1.8 (build before it)
+
+The monthly Google Sheets and Business Central stay the source for now; Goldilocks mirrors them. Plan: [`docs/TRADESHEET-IMPORT-PLAN.md`](TRADESHEET-IMPORT-PLAN.md).
+
+- [ ] Slice 1: import a monthly `.xlsx` (IE gold and silver sales and purchases) with preview, commit and reimport; trades, purchase lots and gold stock units; backfill Jan to Jun 2026 - L
+- [ ] Slice 2: browse sales and lots, drill from a sale to its lot and what remains, review list where a lot's "N sold" comment disagrees with its sales - M
+- [ ] Slice 3: Find P-line from an imported sale (same product, enough remaining, oldest first), copy-ready values, conflict review on reimport - M
+- [ ] Slice 4: fulfilment statuses shared with Customer Orders (Need ordering, Ordered, In transit, Delivered, Allocated, Collected; `BAGGED` renamed `ALLOCATED`) - M
+- [ ] Later: Spain tabs, Bonded silver (modelled separately), trades created in Goldilocks - M
+- [ ] The trade and lot models are the order data 1.8 builds on; 1.8's PAID → HEDGED → COLLECTED list is too small without the states above - S
+
 ---
 
 # PHASE 2 - Customer site, eshop and scale-up
