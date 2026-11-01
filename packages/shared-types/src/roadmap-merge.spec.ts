@@ -174,4 +174,105 @@ describe('mergeRoadmap', () => {
     expect(r.forApp).toBe(BASE);
     expect(r.forFile).toBe(BASE);
   });
+
+  describe('edits on neighbouring lines', () => {
+    it('keeps a tick from each side when they ticked consecutive tasks', () => {
+      const file = edit(BASE, '- [ ] Beta task', '- [x] Beta task');
+      const app = edit(BASE, '- [x] Gamma task', '- [ ] Gamma task');
+      const r = mergeRoadmap(BASE, file, app);
+      expect(r.forApp).toContain('- [x] Beta task');
+      expect(r.forApp).toContain('- [ ] Gamma task');
+      expect(r.forFile).toBe(r.forApp);
+      expect(r.log.map((e) => e.kind).sort()).toEqual(['to-app', 'to-file']);
+    });
+
+    it('keeps the file\'s deletion and the app\'s tick on the next line', () => {
+      const file = edit(BASE, '- [ ] Beta task\n', '');
+      const app = edit(BASE, '- [x] Gamma task', '- [ ] Gamma task');
+      const r = mergeRoadmap(BASE, file, app);
+      expect(r.forFile).not.toContain('Beta task');
+      expect(r.forFile).toContain('- [ ] Gamma task');
+      expect(r.forApp).toContain('Beta task'); // never deleted from the app
+      expect(r.forApp).toContain('- [ ] Gamma task');
+      expect(r.log.map((e) => e.kind).sort()).toEqual(['missing-from-file', 'to-file']);
+    });
+
+    it('keeps a task added in the file right before a line the app edited', () => {
+      const file = edit(BASE, '- [ ] Beta task\n', '- [ ] Beta task\n- [ ] File addition\n');
+      const app = edit(BASE, '- [x] Gamma task', '- [ ] Gamma task');
+      const r = mergeRoadmap(BASE, file, app);
+      expect(r.forFile).toContain('File addition');
+      expect(r.forFile).toContain('- [ ] Gamma task');
+      expect(r.forFile).toBe(r.forApp);
+    });
+
+    it('still lets the app win when both edited the very same line', () => {
+      const file = edit(BASE, '- [ ] Beta task', '- [x] Beta task');
+      const app = edit(BASE, '- [ ] Beta task', '- [ ] Beta task (app)');
+      const r = mergeRoadmap(BASE, file, app);
+      expect(r.forFile).toContain('Beta task (app)');
+      expect(r.log.map((e) => e.kind)).toEqual(['conflict-app-wins']);
+    });
+  });
+
+  describe('the base after a pull (docs/ROADMAP-SYNC-PULL-DESIGN.md)', () => {
+    const B = '## 1 A\n\n- [ ] one\n- [ ] two\n- [ ] three\n';
+
+    it('newBase = mergeRoadmap(base, file, base).forApp keeps flagged deletions and absorbs file additions', () => {
+      const file = '## 1 A\n\n- [ ] one\n- [ ] three\n- [ ] four\n';
+      expect(mergeRoadmap(B, file, B).forApp).toBe('## 1 A\n\n- [ ] one\n- [ ] two\n- [ ] three\n- [ ] four\n');
+    });
+
+    it('later, app-only edits are the only thing pushed and a deleted line is not resurrected', () => {
+      const file = '## 1 A\n\n- [ ] one\n- [ ] three\n';
+      const app = '## 1 A\n\n- [ ] one\n- [ ] two\n- [x] three\n';
+      const newBase = mergeRoadmap(B, file, B).forApp;
+      const r = mergeRoadmap(newBase, file, app);
+      expect(r.forFile).toBe('## 1 A\n\n- [ ] one\n- [x] three\n');
+      expect(r.forApp).toBe(app);
+    });
+
+    it('is quiet once the app deletes the line too', () => {
+      const file = '## 1 A\n\n- [ ] one\n- [ ] three\n';
+      const app = '## 1 A\n\n- [ ] one\n- [ ] three\n';
+      const r = mergeRoadmap(B, file, app);
+      expect(r.log).toEqual([]);
+      expect(r.forFile).toBe(file);
+    });
+  });
+
+  it('keeps every independent single-line edit from both sides (seeded random check)', () => {
+    let seed = 12345;
+    const rand = (n: number) => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed % n;
+    };
+    for (let round = 0; round < 200; round++) {
+      const n = 12 + rand(10);
+      const lines = Array.from({ length: n }, (_, i) => `- [ ] task number ${i}`);
+      const fileLines = [...lines];
+      const appLines = [...lines];
+      const wantFile = new Set<number>();
+      const wantApp = new Set<number>();
+      for (let i = 0; i < n; i++) {
+        const pick = rand(4);
+        if (pick === 0) {
+          fileLines[i] = `- [x] task number ${i}`;
+          wantFile.add(i);
+        } else if (pick === 1) {
+          appLines[i] = `- [x] task number ${i}`;
+          wantApp.add(i);
+        }
+      }
+      const base = lines.join('\n') + '\n';
+      const r = mergeRoadmap(base, fileLines.join('\n') + '\n', appLines.join('\n') + '\n');
+      const out = r.forFile.split('\n');
+      for (let i = 0; i < n; i++) {
+        const ticked = wantFile.has(i) || wantApp.has(i);
+        expect(out[i]).toBe(ticked ? `- [x] task number ${i}` : `- [ ] task number ${i}`);
+      }
+      expect(r.forApp).toBe(r.forFile);
+    }
+  });
 });
+
