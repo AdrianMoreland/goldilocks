@@ -17,10 +17,13 @@ import {
     RoadmapEditRequestDto,
     RoadmapPullRequestDto,
     RoadmapPullResultDto,
+    RoadmapPushRequestDto,
+    RoadmapPushResultDto,
     RoadmapSyncStatusDto,
 } from '../../common/dto/dtos';
 import { RoadmapService } from './roadmap.service';
 import { RoadmapPullService } from './roadmap-pull.service';
+import { RoadmapPushService } from './roadmap-push.service';
 import { RoadmapSyncService } from './roadmap-sync.service';
 
 @ApiTags('roadmap')
@@ -33,6 +36,7 @@ export class RoadmapController {
         private readonly service: RoadmapService,
         private readonly sync: RoadmapSyncService,
         private readonly pulls: RoadmapPullService,
+        private readonly pushes: RoadmapPushService,
     ) {}
 
     @Get()
@@ -61,6 +65,17 @@ export class RoadmapController {
     @ApiResponse({ status: 201, type: RoadmapPullResultDto })
     pull(@Body() body: RoadmapPullRequestDto, @Req() req: RequestWithUser) {
         return this.pulls.pull(req.user.email, body);
+    }
+
+    @Post('sync/push')
+    @Throttle({ default: { limit: 6, ttl: 60_000 } })
+    @ApiOperation({
+        summary:
+            "Send the app's roadmap edits to GitHub as a pull request (admin). dryRun previews and writes nothing",
+    })
+    @ApiResponse({ status: 201, type: RoadmapPushResultDto })
+    push(@Body() body: RoadmapPushRequestDto, @Req() req: RequestWithUser) {
+        return this.pushes.push(req.user.email, body);
     }
 
     @Post('edit')

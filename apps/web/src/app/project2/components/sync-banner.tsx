@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { CloudDownload, GitPullRequest, RefreshCw } from "lucide-react"
+import { CloudDownload, CloudUpload, GitPullRequest, RefreshCw } from "lucide-react"
 import { useRoadmapSyncApi } from "@/api/roadmap-sync.api"
 import { queryKeys } from "@/lib/query-keys"
 import { cn } from "@/lib/utils"
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatusDot } from "@/components/status-dot"
-import { summarize, tokenDaysLeft, type SyncTone } from "../sync-state"
+import { pendingEditsText, summarize, tokenDaysLeft, type SyncTone } from "../sync-state"
 import { DiffMeter } from "./diff-meter"
 import { PullDialog } from "./pull-dialog"
+import { PushDialog } from "./push-dialog"
 
 const TITLE_TEXT: Partial<Record<SyncTone, string>> = {
     warn: "text-amber-700 dark:text-amber-400",
@@ -18,14 +19,15 @@ const TITLE_TEXT: Partial<Record<SyncTone, string>> = {
 }
 
 /**
- * Where the app's roadmap stands against docs/ROADMAP.md on master (roadmap 1.20, slices 1 and 2).
- * Sync from GitHub previews and then pulls master into the app (slice 2); pushing the app's edits to GitHub arrives in slice 3. Built from the
+ * Where the app's roadmap stands against docs/ROADMAP.md on master (roadmap 1.20, slices 1 to 3).
+ * Sync from GitHub previews and then pulls master into the app (slice 2); Send app edits to GitHub previews and then opens a pull request (slice 3). Built from the
  * shared Card, hairline borders and status dots, with no tinted backgrounds (DESIGN.md).
  */
 export function SyncBanner() {
     const api = useRoadmapSyncApi()
     const query = useQuery({ queryKey: queryKeys.roadmapSync, queryFn: api.getSyncStatus })
     const [pulling, setPulling] = useState(false)
+    const [pushing, setPushing] = useState(false)
 
     if (query.isLoading) return <Skeleton className="h-24 w-full rounded-xl" />
     if (query.isError || !query.data) {
@@ -47,6 +49,8 @@ export function SyncBanner() {
     const status = query.data
     const summary = summarize(status)
     const daysLeft = tokenDaysLeft(status, new Date())
+    const pending = pendingEditsText(status.appEditsToPush)
+    const unreachable = status.state === "unconfigured" || status.state === "unavailable"
 
     return (
         <Card aria-label="Sync with GitHub" role="region">
@@ -57,6 +61,12 @@ export function SyncBanner() {
                         <div>
                             <p className={cn("text-sm font-medium", TITLE_TEXT[summary.tone])}>{summary.title}</p>
                             <p className="text-muted-foreground text-sm">{summary.detail}</p>
+                            {pending && (
+                                <p className="mt-1 flex items-center gap-2 text-sm tabular-nums">
+                                    <StatusDot tone="warn" />
+                                    {pending}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2">
@@ -67,10 +77,19 @@ export function SyncBanner() {
                             variant={status.state === "differs" ? "default" : "outline"}
                             size="sm"
                             className="cursor-pointer"
-                            disabled={status.state === "unconfigured" || status.state === "unavailable"}
+                            disabled={unreachable}
                             onClick={() => setPulling(true)}
                         >
                             <CloudDownload /> Sync from GitHub
+                        </Button>
+                        <Button
+                            variant={status.appEditsToPush ? "default" : "outline"}
+                            size="sm"
+                            className="cursor-pointer"
+                            disabled={unreachable || status.appEditsToPush === null}
+                            onClick={() => setPushing(true)}
+                        >
+                            <CloudUpload /> Send app edits to GitHub
                         </Button>
                     </div>
                 </div>
@@ -124,6 +143,7 @@ export function SyncBanner() {
                 )}
             </CardContent>
             <PullDialog open={pulling} onOpenChange={setPulling} />
+            <PushDialog open={pushing} onOpenChange={setPushing} />
         </Card>
     )
 }

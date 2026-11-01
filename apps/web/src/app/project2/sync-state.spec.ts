@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest"
-import type { RoadmapPullResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
-import { canApply, describeEntry, entryLabel, entryTone, meterShares, pullHeadline, summarize, summarizeLog, tokenDaysLeft } from "./sync-state"
+import type { RoadmapPullResult, RoadmapPushResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
+import {
+    canApply,
+    canApplyPush,
+    describeEntry,
+    entryLabel,
+    entryTone,
+    meterShares,
+    pendingEditsText,
+    pullHeadline,
+    pushHeadline,
+    summarize,
+    summarizeLog,
+    tokenDaysLeft,
+} from "./sync-state"
 
 const status = (over: Partial<RoadmapSyncStatus> = {}): RoadmapSyncStatus => ({
     state: "in-sync",
@@ -15,6 +28,7 @@ const status = (over: Partial<RoadmapSyncStatus> = {}): RoadmapSyncStatus => ({
     openSyncPr: null,
     tokenExpiresAt: null,
     error: null,
+    appEditsToPush: null,
     ...over,
 })
 
@@ -126,5 +140,42 @@ describe("merge log rows", () => {
         const log = [entry("to-app"), entry("to-app"), entry("to-file"), entry("both-added"), entry("kept-file-edit")]
         expect(summarizeLog(log)).toEqual({ fromMaster: 2, appOnly: 1, needLook: 2 })
         expect(summarizeLog([])).toEqual({ fromMaster: 0, appOnly: 0, needLook: 0 })
+    })
+})
+
+const pushResult = (over: Partial<RoadmapPushResult> = {}): RoadmapPushResult => ({
+    mode: "push",
+    applied: false,
+    commit: "abc1234",
+    edits: [{ kind: "to-file", baseLine: 4, text: "- [x] two" }],
+    diffPreview: [],
+    prNumber: null,
+    prUrl: null,
+    ...over,
+})
+
+describe("pendingEditsText", () => {
+    it("says nothing when there are no edits or sync cannot tell", () => {
+        expect(pendingEditsText(0)).toBeNull()
+        expect(pendingEditsText(null)).toBeNull()
+    })
+
+    it("counts the edits, singular and plural", () => {
+        expect(pendingEditsText(1)).toBe("1 edit in the app is not on GitHub yet")
+        expect(pendingEditsText(3)).toBe("3 edits in the app are not on GitHub yet")
+    })
+})
+
+describe("pushHeadline and canApplyPush", () => {
+    it("offers to send the edits when there are some", () => {
+        const r = pushResult({ edits: [pushResult().edits[0], pushResult().edits[0]] })
+        expect(pushHeadline(r)).toBe("Send 2 edits to GitHub as a pull request")
+        expect(canApplyPush(r)).toBe(true)
+    })
+
+    it("has nothing to apply when GitHub already has the edits", () => {
+        const r = pushResult({ mode: "nothing", edits: [] })
+        expect(pushHeadline(r)).toMatch(/^Nothing to send/)
+        expect(canApplyPush(r)).toBe(false)
     })
 })
