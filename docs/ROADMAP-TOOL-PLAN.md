@@ -1,11 +1,11 @@
 # Plan: roadmap tool inside the Goldilocks app
 
-Status: proposal for the owner's approval. No code and no migration is included in this PR.
+Status: approved by the owner for slices 0 to 5 on 2026-11-01 (see section 12). No code and no migration is included in this PR.
 Date: 2026-11-01. Follows `docs/WORKFLOW-PLAN.md` (phase C).
 
 ## 1. Goal
 
-One place, the `/project` page of the app, where the owner captures ideas, sorts them, and ticks, edits and adds roadmap tasks, and where one click (or a schedule) really syncs with `docs/ROADMAP.md` on `master` through a reviewed pull request. The claude.ai "Goldilocks Backlog" page and the daily scheduled Claude sync can then be retired.
+One place, the `/project` page of the app, where the owner captures ideas, sorts them, and ticks, edits and adds roadmap tasks, and where one click (or a schedule) really syncs with `docs/ROADMAP.md` on `master` through a reviewed pull request. The claude.ai "Goldilocks Backlog" page and its scheduled Claude tasks stay in use alongside it (owner decision); see the two-partner rules in section 9.
 
 Rules that carry over unchanged:
 - `docs/ROADMAP.md` stays the record. The owner merges every sync PR by hand. The app never merges.
@@ -98,9 +98,17 @@ The artifact's 51 existing backlog items (28 features, 15 bugs and fixes, 8 deci
 - Token: `GITHUB_SYNC_TOKEN`, a fine-grained PAT limited to `AdrianMoreland/goldilocks` with Contents, Pull requests and Issues read/write, stored as a Railway variable (never in the repo, never logged). 90-day expiry; the admin status endpoint shows the days left (GitHub returns the expiry header) so the app warns before it lapses. Renewal stays a manual step.
 - All outbound calls get a timeout and no automatic retry on writes. Failures return a clear error and change nothing.
 
-### 6.2 Phone capture
+### 6.2 When sync runs
 
-Today the iOS Shortcut creates a GitHub issue labelled `roadmap`. Keep that: it needs no new public endpoint and no second token on the phone. The app's sync step turns each labelled issue into one inbox note (`github_issue` unique, so no duplicate) and closes the issue. Direct capture from the app UI is the quick-add box in section 8.
+- **Button:** "Sync with GitHub" on the Roadmap view (pull, then push if the app has changes).
+- **After a merge to `master`:** a repository webhook (push events) calls `POST /roadmap/sync/webhook`; the API verifies the `X-Hub-Signature-256` header against a shared secret `GITHUB_WEBHOOK_SECRET` (Railway variable, GitHub webhook secret) and runs a pull. No user token is involved.
+- **After a deploy:** on API start-up a pull runs once in the background, so a fresh deploy never serves a stale roadmap.
+- **Daily schedule:** the existing scheduler mechanism (to be confirmed against roadmap 0.7) runs a pull, and a push when the app has unsynced changes, once a day.
+- Pull is always safe to repeat. Push respects the one-open-PR rule and never runs if a pull reported a conflict that needs a look.
+
+### 6.3 Phone capture
+
+Today the iOS Shortcut creates a GitHub issue labelled `roadmap`. Keep that: it needs no new public endpoint and no second token on the phone. The app's sync step turns each labelled issue into one inbox note (`github_issue` unique, so no duplicate) and closes the issue. Until slice 4 ships, the Claude daily sync keeps doing this for the page. Direct capture from the app UI is the quick-add box in section 8.
 
 ## 7. The merge
 
@@ -139,11 +147,15 @@ Reuse the existing design system (`DESIGN.md`), TanStack Query hooks (`roadmap.a
 | 3 | Sync push: `POST /roadmap/sync/push` opens or updates `roadmap-sync/<date>`; merge-by-hand rule enforced (the API never calls merge) | no | M | One click gives a reviewed PR |
 | 4 | Inbox: migration `roadmap_inbox`; capture, triage, GitHub issue intake; quick add | yes (1 table) | M | Phone and in-app capture land in one inbox |
 | 5 | Backlog: migration `backlog_item`; board, bugs, decisions; one-off import from the artifact data | yes (1 table) | M | Everything the claude.ai page does exists in the app |
-| 6 | Retire: turn off the daily and weekly Claude tasks, mark the artifact read-only, delete `tools/roadmap-sync`, update `docs/ENGINEERING.md` §17 | no | S | One editing path |
+| 6 | ~~Retire~~ **Not approved.** The claude.ai page and the Claude sync tasks stay. Revisit later | - | - | - |
 
-Slices 1 to 3 give the owner what hurts most (a mirror that follows the file, and sync in one click). Slices 4 and 5 can be reordered or dropped without affecting them. Total, roughly 3 to 4 weeks of part-time work.
+Slices 0 to 5 are approved (2026-11-01). Slices 1 to 3 give the owner what hurts most (a mirror that follows the file, and sync in one click). Slices 4 and 5 can be reordered without affecting them. Total, roughly 3 to 4 weeks of part-time work.
 
-During slices 1 to 5 the claude.ai page and the daily sync keep working; the app's sync starts as read only and the first writing slice (2) replaces only the stale app copy, so there is no period with two writers to `master`'s file.
+The claude.ai page and its daily and weekly Claude tasks **stay** (owner decision), so the file has two sync partners, the app and the page, each three-way merging against `master`. The file is the hub: page and app never talk to each other directly, only through merged PRs. Rules that make this safe:
+- Only one `[roadmap-sync]` PR is open at a time. The app checks for an open one (any branch under `roadmap-sync/`) before opening its own, and updates it instead; the Claude sync is already told the same (requirement R17).
+- The app pulls after every merge to `master`, so a PR merged from either side reaches the app within minutes.
+- Edits made in the page and in the app to the same task before either has synced are a normal both-changed conflict: the side that syncs second sees the file already changed and the rule "both changed, the app (or page) wins" applies on that side only. This is the one place a human may need to look; the log lists it.
+- Two editable surfaces (page and app) will drift more than one. If that proves annoying, retiring the page (the old slice 6) is the fix; it is left out of this plan on purpose.
 
 ## 10. Testing
 
@@ -163,13 +175,13 @@ During slices 1 to 5 the claude.ai page and the daily sync keep working; the app
 | Shared production/dev database | Additive migrations, approved first, one table per slice; no test data written to it |
 | Scope growth (per-task history, assignees, comments) | Out of scope here; revisit option B if wanted |
 
-## 12. Decisions needed from the owner
+## 12. Decisions (owner, 2026-11-01)
 
-1. **Option A (Markdown row, recommended) or B (normalised tables)?**
-2. Approve slices 0 to 3 now and decide 4 to 6 after using sync for a while? (recommended)
-3. Where should the sync run: only on a button press (recommended for the first month), or also on a daily schedule?
-4. Who may use the tool: admin only as today (recommended), or also the manager role?
-5. Confirm the PAT scope in 6.1 (Contents, Pull requests, Issues read/write on this repo only), and that it is a separate token from the iOS Shortcut's and from the Actions' `ROADMAP_BOT_TOKEN`.
+1. **Option A** (Markdown row). Reasons: the app already stores, edits, versions and audits the roadmap as Markdown; sync then compares Markdown with Markdown; and option B needs a lossless rows-to-Markdown export or every sync PR reformats the file.
+2. **Slices 0 to 5 approved. The claude.ai page is not retired** (slice 6 dropped).
+3. **Sync triggers:** a button, plus a daily schedule, plus automatically after a merge to `master` and after a deploy (section 6.2).
+4. **Roles: still open.** Default in this plan is admin only, as today.
+5. **Tokens:** the app's GitHub token is separate from the iOS Shortcut's and from the Actions' `ROADMAP_BOT_TOKEN`. Scope as in 6.1. New secrets on Railway: `GITHUB_SYNC_TOKEN` and `GITHUB_WEBHOOK_SECRET`.
 
 ## 13. Not in this plan
 
