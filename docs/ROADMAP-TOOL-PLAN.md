@@ -124,7 +124,7 @@ Inputs: `base` (stored in `roadmap_sync_state.base_markdown`), `file` (master no
 | Task gone from the file | flagged in the app, never auto-deleted |
 | Anything else (heading edits, prose) | line-level three-way merge; a conflict keeps the app's text and is logged |
 
-Implementation: the semantic task rules of `tools/roadmap-sync/sync-tool.js` (23 scenario checks exist there) ported to TypeScript in `shared-types`, with those scenarios copied across as the test suite so behaviour does not change. Because both sides are Markdown, matching is by line identity within a section rather than a second data model. The tool in `tools/roadmap-sync` is retired when the port passes the same scenarios.
+Implementation: the semantic task rules of `tools/roadmap-sync/sync-tool.js` (23 scenario checks exist there) ported to TypeScript in `shared-types`, with those scenarios copied across as the test suite so behaviour does not change. Because both sides are Markdown, matching is by line identity within a section rather than a second data model. `tools/roadmap-sync` stays, because the Claude daily sync for the page still runs it.
 
 State markers (`base_commit`, `base_markdown`) move forward only when app and file agree and no sync PR is open (requirement R13).
 
