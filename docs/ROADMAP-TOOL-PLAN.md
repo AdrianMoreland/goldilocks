@@ -180,8 +180,8 @@ The claude.ai page and its daily and weekly Claude tasks **stay** (owner decisio
 1. **Option A** (Markdown row). Reasons: the app already stores, edits, versions and audits the roadmap as Markdown; sync then compares Markdown with Markdown; and option B needs a lossless rows-to-Markdown export or every sync PR reformats the file.
 2. **Slices 0 to 5 approved. The claude.ai page is not retired** (slice 6 dropped).
 3. **Sync triggers:** a button, plus a daily schedule, plus automatically after a merge to `master` and after a deploy (section 6.2).
-4. **Roles: still open.** Default in this plan is admin only, as today.
-5. **Tokens:** the app's GitHub token is separate from the iOS Shortcut's and from the Actions' `ROADMAP_BOT_TOKEN`. Scope as in 6.1. New secrets on Railway: `GITHUB_SYNC_TOKEN` and `GITHUB_WEBHOOK_SECRET`.
+4. **Roles:** admin only, as today.
+5. **Tokens:** the app's GitHub token is separate from the iOS Shortcut's and from the Actions' `ROADMAP_BOT_TOKEN`. Scope as in 6.1. New secrets on Railway: `GITHUB_SYNC_TOKEN` (needed from slice 1) and `GITHUB_WEBHOOK_SECRET` (needed from slice 2, together with the repository webhook).
 
 ## 13. Not in this plan
 
