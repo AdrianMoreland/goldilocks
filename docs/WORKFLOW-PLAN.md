@@ -45,11 +45,12 @@ Follows the F11 slices in the requirements file: (1) read-only roadmap view fed 
 - Overwrite the stale in-app roadmap (backup first) or let the API pull the file on first run.
 - Make the Project page roadmap read-only until slice 2 lands.
 
-## 3. Claude Code setup (committed to `.claude/` so cloud and local sessions behave the same)
-- `CLAUDE.md`: PR rule ("always put `Roadmap: <id>` in the PR body"), the ground rules pointer, and the pre-push checks list from README (type-check, ESLint, Jest, build).
-- `SessionStart` hook: `pnpm install --frozen-lockfile` and build `shared-types` so cloud sessions can run tests immediately.
-- Optional `PreToolUse` hook that blocks `git push` to master and edits to `docs/sops/**` (owners' content).
-- Slash commands/skills: `/roadmap-update <PR>` (ticks and adds follow-ups after a major change), `/gl-drive save` for handoffs. Keep gl-drive for plans, handoffs and reports; the repo holds the code-adjacent docs.
+## 3. Claude Code setup (local only, not committed)
+Claude files (`CLAUDE.md`, `.claude/`) are kept out of the repo. The owner already has a local `CLAUDE.md`; add to it:
+- PR rule: always put `Roadmap: <id>` (or `Roadmap: none`) in the PR body; no AI traces in commits or PR bodies; never merge unless told; migrations need approval first.
+- The pre-push checks list from the README.
+- For cloud sessions, install dependencies and build `shared-types` through the environment's setup script (claude.ai environment settings), not a hook committed to the repo.
+- Slash commands/skills: `/roadmap-update <PR>` after a major change; `gl-drive save` for plans, handoffs and reports.
 - Subscribe to PR activity on every PR Claude opens so CI failures get fixed without being asked.
 
 ## 4. Decisions (settled 2026-11-01)
