@@ -1,0 +1,42 @@
+name: Weekly release notes
+
+# Mondays: collect the PRs merged to master since the last release and create a DRAFT GitHub release.
+# Nothing is published; the owner reads it, edits if wanted, and publishes (or deletes) it. A quiet week
+# creates nothing. "Run workflow" does the same on demand.
+on:
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build notes and create the draft release
+        run: |
+          set -euo pipefail
+          today="$(date -u +%F)"
+          tag="weekly-$today"
+          if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          since="$(gh release list --repo "$REPO" --limit 1 --json createdAt --jq '.[0].createdAt // empty')"
+          [ -n "$since" ] || since="$(date -u -d '7 days ago' +%FT%TZ)"
+          gh pr list --repo "$REPO" --state merged --base master --search "merged:>=$since" \
+            --limit 200 --json number,title,body,author,url > "$RUNNER_TEMP/prs.json"
+          tools/release-notes/build-notes.sh < "$RUNNER_TEMP/prs.json" > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "No merged PRs since $since; no release created." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          gh release create "$tag" --repo "$REPO" --draft --target master \
+            --title "Week of $today" --notes-file "$RUNNER_TEMP/notes.md"
+          { echo "Draft release $tag created (PRs merged since $since)."; echo; cat "$RUNNER_TEMP/notes.md"; } >> "$GITHUB_STEP_SUMMARY"
