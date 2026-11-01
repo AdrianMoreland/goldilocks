@@ -69,6 +69,7 @@ Single source of truth for what to build and in what order. Merges three earlier
   - [ ] *(deferred by the owner 2026-10-25)* *(review 2026-10-25, verified)* Eight API dependencies with no import in `apps/api/src` or `prisma`: `@prisma/extension-accelerate`, `@trpc/server`, `axios`, `cheerio`, `class-transformer`, `class-validator`, `event-emitter`, `jose`; also check the web `package.json` (the review counted 13 unused there)
   - [ ] *(review 2026-10-25, verified)* `future-impl-ideas/` (7 files importing modules that do not exist); `packages/shared-types/src/invoice.schema.ts` and `quote.schema.ts` (not exported, used by no app, and ground rule 1 says no invoicing); four dead web files (`hooks/use-metals.hook.ts`, `hooks/use-metal-spot-prices.hook.ts`, `hooks/use-fullscreen.ts`, `api/metal-spot-prices.api.ts`) - delete
   - [ ] *(review 2026-10-25, verified)* 648 tracked files under `dist/` (tracked on purpose for Railway's runtime image, see `.gitignore`, but stale: no audit-log or capability code), plus `goldilocks.iml` and `apps/web/.env`. Decide: stop tracking `dist/` and fix the Railway build, or add a CI check that `dist/` is rebuilt; untrack the IDE file
+- [x] Testing mobile 3
 
 ## 0.2 Money correctness 🔴
 
