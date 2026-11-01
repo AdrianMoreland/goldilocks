@@ -86,33 +86,104 @@ const firstText = (...regions: string[][]) =>
     .map((line) => line.trim())
     .find((line) => line !== '') ?? '';
 
+/** One side's change: `base[start..end)` became `lines`. A pure insertion has `start === end`. */
+interface Hunk {
+  start: number;
+  end: number;
+  lines: string[];
+}
+
+/** The runs of base lines that one side deleted or replaced, and the lines it put in their place. */
+function hunksOf(partner: number[], side: string[], baseLength: number): Hunk[] {
+  const hunks: Hunk[] = [];
+  let b = 0;
+  let x = 0;
+  while (b <= baseLength) {
+    let next = b;
+    while (next < baseLength && partner[next]! < 0) next++;
+    const sideEnd = next < baseLength ? partner[next]! : side.length;
+    if (next > b || sideEnd > x) hunks.push({ start: b, end: next, lines: side.slice(x, sideEnd) });
+    b = next + 1;
+    x = sideEnd + 1;
+  }
+  return hunks;
+}
+
+/** Two hunks collide when they touch the same base lines, or both insert at the same point. Neighbouring lines do not collide. */
+function collide(a: Hunk, b: Hunk): boolean {
+  if (a.start === a.end && b.start === b.end) return a.start === b.start;
+  if (a.start === a.end) return a.start > b.start && a.start < b.end;
+  if (b.start === b.end) return b.start > a.start && b.start < a.end;
+  return a.start < b.end && b.start < a.end;
+}
+
+/** What one side's hunks (all inside `[start, end)`) make of `base[start..end)`. */
+function applyHunks(base: string[], start: number, end: number, hunks: Hunk[]): string[] {
+  const out: string[] = [];
+  let at = start;
+  for (const h of hunks) {
+    out.push(...base.slice(at, h.start), ...h.lines);
+    at = h.end;
+  }
+  out.push(...base.slice(at, end));
+  return out;
+}
+
 /** Three-way merge; see the file comment for the rules. All three inputs are whole Markdown documents. */
 export function mergeRoadmap(baseText: string, fileText: string, appText: string): RoadmapMergeResult {
   const base = splitLines(baseText);
   const file = splitLines(fileText);
   const app = splitLines(appText);
-  const toFile = matchLines(base, file);
-  const toApp = matchLines(base, app);
-
-  // Base lines that survive in both versions are the fixed points between which regions are compared.
-  const anchors: { b: number; f: number; a: number }[] = [];
-  for (let b = 0; b < base.length; b++) {
-    if (toFile[b]! >= 0 && toApp[b]! >= 0) anchors.push({ b, f: toFile[b]!, a: toApp[b]! });
-  }
-  anchors.push({ b: base.length, f: file.length, a: app.length });
+  const fileHunks = hunksOf(matchLines(base, file), file, base.length);
+  const appHunks = hunksOf(matchLines(base, app), app, base.length);
 
   const forApp: string[] = [];
   const forFile: string[] = [];
   const log: RoadmapMergeEntry[] = [];
-  let pb = -1;
-  let pf = -1;
-  let pa = -1;
+  let at = 0;
+  let fi = 0;
+  let ai = 0;
 
-  for (const anchor of anchors) {
-    const B = base.slice(pb + 1, anchor.b);
-    const F = file.slice(pf + 1, anchor.f);
-    const A = app.slice(pa + 1, anchor.a);
-    const entry = (kind: RoadmapMergeKind) => log.push({ kind, baseLine: pb + 2, text: firstText(A, F, B) });
+  while (fi < fileHunks.length || ai < appHunks.length) {
+    const nextF = fileHunks[fi];
+    const nextA = appHunks[ai];
+    const first = !nextA || (nextF && nextF.start <= nextA.start) ? nextF! : nextA;
+
+    // Everything neither side touched comes back as it was.
+    const untouched = base.slice(at, first.start);
+    forApp.push(...untouched);
+    forFile.push(...untouched);
+
+    // Grow a cluster from the first hunk with every hunk of either side that collides with it.
+    const inFile: Hunk[] = [];
+    const inApp: Hunk[] = [];
+    let start = first.start;
+    let end = first.end;
+    (first === nextF ? inFile : inApp).push(first);
+    if (first === nextF) fi++;
+    else ai++;
+    for (let grew = true; grew; ) {
+      grew = false;
+      const cluster: Hunk = { start, end, lines: [] };
+      const f = fileHunks[fi];
+      const a = appHunks[ai];
+      if (f && collide(cluster, f)) {
+        inFile.push(f);
+        fi++;
+        end = Math.max(end, f.end);
+        grew = true;
+      } else if (a && collide(cluster, a)) {
+        inApp.push(a);
+        ai++;
+        end = Math.max(end, a.end);
+        grew = true;
+      }
+    }
+
+    const B = base.slice(start, end);
+    const F = applyHunks(base, start, end, inFile);
+    const A = applyHunks(base, start, end, inApp);
+    const entry = (kind: RoadmapMergeKind) => log.push({ kind, baseLine: start + 1, text: firstText(A, F, B) });
 
     if (same(F, B) && same(A, B)) {
       forApp.push(...B);
@@ -147,23 +218,16 @@ export function mergeRoadmap(baseText: string, fileText: string, appText: string
       forFile.push(...A);
       entry('conflict-app-wins');
     }
-
-    if (anchor.b < base.length) {
-      forApp.push(base[anchor.b]!);
-      forFile.push(base[anchor.b]!);
-    }
-    pb = anchor.b;
-    pf = anchor.f;
-    pa = anchor.a;
+    at = end;
   }
+  const rest = base.slice(at);
+  forApp.push(...rest);
+  forFile.push(...rest);
 
   const eol = appText.includes('\r\n') ? '\r\n' : '\n';
-  const merged = {
+  return {
     forApp: forApp.join(eol),
     forFile: forFile.join(fileText.includes('\r\n') ? '\r\n' : '\n'),
-  };
-  return {
-    ...merged,
     log,
     fileChanged: !same(forFile, file),
     appChanged: !same(forApp, app),
