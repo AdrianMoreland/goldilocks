@@ -552,7 +552,7 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 
 - [x] Slice 0: add this section to the roadmap - S
 - [x] Slice 1: `GithubPort`, `GET /roadmap/sync` status, read-only sync banner on the new `/project2` page (built beside `/project`, which stays untouched until `/project2` replaces it), `mergeRoadmap` in `shared-types` with tests; needs `GITHUB_SYNC_TOKEN` - M
-- [ ] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
+- [x] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
 - [ ] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
 - [ ] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
