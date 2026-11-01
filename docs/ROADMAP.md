@@ -546,6 +546,17 @@ The monthly Google Sheets and Business Central stay the source for now; Goldiloc
 - [ ] Later: Spain tabs, Bonded silver (modelled separately), trades created in Goldilocks - M
 - [ ] The trade and lot models are the order data 1.8 builds on; 1.8's PAID → HEDGED → COLLECTED list is too small without the states above - S
 
+## 1.20 Roadmap tool inside the app 🟡 ← depends: 0.6 audit log
+
+One place in `/project` to capture, sort, tick and edit roadmap tasks, with real two-way sync to this file through reviewed `[roadmap-sync]` PRs. Keeps the roadmap as one Markdown document (no task tables). The claude.ai Backlog page and its Claude sync tasks stay in use alongside it. Plan: [`docs/ROADMAP-TOOL-PLAN.md`](ROADMAP-TOOL-PLAN.md); workflow context: [`docs/WORKFLOW-PLAN.md`](WORKFLOW-PLAN.md). Admin only. Each slice is its own PR; every migration is additive and approved by the owner before it touches the shared database.
+
+- [x] Slice 0: add this section to the roadmap - S
+- [ ] Slice 1: `GithubPort`, `GET /roadmap/sync` status, read-only sync banner, `mergeRoadmap` ported to `shared-types` with the 23 `tools/roadmap-sync` scenarios as its tests; needs `GITHUB_SYNC_TOKEN` - M
+- [ ] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
+- [ ] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
+- [ ] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
+- [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
+
 ---
 
 # PHASE 2 - Customer site, eshop and scale-up
