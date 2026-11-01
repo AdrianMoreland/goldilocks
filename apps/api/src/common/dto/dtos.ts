@@ -18,6 +18,7 @@ import {
     MarketModeStateSchema,
     RoadmapDocumentSchema,
     RoadmapEditRequestSchema,
+    RoadmapSyncStatusSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
     CreateStocktakeRequestSchema,
@@ -386,6 +387,11 @@ export class RoadmapDocumentDto extends createDto(
 export class RoadmapEditRequestDto extends createDto(
     RoadmapEditRequestSchema,
     'RoadmapEditRequestDto',
+) {}
+
+export class RoadmapSyncStatusDto extends createDto(
+    RoadmapSyncStatusSchema,
+    'RoadmapSyncStatusDto',
 ) {}
 
 // ============================================================================

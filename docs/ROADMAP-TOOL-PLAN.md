@@ -77,7 +77,7 @@ The artifact's 51 existing backlog items (28 features, 15 bugs and fixes, 8 deci
 
 - Zod schemas: `RoadmapSyncStatus`, `InboxNote`, `InboxCreate`, `InboxTriage` (promote to roadmap section as a task, to backlog, or discard), `BacklogItem`, `BacklogItemUpdate`, `SyncRequest`, `SyncResult` (counts, log lines, PR URL).
 - Pure functions, with tests, in the same package so the web app and API cannot disagree:
-  - `mergeRoadmap(base, file, app) -> { merged, log, conflicts }` (section 7).
+  - `mergeRoadmap(base, file, app) -> { forApp, forFile, log, appChanged, fileChanged }` (section 7).
   - Reuse `parseRoadmap` / `applyRoadmapEdit`; add `taskNote` helpers if notes are edited from the UI.
 
 ## 6. API (`apps/api/src/modules/roadmap`, plus `backlog` and `inbox` sub-modules)
@@ -124,13 +124,13 @@ Inputs: `base` (stored in `roadmap_sync_state.base_markdown`), `file` (master no
 | Task gone from the file | flagged in the app, never auto-deleted |
 | Anything else (heading edits, prose) | line-level three-way merge; a conflict keeps the app's text and is logged |
 
-Implementation: the semantic task rules of `tools/roadmap-sync/sync-tool.js` (23 scenario checks exist there) ported to TypeScript in `shared-types`, with those scenarios copied across as the test suite so behaviour does not change. Because both sides are Markdown, matching is by line identity within a section rather than a second data model. `tools/roadmap-sync` stays, because the Claude daily sync for the page still runs it.
+Implementation: `mergeRoadmap(base, file, app)` in `packages/shared-types/src/roadmap-merge.ts`, a line-level three-way merge on the Markdown (slice 1). It returns two texts, `forApp` and `forFile`, because the "never delete from the app" rule makes them differ, plus a log of every region it decided. It is written fresh, with tests from the table above. It is not a port of `tools/roadmap-sync`: that tool works on the claude.ai page's own data model (ids, edit flags), and the 23 scenario checks its README mentions are not in the repo. `tools/roadmap-sync` stays, because the Claude daily sync for the page still runs it.
 
 State markers (`base_commit`, `base_markdown`) move forward only when app and file agree and no sync PR is open (requirement R13).
 
-## 8. Web (`apps/web/src/app/project`)
+## 8. Web (`apps/web/src/app/project2`, route `/project2`)
 
-Reuse the existing design system (`DESIGN.md`), TanStack Query hooks (`roadmap.api.ts`), and `roadmap-view.tsx`.
+Built beside the current `/project` page, which is not touched (owner decision, 2026-11-01). When `/project2` does everything `/project` does, `/project` is removed and `/project2` takes its place. Reuse the existing design system (`DESIGN.md`), TanStack Query hooks (`roadmap.api.ts`), and `roadmap-view.tsx`.
 
 - Roadmap view: add a sync banner (state, button "Sync with GitHub", link to the open PR), task notes, "not in file" flags, subtask done/total.
 - New Inbox view and a global quick-add (a floating `+` and the `n` key), kinds Idea, Task, Fix; triage buttons: to roadmap (choose section), to backlog, discard, restore.
@@ -142,7 +142,7 @@ Reuse the existing design system (`DESIGN.md`), TanStack Query hooks (`roadmap.a
 | # | Slice | Needs migration? | Size | Outcome |
 |---|---|---|---|---|
 | 0 | Add this tool to `docs/ROADMAP.md` as a section with these slices | no | S | Visible on the roadmap it manages |
-| 1 | `GithubPort` + `GET /roadmap/sync` + admin sync status banner, read only; port `mergeRoadmap` with the 23 scenarios as tests | no | M | Stale mirror becomes visible; merge logic proven, nothing written |
+| 1 | `GithubPort` + `GET /roadmap/sync` + read-only sync status banner on the new `/project2` page; `mergeRoadmap` written fresh with tests | no | M | Stale mirror becomes visible; merge logic proven, nothing written |
 | 2 | Sync pull: new migration `roadmap_sync_state`; first run overwrites the stale row **after** the owner confirms a backup export; `POST /roadmap/sync/pull` | yes (1 table) | M | The app copy follows `master`; supersedes the manual import/export |
 | 3 | Sync push: `POST /roadmap/sync/push` opens or updates `roadmap-sync/<date>`; merge-by-hand rule enforced (the API never calls merge) | no | M | One click gives a reviewed PR |
 | 4 | Inbox: migration `roadmap_inbox`; capture, triage, GitHub issue intake; quick add | yes (1 table) | M | Phone and in-app capture land in one inbox |

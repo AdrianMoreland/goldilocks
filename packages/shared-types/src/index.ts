@@ -69,6 +69,7 @@ export * from './admin.schema';
 export * from './roadmap.schema';
 export * from './roadmap';
 export * from './roadmap-merge';
+export * from './roadmap-sync.schema';
 export * from './design-md';
 export * from './stocktake';
 export * from './stocktake.schema';
