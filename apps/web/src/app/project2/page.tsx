@@ -2,12 +2,14 @@ import { Link } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
+import { RoadmapView } from "./components/roadmap-view"
 import { SyncBanner } from "./components/sync-banner"
 
 /**
  * Project Management, next version (roadmap 1.20; docs/ROADMAP-TOOL-PLAN.md). Built beside /project so
  * the working page is never touched: when this one does everything /project does, /project is removed
- * and this takes its place. So far it shows the sync status and pulls master into the app (slices 1 and 2). The route is wrapped in
+ * and this takes its place. So far it shows the sync status, pulls master into the app (slices 1 and 2) and
+ * holds the roadmap itself, which can be browsed, searched and edited. The route is wrapped in
  * RequireAdmin and the API checks admin again.
  */
 export default function Project2Page() {
@@ -25,11 +27,7 @@ export default function Project2Page() {
         >
             <div className="flex flex-col gap-4 px-4 lg:px-6">
                 <SyncBanner />
-                <p className="text-muted-foreground text-sm">
-                    This page is being built beside <Link to="/project" className="underline">the current one</Link>, which keeps working
-                    unchanged. Syncing master into the app works here now; roadmap editing, sending the app's changes to GitHub, the inbox and
-                    the backlog arrive slice by slice.
-                </p>
+                <RoadmapView />
             </div>
         </BaseLayout>
     )

@@ -7,17 +7,11 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { StatusDot } from "@/components/status-dot"
 import { pendingEditsText, summarize, tokenDaysLeft, type SyncTone } from "../sync-state"
+import { DiffMeter } from "./diff-meter"
 import { PullDialog } from "./pull-dialog"
 import { PushDialog } from "./push-dialog"
-
-/** Same status dots as the price freshness signals (DESIGN.md "Status colours"): a state is never carried by colour alone, the title says it too. */
-const DOT: Record<SyncTone, string> = {
-    ok: "bg-emerald-500",
-    warn: "bg-amber-500",
-    bad: "bg-red-500",
-    muted: "bg-muted-foreground/50",
-}
 
 const TITLE_TEXT: Partial<Record<SyncTone, string>> = {
     warn: "text-amber-700 dark:text-amber-400",
@@ -41,7 +35,7 @@ export function SyncBanner() {
             <Card role="alert">
                 <CardContent className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex items-center gap-2">
-                        <span className={cn("size-2 shrink-0 rounded-full", DOT.bad)} aria-hidden />
+                        <StatusDot tone="bad" />
                         Could not load the sync status.
                     </span>
                     <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => query.refetch()}>
@@ -63,13 +57,13 @@ export function SyncBanner() {
             <CardContent className="flex flex-col gap-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-2.5">
-                        <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", DOT[summary.tone])} aria-hidden />
+                        <StatusDot tone={summary.tone} className="mt-2" />
                         <div>
                             <p className={cn("text-sm font-medium", TITLE_TEXT[summary.tone])}>{summary.title}</p>
                             <p className="text-muted-foreground text-sm">{summary.detail}</p>
                             {pending && (
                                 <p className="mt-1 flex items-center gap-2 text-sm tabular-nums">
-                                    <span className={cn("size-2 shrink-0 rounded-full", DOT.warn)} aria-hidden />
+                                    <StatusDot tone="warn" />
                                     {pending}
                                 </p>
                             )}
@@ -100,14 +94,16 @@ export function SyncBanner() {
                     </div>
                 </div>
 
-                <dl className="text-muted-foreground grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
+                {status.state === "differs" && <DiffMeter appOnly={status.appOnlyLines} masterOnly={status.masterOnlyLines} />}
+
+                <dl className="text-muted-foreground border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
                     <div>
                         <dt>App version</dt>
-                        <dd className="text-foreground tabular-nums">{status.appVersion}</dd>
+                        <dd className="text-foreground font-mono tabular-nums">{status.appVersion}</dd>
                     </div>
                     <div>
                         <dt>Master commit</dt>
-                        <dd className="text-foreground font-mono">{status.masterCommit?.slice(0, 7) ?? "-"}</dd>
+                        <dd className="text-foreground font-mono tabular-nums">{status.masterCommit?.slice(0, 7) ?? "-"}</dd>
                     </div>
                     <div>
                         <dt>Repository</dt>

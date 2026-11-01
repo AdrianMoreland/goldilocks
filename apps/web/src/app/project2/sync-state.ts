@@ -1,6 +1,8 @@
 import type { RoadmapPullResult, RoadmapPushResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
 
-export type SyncTone = "ok" | "warn" | "bad" | "muted"
+import type { StatusTone } from "@/components/status-dot"
+
+export type SyncTone = StatusTone
 
 export interface SyncSummary {
     tone: SyncTone
@@ -46,7 +48,7 @@ export function summarize(status: RoadmapSyncStatus): SyncSummary {
 
 type LogEntry = RoadmapPullResult["log"][number]
 
-const clip = (text: string, max = 90) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
+export const clip = (text: string, max = 90) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
 /** One merge log entry in plain words, for the sync dialog. */
 export function describeEntry(entry: LogEntry): string {
@@ -79,6 +81,52 @@ export function canApply(result: RoadmapPullResult, confirmed: boolean): boolean
     if (result.mode === "nothing") return false
     if (result.mode === "adopt") return confirmed
     return true
+}
+
+/** Widths for the drift meter as fractions of one: null when nothing differs, so the meter is not drawn. */
+export function meterShares(appOnly: number, masterOnly: number): { app: number; master: number } | null {
+    const total = appOnly + masterOnly
+    if (total <= 0) return null
+    return { app: appOnly / total, master: masterOnly / total }
+}
+
+const ENTRY_LABEL: Record<LogEntry["kind"], string> = {
+    "to-app": "From master",
+    "to-file": "App only",
+    "conflict-app-wins": "Conflict, app kept",
+    "kept-file-edit": "Conflict, master kept",
+    "missing-from-file": "Deleted on master",
+    "both-added": "Both added",
+}
+
+/** Short label for a merge log row. */
+export const entryLabel = (entry: LogEntry): string => ENTRY_LABEL[entry.kind]
+
+/** Dot colour for a merge log row: plain bring-ins are fine, a decision between two versions needs a look. */
+export function entryTone(entry: LogEntry): SyncTone {
+    switch (entry.kind) {
+        case "to-app":
+            return "ok"
+        case "to-file":
+            return "muted"
+        default:
+            return "warn"
+    }
+}
+
+/** Counts for the line above the merge log: what comes in, what stays only in the app, what needs a look. */
+export function summarizeLog(log: LogEntry[]): { fromMaster: number; appOnly: number; needLook: number } {
+    return log.reduce(
+        (sum, entry) => {
+            const tone = entryTone(entry)
+            return {
+                fromMaster: sum.fromMaster + (tone === "ok" ? 1 : 0),
+                appOnly: sum.appOnly + (tone === "muted" ? 1 : 0),
+                needLook: sum.needLook + (tone === "warn" ? 1 : 0),
+            }
+        },
+        { fromMaster: 0, appOnly: 0, needLook: 0 },
+    )
 }
 
 /** The banner line for app edits GitHub does not have yet; null when there are none (or sync cannot tell). */

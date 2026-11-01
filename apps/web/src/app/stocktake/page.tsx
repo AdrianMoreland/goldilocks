@@ -6,12 +6,12 @@ import { Plus } from "lucide-react"
 import { useStocktakeApi } from "@/api/stocktake.api"
 import { queryKeys } from "@/lib/query-keys"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { Badge } from "@/components/ui/badge"
+import { StatusDot } from "@/components/status-dot"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { statusLabel } from "./components/status"
+import { sortByUrgency, statusLabel, statusTone } from "./components/status"
 
 /** Date inputs want YYYY-MM-DD in local time; toISOString would shift a late-evening date back a day. */
 const localIso = (d: Date) =>
@@ -72,16 +72,19 @@ export default function StocktakeListPage() {
                     <p className="text-muted-foreground text-sm">No stocktakes yet. Start one above, then paste the Business Central journal into it.</p>
                 ) : (
                     <ul className="divide-y rounded-lg border">
-                        {data.map((s) => (
+                        {sortByUrgency(data).map((s) => (
                             <li key={s.id}>
                                 <Link to={`/stocktake/${s.id}`} className="hover:bg-muted/50 flex items-center justify-between gap-3 p-4">
                                     <div>
                                         <p className="font-medium">{s.name}</p>
-                                        <p className="text-muted-foreground text-xs">
+                                        <p className="text-muted-foreground font-mono text-xs tabular-nums">
                                             Counted {s.countDate} · cutoff {s.cutoffDate}
                                         </p>
                                     </div>
-                                    <Badge variant={s.status === "FINALISED" ? "secondary" : "outline"}>{statusLabel[s.status]}</Badge>
+                                    <span className="flex items-center gap-2 text-sm">
+                                        <StatusDot tone={statusTone[s.status]} />
+                                        {statusLabel[s.status]}
+                                    </span>
                                 </Link>
                             </li>
                         ))}
