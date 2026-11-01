@@ -1,4 +1,4 @@
-import type { RoadmapPullResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
+import type { RoadmapPullResult, RoadmapPushResult, RoadmapSyncStatus } from "@goldilocks/shared-types"
 
 export type SyncTone = "ok" | "warn" | "bad" | "muted"
 
@@ -79,4 +79,21 @@ export function canApply(result: RoadmapPullResult, confirmed: boolean): boolean
     if (result.mode === "nothing") return false
     if (result.mode === "adopt") return confirmed
     return true
+}
+
+/** The banner line for app edits GitHub does not have yet; null when there are none (or sync cannot tell). */
+export function pendingEditsText(count: number | null): string | null {
+    if (!count) return null
+    return count === 1 ? "1 edit in the app is not on GitHub yet" : `${count} edits in the app are not on GitHub yet`
+}
+
+/** The one-line question the send dialog asks, from what the preview found. */
+export function pushHeadline(result: RoadmapPushResult): string {
+    if (result.mode === "nothing") return "Nothing to send: GitHub already has the app's edits"
+    return `Send ${plural(result.edits.length, "edit")} to GitHub as a pull request`
+}
+
+/** Apply sends only when the preview found something; the server refuses an empty push anyway. */
+export function canApplyPush(result: RoadmapPushResult): boolean {
+    return result.mode === "push"
 }

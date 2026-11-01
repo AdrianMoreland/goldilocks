@@ -1,6 +1,6 @@
 /**
  * The roadmap sync's only view of GitHub (docs/ROADMAP-TOOL-PLAN.md section 6.1). Swappable and fakeable
- * in tests, like MetalPriceApiPort. Slice 1 only reads; later slices add the write calls.
+ * in tests, like MetalPriceApiPort. Reads, plus the few writes slice 3 needs (a bot branch, one file commit, a pull request); nothing merges.
  */
 export interface GithubFile {
     /** The file's text. */
@@ -17,6 +17,24 @@ export interface GithubPullRequest {
     branch: string;
 }
 
+export interface WriteFileOnBranch {
+    /** Bot branch; created at `baseCommit`, or moved there if it exists. */
+    branch: string;
+    /** Master's commit the new file is built on. */
+    baseCommit: string;
+    path: string;
+    content: string;
+    message: string;
+}
+
+export interface OpenPullRequest {
+    title: string;
+    body: string;
+    /** Head branch name. */
+    head: string;
+    base: string;
+}
+
 export interface GithubPort {
     /** Whether a token is configured (reads of a public repository work without one). */
     isConfigured(): boolean;
@@ -25,6 +43,10 @@ export interface GithubPort {
     tokenExpiresAt(): Date | null;
     readFile(path: string, branch: string): Promise<GithubFile>;
     listOpenPullRequests(): Promise<GithubPullRequest[]>;
+    /** Puts `branch` at `baseCommit` (forced if it exists), commits `content` to `path` on it; returns the new commit. */
+    writeFileOnBranch(input: WriteFileOnBranch): Promise<{ commit: string }>;
+    openPullRequest(input: OpenPullRequest): Promise<GithubPullRequest>;
+    updatePullRequest(number: number, body: string): Promise<void>;
 }
 
 export const GITHUB = Symbol('GITHUB');
