@@ -2,20 +2,31 @@ import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { parseRoadmap, type RoadmapEdit } from "@goldilocks/shared-types"
+import { countTasks, parseRoadmap, type RoadmapEdit } from "@goldilocks/shared-types"
 import { useRoadmapApi } from "@/api/roadmap.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Skeleton } from "@/components/ui/skeleton"
-import { NO_FILTER, pickSection, sectionMatches, type RoadmapFilter } from "../roadmap-state"
-import { PhaseStrip } from "./phase-strip"
-import { SectionNav } from "./section-nav"
-import { SectionPane } from "./section-pane"
-import { UpNext } from "./up-next"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { NO_FILTER, sectionMatches, type RoadmapFilter } from "../roadmap-state"
+import { BoardTab } from "./board-tab"
+import { OverviewTab } from "./overview-tab"
+import { RoadmapTab } from "./roadmap-tab"
+import { SectionSheet } from "./section-sheet"
+
+const TABS = [
+    { key: "overview", label: "Overview" },
+    { key: "roadmap", label: "Roadmap" },
+    { key: "board", label: "Board" },
+] as const
+
+type TabKey = (typeof TABS)[number]["key"]
 
 /**
- * The roadmap on /project2 (roadmap 1.20): phase rings, an "up next" list, a searchable section navigator and
- * the editable task tree. It reads and edits the same stored copy of docs/ROADMAP.md as /project, one small edit
- * at a time against the version on screen, so the file stays the format and this page never invents its own.
+ * The roadmap on /project2 (roadmap 1.20), as three tabs over the same stored copy of docs/ROADMAP.md that /project
+ * uses: an overview (numbers, phase rings, open work, up next), the roadmap as phase cards that open in place, and a
+ * board by priority whose cards open a drawer. Every edit goes to the API as one small change against the version on
+ * screen, so the file stays the format and this page never invents its own. The tab and the open section live in the
+ * URL (?tab=board&s=1.20) so a refresh or a shared link lands in the same place.
  */
 export function RoadmapView() {
     const api = useRoadmapApi()
@@ -28,9 +39,22 @@ export function RoadmapView() {
     const sections = useMemo(() => (markdown ? parseRoadmap(markdown) : []), [markdown])
     const visible = useMemo(() => sections.filter((s) => sectionMatches(s, filter)), [sections, filter])
 
-    // The open section comes from the URL so a refresh or a shared link lands on it. A section the filter hides still shows if it is the one asked for.
-    const selected = pickSection(visible.length ? visible : sections, params.get("s"))
-    const select = (key: string) => setParams((prev) => ({ ...Object.fromEntries(prev), s: key }), { replace: true })
+    const tab: TabKey = TABS.find((t) => t.key === params.get("tab"))?.key ?? "overview"
+    const openKey = params.get("s") ?? undefined
+    const openSection = sections.find((s) => s.key === openKey)
+
+    const update = (changes: Record<string, string | null>) =>
+        setParams(
+            (prev) => {
+                const next = new URLSearchParams(prev)
+                for (const [name, value] of Object.entries(changes)) {
+                    if (value === null) next.delete(name)
+                    else next.set(name, value)
+                }
+                return next
+            },
+            { replace: true },
+        )
 
     const edit = useMutation({
         mutationFn: (change: RoadmapEdit) => api.editRoadmap({ version: roadmap.data?.version ?? 0, edit: change }),
@@ -56,20 +80,43 @@ export function RoadmapView() {
             </p>
         )
     }
-    if (!selected) return null
+
+    const openSections = sections.filter((s) => {
+        const { done, total } = countTasks(s.tasks)
+        return done < total
+    }).length
+    const counts: Record<TabKey, number | null> = { overview: null, roadmap: sections.length, board: openSections }
+    const runEdit = (change: RoadmapEdit) => edit.mutate(change)
 
     return (
         <div className="flex flex-col gap-4">
-            <PhaseStrip sections={sections} />
+            <Tabs value={tab} onValueChange={(value) => update({ tab: value === "overview" ? null : value, s: null })}>
+                <TabsList aria-label="Roadmap views">
+                    {TABS.map(({ key, label }) => (
+                        <TabsTrigger key={key} value={key} className="cursor-pointer gap-2">
+                            {label}
+                            {counts[key] !== null && <span className="text-muted-foreground font-mono text-xs tabular-nums">{counts[key]}</span>}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+            </Tabs>
 
-            <div className="grid items-start gap-4 lg:grid-cols-[19rem_1fr]">
-                <div className="flex flex-col gap-4">
-                    <UpNext sections={sections} selectedKey={selected.key} onSelect={select} />
-                    <SectionNav sections={visible} selectedKey={selected.key} filter={filter} totalSections={sections.length} onFilter={setFilter} onSelect={select} />
-                </div>
+            {tab === "overview" && <OverviewTab sections={sections} onOpen={(key) => update({ s: key })} />}
+            {tab === "roadmap" && (
+                <RoadmapTab
+                    sections={visible}
+                    totalSections={sections.length}
+                    filter={filter}
+                    openKey={openKey}
+                    busy={edit.isPending}
+                    onFilter={setFilter}
+                    onToggle={(key) => update({ s: key === openKey ? null : key })}
+                    onEdit={runEdit}
+                />
+            )}
+            {tab === "board" && <BoardTab sections={sections} onOpen={(key) => update({ s: key })} />}
 
-                <SectionPane section={selected} hideDone={filter.hideDone} busy={edit.isPending} onEdit={(change) => edit.mutate(change)} />
-            </div>
+            {tab !== "roadmap" && <SectionSheet section={openSection} hideDone={filter.hideDone} busy={edit.isPending} onEdit={runEdit} onClose={() => update({ s: null })} />}
 
             {roadmap.data?.updatedAt && (
                 <p className="text-muted-foreground text-xs">

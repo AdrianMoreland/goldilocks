@@ -119,3 +119,75 @@ export function pickSection(sections: RoadmapSection[], requestedKey: string | n
         sections[0]
     )
 }
+
+export type BoardKey = Priority | "none" | "done"
+
+export interface BoardColumn {
+    key: BoardKey
+    label: string
+    items: UpNextItem[]
+}
+
+const BOARD_LABEL: Record<BoardKey, string> = { ...PRIORITY_LABEL, none: "No priority", done: "Done" }
+
+/**
+ * The board: one column per priority, then sections with no priority, then finished sections. Only sections that
+ * have tasks appear (prose-only ones have nothing to track). Within an open column the section closest to finished comes first.
+ */
+export function boardColumns(sections: RoadmapSection[]): BoardColumn[] {
+    const keys: BoardKey[] = [...PRIORITIES, "none", "done"]
+    const columns = new Map<BoardKey, UpNextItem[]>(keys.map((key) => [key, []]))
+
+    sections.forEach((section) => {
+        const { done, total } = countTasks(section.tasks)
+        if (total === 0) return
+        const key: BoardKey = done === total ? "done" : (section.priority ?? "none")
+        columns.get(key)?.push({ section, done, total })
+    })
+
+    for (const key of keys) {
+        if (key !== "done") columns.get(key)?.sort((a, b) => a.total - a.done - (b.total - b.done))
+    }
+
+    return keys
+        .filter((key) => key !== "none" || (columns.get("none")?.length ?? 0) > 0)
+        .map((key) => ({ key, label: BOARD_LABEL[key], items: columns.get(key) ?? [] }))
+}
+
+export interface MixSlice {
+    key: Priority | "none"
+    label: string
+    open: number
+}
+
+/** Open tasks split by the priority of the section they sit in: where the remaining work is. */
+export function priorityMix(sections: RoadmapSection[]): MixSlice[] {
+    const open = new Map<Priority | "none", number>()
+    for (const section of sections) {
+        const { done, total } = countTasks(section.tasks)
+        const key = section.priority ?? "none"
+        open.set(key, (open.get(key) ?? 0) + (total - done))
+    }
+    return ([...PRIORITIES, "none"] as const).map((key) => ({ key, label: key === "none" ? "No priority" : PRIORITY_LABEL[key], open: open.get(key) ?? 0 }))
+}
+
+export interface OverviewTotals {
+    tasksOpen: number
+    tasksDone: number
+    sectionsOpen: number
+    nowOpen: number
+}
+
+export function overviewTotals(sections: RoadmapSection[]): OverviewTotals {
+    const totals: OverviewTotals = { tasksOpen: 0, tasksDone: 0, sectionsOpen: 0, nowOpen: 0 }
+    for (const section of sections) {
+        const { done, total } = countTasks(section.tasks)
+        totals.tasksDone += done
+        totals.tasksOpen += total - done
+        if (done < total) {
+            totals.sectionsOpen += 1
+            if (section.priority === "P0") totals.nowOpen += total - done
+        }
+    }
+    return totals
+}
