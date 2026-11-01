@@ -32,7 +32,8 @@ export const TradesheetImportRequestSchema = z.object({
   /** The month the file covers, "2026-10". */
   sheetMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use the form 2026-10'),
   source: z.enum(['TRADESHEET', 'BACKFILL']).default('TRADESHEET'),
-  tabs: z.array(TradesheetTabSchema).min(1).max(20),
+  // The July copy has 25 tabs, most of them scratch tabs sent empty so the preview can name them as skipped.
+  tabs: z.array(TradesheetTabSchema).min(1).max(60),
 });
 export type TradesheetImportRequest = z.infer<typeof TradesheetImportRequestSchema>;
 

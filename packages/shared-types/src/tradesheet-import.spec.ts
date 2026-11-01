@@ -26,6 +26,7 @@ import {
   type SheetRow,
   type SheetValue,
 } from './tradesheet-import';
+import { TradesheetImportRequestSchema } from './tradesheet-import.schema';
 
 const row = (...cells: Array<SheetValue | SheetCell>): SheetRow =>
   cells.map((c) => (c !== null && typeof c === 'object' && !(c instanceof Date) && 'value' in c ? (c as SheetCell) : { value: c as SheetValue }));
@@ -431,5 +432,20 @@ describe('stray figures below the data', () => {
   it('still reads a reference with a typo, because it has letters in it', () => {
     const r = row('DU', 'GOD', 'Tom', 1, '1oz bar', new Date('2026-10-01T00:00:00Z'), 3700, 'Quote Only', null, null, null, null, null, null, null, null, null, null, null, null, null, 'DU-Q20261002');
     expect(parseSaleRow(r, mapSaleHeaders(OCT_SALE_HEADERS), 9)!.issues).toContain('Reference is not in the expected format.');
+  });
+});
+
+describe('import request', () => {
+  const tab = (name: string) => ({ name, headerRow: 1, headers: [], rows: [] });
+
+  it('accepts a workbook with many scratch tabs, like the 25-tab July copy', () => {
+    const tabs = Array.from({ length: 25 }, (_, i) => tab(`Tab ${i + 1}`));
+    expect(TradesheetImportRequestSchema.safeParse({ fileName: 'x.xlsx', sheetMonth: '2026-06', source: 'BACKFILL', tabs }).success).toBe(true);
+  });
+
+  it('still refuses an absurd number of tabs and a month that is not yyyy-mm', () => {
+    const tabs = Array.from({ length: 61 }, (_, i) => tab(`Tab ${i + 1}`));
+    expect(TradesheetImportRequestSchema.safeParse({ fileName: 'x.xlsx', sheetMonth: '2026-06', tabs }).success).toBe(false);
+    expect(TradesheetImportRequestSchema.safeParse({ fileName: 'x.xlsx', sheetMonth: 'June', tabs: [tab('a')] }).success).toBe(false);
   });
 });
