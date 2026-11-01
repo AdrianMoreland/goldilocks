@@ -22,7 +22,7 @@ export function BoardTab({ sections, onOpen }: { sections: RoadmapSection[]; onO
         <div className="-mx-1 overflow-x-auto px-1 pb-2">
             <div className="grid min-w-max auto-cols-[17rem] grid-flow-col items-start gap-3">
                 {columns.map((column) => (
-                    <section key={column.key} aria-label={column.label} className="bg-muted/40 flex flex-col gap-2.5 rounded-xl border p-2.5">
+                    <section key={column.key} aria-label={column.label} className="bg-muted/40 flex flex-col gap-2.5 rounded-2xl border p-2.5">
                         <ColumnHeading column={column} />
                         {column.items.length === 0 && <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-xs">Nothing here.</p>}
                         {column.items.map(({ section }) => (
