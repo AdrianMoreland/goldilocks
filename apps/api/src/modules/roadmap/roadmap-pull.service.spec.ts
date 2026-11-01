@@ -41,6 +41,9 @@ describe('RoadmapPullService', () => {
         tokenExpiresAt: jest.fn(),
         readFile: jest.fn(),
         listOpenPullRequests: jest.fn(),
+        writeFileOnBranch: jest.fn(),
+        openPullRequest: jest.fn(),
+        updatePullRequest: jest.fn(),
     } satisfies GithubPort & Record<string, unknown>;
 
     beforeEach(async () => {

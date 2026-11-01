@@ -20,6 +20,8 @@ import {
     RoadmapEditRequestSchema,
     RoadmapPullRequestSchema,
     RoadmapPullResultSchema,
+    RoadmapPushRequestSchema,
+    RoadmapPushResultSchema,
     RoadmapSyncStatusSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
@@ -404,6 +406,16 @@ export class RoadmapPullRequestDto extends createDto(
 export class RoadmapPullResultDto extends createDto(
     RoadmapPullResultSchema,
     'RoadmapPullResultDto',
+) {}
+
+export class RoadmapPushRequestDto extends createDto(
+    RoadmapPushRequestSchema,
+    'RoadmapPushRequestDto',
+) {}
+
+export class RoadmapPushResultDto extends createDto(
+    RoadmapPushResultSchema,
+    'RoadmapPushResultDto',
 ) {}
 
 // ============================================================================

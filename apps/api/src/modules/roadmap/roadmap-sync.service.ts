@@ -1,9 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { RoadmapSyncStatus } from '@goldilocks/shared-types';
+import { mergeRoadmap, type RoadmapSyncStatus } from '@goldilocks/shared-types';
 import {
     GITHUB,
     type GithubPort,
 } from '../../infrastructure/github/github.port';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { diffRoadmap, normalizeRoadmap } from './roadmap-file';
 import { RoadmapService } from './roadmap.service';
 
@@ -21,6 +22,7 @@ export class RoadmapSyncService {
 
     constructor(
         private readonly roadmap: RoadmapService,
+        private readonly prisma: PrismaService,
         @Inject(GITHUB) private readonly github: GithubPort,
     ) {}
 
@@ -39,13 +41,15 @@ export class RoadmapSyncService {
             openSyncPr: null,
             tokenExpiresAt: null,
             error: null,
+            appEditsToPush: null,
         };
         if (!this.github.isConfigured()) return base;
 
         try {
-            const [file, prs] = await Promise.all([
+            const [file, prs, state] = await Promise.all([
                 this.github.readFile(FILE_PATH, BRANCH),
                 this.github.listOpenPullRequests(),
+                this.prisma.roadmapSyncState.findUnique({ where: { id: 1 } }),
             ]);
             const syncPr = prs.find(
                 (p) =>
@@ -75,6 +79,14 @@ export class RoadmapSyncService {
                     : null,
                 tokenExpiresAt:
                     this.github.tokenExpiresAt()?.toISOString() ?? null,
+                appEditsToPush:
+                    state && app.version > 0
+                        ? mergeRoadmap(
+                              state.baseMarkdown,
+                              file.content,
+                              app.markdown,
+                          ).log.filter((e) => e.kind === 'to-file').length
+                        : null,
             };
         } catch (e) {
             const message =

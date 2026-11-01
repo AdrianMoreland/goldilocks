@@ -3,6 +3,7 @@ import {
     GITHUB,
     type GithubPort,
 } from '../../infrastructure/github/github.port';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RoadmapService } from './roadmap.service';
 import { RoadmapSyncService } from './roadmap-sync.service';
 
@@ -17,12 +18,16 @@ const APP_DOC = (markdown: string) => ({
 describe('RoadmapSyncService', () => {
     let service: RoadmapSyncService;
     const roadmap = { get: jest.fn() };
+    const prisma = { roadmapSyncState: { findUnique: jest.fn() } };
     const github = {
         repo: 'owner/repo',
         isConfigured: jest.fn(),
         tokenExpiresAt: jest.fn(),
         readFile: jest.fn(),
         listOpenPullRequests: jest.fn(),
+        writeFileOnBranch: jest.fn(),
+        openPullRequest: jest.fn(),
+        updatePullRequest: jest.fn(),
     } satisfies GithubPort & Record<string, unknown>;
 
     beforeEach(async () => {
@@ -35,10 +40,14 @@ describe('RoadmapSyncService', () => {
         });
         github.listOpenPullRequests.mockResolvedValue([]);
         roadmap.get.mockResolvedValue(APP_DOC(MASTER));
+        prisma.roadmapSyncState.findUnique.mockResolvedValue({
+            baseMarkdown: MASTER,
+        });
         const moduleRef = await Test.createTestingModule({
             providers: [
                 RoadmapSyncService,
                 { provide: RoadmapService, useValue: roadmap },
+                { provide: PrismaService, useValue: prisma },
                 { provide: GITHUB, useValue: github },
             ],
         }).compile();
@@ -76,6 +85,25 @@ describe('RoadmapSyncService', () => {
         expect(status.appOnlyLines).toBe(1);
         expect(status.masterOnlyLines).toBe(1);
         expect(status.preview.join('\n')).toContain('First task');
+    });
+
+    it('counts the app edits a push would send', async () => {
+        roadmap.get.mockResolvedValue(
+            APP_DOC(MASTER.replace('- [ ] First task', '- [x] First task')),
+        );
+        const status = await service.status();
+        expect(status.appEditsToPush).toBe(1);
+    });
+
+    it('counts none when the app matches the base', async () => {
+        const status = await service.status();
+        expect(status.appEditsToPush).toBe(0);
+    });
+
+    it('reports null edits to push when sync has no base yet', async () => {
+        prisma.roadmapSyncState.findUnique.mockResolvedValue(null);
+        const status = await service.status();
+        expect(status.appEditsToPush).toBeNull();
     });
 
     it('finds the open roadmap-sync pull request', async () => {
