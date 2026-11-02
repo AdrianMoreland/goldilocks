@@ -57,7 +57,7 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] `MetalPriceApiClient` `/timeframe` endpoint (real historical ranges) - M *(used by the history seed and the 5-year backfill)*
 - [x] Redis cache on `ProductsRepository.findAllActive`, invalidated on admin edit - S *(5-min TTL; `ProductsProvider` rewrites it after every write, and the admin database editor clears it too)*
 - [x] 🔴 Timeout, retry and circuit breaker around the metal-price API client - M *(confirmed: `infrastructure/metal-price-api` sets no timeout or retry, unlike the OpenAI client's 30 s / 3 retries. A failing vendor is re-called on every launch-cascade miss and burns paid quota. Add a breaker that serves last-known-good)* *(done 2026-10-02: `ResilientMetalPriceApi` behind `METAL_PRICE_API` - 10 s timeout, circuit opens after 3 failures incl. `success=false` quota bodies, 60 s cooldown, falls back to the last stored price; deliberately no automatic retry, each call spends paid quota)*
-- [ ] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats - S *(partly there: `main.ts` fails fast on a list of required variables; `Number(config.get(...))` calls remain)*
+- [x] Central config validation: Zod-parse `process.env` at boot, replacing the `REQUIRED_ENV_VARS` list and checking formats - S *(partly there: `main.ts` fails fast on a list of required variables; `Number(config.get(...))` calls remain)*
 - [ ] Decide whether Redis is required or optional - S *(deferred by the owner 2026-10-25; review 2026-10-25, verified: `REDIS_URL` is in `REQUIRED_ENV_VARS` (`main.ts`), yet `RedisService` logs "running without Redis" and runs without it; AI quotas fail closed; request history is lost if Redis is flushed. Pick one and make code and docs agree)*
 - [ ] Remove dead code/unused deps, resolve TODO/FIXME - S
   - [ ] `apps/web/src/api/api.ts`: redefines `ProductSchema`/`MetalTypeEnum` for a backend shape that no longer exists and nothing imports it - delete
@@ -69,6 +69,7 @@ Single source of truth for what to build and in what order. Merges three earlier
   - [ ] *(deferred by the owner 2026-10-25)* *(review 2026-10-25, verified)* Eight API dependencies with no import in `apps/api/src` or `prisma`: `@prisma/extension-accelerate`, `@trpc/server`, `axios`, `cheerio`, `class-transformer`, `class-validator`, `event-emitter`, `jose`; also check the web `package.json` (the review counted 13 unused there)
   - [ ] *(review 2026-10-25, verified)* `future-impl-ideas/` (7 files importing modules that do not exist); `packages/shared-types/src/invoice.schema.ts` and `quote.schema.ts` (not exported, used by no app, and ground rule 1 says no invoicing); four dead web files (`hooks/use-metals.hook.ts`, `hooks/use-metal-spot-prices.hook.ts`, `hooks/use-fullscreen.ts`, `api/metal-spot-prices.api.ts`) - delete
   - [ ] *(review 2026-10-25, verified)* 648 tracked files under `dist/` (tracked on purpose for Railway's runtime image, see `.gitignore`, but stale: no audit-log or capability code), plus `goldilocks.iml` and `apps/web/.env`. Decide: stop tracking `dist/` and fix the Railway build, or add a CI check that `dist/` is rebuilt; untrack the IDE file
+- [x] Testing mobile 3
 
 ## 0.2 Money correctness 🔴
 
@@ -553,7 +554,7 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 - [x] Slice 0: add this section to the roadmap - S
 - [x] Slice 1: `GithubPort`, `GET /roadmap/sync` status, read-only sync banner on the new `/project2` page (built beside `/project`, which stays untouched until `/project2` replaces it), `mergeRoadmap` in `shared-types` with tests; needs `GITHUB_SYNC_TOKEN` - M
 - [x] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
-- [x] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
+- [ ] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
 - [ ] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
 
