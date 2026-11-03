@@ -123,11 +123,11 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="border-input bg-popover text-muted-foreground hover:text-foreground focus-visible:ring-ring relative inline-flex h-8 w-8 shrink-0 items-center justify-center gap-2 rounded-lg border px-0 text-sm whitespace-nowrap outline-none focus-visible:ring-2 sm:w-full sm:justify-start sm:px-3"
+      className="border-input bg-popover text-muted-foreground hover:text-foreground focus-visible:ring-ring relative inline-flex h-8 w-8 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-lg border px-0 text-sm whitespace-nowrap outline-none focus-visible:ring-2 sm:w-full sm:justify-start sm:px-3"
     >
       <Search className="size-4 shrink-0" />
-      <span className="hidden flex-1 text-start sm:inline">Search or jump to…</span>
-      <KbdGroup className="ms-auto hidden sm:inline-flex">
+      <span className="hidden min-w-0 flex-1 truncate text-start sm:inline">Search or jump to…</span>
+      <KbdGroup className="ms-auto hidden shrink-0 sm:inline-flex">
         <Kbd>{modKeyLabel}</Kbd>
         <Kbd>K</Kbd>
       </KbdGroup>
