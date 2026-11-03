@@ -13,7 +13,7 @@ interface SiteHeaderProps {
   actions?: React.ReactNode
   /** The sidebar toggle. The sidebar is shown to every signed-in user (it holds the Knowledge Center link). */
   showSidebarTrigger?: boolean
-  /** The command-search bar (and its ⌘K shortcut) stays admin-only — see BaseLayout. It searches template pages, not SOPs. */
+  /** The command palette and its Ctrl+K shortcut. BaseLayout turns it on per deployment (config/features.ts). */
   showSearch?: boolean
 }
 

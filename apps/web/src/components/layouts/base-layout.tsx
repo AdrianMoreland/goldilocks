@@ -9,6 +9,7 @@ import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
 import { cn } from "@/lib/utils"
+import { features } from "@/config/features"
 import { useAuth } from "@/contexts/auth-context"
 import {
   SidebarInset,
@@ -89,7 +90,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
           )}
           <ThemeEditorDock />
           <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
+            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
             {content}
             {!fillViewport && <SiteFooter/>}
           </SidebarInset>
@@ -98,7 +99,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
           <>
             <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
+              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
               {content}
               {!fillViewport && <SiteFooter />}
           </SidebarInset>
