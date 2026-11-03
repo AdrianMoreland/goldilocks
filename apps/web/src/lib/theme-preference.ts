@@ -4,11 +4,15 @@
  * other's pick. Signed-out screens (the sign-in page) always get the default.
  */
 import type { ImportedTheme } from "@/types/theme-customizer"
+import { features } from "@/config/features"
 
 const STORAGE_PREFIX = "goldilocks:theme-preference:"
 
 /** The app's own default theme preset. */
-export const DEFAULT_TWEAKCN_THEME = "merrion-gold"
+export const DEFAULT_TWEAKCN_THEME: string = features.defaultTheme
+
+/** Corner radius a user without a saved choice gets: Sonar's own, otherwise the app's long-standing value. */
+const DEFAULT_RADIUS = DEFAULT_TWEAKCN_THEME === "sonar" ? "0.625rem" : "0.5rem"
 
 export type ThemeSource = "shadcn" | "tweakcn" | "imported"
 export type Density = "compact" | "default" | "comfortable"
@@ -55,7 +59,7 @@ export const DEFAULT_THEME_PREFERENCE: ThemePreference = {
     source: "tweakcn",
     value: DEFAULT_TWEAKCN_THEME,
     imported: null,
-    radius: "0.5rem",
+    radius: DEFAULT_RADIUS,
     colorOverrides: { light: {}, dark: {} },
     font: "inter",
     fontScale: 1,
