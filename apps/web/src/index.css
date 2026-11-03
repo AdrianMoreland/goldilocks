@@ -43,6 +43,11 @@
   --color-stop-border: var(--stop-border);
   --color-stop-ink: var(--stop-ink);
   --color-primary-text: var(--primary-text);
+  --color-status-ok: var(--status-ok);
+  --color-status-warn: var(--status-warn);
+  --color-status-stale: var(--status-stale);
+  --color-status-bad: var(--status-bad);
+  --color-status-info: var(--status-info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -123,6 +128,13 @@
      cards) even when a theme gives card and background the same colour.
      Themes can set it; otherwise it's the card nudged toward the text. */
   --card-raised: color-mix(in oklch, var(--card), var(--foreground) 3%);
+  /* Status dots (DESIGN.md "Status colours"): one value for day and night, always beside words, never alone.
+     Same shades the dots had when they used Tailwind's emerald, amber, orange, red and sky 500. */
+  --status-ok: oklch(0.696 0.17 162.48);
+  --status-warn: oklch(0.769 0.188 70.08);
+  --status-stale: oklch(0.705 0.213 47.604);
+  --status-bad: oklch(0.637 0.237 25.331);
+  --status-info: oklch(0.685 0.169 237.323);
 }
 
 .dark {

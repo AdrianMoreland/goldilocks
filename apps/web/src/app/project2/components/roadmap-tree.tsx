@@ -12,7 +12,7 @@ import { SectionBody, SectionHeading } from "./section-pane"
 /** Finished work is green, started work is blue, work not begun is quiet: the same dots the agent tree uses for done, running and queued. */
 const toneOf = ({ done, total }: Progress): StatusTone => (total === 0 ? "muted" : done === total ? "ok" : done > 0 ? "info" : "muted")
 
-const STATE_LABEL: Record<StatusTone, string> = { ok: "Done", info: "In progress", muted: "Not started", warn: "", bad: "" }
+const STATE_LABEL: Record<StatusTone, string> = { ok: "Done", info: "In progress", muted: "Not started", warn: "", stale: "", bad: "", active: "" }
 
 /** Fold chevron: a 20px button that turns 90 degrees when its branch is open, with a larger hit area than it looks. */
 function Fold({ open, label, onClick }: { open: boolean; label: string; onClick: () => void }) {
