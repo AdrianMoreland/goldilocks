@@ -7,6 +7,8 @@ const previewFeatures = import.meta.env.VITE_PREVIEW_FEATURES === "true"
 export const features = {
   /** The Ctrl+K command palette and its search box in the page header. */
   commandPalette: previewFeatures,
+  /** The redesigned screens (Sonar prototype v8). One switch for all of them, so a build without it looks exactly as before. */
+  redesign: previewFeatures,
   /** The Sonar theme in the theme editor's list. */
   sonarTheme: previewFeatures,
   /** The theme a user without a saved choice gets. Sonar only when the build offers it and asks for it. */
