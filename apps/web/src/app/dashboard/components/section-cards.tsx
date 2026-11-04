@@ -4,7 +4,9 @@ import {
 
 import React, {useState} from "react";
 import {Input} from "@/components/ui/input.tsx";
-import {PauseIcon, PlayIcon, ArrowUp, ArrowDown, Snowflake} from "lucide-react";
+import {PauseIcon, PlayIcon, ArrowUp, ArrowDown, Snowflake, Pencil} from "lucide-react";
+import {features} from "@/config/features";
+import {cn} from "@/lib/utils";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {MetalCardData} from "../schemas/card-data.schema";
 import {metalAccentStyle} from "./pricing-tools/tab-theme";
@@ -12,10 +14,10 @@ import {formatMinutesAgo, formatSnapshotTime, formatSpot, roundSpot} from "../ut
 import {FETCH_SOURCE_LABEL} from "../utils/fetch-source";
 
 const FRESHNESS_DOT_COLOR: Record<MetalCardData["freshness"], string> = {
-    fresh: "bg-emerald-500",
-    stale: "bg-amber-500",
-    fallback: "bg-orange-500",
-    failed: "bg-red-500",
+    fresh: "bg-status-ok",
+    stale: "bg-status-warn",
+    fallback: "bg-status-stale",
+    failed: "bg-status-bad",
 }
 
 const FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
@@ -88,8 +90,12 @@ export function SectionCards({
         onValueChange?.(value);
     };
 
+    // The Sonar prototype's compact card: price and change share a line, the freeze button is a quiet icon, and a pencil appears
+    // on hover and focus to say the price can be typed over.
+    const compact = features.redesign;
+
     const changeClass =
-        data.direction === "up" ? "text-green-600" : data.direction === "down" ? "text-red-600" : "text-muted-foreground";
+        data.direction === "up" ? "text-up" : data.direction === "down" ? "text-down" : "text-muted-foreground";
 
     const handleFreezeToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -99,26 +105,32 @@ export function SectionCards({
 
     return (<Card
             onClick={onClick}
-            style={metalAccentStyle(data.metal)}
-            className={`bg-card-raised cursor-pointer group hover:shadow-lg transition-all duration-200 aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5 border-2 ${
-                isFrozen ? "border-dashed" : ""
-            } ${active || isFrozen ? "border-[var(--tab-accent)]" : "border-transparent"}`}
+            style={compact ? { ...metalAccentStyle(data.metal), "--tab-accent-text": `var(--mt-${data.metal.toLowerCase()})` } as React.CSSProperties : metalAccentStyle(data.metal)}
+            className={cn(
+                "bg-card-raised cursor-pointer group transition-all duration-200 border-2",
+                compact
+                    ? "@container/spot min-w-0 gap-0 py-2 hover:border-muted-foreground/30"
+                    : "hover:shadow-lg aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5",
+                isFrozen && "border-dashed",
+                active || isFrozen ? "border-[var(--tab-accent)]" : compact ? "border-border" : "border-transparent",
+            )}
         >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0">
-            <CardTitle className="flex items-center gap-2 text-sm font-bold text-[var(--tab-accent-text)]">
-                {data.metal}
+        <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-0", compact ? "gap-1 px-3" : "px-4")}>
+            <CardTitle className={cn("flex min-w-0 items-center font-bold text-[var(--tab-accent-text)]", compact ? "gap-1.5 text-sm @max-[10rem]/spot:text-xs" : "text-sm gap-2")}>
+                <span className={cn(compact && "min-w-0 truncate")}>{data.metal}</span>
                 <span onClick={(e) => e.stopPropagation()}>
                     <FreshnessDot data={data} />
                 </span>
             </CardTitle>
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
                 {isFrozen && (
                     <span
+                        title="Frozen"
                         className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-extrabold tracking-wide text-[var(--tab-accent-text)] uppercase"
                         style={{ background: "var(--tab-accent-soft)" }}
                     >
                         <Snowflake className="size-3" aria-hidden />
-                        Frozen
+                        {compact ? <span className="sr-only">Frozen</span> : "Frozen"}
                     </span>
                 )}
                 <Tooltip>
@@ -128,13 +140,13 @@ export function SectionCards({
                             onClick={handleFreezeToggle}
                             aria-pressed={isFrozen}
                             aria-label={isFrozen ? `Resume live ${data.metal.toLowerCase()} price` : `Freeze ${data.metal.toLowerCase()} price`}
-                            className="cursor-pointer rounded-lg p-2 transition-colors hover:brightness-95"
-                            style={{ background: "var(--tab-accent-soft)" }}
+                            className={cn("cursor-pointer transition-colors", compact ? "hover:bg-muted rounded-md p-1" : "rounded-lg p-2 hover:brightness-95")}
+                            style={compact ? undefined : { background: "var(--tab-accent-soft)" }}
                         >
                             {isFrozen ? (
-                                <PlayIcon className="size-5 text-[var(--tab-accent-text)]"/>
+                                <PlayIcon className={cn("text-[var(--tab-accent-text)]", compact ? "size-4" : "size-5")}/>
                             ) : (
-                                <PauseIcon className="size-5 text-[var(--tab-accent-text)]"/>
+                                <PauseIcon className={cn("text-[var(--tab-accent-text)]", compact ? "size-4" : "size-5")}/>
                             )}
                         </button>
                     </TooltipTrigger>
@@ -147,12 +159,17 @@ export function SectionCards({
             </div>
         </CardHeader>
 
-        <CardContent className="px-4 pt-0">
+        <CardContent className={cn("pt-0", compact ? "flex flex-col gap-y-1 px-3 @min-[13.5rem]/spot:flex-row @min-[13.5rem]/spot:flex-wrap @min-[13.5rem]/spot:items-baseline @min-[13.5rem]/spot:gap-x-2" : "px-4")}>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div
-                        className="text-xl font-bold mb-1 cursor-text leading-none tabular-nums w-fit"
+                        className={cn("text-xl font-bold cursor-text leading-none tabular-nums w-fit", compact ? "flex items-center gap-1 whitespace-nowrap @max-[10rem]/spot:text-lg" : "mb-1")}
                         onClick={handleEditStart}
+                        {...(compact && !isEditingValue ? {
+                            role: "button",
+                            tabIndex: 0,
+                            onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter") handleEditStart(e as unknown as React.MouseEvent) },
+                        } : {})}
                     >
                         {isEditingValue ? (
                             <Input
@@ -192,7 +209,10 @@ export function SectionCards({
                                 }}
                             />
                         ) : (
-                            formatSpot(data.metal, data.price)
+                            <>
+                                {formatSpot(data.metal, data.price)}
+                                {compact && <Pencil className="text-muted-foreground size-3 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100" aria-hidden />}
+                            </>
                         )}
                     </div>
                 </TooltipTrigger>
@@ -200,7 +220,7 @@ export function SectionCards({
             </Tooltip>
 
             {isFrozen ? (
-                <div className="text-xs text-muted-foreground tabular-nums">
+                <div className={cn("text-xs text-muted-foreground tabular-nums", compact && "w-full")}>
                     {data.marketPrice !== undefined && (
                         <p>
                             Live market now: <span className="font-semibold">{formatSpot(data.metal, data.marketPrice)}</span>
@@ -208,7 +228,7 @@ export function SectionCards({
                     )}
                 </div>
             ) : data.showChange ? (
-                <div className={`flex items-center gap-1.5 text-xs tabular-nums ${changeClass}`}>
+                <div className={cn("flex items-center gap-1.5 text-xs tabular-nums", compact && "whitespace-nowrap @max-[10rem]/spot:gap-1 @max-[10rem]/spot:text-[11px]", changeClass)}>
                     <span>
                         {data.change! >= 0 ? "+" : ""}
                         {formatSpot(data.metal, data.change)}

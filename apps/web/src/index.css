@@ -43,6 +43,17 @@
   --color-stop-border: var(--stop-border);
   --color-stop-ink: var(--stop-ink);
   --color-primary-text: var(--primary-text);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-mt-gold: var(--mt-gold);
+  --color-mt-silver: var(--mt-silver);
+  --color-mt-platinum: var(--mt-platinum);
+  --color-mt-palladium: var(--mt-palladium);
+  --color-status-ok: var(--status-ok);
+  --color-status-warn: var(--status-warn);
+  --color-status-stale: var(--status-stale);
+  --color-status-bad: var(--status-bad);
+  --color-status-info: var(--status-info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -123,6 +134,21 @@
      cards) even when a theme gives card and background the same colour.
      Themes can set it; otherwise it's the card nudged toward the text. */
   --card-raised: color-mix(in oklch, var(--card), var(--foreground) 3%);
+  /* Price movement and metal names as text. The defaults are the shades the app already used (green-600, red-600 and the
+     metal colours), so nothing changes; the Sonar theme sets darker tones that pass 4.5:1 on its surfaces. */
+  --up: #16a34a;
+  --down: #dc2626;
+  --mt-gold: #D4A017;
+  --mt-silver: #8B95A1;
+  --mt-platinum: #4C8EA3;
+  --mt-palladium: #8073B8;
+  /* Status dots (DESIGN.md "Status colours"): one value for day and night, always beside words, never alone.
+     Same shades the dots had when they used Tailwind's emerald, amber, orange, red and sky 500. */
+  --status-ok: oklch(0.696 0.17 162.48);
+  --status-warn: oklch(0.769 0.188 70.08);
+  --status-stale: oklch(0.705 0.213 47.604);
+  --status-bad: oklch(0.637 0.237 25.331);
+  --status-info: oklch(0.685 0.169 237.323);
 }
 
 .dark {
@@ -295,3 +321,76 @@ html {
 .animate-logo-scroll:hover {
   animation-play-state: paused;
 }
+/* The Sonar look (prototype v8). Set on <html> by the theme provider only while the Sonar theme is active, so every rule
+   here is dormant for Merrion Gold and for builds that do not offer Sonar. Colours, radius and spacing come from the theme
+   variables; the rules below cover what variables cannot: flat cards, the 18px container corner, a focus ring on every
+   control, and the skip link. */
+html[data-look="sonar"] [data-slot="card"] { box-shadow: none; }
+html[data-look="sonar"] .rounded-xl { border-radius: 18px; }
+html[data-look="sonar"] :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+html[data-look="sonar"] [data-slot="command-input"]:focus-visible { outline: none; }
+.skip-link {
+  position: fixed;
+  left: 8px;
+  top: -64px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }
+
+/* The redesign switch (set on <html> by the theme provider when the build turns it on): sidebar group labels as small capitals,
+   as in prototype v8. */
+html[data-redesign] [data-sidebar="group-label"] {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Phones and touch screens: the product table keeps the tick box and the product name in view while the prices scroll sideways. */
+@media (max-width: 900px), (pointer: coarse) {
+  html[data-redesign] [data-product-table] th:nth-child(1),
+  html[data-redesign] [data-product-table] td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--card);
+    /* A fixed width, so the second pinned column can sit exactly beside it with nothing showing through. */
+    width: 4rem;
+    min-width: 4rem;
+    max-width: 4rem;
+    padding-inline: 0;
+  }
+  html[data-redesign] [data-product-table] th:nth-child(2),
+  html[data-redesign] [data-product-table] td:nth-child(2) {
+    position: sticky;
+    left: 4rem;
+    z-index: 2;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  html[data-redesign] [data-product-table] th:nth-child(1),
+  html[data-redesign] [data-product-table] th:nth-child(2) { z-index: 12; }
+  /* A group heading spans every column: it must not be pinned like the first two. */
+  html[data-redesign] [data-product-table] td[colspan]:nth-child(1) { position: static; box-shadow: none; background: transparent; }
+}
+
+/* The prototype's active sidebar item: filled with the theme's primary colour. */
+html[data-redesign] [data-sidebar="menu-button"][data-active="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 500;
+}
+html[data-redesign] [data-sidebar="menu-button"][data-active="true"]:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Redesign density: "Comfortable" opens up table rows and controls; Compact is the Sonar default. */
+html[data-look="sonar"][data-density="comfortable"] [data-slot="table-cell"] { padding-block: 0.5rem; }
+html[data-look="sonar"][data-density="comfortable"] [data-slot="input"] { min-height: 2.25rem; }

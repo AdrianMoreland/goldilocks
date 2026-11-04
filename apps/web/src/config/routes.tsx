@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { homePathFor } from '@goldilocks/shared-types'
 import { useAuth } from '@/contexts/auth-context'
 import { RequireAdmin, RequireAuth, RequireCapability, RequireManager } from '@/components/auth/require-auth'
+import { features } from '@/config/features'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -97,7 +98,10 @@ export const routes: RouteConfig[] = [
   // The roadmap tool being rebuilt (roadmap 1.20), developed beside /project and replacing it when complete — admins only
   {
     path: "/project2",
-    element: <RequireAdmin><Project2 /></RequireAdmin>
+    // With the redesign on, the rebuilt roadmap lives on /project, so the old address just goes there.
+    element: features.redesign
+      ? <RequireAdmin><Navigate to="/project" replace /></RequireAdmin>
+      : <RequireAdmin><Project2 /></RequireAdmin>
   },
   // Month-end stocktake: admins and managers; the API enforces the same on every call
   {

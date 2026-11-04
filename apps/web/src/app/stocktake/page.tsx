@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { ChevronRight, Plus } from "lucide-react"
+import { features } from "@/config/features"
 import { useStocktakeApi } from "@/api/stocktake.api"
 import { queryKeys } from "@/lib/query-keys"
 import { BaseLayout } from "@/components/layouts/base-layout"
@@ -38,6 +39,71 @@ export default function StocktakeListPage() {
         },
         onError: (e: Error) => toast.error(e.message),
     })
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (name.trim()) create.mutate()
+    }
+
+    // The prototype's two cards: a form to start a stocktake, and the list of them.
+    if (features.redesign) {
+        return (
+            <BaseLayout title="Stocktake" description="Month-end count against the Business Central Physical Inventory Journal">
+                <div className="mx-auto grid w-full max-w-6xl items-start gap-4 p-4 md:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                    <form className="bg-card space-y-3 rounded-xl border p-4" onSubmit={submit}>
+                        <div>
+                            <h2 className="text-base font-semibold">New stocktake</h2>
+                            <p className="text-muted-foreground text-xs">One per month, counted against the journal.</p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="st-name">Name</Label>
+                            <Input id="st-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="October 2026" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="st-count">Count date</Label>
+                            <Input id="st-count" type="date" value={countDate} onChange={(e) => setCountDate(e.target.value)} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="st-cutoff">Month-end cutoff</Label>
+                            <Input id="st-cutoff" type="date" value={cutoffDate} onChange={(e) => setCutoffDate(e.target.value)} />
+                        </div>
+                        <Button type="submit" disabled={!name.trim() || create.isPending} className="cursor-pointer">
+                            Create stocktake
+                        </Button>
+                    </form>
+
+                    <section className="bg-card rounded-xl border" aria-label="Stocktakes">
+                        <h2 className="px-4 pt-4 pb-2 text-base font-semibold">Stocktakes</h2>
+                        {isLoading ? (
+                            <Skeleton className="m-4 h-24" />
+                        ) : !data?.length ? (
+                            <p className="text-muted-foreground px-4 pb-4 text-sm">No stocktakes yet. Start one on the left, then paste the Business Central journal into it.</p>
+                        ) : (
+                            <ul className="divide-y">
+                                {sortByUrgency(data).map((s) => (
+                                    <li key={s.id}>
+                                        <Link to={`/stocktake/${s.id}`} className="hover:bg-muted flex items-center justify-between gap-3 px-4 py-3">
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium">{s.name}</p>
+                                                <p className="text-muted-foreground font-mono text-xs tabular-nums">
+                                                    Counted {s.countDate} · cutoff {s.cutoffDate}
+                                                </p>
+                                            </div>
+                                            <span className="flex shrink-0 items-center gap-2 text-sm">
+                                                <StatusDot tone={statusTone[s.status]} />
+                                                {statusLabel[s.status]}
+                                                <ChevronRight className="text-muted-foreground size-4" aria-hidden />
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+                </div>
+            </BaseLayout>
+        )
+    }
 
     return (
         <BaseLayout title="Stocktake" description="Month-end count against the Business Central Physical Inventory Journal">

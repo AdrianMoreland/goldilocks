@@ -9,6 +9,8 @@ import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
 import { cn } from "@/lib/utils"
+import { features } from "@/config/features"
+import { applyDensity, readDensity } from "@/lib/density"
 import { useAuth } from "@/contexts/auth-context"
 import {
   SidebarInset,
@@ -38,7 +40,10 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
   const { capabilities } = useAuth()
   const hasSidebar = capabilities.sidebar
   // Remembered, so the sidebar stays as it was left when moving between pages (each page mounts its own layout).
-  const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", false)
+  const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", features.redesign)
+  React.useEffect(() => {
+    if (features.redesign) applyDensity(readDensity())
+  }, [])
   // The theme editor takes the sidebar's slot while it is open, rather than sitting beside it. The
   // remembered sidebar choice is untouched, so closing the editor brings the sidebar back as it was.
   const themeEditor = useThemeEditorDock()
@@ -48,13 +53,16 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
     setSidebarOpen(open)
   }
 
+  // Where the skip link lands. Only the redesign adds it; other builds render exactly as before.
+  const mainTarget = features.redesign ? { id: "main-content", tabIndex: -1 } : {}
+
   const content = fillViewport ? (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none" {...mainTarget}>{children}</div>
   ) : (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col focus:outline-none" {...mainTarget}>
       <div className="@container/main flex flex-1 justify-center">
         <div className="w-full max-w-[1600px] flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          {description && (
+          {description && !features.redesign && (
               <div className="px-4 lg:px-6">
                 <p className="text-muted-foreground">{description}</p>
               </div>
@@ -66,52 +74,59 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
   )
 
   return (
-    <SidebarProvider
-      open={sidebarOpen && !themeEditor.open}
-      onOpenChange={handleSidebarOpenChange}
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--sidebar-width-icon": "3rem",
-          "--header-height": "calc(var(--spacing) * 14)",
-        } as React.CSSProperties
-      }
-      className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
-    >
-      {config.side === "left" ? (
-        <>
-          {hasSidebar && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
-          <ThemeEditorDock />
-          <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
-            {content}
-            {!fillViewport && <SiteFooter/>}
-          </SidebarInset>
-        </>
-      ) : (
+    <>
+      {features.redesign && (
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+      )}
+      <SidebarProvider
+        open={sidebarOpen && !themeEditor.open}
+        onOpenChange={handleSidebarOpenChange}
+        style={
+          {
+            "--sidebar-width": features.redesign ? "15rem" : "16rem",
+            "--sidebar-width-icon": "3rem",
+            "--header-height": features.redesign ? "3.5rem" : "calc(var(--spacing) * 14)",
+          } as React.CSSProperties
+        }
+        className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
+      >
+        {config.side === "left" ? (
           <>
+            {hasSidebar && (
+              <AppSidebar
+                variant={features.redesign ? "sidebar" : config.variant}
+                collapsible={config.collapsible}
+                side={config.side}
+              />
+            )}
             <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={false} />
+              <SiteHeader title={title} description={features.redesign ? description : undefined} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
               {content}
-              {!fillViewport && <SiteFooter />}
-          </SidebarInset>
-          {hasSidebar && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
-        </>
-      )}
+              {!fillViewport && <SiteFooter/>}
+            </SidebarInset>
+          </>
+        ) : (
+            <>
+              <ThemeEditorDock />
+              <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
+                <SiteHeader title={title} description={features.redesign ? description : undefined} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
+                {content}
+                {!fillViewport && <SiteFooter />}
+            </SidebarInset>
+            {hasSidebar && (
+              <AppSidebar
+                variant={features.redesign ? "sidebar" : config.variant}
+                collapsible={config.collapsible}
+                side={config.side}
+              />
+            )}
+          </>
+        )}
 
-    </SidebarProvider>
+      </SidebarProvider>
+    </>
   )
 }

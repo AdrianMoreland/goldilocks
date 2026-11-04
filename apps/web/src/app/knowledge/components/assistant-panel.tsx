@@ -1,3 +1,4 @@
+import { features } from '@/config/features';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -91,13 +92,13 @@ export function AssistantToggle() {
     return (
         <Button
             variant={open ? 'default' : 'outline'}
-            size="sm"
+            size={features.redesign ? 'icon' : 'sm'}
             aria-pressed={open}
             title="Ask the assistant (preview)"
             aria-label="Ask the assistant (preview)"
             onClick={toggle}
         >
-            <Sparkles aria-hidden /> Ask
+            <Sparkles aria-hidden /> {!features.redesign && 'Ask'}
         </Button>
     );
 }
@@ -115,6 +116,11 @@ export function AssistantDock() {
     const [mode, setMode] = useState<AiMode | null>(null);
     const [draft, setDraft] = useState('');
     const endRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        document.addEventListener('dock-sheet-dismiss', close);
+        return () => document.removeEventListener('dock-sheet-dismiss', close);
+    }, [close]);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     // Keep the newest answer in view.
@@ -145,7 +151,7 @@ export function AssistantDock() {
     };
 
     return (
-        <DockedPanel side="right" open={open} width={RIGHT_PANEL_WIDTH} label="Assistant">
+        <DockedPanel side="right" open={open} width={RIGHT_PANEL_WIDTH} label="Assistant" phoneSheet>
             <>
                 <div className="flex items-start justify-between gap-2 border-b p-4">
                     <div className="min-w-0">
