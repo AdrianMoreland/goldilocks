@@ -22,6 +22,13 @@ describe("Sonar theme", () => {
     }
   })
 
+  // The product table's row height follows this unit; a looser one shows fewer products on opening (5 rows instead of 8).
+  it("uses the same spacing unit as Merrion Gold, so the table is as dense", () => {
+    for (const mode of ["light", "dark"] as const) {
+      expect(tweakcnPresets.sonar.styles[mode].spacing).toBe(tweakcnPresets["merrion-gold"].styles[mode].spacing)
+    }
+  })
+
   it("is hidden, and not the default, when the build does not turn it on", async () => {
     const { names, defaults } = await loadWith({ VITE_PREVIEW_FEATURES: "", VITE_DEFAULT_THEME: "sonar" })
     expect(names).not.toContain("sonar")
