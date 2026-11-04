@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link } from 'react-router-dom';
+import { features } from '@/config/features';
 import { ArrowDown, ArrowRight, Check, CircleHelp, OctagonMinus, X } from 'lucide-react';
 import {
     KB_UNRESOLVED_HREF_PREFIX,
@@ -71,7 +72,7 @@ const baseComponents: Components = {
             <table className="w-full border-collapse text-left text-base tabular-nums">{children}</table>
         </div>
     ),
-    thead: ({ children }) => <thead className="bg-foreground text-background">{children}</thead>,
+    thead: ({ children }) => <thead className={features.redesign ? "bg-muted text-foreground" : "bg-foreground text-background"}>{children}</thead>,
     th: ({ children }) => <th className="px-3 py-2 text-xs font-bold tracking-wider whitespace-nowrap uppercase">{children}</th>,
     td: ({ children }) => <td className="border-b px-3 py-2 align-top last:border-b-0">{children}</td>,
     tr: ({ children }) => <tr className="[&:last-child>td]:border-b-0">{children}</tr>,

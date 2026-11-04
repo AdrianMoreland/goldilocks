@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { features } from "@/config/features"
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
@@ -118,7 +119,7 @@ function Block({ block, ctx, anchor, terms, className }: { block: KbRenderBlock;
                         </div>
                     ))}
                     <table className="w-full table-fixed overflow-hidden rounded-xl border text-left max-sm:table-auto">
-                        <thead className="bg-foreground text-background max-sm:sr-only">
+                        <thead className={cn(features.redesign ? "bg-muted text-foreground" : "bg-foreground text-background", "max-sm:sr-only")}>
                             <tr>
                                 <th scope="col" className="w-[190px] px-3.5 py-2 text-xs font-bold tracking-wider uppercase">
                                     Field
