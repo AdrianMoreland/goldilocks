@@ -1,4 +1,5 @@
 import * as React from "react"
+import { features } from "@/config/features"
 import type { MetalType, Product } from "@/lib/types"
 import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import type { TradeTransactionType } from "@goldilocks/shared-types"
@@ -55,7 +56,7 @@ const PricingToolsContext = React.createContext<PricingToolsContextValue | null>
 /** Pricing tools panel state — open by default, toggled via a header button. */
 export function PricingToolsProvider({ children }: { children: React.ReactNode }) {
     // Panel and card visibility are remembered per user; the rest is per-session.
-    const [open, setOpen] = useUserPreference("tools-panel-open", true)
+    const [open, setOpen] = useUserPreference("tools-panel-open", !(features.redesign && window.matchMedia("(max-width: 900px)").matches))
     const [activeTab, setActiveTab] = React.useState<PricingToolTab>("product")
     const [activeMetal, setActiveMetal] = React.useState<MetalType>("GOLD")
     const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
@@ -74,7 +75,9 @@ export function PricingToolsProvider({ children }: { children: React.ReactNode }
     React.useEffect(() => {
         if (selectedProductIds.length > previousSelectionCount.current) {
             setActiveTab("trade")
-            setOpen(true)
+            // On a phone the tools are a sheet over the table: opening it on the first tick would hide the rows still to be
+            // ticked, so the quote bar at the bottom offers it instead.
+            if (!(features.redesign && window.matchMedia("(max-width: 900px)").matches)) setOpen(true)
         }
         previousSelectionCount.current = selectedProductIds.length
     // eslint-disable-next-line react-hooks/exhaustive-deps

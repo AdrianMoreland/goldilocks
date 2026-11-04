@@ -17,6 +17,7 @@ import {PricingSettingsProvider} from './context/pricing-settings-context';
 import {PricingToolsPanel} from './components/pricing-tools/pricing-tools-panel';
 import {AssistantDock, AssistantToggle} from '../knowledge/components/assistant-panel';
 import {KeyboardShortcutsHint} from './components/keyboard-shortcuts-hint';
+import {QuoteBar} from './components/quote-bar';
 import {DataFreshnessIndicator} from './components/data-freshness-indicator';
 import {StalePricesNotice} from './components/stale-prices-notice';
 import {summarizeFetchSource} from './utils/fetch-source';
@@ -264,6 +265,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
             </div>
 
             <KeyboardShortcutsHint isAdmin={isAdmin}/>
+            <QuoteBar/>
         </BaseLayout>
     );
 }
