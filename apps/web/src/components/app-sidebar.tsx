@@ -8,7 +8,7 @@ import { useNavGroups } from "@/hooks/use-nav-groups.hook"
 import { features } from "@/config/features"
 import { Search } from "lucide-react"
 import { Kbd } from "@/components/ui/kbd"
-import { OPEN_SEARCH_EVENT, modKeyLabel } from "@/components/command-search"
+import { OPEN_SEARCH_EVENT, modKeyLabel } from "@/lib/command-search"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"

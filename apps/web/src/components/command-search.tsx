@@ -10,14 +10,9 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import type { NavItem } from "@/config/nav"
 import { useNavGroups } from "@/hooks/use-nav-groups.hook"
 import { useUserPreference } from "@/hooks/use-user-preference.hook"
+import { modKeyLabel } from "@/lib/command-search"
 
 const RECENT_LIMIT = 3
-
-/** Fired by anything that wants the palette open (the sidebar's "Search and commands"); the header listens. */
-export const OPEN_SEARCH_EVENT = "goldilocks:open-search"
-
-/** Mac shows the Command key, everything else Ctrl; the shortcut itself accepts both. */
-export const modKeyLabel = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl"
 
 const itemClass = "h-9 gap-2.5 rounded-lg px-2 py-0 text-foreground/80 data-[selected=true]:text-foreground"
 

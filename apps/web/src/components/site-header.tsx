@@ -3,7 +3,8 @@
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { CommandSearch, OPEN_SEARCH_EVENT, SearchTrigger } from "@/components/command-search"
+import { CommandSearch, SearchTrigger } from "@/components/command-search"
+import { OPEN_SEARCH_EVENT } from "@/lib/command-search"
 import { features } from "@/config/features"
 import { Logo } from "@/components/logo"
 
