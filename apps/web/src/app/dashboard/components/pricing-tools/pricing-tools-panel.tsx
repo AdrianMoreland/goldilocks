@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { formatMetalName } from "../../utils/formatters"
 import { features } from "@/config/features"
 import { useMediaQuery } from "@/hooks/use-media-query.hook"
+import { UNDERLINE_TAB } from "@/lib/underline-tabs"
 
 // Settings isn't one of the row's tabs — it's a distinct "configure this
 // panel" action rather than a workflow tab, so it gets its own icon button
@@ -103,12 +104,6 @@ export function PricingToolsPanel() {
 }
 
 
-// The prototype's tab row: underlines, not pills. The active one takes the theme's primary colour.
-const UNDERLINE_TAB =
-    "text-muted-foreground flex-1 cursor-pointer rounded-none border-0 border-b-2 border-transparent bg-transparent px-2 pt-1 pb-2 text-sm shadow-none " +
-    "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none " +
-    "dark:text-muted-foreground dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-foreground"
-
 /**
  * The tools panel as the prototype draws it: the settings cog and underline tabs share one row (the old title block is gone, the
  * product's name is in the Product tab), and on a phone the panel is a bottom sheet with a grab handle and a scrim instead of a
@@ -144,7 +139,7 @@ function RedesignedPanel({
                 </Button>
                 <TabsList className="h-auto min-w-0 flex-1 justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
                     {TABS.map((tab) => (
-                        <TabsTrigger key={tab.value} value={tab.value} className={UNDERLINE_TAB}>
+                        <TabsTrigger key={tab.value} value={tab.value} className={cn(UNDERLINE_TAB, "flex-1")}>
                             {tab.label}
                         </TabsTrigger>
                     ))}
