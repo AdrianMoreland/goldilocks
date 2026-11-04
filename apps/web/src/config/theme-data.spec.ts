@@ -14,11 +14,22 @@ async function loadWith(env: Record<string, string>) {
 }
 
 describe("Sonar theme", () => {
-  it("sets every variable Merrion Gold sets, in both modes", () => {
+  it("sets every variable Merrion Gold sets, in both modes, plus its own extras", () => {
+    const extras = ["up", "down", "mt-gold", "mt-silver", "mt-platinum", "mt-palladium", "ctl-h", "row-py", "ck-w"]
     for (const mode of ["light", "dark"] as const) {
-      const sonar = Object.keys(tweakcnPresets.sonar.styles[mode]).sort()
-      const merrion = Object.keys(tweakcnPresets["merrion-gold"].styles[mode]).sort()
-      expect(sonar).toEqual(merrion)
+      const sonar = Object.keys(tweakcnPresets.sonar.styles[mode])
+      const merrion = Object.keys(tweakcnPresets["merrion-gold"].styles[mode])
+      expect(sonar).toEqual(expect.arrayContaining(merrion))
+      expect(sonar.filter((key) => !merrion.includes(key)).sort()).toEqual([...extras].sort())
+    }
+  })
+
+  it("keeps cards flat, controls bordered strongly and the corner radius at 0.75rem", () => {
+    for (const mode of ["light", "dark"] as const) {
+      const styles = tweakcnPresets.sonar.styles[mode]
+      expect(styles["shadow-opacity"]).toBe("0")
+      expect(styles.radius).toBe("0.75rem")
+      expect(styles.input).toMatch(/0\.4\)$/)
     }
   })
 
@@ -46,6 +57,6 @@ describe("Sonar theme", () => {
   it("is the default, with its own radius, when the build asks for it", async () => {
     const { defaults } = await loadWith({ VITE_PREVIEW_FEATURES: "true", VITE_DEFAULT_THEME: "sonar" })
     expect(defaults.value).toBe("sonar")
-    expect(defaults.radius).toBe("0.625rem")
+    expect(defaults.radius).toBe("0.75rem")
   })
 })

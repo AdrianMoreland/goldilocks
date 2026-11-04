@@ -12,3 +12,11 @@ describe("status colour tokens", () => {
         expect(css).toContain(`--color-status-${tone}: var(--status-${tone});`)
     })
 })
+
+describe("movement and metal text tokens", () => {
+  // Components read text-up, text-down and text-mt-*; without both lines the class would render no colour.
+  it.each(["up", "down", "mt-gold", "mt-silver", "mt-platinum", "mt-palladium"])("defines %s and maps it to a Tailwind colour", (token) => {
+    expect(css).toMatch(new RegExp(`--${token}:\\s*#`))
+    expect(css).toContain(`--color-${token}: var(--${token});`)
+  })
+})

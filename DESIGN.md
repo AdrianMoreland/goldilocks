@@ -361,13 +361,15 @@ The area chart ("Spot price history") draws each metal in its own metal colour (
 | Accent as text (`--primary-text`) | `#8f6a2e` light, `#daab69` dark | `#b45309` light, `#f59e0b` dark |
 | Ink on the accent | `#18181b` | `#2b1a00` |
 | Background and card | `#ffffff` / `#09090b` | `#ffffff` / `#101010`, card `#1b1b1b` in dark |
-| Text | `#000000` / `#fafafa` | `#262626` / `#f5f5f5` |
-| Borders | zinc-200 / zinc-800 | black at 8% / white at 8% |
-| Corner radius | 0.5rem | 0.625rem (controls 8px, cards 14px) |
-| Shadow on cards | none at rest | 1px, 2px, black at 5% in light; none in dark |
+| Text | `#000000` / `#fafafa` | `#262626` / `#f5f5f5`, muted text `#666666` in light |
+| Borders | zinc-200 / zinc-800 | black at 8% / white at 8% for cards; 40% for form controls (so a field's edge is visible) |
+| Corner radius | 0.5rem (cards 12px, controls 6px) | 0.75rem (controls 10px, cards 18px) |
+| Shadow on cards | none at rest | none at rest, in both themes; floating layers only |
+| Control height, row padding | 36px, 0.36rem | 32px, 5px (`--ctl-h`, `--row-py`; 44px controls on touch screens) |
+| Price movement and metal names as text | green-600, red-600 and the metal colours | darker `--up`, `--down` and `--mt-*` tones that reach 4.5:1 |
 
 **Rules for Sonar screens**
-- **Border first.** A hairline separates regions. The faint shadow is a finish, never the only edge, and floating layers keep the stock elevation.
+- **Flat cards.** A hairline separates regions and cards never carry a shadow. Only floating layers (menus, dialogs, the assistant dock) have one.
 - **Structure over decoration.** Use underline tabs with counts (`CountTabs`), hairline-ruled rows (`RuledRow`), meters (`Meter`) and 6px status dots. Pills and tinted badges stay inside the Pricing Tools panel. The building blocks use tokens only, so they look right in both themes.
 - **One accent.** Amber marks active, selected and primary and nothing else. Status colours answer "can I trust this", not "which tab is open".
 - **Check both themes and both densities.** Every new screen is looked at in light and dark, and its table or list is checked against the 37px row so Sonar never costs the grid its room.

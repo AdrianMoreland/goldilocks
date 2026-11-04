@@ -46,7 +46,10 @@ export function useThemeManager() {
       // Additional variables that might be set by advanced themes
       'card-header', 'card-content', 'card-footer', 'muted-background', 'accent-background',
       'destructive-background', 'warning', 'warning-foreground', 'success', 'success-foreground',
-      'info', 'info-foreground'
+      'info', 'info-foreground',
+
+      // Sonar's extras: price movement, metal text tones, and the control, row and checkbox sizes
+      'up', 'down', 'mt-gold', 'mt-silver', 'mt-platinum', 'mt-palladium', 'ctl-h', 'row-py', 'ck-w'
     ]
     
     // Remove all possible CSS variables

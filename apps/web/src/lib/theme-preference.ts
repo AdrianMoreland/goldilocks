@@ -12,7 +12,7 @@ const STORAGE_PREFIX = "goldilocks:theme-preference:"
 export const DEFAULT_TWEAKCN_THEME: string = features.defaultTheme
 
 /** Corner radius a user without a saved choice gets: Sonar's own, otherwise the app's long-standing value. */
-const DEFAULT_RADIUS = DEFAULT_TWEAKCN_THEME === "sonar" ? "0.625rem" : "0.5rem"
+const DEFAULT_RADIUS = DEFAULT_TWEAKCN_THEME === "sonar" ? "0.75rem" : "0.5rem"
 
 export type ThemeSource = "shadcn" | "tweakcn" | "imported"
 export type Density = "compact" | "default" | "comfortable"
