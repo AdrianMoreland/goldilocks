@@ -9,6 +9,13 @@ function urls(access: Parameters<typeof navGroupsFor>[0]): string[] {
 }
 
 describe("navGroupsFor", () => {
+  it("splits an admin's pages into Manager and Admin groups when asked", () => {
+    const groups = navGroupsFor({ isAdmin: true, isManager: true, grouped: true, capabilities: withWorkbook })
+    expect(groups.map((group) => group.label)).toEqual(["Navigation", "Manager", "Admin"])
+    expect(groups[1].items.map((item) => item.url)).toEqual(["/stocktake", "/customer-orders", "/tradesheets"])
+    expect(groups[2].items.map((item) => item.url)).toEqual(["/admin", "/project"])
+  })
+
   it("offers a plain user the workbook and the Knowledge Center only", () => {
     expect(urls({ isAdmin: false, isManager: false, capabilities: withWorkbook })).toEqual(["/dashboard", "/knowledge"])
   })

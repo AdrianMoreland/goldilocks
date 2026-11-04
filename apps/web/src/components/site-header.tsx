@@ -10,6 +10,8 @@ import { Logo } from "@/components/logo"
 
 interface SiteHeaderProps {
   title?: string
+  /** The redesign shows a page's one-line description beside its title; other builds show it in the page body. */
+  description?: string
   /** Shows the Merrion Gold mark beside the title. */
   showLogo?: boolean
   actions?: React.ReactNode
@@ -19,7 +21,7 @@ interface SiteHeaderProps {
   showSearch?: boolean
 }
 
-export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true, showSearch = true }: SiteHeaderProps) {
+export function SiteHeader({ title, description, showLogo, actions, showSidebarTrigger = true, showSearch = true }: SiteHeaderProps) {
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -58,7 +60,10 @@ export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true
           )}
           {title && (features.redesign ? (
             // The redesign: one quiet 16px title that truncates; the mark lives in the sidebar brand.
-            <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{title}</h1>
+            <>
+              <h1 className={description ? "shrink-0 truncate text-base font-semibold" : "min-w-0 flex-1 truncate text-base font-semibold"}>{title}</h1>
+              {description && <p className="text-muted-foreground hidden min-w-0 flex-1 truncate text-center text-xs md:block">{description}</p>}
+            </>
           ) : (
             <>
               {showLogo && <Logo size={30} className="shrink-0" />}

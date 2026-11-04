@@ -58,7 +58,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
     <div className="flex flex-1 flex-col focus:outline-none" {...mainTarget}>
       <div className="@container/main flex flex-1 justify-center">
         <div className="w-full max-w-[1600px] flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          {description && (
+          {description && !features.redesign && (
               <div className="px-4 lg:px-6">
                 <p className="text-muted-foreground">{description}</p>
               </div>
@@ -99,7 +99,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
             )}
             <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-              <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
+              <SiteHeader title={title} description={features.redesign ? description : undefined} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
               {content}
               {!fillViewport && <SiteFooter/>}
             </SidebarInset>
@@ -108,7 +108,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
             <>
               <ThemeEditorDock />
               <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-                <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
+                <SiteHeader title={title} description={features.redesign ? description : undefined} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
                 {content}
                 {!fillViewport && <SiteFooter />}
             </SidebarInset>

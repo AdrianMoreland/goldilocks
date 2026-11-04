@@ -28,6 +28,8 @@ export interface NavGroup {
 export interface NavAccess {
   isAdmin: boolean
   isManager: boolean
+  /** The redesign lists an admin's pages in two groups, Manager and Admin, as the prototype does. */
+  grouped?: boolean
   capabilities: Pick<Capabilities, "pricingWorkbook">
 }
 
@@ -65,12 +67,19 @@ const adminItems: NavItem[] = [
  * The pages a signed-in user is offered, by role and branch. The sidebar and the command palette both read this, so
  * they cannot drift apart. It is discoverability only: every route and API call enforces access on its own.
  */
-export function navGroupsFor({ isAdmin, isManager, capabilities }: NavAccess): NavGroup[] {
+export function navGroupsFor({ isAdmin, isManager, grouped, capabilities }: NavAccess): NavGroup[] {
   const visible = navGroups.map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.requires || capabilities[item.requires]),
   }))
   // Managers get the stocktake and customer orders without the rest of the admin group; admins see them inside it.
+  if (isAdmin && grouped) {
+    return [
+      ...visible,
+      { label: "Manager", items: [stocktakeItem, customerOrdersItem, tradesheetsItem] },
+      { label: "Admin", items: adminItems },
+    ]
+  }
   if (isAdmin) {
     return [...visible, { label: "Admin", items: [stocktakeItem, customerOrdersItem, tradesheetsItem, ...adminItems] }]
   }
