@@ -390,3 +390,7 @@ html[data-redesign] [data-sidebar="menu-button"][data-active="true"]:hover {
   background: var(--primary);
   color: var(--primary-foreground);
 }
+
+/* Redesign density: "Comfortable" opens up table rows and controls; Compact is the Sonar default. */
+html[data-look="sonar"][data-density="comfortable"] [data-slot="table-cell"] { padding-block: 0.5rem; }
+html[data-look="sonar"][data-density="comfortable"] [data-slot="input"] { min-height: 2.25rem; }

@@ -10,6 +10,7 @@ import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
 import { cn } from "@/lib/utils"
 import { features } from "@/config/features"
+import { applyDensity, readDensity } from "@/lib/density"
 import { useAuth } from "@/contexts/auth-context"
 import {
   SidebarInset,
@@ -40,6 +41,9 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
   const hasSidebar = capabilities.sidebar
   // Remembered, so the sidebar stays as it was left when moving between pages (each page mounts its own layout).
   const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", features.redesign)
+  React.useEffect(() => {
+    if (features.redesign) applyDensity(readDensity())
+  }, [])
   // The theme editor takes the sidebar's slot while it is open, rather than sitting beside it. The
   // remembered sidebar choice is untouched, so closing the editor brings the sidebar back as it was.
   const themeEditor = useThemeEditorDock()
