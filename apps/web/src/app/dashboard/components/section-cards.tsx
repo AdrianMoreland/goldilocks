@@ -109,20 +109,20 @@ export function SectionCards({
             className={cn(
                 "bg-card-raised cursor-pointer group transition-all duration-200 border-2",
                 compact
-                    ? "min-w-0 gap-0 py-2 hover:border-muted-foreground/30"
+                    ? "@container/spot min-w-0 gap-0 py-2 hover:border-muted-foreground/30"
                     : "hover:shadow-lg aspect-[3.2/1] sm:aspect-[2.4/1] lg:aspect-[3.2/1] py-3 gap-1.5",
                 isFrozen && "border-dashed",
                 active || isFrozen ? "border-[var(--tab-accent)]" : compact ? "border-border" : "border-transparent",
             )}
         >
-        <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-0", compact ? "px-3" : "px-4")}>
-            <CardTitle className={cn("flex min-w-0 items-center text-sm font-bold text-[var(--tab-accent-text)]", compact ? "gap-1.5" : "gap-2")}>
-                {data.metal}
+        <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-0", compact ? "gap-1 px-3" : "px-4")}>
+            <CardTitle className={cn("flex min-w-0 items-center font-bold text-[var(--tab-accent-text)]", compact ? "gap-1.5 text-sm @max-[10rem]/spot:text-xs" : "text-sm gap-2")}>
+                <span className={cn(compact && "min-w-0 truncate")}>{data.metal}</span>
                 <span onClick={(e) => e.stopPropagation()}>
                     <FreshnessDot data={data} />
                 </span>
             </CardTitle>
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
                 {isFrozen && (
                     <span
                         title="Frozen"
@@ -159,11 +159,11 @@ export function SectionCards({
             </div>
         </CardHeader>
 
-        <CardContent className={cn("pt-0", compact ? "flex flex-wrap items-baseline gap-x-2 px-3" : "px-4")}>
+        <CardContent className={cn("pt-0", compact ? "flex flex-col gap-y-1 px-3 @min-[13.5rem]/spot:flex-row @min-[13.5rem]/spot:flex-wrap @min-[13.5rem]/spot:items-baseline @min-[13.5rem]/spot:gap-x-2" : "px-4")}>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div
-                        className={cn("text-xl font-bold cursor-text leading-none tabular-nums w-fit", compact ? "flex items-center gap-1" : "mb-1")}
+                        className={cn("text-xl font-bold cursor-text leading-none tabular-nums w-fit", compact ? "flex items-center gap-1 whitespace-nowrap @max-[10rem]/spot:text-lg" : "mb-1")}
                         onClick={handleEditStart}
                         {...(compact && !isEditingValue ? {
                             role: "button",
@@ -228,7 +228,7 @@ export function SectionCards({
                     )}
                 </div>
             ) : data.showChange ? (
-                <div className={`flex items-center gap-1.5 text-xs tabular-nums ${changeClass}`}>
+                <div className={cn("flex items-center gap-1.5 text-xs tabular-nums", compact && "whitespace-nowrap @max-[10rem]/spot:gap-1 @max-[10rem]/spot:text-[11px]", changeClass)}>
                     <span>
                         {data.change! >= 0 ? "+" : ""}
                         {formatSpot(data.metal, data.change)}
