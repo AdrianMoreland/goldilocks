@@ -1,3 +1,4 @@
+import { features } from '@/config/features';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -91,13 +92,13 @@ export function AssistantToggle() {
     return (
         <Button
             variant={open ? 'default' : 'outline'}
-            size="sm"
+            size={features.redesign ? 'icon' : 'sm'}
             aria-pressed={open}
             title="Ask the assistant (preview)"
             aria-label="Ask the assistant (preview)"
             onClick={toggle}
         >
-            <Sparkles aria-hidden /> Ask
+            <Sparkles aria-hidden /> {!features.redesign && 'Ask'}
         </Button>
     );
 }
