@@ -15,6 +15,7 @@ import {
 import { useTradesheetImportApi } from "@/api/tradesheet-import.api"
 import { readTradesheetFile } from "@/lib/tradesheet-reader"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { features } from "@/config/features"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -133,6 +134,34 @@ export default function TradesheetsPage() {
     return (
         <BaseLayout title="Trade sheets" description="Import a monthly trade sheet and see what changes before it is saved">
             <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
+                {features.redesign && (
+                    <ol className="flex flex-wrap gap-2 text-sm" aria-label="Steps">
+                        {["Choose the file", "Check the preview", "Save"].map((label, index) => {
+                            const current = done ? 2 : request ? 1 : 0
+                            const state = index < current ? "done" : index === current ? "current" : "todo"
+                            return (
+                                <li
+                                    key={label}
+                                    aria-current={state === "current" ? "step" : undefined}
+                                    className={cn(
+                                        "flex items-center gap-2 rounded-full border py-1 pr-3 pl-1",
+                                        state === "current" ? "border-primary text-foreground" : "text-muted-foreground",
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                                            state === "todo" ? "bg-muted" : "bg-primary text-primary-foreground",
+                                        )}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    {label}
+                                </li>
+                            )
+                        })}
+                    </ol>
+                )}
                 {!request && (
                     <label className="flex items-start gap-2 text-sm">
                         <input type="checkbox" className="mt-1" checked={backfill} onChange={(e) => setBackfill(e.target.checked)} />

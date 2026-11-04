@@ -378,3 +378,14 @@ html[data-redesign] [data-sidebar="group-label"] {
   /* A group heading spans every column: it must not be pinned like the first two. */
   html[data-redesign] [data-product-table] td[colspan]:nth-child(1) { position: static; box-shadow: none; background: transparent; }
 }
+
+/* The prototype's active sidebar item: filled with the theme's primary colour. */
+html[data-redesign] [data-sidebar="menu-button"][data-active="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 500;
+}
+html[data-redesign] [data-sidebar="menu-button"][data-active="true"]:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}

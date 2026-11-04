@@ -1,7 +1,10 @@
 import { Fragment, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, MoreHorizontal, Plus } from "lucide-react"
+import { features } from "@/config/features"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
     CUSTOMER_ORDER_STATUSES,
     CUSTOMER_ORDER_STATUS_LABELS,
@@ -47,6 +50,8 @@ export default function CustomerOrdersPage() {
     const [branch, setBranch] = useState("all")
     const [q, setQ] = useState("")
     const [openId, setOpenId] = useState<number | null>(null)
+    // The redesign keeps adding, pasting and the tradesheet check out of the page body, in dialogs.
+    const [dialog, setDialog] = useState<"add" | "paste" | "sheet" | null>(null)
 
     const update = useMutation({
         mutationFn: ({ id, body }: { id: number; body: Parameters<typeof api.update>[1] }) => api.update(id, body),
@@ -87,8 +92,32 @@ export default function CustomerOrdersPage() {
                             </option>
                         ))}
                     </select>
-                    <span className="text-muted-foreground text-sm">{rows.length} items</span>
+                    {features.redesign ? (
+                        <div className="ml-auto flex items-center gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon" className="cursor-pointer border-dashed" aria-label="More actions" title="More actions">
+                                        <MoreHorizontal />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onSelect={() => setDialog("paste")}>Paste from sheet</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setDialog("sheet")}>Tradesheet check</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button className="cursor-pointer" onClick={() => setDialog("add")}>
+                                <Plus /> Add an item
+                            </Button>
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground text-sm">{rows.length} items</span>
+                    )}
                 </div>
+                {features.redesign && (
+                    <p className="text-muted-foreground -mt-2 text-xs tabular-nums">
+                        {rows.length} orders shown · {rows.filter((o) => o.status !== "COLLECTED").length} open
+                    </p>
+                )}
 
                 {isLoading ? (
                     <Skeleton className="h-40" />
@@ -161,9 +190,34 @@ export default function CustomerOrdersPage() {
                     </div>
                 )}
 
-                <TradesheetLink orders={data ?? []} onLogged={refresh} />
-                <AddForm onAdded={refresh} />
-                <ImportBox onImported={refresh} />
+                {features.redesign ? (
+                    <>
+                        <Dialog open={dialog === "add"} onOpenChange={(open) => !open && setDialog(null)}>
+                            <DialogContent className="sm:max-w-3xl">
+                                <DialogHeader><DialogTitle>Add an item</DialogTitle></DialogHeader>
+                                <AddForm onAdded={() => { refresh(); setDialog(null) }} />
+                            </DialogContent>
+                        </Dialog>
+                        <Dialog open={dialog === "paste"} onOpenChange={(open) => !open && setDialog(null)}>
+                            <DialogContent className="sm:max-w-3xl">
+                                <DialogHeader><DialogTitle>Paste from sheet</DialogTitle></DialogHeader>
+                                <ImportBox onImported={refresh} />
+                            </DialogContent>
+                        </Dialog>
+                        <Dialog open={dialog === "sheet"} onOpenChange={(open) => !open && setDialog(null)}>
+                            <DialogContent className="sm:max-w-3xl">
+                                <DialogHeader><DialogTitle>Tradesheet check</DialogTitle></DialogHeader>
+                                <TradesheetLink orders={data ?? []} onLogged={refresh} />
+                            </DialogContent>
+                        </Dialog>
+                    </>
+                ) : (
+                    <>
+                        <TradesheetLink orders={data ?? []} onLogged={refresh} />
+                        <AddForm onAdded={refresh} />
+                        <ImportBox onImported={refresh} />
+                    </>
+                )}
             </div>
         </BaseLayout>
     )
