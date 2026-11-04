@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import { AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { features } from "@/config/features"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 /**
  * Shared themed building blocks for the pricing-tools tabs — each tab wraps
@@ -52,6 +54,23 @@ export function SubtabRow<T extends string>({
     value: T
     onChange: (value: T) => void
 }) {
+    // The prototype keeps one tab pattern per level: the pill row of sub-tabs becomes a select.
+    if (features.redesign) {
+        return (
+            <Select value={value} onValueChange={(next) => onChange(next as T)}>
+                <SelectTrigger className="w-full cursor-pointer" aria-label="Choose a tool">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        )
+    }
     return (
         <div className="bg-muted flex items-center gap-1 rounded-full p-1">
             {options.map((opt) => {
