@@ -24,6 +24,9 @@ import {MarketModeBanner} from './components/market-mode-banner';
 import {SpotPricesProvider} from './context/spot-prices-context';
 import {ToolSpotsProvider} from './context/tool-spots-context';
 import type {MetalType} from '@/lib/types';
+import {features} from '@/config/features';
+import {Skeleton} from '@/components/ui/skeleton';
+import {toast} from 'sonner';
 
 export default function Page() {
     return (
@@ -86,22 +89,41 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         handleSpotOverride,
         clearSpotOverride,
         clearAllSpotOverrides,
+        spotOverrides,
         freezeSpot,
         fetchedAt,
         loading,
         error,
     } = workbook;
-    const { open: toolsOpen, toggleOpen: toggleTools, flipTransactionType, focusTradeQuantity, clearSelection } = usePricingTools();
+    const { open: toolsOpen, toggleOpen: toggleTools, flipTransactionType, focusTradeQuantity, clearSelection, rowSelection, setRowSelection } = usePricingTools();
     const { isAdmin } = useAuth();
     const assistant = useAssistantDock();
     const navigate = useNavigate();
-    const [graphVisible, setGraphVisible] = useUserPreference('chart-visible', true);
+    const [graphVisible, setGraphVisible] = useUserPreference('chart-visible', !features.redesign || window.innerHeight >= 900);
 
     // Ctrl+Z: back to a clean slate — every frozen spot resumes live, every ticked row is unticked.
     const resetAll = useCallback(() => {
+        if (!features.redesign) {
+            clearAllSpotOverrides();
+            clearSelection();
+            return;
+        }
+        // The redesign makes the reset reversible: what was held and ticked is kept for the Undo on the toast.
+        const heldBefore = { ...spotOverrides };
+        const ticksBefore = { ...rowSelection };
         clearAllSpotOverrides();
         clearSelection();
-    }, [clearAllSpotOverrides, clearSelection]);
+        toast('Session reset: spots resumed, rows cleared', {
+            duration: 6000,
+            action: {
+                label: 'Undo',
+                onClick: () => {
+                    (Object.entries(heldBefore) as [MetalType, number][]).forEach(([metal, value]) => handleSpotOverride(metal, value));
+                    setRowSelection(ticksBefore);
+                },
+            },
+        });
+    }, [clearAllSpotOverrides, clearSelection, spotOverrides, rowSelection, handleSpotOverride, setRowSelection]);
 
     // With the assistant showing in the tools slot, "tools" means "bring the tools back".
     const toggleToolsPanel = () => {
@@ -157,7 +179,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                     >
                         <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}/>
                     </Button>
-                    <Separator orientation="vertical" className="mx-1 hidden data-[orientation=vertical]:h-5 sm:block"/>
+                    {!features.redesign && <Separator orientation="vertical" className="mx-1 hidden data-[orientation=vertical]:h-5 sm:block"/>}
                     {/* Next to the product table so prices can be asked for while looking at them; the assistant quotes the same spot the table does. */}
                     <AssistantToggle/>
                     <Button
@@ -177,6 +199,14 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
             <div className="bg-background shrink-0 pt-4 pb-4">
                 <div className="px-4 lg:px-6">
                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {features.redesign && loading && metalCards.length === 0 && (
+                            Array.from({length: 4}, (_, i) => (
+                                <div key={i} aria-hidden className="bg-card-raised border-border flex flex-col gap-2 rounded-xl border-2 px-3 py-3">
+                                    <Skeleton className="h-2.5 w-2/5"/>
+                                    <Skeleton className="h-4 w-3/5"/>
+                                </div>
+                            ))
+                        )}
                         {metalCards.map((card) => (
                             <SectionCards
                                 key={card.metal}
