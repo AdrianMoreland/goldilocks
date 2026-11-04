@@ -125,11 +125,12 @@ export function SectionCards({
             <div className="flex items-center gap-1.5">
                 {isFrozen && (
                     <span
+                        title="Frozen"
                         className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-extrabold tracking-wide text-[var(--tab-accent-text)] uppercase"
                         style={{ background: "var(--tab-accent-soft)" }}
                     >
                         <Snowflake className="size-3" aria-hidden />
-                        Frozen
+                        {compact ? <span className="sr-only">Frozen</span> : "Frozen"}
                     </span>
                 )}
                 <Tooltip>

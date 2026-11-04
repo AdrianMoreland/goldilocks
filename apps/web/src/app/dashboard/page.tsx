@@ -259,6 +259,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                     onActiveMetalChange={setSelectedMetal}
                     isLoading={loading}
                     hasError={Boolean(error)}
+                    onRetry={() => refresh()}
                 />
             </div>
 
