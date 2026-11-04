@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Blocks, OctagonMinus } from 'lucide-react';
 import { KB_GUIDE, type KbGuideShortcut } from '@goldilocks/shared-types';
 import { cn } from '@/lib/utils';
+import { features } from '@/config/features';
 import type { KnowledgeLibrary } from '../utils/library';
 import { GUIDE_ICONS, resolveTarget } from '../utils/guide';
 import { FOCUS } from '../utils/tone';
@@ -33,7 +34,7 @@ export function QuickLinks({ library }: { library: KnowledgeLibrary }) {
                                 to={link.href!}
                                 className={cn('group flex items-center gap-3 rounded-xl border bg-card p-2.5 pr-4 transition-colors hover:bg-muted/50', FOCUS)}
                             >
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+                                <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', features.redesign ? 'bg-muted text-foreground' : 'bg-foreground text-background')}>
                                     <Icon className="size-5" aria-hidden />
                                 </span>
                                 <span className="min-w-0 flex-1">
@@ -74,7 +75,7 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
                             </span>
                             <span className="mt-auto pt-4">
                                 <span className="block text-base leading-5 font-semibold">{tool.label}</span>
-                                <span className={cn('mt-1 block text-xs leading-4', tool.href ? 'text-background/75' : 'text-muted-foreground')}>
+                                <span className={cn('mt-1 block text-xs leading-4', tool.href && !features.redesign ? 'text-background/75' : 'text-muted-foreground')}>
                                     {tool.href ? tool.hint : 'Coming soon - not written yet'}
                                 </span>
                             </span>
@@ -87,7 +88,8 @@ export function ToolTiles({ library }: { library: KnowledgeLibrary }) {
                                 <Link
                                     to={tool.href}
                                     className={cn(
-                                        'flex min-h-36 w-full flex-col rounded-xl bg-foreground p-4 text-background transition-colors hover:bg-foreground/90',
+                                        'flex min-h-36 w-full flex-col rounded-xl p-4 transition-colors',
+                                        features.redesign ? 'border bg-card text-foreground hover:bg-muted/50' : 'bg-foreground text-background hover:bg-foreground/90',
                                         FOCUS,
                                     )}
                                 >
@@ -117,7 +119,7 @@ export function BusinessCentralBanner({ library, showHub = true }: { library: Kn
     const button = 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-3.5 text-sm font-medium transition-colors';
     return (
         <section aria-labelledby="business-central" className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border bg-card px-4.5 py-4">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+            <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-xl', features.redesign ? 'bg-muted text-foreground' : 'bg-foreground text-background')}>
                 <Blocks className="size-5.5" aria-hidden />
             </span>
             <div className="min-w-56 flex-1">
