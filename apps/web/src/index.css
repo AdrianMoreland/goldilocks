@@ -328,6 +328,7 @@ html {
 html[data-look="sonar"] [data-slot="card"] { box-shadow: none; }
 html[data-look="sonar"] .rounded-xl { border-radius: 18px; }
 html[data-look="sonar"] :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+html[data-look="sonar"] [data-slot="command-input"]:focus-visible { outline: none; }
 .skip-link {
   position: fixed;
   left: 8px;

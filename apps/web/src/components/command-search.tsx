@@ -11,6 +11,8 @@ import type { NavItem } from "@/config/nav"
 import { useNavGroups } from "@/hooks/use-nav-groups.hook"
 import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { modKeyLabel } from "@/lib/command-search"
+import { features } from "@/config/features"
+import { cn } from "@/lib/utils"
 
 const RECENT_LIMIT = 3
 
@@ -56,7 +58,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
         className={itemClass}
       >
         <Icon />
-        {item.title}
+        {features.redesign ? `Go to ${item.title}` : item.title}
       </CommandItem>
     )
   }
@@ -65,13 +67,19 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="top-[20%] translate-y-0 gap-0 overflow-hidden rounded-xl p-0 sm:max-w-md"
+        className={cn("top-[20%] translate-y-0 gap-0 overflow-hidden rounded-xl p-0 sm:max-w-md", features.redesign && "sm:max-w-xl")}
       >
         <DialogTitle className="sr-only">Search or jump to</DialogTitle>
         <DialogDescription className="sr-only">Type to find a page, then press Enter to open it.</DialogDescription>
-        <Command className="rounded-xl **:data-[slot=command-input-wrapper]:h-11">
-          <CommandInput placeholder="Search or jump to…" value={query} onValueChange={setQuery} className="h-11" />
-          <CommandList className="max-h-72 p-1.5">
+        <Command
+          className={cn(
+            "rounded-xl **:data-[slot=command-input-wrapper]:h-11",
+            features.redesign &&
+              "**:data-[slot=command-input-wrapper]:border-primary **:data-[slot=command-input-wrapper]:border-b-2 **:data-[slot=command-input-wrapper]:px-4 **:[[cmdk-group-heading]]:text-[11px] **:[[cmdk-group-heading]]:tracking-wider **:[[cmdk-group-heading]]:uppercase",
+          )}
+        >
+          <CommandInput placeholder={features.redesign ? "Search pages and procedures…" : "Search or jump to…"} value={query} onValueChange={setQuery} className="h-11" />
+          <CommandList className={cn("p-1.5", features.redesign ? "max-h-96" : "max-h-72")}>
             <CommandEmpty className="text-muted-foreground px-3 py-8 text-center text-sm">
               Nothing for “{query}”.
             </CommandEmpty>
