@@ -3,7 +3,8 @@
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { CommandSearch, SearchTrigger } from "@/components/command-search"
+import { CommandSearch, OPEN_SEARCH_EVENT, SearchTrigger } from "@/components/command-search"
+import { features } from "@/config/features"
 import { Logo } from "@/components/logo"
 
 interface SiteHeaderProps {
@@ -30,8 +31,13 @@ export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true
       }
     }
 
+    const open = () => setSearchOpen(true)
     document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
+    window.addEventListener(OPEN_SEARCH_EVENT, open)
+    return () => {
+      document.removeEventListener("keydown", down)
+      window.removeEventListener(OPEN_SEARCH_EVENT, open)
+    }
   }, [showSearch])
 
   return (
@@ -41,13 +47,18 @@ export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true
           {showSidebarTrigger && (
             <>
               <SidebarTrigger className="-ml-1 shrink-0" />
-              <Separator
-                orientation="vertical"
-                className="mx-2 shrink-0 data-[orientation=vertical]:h-4"
-              />
+              {!features.redesign && (
+                <Separator
+                  orientation="vertical"
+                  className="mx-2 shrink-0 data-[orientation=vertical]:h-4"
+                />
+              )}
             </>
           )}
-          {title && (
+          {title && (features.redesign ? (
+            // The redesign: one quiet 16px title that truncates; the mark lives in the sidebar brand.
+            <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{title}</h1>
+          ) : (
             <>
               {showLogo && <Logo size={30} className="shrink-0" />}
               <h1 className="type-h3 hidden shrink-0 whitespace-nowrap lg:inline-block">{title}</h1>
@@ -56,13 +67,13 @@ export function SiteHeader({ title, showLogo, actions, showSidebarTrigger = true
                 className="mx-2 hidden shrink-0 data-[orientation=vertical]:h-4 lg:block"
               />
             </>
-          )}
-          {showSearch && (
+          ))}
+          {showSearch && !features.redesign && (
             <div className="min-w-0 max-w-sm flex-1">
               <SearchTrigger onClick={() => setSearchOpen(true)} />
             </div>
           )}
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className={features.redesign ? "flex shrink-0 items-center gap-1 sm:gap-2" : "ml-auto flex shrink-0 items-center gap-1 sm:gap-2"}>
             {actions}
           </div>
         </div>

@@ -5,6 +5,10 @@ import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
 import { useNavGroups } from "@/hooks/use-nav-groups.hook"
+import { features } from "@/config/features"
+import { Search } from "lucide-react"
+import { Kbd } from "@/components/ui/kbd"
+import { OPEN_SEARCH_EVENT, modKeyLabel } from "@/components/command-search"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -36,11 +40,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Merrion Gold</span>
-                  <span className="truncate text-xs">Pricing Workbook</span>
+                  {!features.redesign && <span className="truncate text-xs">Pricing Workbook</span>}
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {features.redesign && features.commandPalette && (
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))} className="cursor-pointer">
+                <Search />
+                <span>Search and commands</span>
+                <Kbd className="ms-auto">{modKeyLabel} K</Kbd>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
