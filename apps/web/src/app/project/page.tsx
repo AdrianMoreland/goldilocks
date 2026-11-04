@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import RoadmapView from "./views/roadmap-view"
+import { features } from "@/config/features"
+import { RoadmapView as NewRoadmapView } from "../project2/components/roadmap-view"
+import { SyncBanner } from "../project2/components/sync-banner"
 
 // The two reference views bundle large Markdown files; load them only when opened.
 const EngineeringView = lazy(() => import("./views/engineering-view"))
@@ -58,11 +61,21 @@ export default function ProjectPage() {
                     ))}
                 </div>
 
-                {view === "roadmap" && <RoadmapView />}
+                {view === "roadmap" && (features.redesign ? <NewRoadmap /> : <RoadmapView />)}
                 {view !== "roadmap" && (
                     <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>{view === "engineering" ? <EngineeringView /> : <DesignView />}</Suspense>
                 )}
             </div>
         </BaseLayout>
+    )
+}
+
+/** The rebuilt roadmap (formerly /project2): sync status above the roadmap itself. Shown instead of the old one when the redesign is on. */
+function NewRoadmap() {
+    return (
+        <div className="flex flex-col gap-4">
+            <SyncBanner />
+            <NewRoadmapView />
+        </div>
     )
 }
