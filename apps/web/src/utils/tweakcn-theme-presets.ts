@@ -2814,7 +2814,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
         "shadow-offset-x": "0px",
         "shadow-offset-y": "1px",
         "letter-spacing": "0em",
-        "spacing": "0.25rem",
+        "spacing": "0.18rem",
       },
       dark: {
         "background": "#101010",
@@ -2866,7 +2866,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
         "shadow-offset-x": "0px",
         "shadow-offset-y": "1px",
         "letter-spacing": "0em",
-        "spacing": "0.25rem",
+        "spacing": "0.18rem",
       },
     },
   },
