@@ -49,10 +49,13 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
     setSidebarOpen(open)
   }
 
+  // Where the skip link lands. Only the redesign adds it; other builds render exactly as before.
+  const mainTarget = features.redesign ? { id: "main-content", tabIndex: -1 } : {}
+
   const content = fillViewport ? (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none" {...mainTarget}>{children}</div>
   ) : (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col focus:outline-none" {...mainTarget}>
       <div className="@container/main flex flex-1 justify-center">
         <div className="w-full max-w-[1600px] flex flex-col gap-4 py-4 md:gap-6 md:py-6">
           {description && (
@@ -67,52 +70,59 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
   )
 
   return (
-    <SidebarProvider
-      open={sidebarOpen && !themeEditor.open}
-      onOpenChange={handleSidebarOpenChange}
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--sidebar-width-icon": "3rem",
-          "--header-height": "calc(var(--spacing) * 14)",
-        } as React.CSSProperties
-      }
-      className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
-    >
-      {config.side === "left" ? (
-        <>
-          {hasSidebar && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
-          <ThemeEditorDock />
-          <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
-            <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
-            {content}
-            {!fillViewport && <SiteFooter/>}
-          </SidebarInset>
-        </>
-      ) : (
+    <>
+      {features.redesign && (
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+      )}
+      <SidebarProvider
+        open={sidebarOpen && !themeEditor.open}
+        onOpenChange={handleSidebarOpenChange}
+        style={
+          {
+            "--sidebar-width": "16rem",
+            "--sidebar-width-icon": "3rem",
+            "--header-height": "calc(var(--spacing) * 14)",
+          } as React.CSSProperties
+        }
+        className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
+      >
+        {config.side === "left" ? (
           <>
+            {hasSidebar && (
+              <AppSidebar
+                variant={config.variant}
+                collapsible={config.collapsible}
+                side={config.side}
+              />
+            )}
             <ThemeEditorDock />
             <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
               <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
               {content}
-              {!fillViewport && <SiteFooter />}
-          </SidebarInset>
-          {hasSidebar && (
-            <AppSidebar
-              variant={config.variant}
-              collapsible={config.collapsible}
-              side={config.side}
-            />
-          )}
-        </>
-      )}
+              {!fillViewport && <SiteFooter/>}
+            </SidebarInset>
+          </>
+        ) : (
+            <>
+              <ThemeEditorDock />
+              <SidebarInset className={fillViewport ? "overflow-hidden" : undefined}>
+                <SiteHeader title={title} showLogo={showLogo} actions={headerActions?.()} showSidebarTrigger={hasSidebar} showSearch={features.commandPalette} />
+                {content}
+                {!fillViewport && <SiteFooter />}
+            </SidebarInset>
+            {hasSidebar && (
+              <AppSidebar
+                variant={config.variant}
+                collapsible={config.collapsible}
+                side={config.side}
+              />
+            )}
+          </>
+        )}
 
-    </SidebarProvider>
+      </SidebarProvider>
+    </>
   )
 }

@@ -43,6 +43,12 @@
   --color-stop-border: var(--stop-border);
   --color-stop-ink: var(--stop-ink);
   --color-primary-text: var(--primary-text);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-mt-gold: var(--mt-gold);
+  --color-mt-silver: var(--mt-silver);
+  --color-mt-platinum: var(--mt-platinum);
+  --color-mt-palladium: var(--mt-palladium);
   --color-status-ok: var(--status-ok);
   --color-status-warn: var(--status-warn);
   --color-status-stale: var(--status-stale);
@@ -128,6 +134,14 @@
      cards) even when a theme gives card and background the same colour.
      Themes can set it; otherwise it's the card nudged toward the text. */
   --card-raised: color-mix(in oklch, var(--card), var(--foreground) 3%);
+  /* Price movement and metal names as text. The defaults are the shades the app already used (green-600, red-600 and the
+     metal colours), so nothing changes; the Sonar theme sets darker tones that pass 4.5:1 on its surfaces. */
+  --up: #16a34a;
+  --down: #dc2626;
+  --mt-gold: #D4A017;
+  --mt-silver: #8B95A1;
+  --mt-platinum: #4C8EA3;
+  --mt-palladium: #8073B8;
   /* Status dots (DESIGN.md "Status colours"): one value for day and night, always beside words, never alone.
      Same shades the dots had when they used Tailwind's emerald, amber, orange, red and sky 500. */
   --status-ok: oklch(0.696 0.17 162.48);
@@ -307,3 +321,23 @@ html {
 .animate-logo-scroll:hover {
   animation-play-state: paused;
 }
+/* The Sonar look (prototype v8). Set on <html> by the theme provider only while the Sonar theme is active, so every rule
+   here is dormant for Merrion Gold and for builds that do not offer Sonar. Colours, radius and spacing come from the theme
+   variables; the rules below cover what variables cannot: flat cards, the 18px container corner, a focus ring on every
+   control, and the skip link. */
+html[data-look="sonar"] [data-slot="card"] { box-shadow: none; }
+html[data-look="sonar"] .rounded-xl { border-radius: 18px; }
+html[data-look="sonar"] :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.skip-link {
+  position: fixed;
+  left: 8px;
+  top: -64px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }

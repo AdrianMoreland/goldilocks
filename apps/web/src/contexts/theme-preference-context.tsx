@@ -96,6 +96,9 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
 
         root.style.letterSpacing = preference.letterSpacing ? `${preference.letterSpacing}em` : ""
         root.dataset.shadows = preference.shadows
+        // Structure that variables cannot carry (flat cards, corner tiers) keys off the active look.
+        if (preference.source === "tweakcn" && preference.value === "sonar") root.dataset.look = "sonar"
+        else delete root.dataset.look
     }, [preference, isDarkMode, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme])
 
     const commit = React.useCallback(

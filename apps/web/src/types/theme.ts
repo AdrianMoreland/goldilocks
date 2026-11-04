@@ -52,6 +52,17 @@ export type ThemeStyleProps = {
   "primary-text"?: string;
   "price-text"?: string;
   "buyback-text"?: string;
+  /** Price movement as text, and metal names as text. Fall back to the shades set in index.css. */
+  up?: string;
+  down?: string;
+  "mt-gold"?: string;
+  "mt-silver"?: string;
+  "mt-platinum"?: string;
+  "mt-palladium"?: string;
+  /** Control height, table row padding and checkbox column width (the density tokens of the Sonar prototype). */
+  "ctl-h"?: string;
+  "row-py"?: string;
+  "ck-w"?: string;
 };
 
 export type ThemeStyles = {
