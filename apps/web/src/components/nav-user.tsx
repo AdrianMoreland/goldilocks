@@ -1,6 +1,7 @@
 "use client"
 
-import { EllipsisVertical, LogOut, Moon, Paintbrush, Sun } from "lucide-react"
+import * as React from "react"
+import { EllipsisVertical, LogOut, Moon, Paintbrush, Rows3, Sun } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { Logo } from "@/components/logo"
@@ -9,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useCircularTransition } from "@/hooks/use-circular-transition"
 import { useIsDarkMode } from "@/hooks/use-is-dark-mode"
 import { features } from "@/config/features"
+import { readDensity, saveDensity, type Density } from "@/lib/density"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +52,8 @@ export function NavUser({
   const navigate = useNavigate()
   const { toggleTheme } = useCircularTransition()
   const isDarkMode = useIsDarkMode()
+  const [density, setDensity] = React.useState<Density>(readDensity)
+  const densityLabel = density === "compact" ? "Comfortable rows" : "Compact rows"
   const themeEditor = useThemeEditorDock()
 
   const handleLogout = () => {
@@ -108,6 +112,19 @@ export function NavUser({
               {isDarkMode ? <Sun /> : <Moon />}
               {isDarkMode ? "Light mode" : "Dark mode"}
             </DropdownMenuItem>
+            {features.redesign && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  const next: Density = density === "compact" ? "comfortable" : "compact"
+                  saveDensity(next)
+                  setDensity(next)
+                }}
+                className="cursor-pointer"
+              >
+                <Rows3 />
+                {densityLabel}
+              </DropdownMenuItem>
+            )}
             {isAdmin && (
               <DropdownMenuItem onSelect={themeEditor.toggle} className="cursor-pointer">
                 <Paintbrush />

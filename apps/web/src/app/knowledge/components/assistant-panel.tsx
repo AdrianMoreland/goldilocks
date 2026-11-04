@@ -116,6 +116,11 @@ export function AssistantDock() {
     const [mode, setMode] = useState<AiMode | null>(null);
     const [draft, setDraft] = useState('');
     const endRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        document.addEventListener('dock-sheet-dismiss', close);
+        return () => document.removeEventListener('dock-sheet-dismiss', close);
+    }, [close]);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     // Keep the newest answer in view.
@@ -146,7 +151,7 @@ export function AssistantDock() {
     };
 
     return (
-        <DockedPanel side="right" open={open} width={RIGHT_PANEL_WIDTH} label="Assistant">
+        <DockedPanel side="right" open={open} width={RIGHT_PANEL_WIDTH} label="Assistant" phoneSheet>
             <>
                 <div className="flex items-start justify-between gap-2 border-b p-4">
                     <div className="min-w-0">
