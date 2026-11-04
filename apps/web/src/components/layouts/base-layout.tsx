@@ -39,7 +39,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
   const { capabilities } = useAuth()
   const hasSidebar = capabilities.sidebar
   // Remembered, so the sidebar stays as it was left when moving between pages (each page mounts its own layout).
-  const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", false)
+  const [sidebarOpen, setSidebarOpen] = useUserPreference("sidebar-open", features.redesign)
   // The theme editor takes the sidebar's slot while it is open, rather than sitting beside it. The
   // remembered sidebar choice is untouched, so closing the editor brings the sidebar back as it was.
   const themeEditor = useThemeEditorDock()
@@ -81,9 +81,9 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
         onOpenChange={handleSidebarOpenChange}
         style={
           {
-            "--sidebar-width": "16rem",
+            "--sidebar-width": features.redesign ? "15rem" : "16rem",
             "--sidebar-width-icon": "3rem",
-            "--header-height": "calc(var(--spacing) * 14)",
+            "--header-height": features.redesign ? "3.5rem" : "calc(var(--spacing) * 14)",
           } as React.CSSProperties
         }
         className={cn(config.collapsible === "none" && "sidebar-none-mode", fillViewport && "h-full min-h-0 overflow-hidden")}
@@ -92,7 +92,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
           <>
             {hasSidebar && (
               <AppSidebar
-                variant={config.variant}
+                variant={features.redesign ? "sidebar" : config.variant}
                 collapsible={config.collapsible}
                 side={config.side}
               />
@@ -114,7 +114,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
             </SidebarInset>
             {hasSidebar && (
               <AppSidebar
-                variant={config.variant}
+                variant={features.redesign ? "sidebar" : config.variant}
                 collapsible={config.collapsible}
                 side={config.side}
               />

@@ -341,3 +341,12 @@ html[data-look="sonar"] :focus-visible { outline: 2px solid var(--ring); outline
   text-decoration: none;
 }
 .skip-link:focus { top: 8px; }
+
+/* The redesign switch (set on <html> by the theme provider when the build turns it on): sidebar group labels as small capitals,
+   as in prototype v8. */
+html[data-redesign] [data-sidebar="group-label"] {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}

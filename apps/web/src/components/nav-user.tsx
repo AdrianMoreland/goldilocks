@@ -8,6 +8,7 @@ import { useThemeEditorDock } from "@/contexts/docks-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useCircularTransition } from "@/hooks/use-circular-transition"
 import { useIsDarkMode } from "@/hooks/use-is-dark-mode"
+import { features } from "@/config/features"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+
+/** Two letters for the avatar: first and last word of the name, or the start of an email. */
+function initialsOf(text: string): string {
+  const words = text.split(/[\s@.]+/).filter(Boolean)
+  const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? "").slice(0, 2)
+  return letters.toUpperCase()
+}
 
 /**
  * The account and preferences home: sign out, day/night and (for admins) the
@@ -38,7 +46,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout, isAdmin } = useAuth()
+  const { logout, isAdmin, isManager } = useAuth()
   const navigate = useNavigate()
   const { toggleTheme } = useCircularTransition()
   const isDarkMode = useIsDarkMode()
@@ -58,13 +66,19 @@ export function NavUser({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-                < Logo size={28} />
-              </div>
+              {features.redesign ? (
+                <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  {initialsOf(user.name || user.email)}
+                </div>
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg">
+                  < Logo size={28} />
+                </div>
+              )}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
+                  {features.redesign ? (isAdmin ? "Admin" : isManager ? "Manager" : "Staff") : user.email}
                 </span>
               </div>
               <EllipsisVertical className="ml-auto size-4" />
