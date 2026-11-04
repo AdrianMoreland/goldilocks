@@ -214,7 +214,7 @@ A neutral zinc ledger with three accent pillars and a separate family of four me
 - **Card raised** (`--card-raised`): the spot-price cards' surface, one small step off the page so they read as tiles even though the Figma palette gives `card` and `background` the same colour. Merrion Gold sets `#fafafa` (light) and `#171717` (dark); other themes derive it by mixing the card 3% (light) / 6% (dark) toward the text colour.
 
 ### Status colours
-Price freshness uses Tailwind's stock status colours as small 6px dots: emerald for fresh, amber for stale, orange for "live fetch failed, showing last known price", and red for failed. Spot price movement uses green-600 for up and red-600 for down, always with an arrow icon, so colour is never the only signal.
+Price freshness uses Tailwind's stock status colours as small 6px dots: emerald for fresh, amber for stale, orange for "live fetch failed, showing last known price", and red for failed. The five dot colours (emerald, amber, orange, red and sky blue for information) are defined once as `--status-ok`, `--status-warn`, `--status-stale`, `--status-bad` and `--status-info`, the same in light and dark, and drawn by `StatusDot`. That component also has an `active` tone, which follows the theme's primary colour. Colour never carries a state alone: the state is always in words beside the dot. Spot price movement uses green-600 for up and red-600 for down, always with an arrow icon, so colour is never the only signal.
 
 **Warning** (`--warning` fill, `--warning-text` ink): an amber panel for notices that delay or block something without being an error, such as "the market is closed, so this order will not be processed until Monday". Light `warning-tint` with `warning-ink`; dark `warning-tint-night` with `warning-ink-night`. Both pairs reach 7:1. The staff app defines the variables but does not use them yet; the public site does.
 
@@ -346,6 +346,31 @@ There are three signals at increasing volume. The first is a 6px dot on each car
 
 ### Spot Price Chart
 The area chart ("Spot price history") draws each metal in its own metal colour (`METAL_ACCENT`), the same as its spot card.
+
+## Sonar look
+
+**An opt-in theme, not a replacement.** Sonar is a second preset in the theme editor. It is offered only on deployments that turn on `VITE_PREVIEW_FEATURES`, and it is the default only where `VITE_DEFAULT_THEME=sonar`. Merrion Gold stays the default everywhere else, and every rule above still holds for it. Sonar uses the same variable names, so nothing is hard-coded to either theme: write `bg-primary`, `text-primary-text`, `border` and `rounded-lg`, never a hex or a pixel radius.
+
+**What stays the same.** The grid is the hero and the page fills one viewport. The spacing unit is 0.18rem, so a table row is 37px and the Pricing Workbook shows the same number of products on opening (a looser unit showed 5 where Merrion Gold shows 8, which is why Sonar matches it). One Inter family, tabular figures, the 11px floor. Price is teal and Buyback is raspberry. The Stale Is Loud, Dark Ink On Accents and Gold Means Here rules apply, with "gold" read as "the theme's accent".
+
+**What changes.**
+
+| | Merrion Gold | Sonar |
+|---|---|---|
+| Accent (`--primary`) | `#daab69` gold | `#f59e0b` amber |
+| Accent as text (`--primary-text`) | `#8f6a2e` light, `#daab69` dark | `#b45309` light, `#f59e0b` dark |
+| Ink on the accent | `#18181b` | `#2b1a00` |
+| Background and card | `#ffffff` / `#09090b` | `#ffffff` / `#101010`, card `#1b1b1b` in dark |
+| Text | `#000000` / `#fafafa` | `#262626` / `#f5f5f5` |
+| Borders | zinc-200 / zinc-800 | black at 8% / white at 8% |
+| Corner radius | 0.5rem | 0.625rem (controls 8px, cards 14px) |
+| Shadow on cards | none at rest | 1px, 2px, black at 5% in light; none in dark |
+
+**Rules for Sonar screens**
+- **Border first.** A hairline separates regions. The faint shadow is a finish, never the only edge, and floating layers keep the stock elevation.
+- **Structure over decoration.** Use underline tabs with counts (`CountTabs`), hairline-ruled rows (`RuledRow`), meters (`Meter`) and 6px status dots. Pills and tinted badges stay inside the Pricing Tools panel. The building blocks use tokens only, so they look right in both themes.
+- **One accent.** Amber marks active, selected and primary and nothing else. Status colours answer "can I trust this", not "which tab is open".
+- **Check both themes and both densities.** Every new screen is looked at in light and dark, and its table or list is checked against the 37px row so Sonar never costs the grid its room.
 
 ## Do's and Don'ts
 
