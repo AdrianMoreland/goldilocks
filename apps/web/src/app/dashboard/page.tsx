@@ -6,6 +6,7 @@ import {BaseLayout} from '@/components/layouts/base-layout';
 import {SectionCards} from './components/section-cards.tsx';
 import {ChartAreaInteractive} from './components/chart-area-interactive.tsx';
 import {Button} from '@/components/ui/button';
+import {cn} from '@/lib/utils';
 import {Separator} from '@/components/ui/separator';
 import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
 import {useAssistantDock} from '@/contexts/docks-context';
@@ -198,8 +199,8 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         >
             {/* ── Cards + chart — fixed in place, never scroll. ───────────── */}
             <div className="bg-background shrink-0 pt-4 pb-4">
-                <div className="px-4 lg:px-6">
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className={cn("px-4 lg:px-6", features.redesign && "@container")}>
+                    <div className={cn("grid grid-cols-2 gap-3", features.redesign ? "@xl:grid-cols-4" : "lg:grid-cols-4")}>
                         {features.redesign && loading && metalCards.length === 0 && (
                             Array.from({length: 4}, (_, i) => (
                                 <div key={i} aria-hidden className="bg-card-raised border-border flex flex-col gap-2 rounded-xl border-2 px-3 py-3">
