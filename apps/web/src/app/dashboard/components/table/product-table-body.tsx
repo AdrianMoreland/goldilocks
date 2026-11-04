@@ -5,6 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useRowNavigation } from "@/hooks/use-row-navigation.hook"
 import { ProductRow } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
+import { features } from "@/config/features"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface ProductTableBodyProps {
     table: TanstackTable<DisplayProduct>
@@ -13,6 +16,9 @@ interface ProductTableBodyProps {
     hasError?: boolean
     isFiltered?: boolean
     onResetFilters?: () => void
+    /** The metal on screen is held at a typed price: the table gets a warm border so the quote cannot be mistaken for live. */
+    held?: boolean
+    onRetry?: () => void
 }
 
 const GROUP_LABELS = { bar: "Bars", coin: "Coins", bonded: "Bonded" } as const
@@ -24,13 +30,15 @@ export function ProductTableBody({
     hasError,
     isFiltered,
     onResetFilters,
+    held,
+    onRetry,
 }: ProductTableBodyProps) {
     const rows = table.getRowModel().rows
     const { focusedRowId } = useRowNavigation(rows)
     let lastGroup: DisplayProduct["productType"] | null = null
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
+        <div data-product-table className={cn("flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border", features.redesign && held && "border-status-warn border-2")}>
             {/* flex-1 (not h-full) — this sits below the new ProductFilterBar
                 row now, so it needs to shrink to make room for that sibling
                 rather than claiming 100% of TabsContent's height regardless.
@@ -77,6 +85,7 @@ export function ProductTableBody({
                                                     className="text-muted-foreground px-3 py-1.5 text-xs font-semibold tracking-wide uppercase"
                                                 >
                                                     {GROUP_LABELS[group]}
+                                                    {features.redesign && ` · ${rows.filter((r) => r.original.productType === group).length}`}
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -84,6 +93,14 @@ export function ProductTableBody({
                                     </React.Fragment>
                                 )
                             })
+                        ) : features.redesign && isLoading ? (
+                            Array.from({ length: 7 }, (_, i) => (
+                                <TableRow key={i} aria-hidden className="hover:bg-transparent">
+                                    <TableCell colSpan={columnCount} className="px-3 py-3">
+                                        <Skeleton className="h-3.5 w-3/5" />
+                                    </TableCell>
+                                </TableRow>
+                            ))
                         ) : (
                             <TableRow className="hover:bg-transparent">
                                 <TableCell colSpan={columnCount} className="text-muted-foreground h-24 text-center">
@@ -92,6 +109,7 @@ export function ProductTableBody({
                                         hasError={hasError}
                                         isFiltered={isFiltered}
                                         onResetFilters={onResetFilters}
+                                        onRetry={onRetry}
                                     />
                                 </TableCell>
                             </TableRow>
@@ -109,8 +127,18 @@ function EmptyTableMessage({
     hasError,
     isFiltered,
     onResetFilters,
+    onRetry,
 }: Omit<ProductTableBodyProps, "table" | "columnCount">) {
     if (isLoading) return <>Loading products…</>
+    if (features.redesign && hasError) {
+        return (
+            <div className="flex flex-col items-center gap-2 py-4">
+                <b className="text-foreground">Could not load the products</b>
+                <span className="text-xs">The price service did not answer. Prices on screen may be out of date.</span>
+                {onRetry && <Button variant="outline" size="sm" className="cursor-pointer" onClick={onRetry}>Try again</Button>}
+            </div>
+        )
+    }
     if (hasError) return <>Couldn&apos;t load products from the server. Check your connection and press refresh in the top bar; if it keeps failing, tell an admin.</>
     if (isFiltered) {
         return (
