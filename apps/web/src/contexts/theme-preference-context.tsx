@@ -1,4 +1,5 @@
 import * as React from "react"
+import { features } from "@/config/features"
 import { useAuth } from "@/contexts/auth-context"
 import { useThemeManager } from "@/hooks/use-theme-manager"
 import { colorThemes, tweakcnThemes } from "@/config/theme-data"
@@ -96,6 +97,10 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
 
         root.style.letterSpacing = preference.letterSpacing ? `${preference.letterSpacing}em` : ""
         root.dataset.shadows = preference.shadows
+        if (features.redesign) root.dataset.redesign = "on"
+        // Structure that variables cannot carry (flat cards, corner tiers) keys off the active look.
+        if (preference.source === "tweakcn" && preference.value === "sonar") root.dataset.look = "sonar"
+        else delete root.dataset.look
     }, [preference, isDarkMode, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme])
 
     const commit = React.useCallback(

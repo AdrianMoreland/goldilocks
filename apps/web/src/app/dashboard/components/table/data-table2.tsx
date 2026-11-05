@@ -8,6 +8,10 @@ import { ProductFilterBar } from "./product-filter-bar"
 import { ProductTableBody } from "./product-table-body"
 import { METAL_TABS } from "./metal-tabs"
 import { usePricingTools } from "../../context/pricing-tools-context"
+import { useSpotPrices } from "../../context/spot-prices-context"
+import { features } from "@/config/features"
+import { formatSpot } from "../../utils/formatters"
+import { copyRowsToClipboard } from "./copy-rows-button"
 
 interface DataTableProps {
     data: Product[]
@@ -19,6 +23,8 @@ interface DataTableProps {
     onActiveMetalChange?: (metal: MetalType) => void
     isLoading?: boolean
     hasError?: boolean
+    /** Fetches the prices again; offered next to the load-failed message. */
+    onRetry?: () => void
 }
 
 // Start on the tab the page already has selected. Starting on Gold while a remembered
@@ -27,7 +33,7 @@ function initialTabFor(metal?: MetalType | null) {
     return METAL_TABS.find((t) => t.metalType === metal)?.value ?? "gold"
 }
 
-export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError }: DataTableProps) {
+export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, hasError, onRetry }: DataTableProps) {
     const { setActiveMetal, rowSelection, setRowSelection, tableCopySource } = usePricingTools()
     // rowSelection is owned by pricing-tools-context (not local state) so the
     // Trade tab can also write to it — removing a cart item there unchecks
@@ -58,6 +64,14 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
 
     // A tab click also moves the pricing tools' metal mode and the cards/chart's
     // selected metal, so the small tab buttons never leave them on a stale metal.
+    // The redesign shows what is held for the metal on screen: a warm border round the table and the held price in the toolbar.
+    const spot = useSpotPrices()
+    const tab = METAL_TABS.find((t) => t.value === selectedTab)
+    const heldPrice =
+        features.redesign && tab && spot.overriddenMetals.includes(tab.metalType) && spot.displayPrices[tab.metalType] !== undefined
+            ? formatSpot(tab.metalType, spot.displayPrices[tab.metalType])
+            : null
+
     const handleTabChange = (value: string) => {
         setSelectedTab(value as typeof selectedTab)
         const metalType = METAL_TABS.find((t) => t.value === value)?.metalType
@@ -82,6 +96,13 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
                     onSearchChange={setSearch}
                     isFiltered={isFiltered}
                     onResetFilters={resetFilters}
+                    summary={{
+                        metalLabel: tab?.label ?? "",
+                        count: table.getFilteredRowModel().rows.length,
+                        selected: selectedProducts.length,
+                        held: heldPrice,
+                    }}
+                    onCopy={() => copyRowsToClipboard(selectedProducts, table.getVisibleLeafColumns().map((c) => c.id))}
                 />
 
                 <ProductTableBody
@@ -91,14 +112,18 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
                     hasError={hasError && data.length === 0}
                     isFiltered={isFiltered}
                     onResetFilters={resetFilters}
+                    held={heldPrice !== null}
+                    onRetry={onRetry}
                 />
 
-                <div className="flex shrink-0 items-center justify-between px-4">
-                    <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                        {table.getFilteredRowModel().rows.length} selected
+                {!features.redesign && (
+                    <div className="flex shrink-0 items-center justify-between px-4">
+                        <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
+                            {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                            {table.getFilteredRowModel().rows.length} selected
+                        </div>
                     </div>
-                </div>
+                )}
             </TabsContent>
         </Tabs>
     )

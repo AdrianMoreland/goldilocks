@@ -4,6 +4,7 @@ import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { GithubModule } from '../../infrastructure/github/github.module';
 import { RoadmapController } from './roadmap.controller';
+import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
 import { RoadmapCron } from './roadmap.cron';
@@ -24,6 +25,7 @@ import { RoadmapSyncService } from './roadmap-sync.service';
         RoadmapSyncService,
         RoadmapPullService,
         RoadmapPushService,
+        RoadmapInboxService,
         RoadmapCron,
     ],
 })

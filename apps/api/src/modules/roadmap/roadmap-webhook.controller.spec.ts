@@ -3,6 +3,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'node:crypto';
 import type { Request } from 'express';
+import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapWebhookController } from './roadmap-webhook.controller';
 
@@ -12,6 +13,7 @@ const sign = (raw: Buffer) =>
 
 describe('RoadmapWebhookController', () => {
     const autoPull = jest.fn();
+    const autoRefresh = jest.fn();
     let controller: RoadmapWebhookController;
 
     const call = (payload: object, event: string, secret = SECRET) => {
@@ -30,8 +32,10 @@ describe('RoadmapWebhookController', () => {
     beforeEach(() => {
         jest.resetAllMocks();
         autoPull.mockResolvedValue(null);
+        autoRefresh.mockResolvedValue(null);
         controller = new RoadmapWebhookController(
             { autoPull } as unknown as RoadmapPullService,
+            { autoRefresh } as unknown as RoadmapInboxService,
             { get: () => SECRET } as unknown as ConfigService,
         );
     });
@@ -52,9 +56,15 @@ describe('RoadmapWebhookController', () => {
         expect(call({ ref: 'refs/heads/feature/x' }, 'push')).toEqual({
             ignored: true,
         });
-        expect(call({ ref: 'refs/heads/master' }, 'issues')).toEqual({
-            ignored: true,
+        expect(call({}, 'star')).toEqual({ ignored: true });
+        expect(autoPull).not.toHaveBeenCalled();
+    });
+
+    it('refreshes the inbox for an issues event and does not pull', () => {
+        expect(call({ action: 'opened' }, 'issues')).toEqual({
+            accepted: true,
         });
+        expect(autoRefresh).toHaveBeenCalledTimes(1);
         expect(autoPull).not.toHaveBeenCalled();
     });
 
@@ -72,6 +82,7 @@ describe('RoadmapWebhookController', () => {
         );
         const noSecret = new RoadmapWebhookController(
             { autoPull } as unknown as RoadmapPullService,
+            { autoRefresh } as unknown as RoadmapInboxService,
             { get: () => undefined } as unknown as ConfigService,
         );
         expect(() => noSecret.handle(req, sign(raw), 'push')).toThrow(

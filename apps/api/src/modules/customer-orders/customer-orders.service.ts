@@ -231,7 +231,7 @@ export class CustomerOrdersService {
     /** What the orders say should be physically in each branch: a reference for counting the customer safe. */
     async expectedStock(): Promise<ExpectedCustomerStockResponse> {
         const rows = await this.prisma.customerOrderItem.findMany({
-            where: { status: { in: ['DELIVERED', 'BAGGED'] } },
+            where: { status: { in: ['DELIVERED', 'BAGGED', 'ALLOCATED'] } },
             select: {
                 locationCode: true,
                 product: true,

@@ -6,7 +6,7 @@ import type { StockMetal } from './stocktake-physical';
  * DELIVERED is here but not bagged; BAGGED is in the customer safe. COLLECTED has left with the customer.
  * Collection is never inferred from one source: the evidence log records where each claim came from.
  */
-export const CUSTOMER_ORDER_STATUSES = ['ORDERED', 'IN_TRANSIT', 'DELIVERED', 'BAGGED', 'COLLECTED'] as const;
+export const CUSTOMER_ORDER_STATUSES = ['ORDERED', 'IN_TRANSIT', 'DELIVERED', 'BAGGED', 'ALLOCATED', 'COLLECTED'] as const;
 export type CustomerOrderStatus = (typeof CUSTOMER_ORDER_STATUSES)[number];
 
 export const CUSTOMER_ORDER_STATUS_LABELS: Record<CustomerOrderStatus, string> = {
@@ -14,12 +14,13 @@ export const CUSTOMER_ORDER_STATUS_LABELS: Record<CustomerOrderStatus, string> =
   IN_TRANSIT: 'In transit',
   DELIVERED: 'Here, not bagged',
   BAGGED: 'Bagged (customer safe)',
+  ALLOCATED: 'Allocated (customer safe)',
   COLLECTED: 'Collected',
 };
 
 /** Physically in the branch, so still part of stock and of the customer-safe count. */
 export function isPhysicallyHere(status: CustomerOrderStatus): boolean {
-  return status === 'DELIVERED' || status === 'BAGGED';
+  return status === 'DELIVERED' || status === 'BAGGED' || status === 'ALLOCATED';
 }
 
 export const EVIDENCE_KINDS = ['TRADESHEET_COLLECTED', 'ZOHO_INVOICE', 'SIGNED_INVOICE', 'BC_RECORD', 'STAFF_NOTE'] as const;

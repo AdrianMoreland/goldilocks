@@ -3,6 +3,8 @@ import { Activity, Database, ScrollText, SquareTerminal, Table2 } from "lucide-r
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { features } from "@/config/features"
+import { UNDERLINE_TAB, UNDERLINE_TAB_LIST } from "@/lib/underline-tabs"
 import { OverviewTab } from "./components/overview/overview-tab"
 import { LogsTab } from "./components/logs/logs-tab"
 import { ApiTesterTab } from "./components/api-tester/api-tester-tab"
@@ -44,9 +46,9 @@ export default function AdminPage() {
         >
             <div className="px-4 lg:px-6">
                 <Tabs value={tab} onValueChange={(value) => setParams(value === "overview" ? {} : { tab: value }, { replace: true })} className="gap-4">
-                    <TabsList className="h-10 w-full justify-start overflow-x-auto sm:w-fit">
+                    <TabsList className={features.redesign ? UNDERLINE_TAB_LIST : "h-10 w-full justify-start overflow-x-auto sm:w-fit"}>
                         {TABS.map(({ value, label, icon: Icon }) => (
-                            <TabsTrigger key={value} value={value} className="cursor-pointer px-3.5">
+                            <TabsTrigger key={value} value={value} className={features.redesign ? UNDERLINE_TAB : "cursor-pointer px-3.5"}>
                                 <Icon /> {label}
                             </TabsTrigger>
                         ))}

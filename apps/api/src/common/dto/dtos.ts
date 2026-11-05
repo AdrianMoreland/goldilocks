@@ -17,6 +17,10 @@ import {
     BranchSchema,
     MarketModeStateSchema,
     RoadmapDocumentSchema,
+    RoadmapInboxItemSchema,
+    RoadmapInboxPromoteSchema,
+    RoadmapInboxRefreshSchema,
+    RoadmapInboxSchema,
     RoadmapEditRequestSchema,
     RoadmapPullRequestSchema,
     RoadmapPullResultSchema,
@@ -39,10 +43,18 @@ import {
     UpdateCoinRequestSchema,
     CarryForwardRequestSchema,
     CreateCustomerOrderRequestSchema,
+    RecordStepRequestSchema,
+    SaveHandoverRequestSchema,
     UpdateCustomerOrderRequestSchema,
     AddEvidenceRequestSchema,
     ImportCustomerOrdersRequestSchema,
     TradesheetImportRequestSchema,
+    WorkbookChunkRequestSchema,
+    BcAwaitingRequestSchema,
+    RecordSearchRequestSchema,
+    LinkDecisionRequestSchema,
+    CreateSalesProductRequestSchema,
+    MapAliasRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -383,6 +395,26 @@ export class UpdateMarketModeRequestDto extends createDto(
     'UpdateMarketModeRequestDto',
 ) {}
 
+export class RoadmapInboxDto extends createDto(
+    RoadmapInboxSchema,
+    'RoadmapInboxDto',
+) {}
+
+export class RoadmapInboxItemDto extends createDto(
+    RoadmapInboxItemSchema,
+    'RoadmapInboxItemDto',
+) {}
+
+export class RoadmapInboxRefreshDto extends createDto(
+    RoadmapInboxRefreshSchema,
+    'RoadmapInboxRefreshDto',
+) {}
+
+export class RoadmapInboxPromoteDto extends createDto(
+    RoadmapInboxPromoteSchema,
+    'RoadmapInboxPromoteDto',
+) {}
+
 export class RoadmapDocumentDto extends createDto(
     RoadmapDocumentSchema,
     'RoadmapDocumentDto',
@@ -514,4 +546,44 @@ export class ImportCustomerOrdersRequestDto extends createDto(
 export class TradesheetImportRequestDto extends createDto(
     TradesheetImportRequestSchema,
     'TradesheetImportRequestDto',
+) {}
+
+export class WorkbookChunkRequestDto extends createDto(
+    WorkbookChunkRequestSchema,
+    'WorkbookChunkRequestDto',
+) {}
+
+export class RecordStepRequestDto extends createDto(
+    RecordStepRequestSchema,
+    'RecordStepRequestDto',
+) {}
+
+export class SaveHandoverRequestDto extends createDto(
+    SaveHandoverRequestSchema,
+    'SaveHandoverRequestDto',
+) {}
+
+export class BcAwaitingRequestDto extends createDto(
+    BcAwaitingRequestSchema,
+    'BcAwaitingRequestDto',
+) {}
+
+export class LinkDecisionRequestDto extends createDto(
+    LinkDecisionRequestSchema,
+    'LinkDecisionRequestDto',
+) {}
+
+export class CreateSalesProductRequestDto extends createDto(
+    CreateSalesProductRequestSchema,
+    'CreateSalesProductRequestDto',
+) {}
+
+export class MapAliasRequestDto extends createDto(
+    MapAliasRequestSchema,
+    'MapAliasRequestDto',
+) {}
+
+export class RecordSearchRequestDto extends createDto(
+    RecordSearchRequestSchema,
+    'RecordSearchRequestDto',
 ) {}

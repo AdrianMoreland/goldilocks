@@ -7,6 +7,8 @@ import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import { CustomizeColumnsMenu } from "./customize-columns-menu"
 import type { DisplayProduct } from "./product-grouping"
 import { PRODUCT_TYPE_OPTIONS, PRICE_BUCKET_OPTIONS } from "./product-columns"
+import { features } from "@/config/features"
+import { Copy } from "lucide-react"
 
 interface ProductFilterBarProps {
     table: Table<DisplayProduct>
@@ -14,6 +16,9 @@ interface ProductFilterBarProps {
     onSearchChange: (value: string) => void
     isFiltered: boolean
     onResetFilters: () => void
+    /** The redesign's status line: which metal, how many products, how many ticked, and the held price if there is one. */
+    summary?: { metalLabel: string; count: number; selected: number; held: string | null }
+    onCopy?: () => void
 }
 
 /** Search + faceted filters + the columns menu, above the product table. Search input has a stable id so the global "/" shortcut can focus it without prop-drilling a ref. */
@@ -23,6 +28,8 @@ export function ProductFilterBar({
     onSearchChange,
     isFiltered,
     onResetFilters,
+    summary,
+    onCopy,
 }: ProductFilterBarProps) {
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -63,9 +70,29 @@ export function ProductFilterBar({
                 </Tooltip>
             )}
 
-            <div className="ml-auto">
-                <CustomizeColumnsMenu table={table} />
-            </div>
+            {features.redesign && summary ? (
+                <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {summary.held && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
+                            <span aria-hidden className="bg-status-warn size-1.5 rounded-full" />
+                            Held {summary.metalLabel} {summary.held}
+                        </span>
+                    )}
+                    <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
+                        {summary.metalLabel} · {summary.count} products · {summary.selected} selected
+                    </span>
+                    {summary.selected > 0 && onCopy && (
+                        <Button variant="outline" size="sm" className="h-8 cursor-pointer" onClick={onCopy} title="Copy the ticked rows as a table">
+                            <Copy /> Copy
+                        </Button>
+                    )}
+                    <CustomizeColumnsMenu table={table} />
+                </div>
+            ) : (
+                <div className="ml-auto">
+                    <CustomizeColumnsMenu table={table} />
+                </div>
+            )}
         </div>
     )
 }

@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { FileSpreadsheet, Upload } from "lucide-react"
 import {
     guessSheetMonth,
+    guessSheetMonthFromTabs,
     type PlanRow,
     type PlanRowStatus,
     type TabPlan,
@@ -15,6 +16,8 @@ import {
 import { useTradesheetImportApi } from "@/api/tradesheet-import.api"
 import { readTradesheetFile } from "@/lib/tradesheet-reader"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { useOrdersApi } from "@/api/orders.api"
+import { features } from "@/config/features"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,14 +55,21 @@ const ROWS_SHOWN = 100
  * Drop a monthly trade sheet (.xlsx exported from Google Sheets) and see what it would add, change or flag
  * before anything is saved. The sheets stay the source: reimporting a month updates its rows by reference.
  */
-export default function TradesheetsPage() {
+function Shell({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) {
+    return embedded ? <>{children}</> : <BaseLayout title="Trade sheets" description="Import a monthly trade sheet and see what changes before it is saved">{children}</BaseLayout>
+}
+
+export default function TradesheetsPage({ embedded = false }: { embedded?: boolean }) {
     const api = useTradesheetImportApi()
+    const orders = useOrdersApi()
     const input = useRef<HTMLInputElement>(null)
     const [dragging, setDragging] = useState(false)
     const [reading, setReading] = useState(false)
     const [file, setFile] = useState<File | null>(null)
     const [backfill, setBackfill] = useState(false)
     const [request, setRequest] = useState<TradesheetImportRequest | null>(null)
+    // The month came from the dates in the file because its name did not say.
+    const [monthFromDates, setMonthFromDates] = useState(false)
     const [plan, setPlan] = useState<TradesheetImportPlan | null>(null)
     const [done, setDone] = useState<TradesheetImportResult | null>(null)
 
@@ -73,6 +83,12 @@ export default function TradesheetsPage() {
         onSuccess: (result) => {
             setDone(result)
             toast.success("Import saved")
+            // Sheet tasks the new trades show as done close themselves. Best effort: the import is already saved.
+            if (features.redesign)
+                orders
+                    .reconcile()
+                    .then((r) => r.closed && toast.success(`${r.closed} sheet task${r.closed > 1 ? "s" : ""} closed: this import shows them done.`))
+                    .catch(() => undefined)
         },
         onError: (e: Error) => toast.error(e.message),
     })
@@ -82,6 +98,7 @@ export default function TradesheetsPage() {
         setRequest(null)
         setPlan(null)
         setDone(null)
+        setMonthFromDates(false)
         if (input.current) input.current.value = ""
     }
 
@@ -95,10 +112,14 @@ export default function TradesheetsPage() {
             setPlan(null)
             setDone(null)
             try {
-                const body = await readTradesheetFile(chosen, month, source)
+                let body = await readTradesheetFile(chosen, month, source)
+                // A file whose name has no month (a master copy) is dated by its rows, so nobody has to type one.
+                const fromDates = !month ? guessSheetMonthFromTabs(body.tabs) : null
+                if (fromDates) body = { ...body, sheetMonth: fromDates }
                 setFile(chosen)
                 setRequest(body)
-                if (month) preview.mutate(body)
+                setMonthFromDates(fromDates !== null)
+                if (body.sheetMonth) preview.mutate(body)
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Could not read that file.")
             } finally {
@@ -122,6 +143,7 @@ export default function TradesheetsPage() {
     }
     const setMonth = (month: string) => {
         if (!request) return
+        setMonthFromDates(false)
         const next = { ...request, sheetMonth: month }
         setRequest(next)
         setPlan(null)
@@ -131,8 +153,36 @@ export default function TradesheetsPage() {
     const changes = plan ? plan.totals.added + plan.totals.changed + plan.totals.restored + plan.totals.missing : 0
 
     return (
-        <BaseLayout title="Trade sheets" description="Import a monthly trade sheet and see what changes before it is saved">
+        <Shell embedded={embedded}>
             <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
+                {features.redesign && (
+                    <ol className="flex flex-wrap gap-2 text-sm" aria-label="Steps">
+                        {["Choose the file", "Check the preview", "Save"].map((label, index) => {
+                            const current = done ? 2 : request ? 1 : 0
+                            const state = index < current ? "done" : index === current ? "current" : "todo"
+                            return (
+                                <li
+                                    key={label}
+                                    aria-current={state === "current" ? "step" : undefined}
+                                    className={cn(
+                                        "flex items-center gap-2 rounded-full border py-1 pr-3 pl-1",
+                                        state === "current" ? "border-primary text-foreground" : "text-muted-foreground",
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                                            state === "todo" ? "bg-muted" : "bg-primary text-primary-foreground",
+                                        )}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    {label}
+                                </li>
+                            )
+                        })}
+                    </ol>
+                )}
                 {!request && (
                     <label className="flex items-start gap-2 text-sm">
                         <input type="checkbox" className="mt-1" checked={backfill} onChange={(e) => setBackfill(e.target.checked)} />
@@ -178,7 +228,7 @@ export default function TradesheetsPage() {
                                 <span className="font-medium">{file?.name}</span>
                             </div>
                             <label className="text-sm">
-                                <span className="text-muted-foreground mb-1 block">Month this file covers</span>
+                                <span className="text-muted-foreground mb-1 block">{monthFromDates ? "Newest month in the file" : "Month this file covers"}</span>
                                 <Input type="month" className="w-44" value={request.sheetMonth} onChange={(e) => setMonth(e.target.value)} />
                             </label>
                             <div className="ml-auto flex gap-2">
@@ -220,7 +270,7 @@ export default function TradesheetsPage() {
                     </>
                 )}
             </div>
-        </BaseLayout>
+        </Shell>
     )
 }
 

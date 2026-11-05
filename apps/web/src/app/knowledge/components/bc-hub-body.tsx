@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { features } from "@/config/features"
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, ArrowUpRight, OctagonMinus } from 'lucide-react';
 import { KB_BC_HUB, type KbBcHubFlow, type KbBcHubItem, type KbGuideTarget } from '@goldilocks/shared-types';
@@ -82,7 +83,7 @@ export function HubBody({ library }: { library: KnowledgeLibrary }) {
                     Zoho → BC table
                 </h2>
                 <div className="overflow-hidden rounded-xl border bg-card">
-                    <div className="grid grid-cols-[1fr_1.4fr] gap-3.5 bg-foreground px-4 py-2.5 text-xs font-bold tracking-widest text-background uppercase" aria-hidden>
+                    <div className={cn("grid grid-cols-[1fr_1.4fr] gap-3.5 px-4 py-2.5 text-xs font-bold tracking-widest uppercase", features.redesign ? "bg-muted text-foreground" : "bg-foreground text-background")} aria-hidden>
                         <span>Zoho Books</span>
                         <span>Business Central</span>
                     </div>

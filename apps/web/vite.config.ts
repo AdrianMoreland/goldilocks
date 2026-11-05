@@ -20,6 +20,13 @@ export default defineConfig({
    /* define: {
         'import.meta.env.VITE_BASENAME': JSON.stringify(process.env.VITE_BASENAME || ''),
     },*/
+    build: {
+        rollupOptions: {
+            // Build containers cap open files at 1024. The default of 20 parallel file operations plus the icon library's
+            // thousands of small modules overran that, and Vite then reported installed packages as unresolvable.
+            maxParallelFileOps: 2,
+        },
+    },
     server: {
         host: true,
 

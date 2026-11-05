@@ -172,4 +172,46 @@ describe('GithubClient writes', () => {
         ).rejects.toThrow('GitHub answered 500');
         expect((global.fetch as jest.Mock).mock.calls).toHaveLength(1);
     });
+
+    it('lists open issues with a label, leaving out pull requests', async () => {
+        const calls = mockFetch({
+            'GET /repos/o/r/issues?state=open&labels=roadmap&per_page=100&sort=created&direction=desc':
+                reply(200, [
+                    {
+                        number: 3,
+                        title: 'An idea',
+                        body: null,
+                        html_url: 'https://github.com/o/r/issues/3',
+                        created_at: '2026-11-05T10:00:00Z',
+                        labels: [{ name: 'roadmap' }, 'idea'],
+                    },
+                    { number: 4, title: 'A PR', pull_request: {}, labels: [] },
+                ]),
+        });
+        const issues = await client().listOpenIssues('roadmap');
+        expect(issues).toEqual([
+            {
+                number: 3,
+                title: 'An idea',
+                body: '',
+                url: 'https://github.com/o/r/issues/3',
+                createdAt: '2026-11-05T10:00:00Z',
+                labels: ['roadmap', 'idea'],
+            },
+        ]);
+        expect(calls).toHaveLength(1);
+    });
+
+    it('closes an issue with a comment and a reason', async () => {
+        const calls = mockFetch({
+            'POST /repos/o/r/issues/3/comments': reply(201),
+            'PATCH /repos/o/r/issues/3': reply(200),
+        });
+        await client().closeIssue(3, 'Added.', 'completed');
+        expect(calls.map((c) => c.method)).toEqual(['POST', 'PATCH']);
+        expect(calls[1].body).toEqual({
+            state: 'closed',
+            state_reason: 'completed',
+        });
+    });
 });

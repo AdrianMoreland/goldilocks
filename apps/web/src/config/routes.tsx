@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { homePathFor } from '@goldilocks/shared-types'
 import { useAuth } from '@/contexts/auth-context'
 import { RequireAdmin, RequireAuth, RequireCapability, RequireManager } from '@/components/auth/require-auth'
+import { features } from '@/config/features'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -15,6 +16,13 @@ const Stocktake = lazy(() => import('@/app/stocktake/page'))
 const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
+const Inventory = lazy(() => import('@/app/inventory/page'))
+const Orders = lazy(() => import('@/app/orders/page'))
+const ImportHub = lazy(() => import('@/app/import/page'))
+const Customers = lazy(() => import('@/app/customers/page'))
+const CustomerDetail = lazy(() => import('@/app/customers/detail/page'))
+const Invoices = lazy(() => import('@/app/invoices/page'))
+const InvoiceDetail = lazy(() => import('@/app/invoices/detail/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
@@ -97,8 +105,23 @@ export const routes: RouteConfig[] = [
   // The roadmap tool being rebuilt (roadmap 1.20), developed beside /project and replacing it when complete — admins only
   {
     path: "/project2",
-    element: <RequireAdmin><Project2 /></RequireAdmin>
+    // With the redesign on, the rebuilt roadmap lives on /project, so the old address just goes there.
+    element: features.redesign
+      ? <RequireAdmin><Navigate to="/project" replace /></RequireAdmin>
+      : <RequireAdmin><Project2 /></RequireAdmin>
   },
+  // The redesign's stock and order pages: admins only for now (the API enforces the same).
+  ...(features.redesign
+    ? [
+        { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
+        { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
+        { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
+        { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
+        { path: "/customers/:id", element: <RequireAdmin><CustomerDetail /></RequireAdmin> },
+        { path: "/invoices", element: <RequireAdmin><Invoices /></RequireAdmin> },
+        { path: "/invoices/:id", element: <RequireAdmin><InvoiceDetail /></RequireAdmin> },
+      ]
+    : []),
   // Month-end stocktake: admins and managers; the API enforces the same on every call
   {
     path: "/stocktake",

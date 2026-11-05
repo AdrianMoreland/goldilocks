@@ -7,12 +7,14 @@ import { summarizeLines } from "@goldilocks/shared-types"
 import { useStocktakeApi } from "@/api/stocktake.api"
 import { queryKeys } from "@/lib/query-keys"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { nextStatus, statusLabel } from "../components/status"
+import { features } from "@/config/features"
+import { UNDERLINE_TAB, UNDERLINE_TAB_LIST } from "@/lib/underline-tabs"
+import { nextStatus } from "../components/status"
+import { ProgressHeader } from "../components/progress-header"
 import { CountPanel } from "../components/count-panel"
 import { ImportPanel } from "../components/import-panel"
 import { BarsPanel } from "../components/bars-panel"
@@ -82,11 +84,15 @@ export default function StocktakeDetailPage() {
     return (
         <BaseLayout title={data.name} description={`Counted ${data.countDate} · reconciled to ${data.cutoffDate}`} headerActions={() => back}>
             <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
+                <ProgressHeader
+                    status={data.status}
+                    lines={summary.lines}
+                    counted={summary.counted}
+                    withVariance={summary.withVariance}
+                    unresolved={unresolved}
+                />
+
                 <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant={locked ? "secondary" : "outline"}>{statusLabel[data.status]}</Badge>
-                    <span className="text-muted-foreground text-sm">
-                        {summary.counted}/{summary.lines} lines counted · {summary.withVariance} with a difference · {unresolved} open in the register
-                    </span>
                     {!locked && (
                         <div className="ml-auto flex gap-2">
                             {step && (
@@ -137,15 +143,15 @@ export default function StocktakeDetailPage() {
                 </div>
 
                 <Tabs value={tab} onValueChange={setTab}>
-                    <TabsList className="flex-wrap">
-                        <TabsTrigger value="count">Count</TabsTrigger>
-                        <TabsTrigger value="import">Import</TabsTrigger>
-                        <TabsTrigger value="bars">Bars</TabsTrigger>
-                        <TabsTrigger value="coins">Coins</TabsTrigger>
-                        <TabsTrigger value="serials">Serials</TabsTrigger>
-                        <TabsTrigger value="register">Register ({data.discrepancies.length})</TabsTrigger>
-                        <TabsTrigger value="items">BC items</TabsTrigger>
-                        <TabsTrigger value="report">Report</TabsTrigger>
+                    <TabsList className={features.redesign ? UNDERLINE_TAB_LIST : "flex-wrap"}>
+                        <TabsTrigger value="count" className={features.redesign ? UNDERLINE_TAB : undefined}>Count</TabsTrigger>
+                        <TabsTrigger value="import" className={features.redesign ? UNDERLINE_TAB : undefined}>Import</TabsTrigger>
+                        <TabsTrigger value="bars" className={features.redesign ? UNDERLINE_TAB : undefined}>Bars</TabsTrigger>
+                        <TabsTrigger value="coins" className={features.redesign ? UNDERLINE_TAB : undefined}>Coins</TabsTrigger>
+                        <TabsTrigger value="serials" className={features.redesign ? UNDERLINE_TAB : undefined}>Serials</TabsTrigger>
+                        <TabsTrigger value="register" className={features.redesign ? UNDERLINE_TAB : undefined}>Register ({data.discrepancies.length})</TabsTrigger>
+                        <TabsTrigger value="items" className={features.redesign ? UNDERLINE_TAB : undefined}>BC items</TabsTrigger>
+                        <TabsTrigger value="report" className={features.redesign ? UNDERLINE_TAB : undefined}>Report</TabsTrigger>
                     </TabsList>
                     <TabsContent value="count">
                         <CountPanel stocktake={data} locked={locked} onChanged={refresh} />

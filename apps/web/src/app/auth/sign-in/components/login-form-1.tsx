@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { homePathFor } from "@goldilocks/shared-types"
+import { Eye, EyeOff } from "lucide-react"
+import { features } from "@/config/features"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { ApiError } from "@/hooks/useApi"
@@ -52,6 +54,7 @@ export function LoginForm1({
   const location = useLocation()
   const [error, setError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+  const [showPassword, setShowPassword] = React.useState(false)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -86,6 +89,11 @@ export function LoginForm1({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
+          {features.redesign && (
+            <div className="bg-primary text-primary-foreground mx-auto mb-1 grid size-9 place-items-center rounded-lg text-sm font-bold" aria-hidden>
+              M
+            </div>
+          )}
           <CardTitle className="text-xl">Merrion Gold Pricing Workbook</CardTitle>
           <CardDescription>
             Sign in with your staff account
@@ -121,7 +129,19 @@ export function LoginForm1({
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" autoComplete="current-password" {...field} />
+                          <div className="relative">
+                            <Input type={features.redesign && showPassword ? "text" : "password"} autoComplete="current-password" className={features.redesign ? "pe-10" : undefined} {...field} />
+                            {features.redesign && (
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="text-muted-foreground hover:text-foreground absolute inset-y-0 end-0 grid w-10 place-items-center"
+                              >
+                                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                              </button>
+                            )}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

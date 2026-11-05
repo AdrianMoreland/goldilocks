@@ -33,6 +33,7 @@ import { MarketModeService } from '../../modules/market-mode/market-mode.service
 import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
 import { RoadmapPullService } from '../../modules/roadmap/roadmap-pull.service';
 import { RoadmapPushService } from '../../modules/roadmap/roadmap-push.service';
+import { RoadmapInboxService } from '../../modules/roadmap/roadmap-inbox.service';
 import { RoadmapWebhookController } from '../../modules/roadmap/roadmap-webhook.controller';
 import { ConfigService } from '@nestjs/config';
 import { RoadmapService } from '../../modules/roadmap/roadmap.service';
@@ -209,6 +210,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: RoadmapSyncService, useValue: {} },
                 { provide: RoadmapPullService, useValue: {} },
                 { provide: RoadmapPushService, useValue: {} },
+                { provide: RoadmapInboxService, useValue: {} },
                 { provide: ConfigService, useValue: { get: () => undefined } },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },

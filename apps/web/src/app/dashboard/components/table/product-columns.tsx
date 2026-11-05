@@ -26,6 +26,7 @@ import { DeleteProductDialog } from "./delete-product-dialog"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import type { DisplayProduct, ProductGroup } from "./product-grouping"
 import { formatPercent, formatPrice } from "../../utils/formatters"
+import { features } from "@/config/features"
 
 /** `isFocused` reflects arrow-key row navigation (see use-row-navigation.hook.ts) — a keyboard-only affordance, distinct from `getIsSelected()`'s checkbox state. */
 export function ProductRow({ row, isFocused }: { row: Row<DisplayProduct>; isFocused?: boolean }) {
@@ -280,7 +281,8 @@ export const productColumns: ColumnDef<DisplayProduct>[] = [
             <div className="flex items-center justify-center">
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className="inline-flex">
+                        {/* The redesign makes the whole cell the tick area, not the 13px box. */}
+                        <span className={features.redesign ? "grid min-h-9 min-w-10 cursor-pointer place-items-center pointer-coarse:min-h-11 pointer-coarse:min-w-12" : "inline-flex"}>
                             <Checkbox
                                 checked={row.getIsSelected()}
                                 onCheckedChange={(value) => row.toggleSelected(!!value)}

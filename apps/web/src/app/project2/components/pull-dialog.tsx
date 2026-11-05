@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import type { RoadmapPullResult } from "@goldilocks/shared-types"
 import { useRoadmapSyncApi } from "@/api/roadmap-sync.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { canApply, describeEntry, pullHeadline } from "../sync-state"
+import { StatusDot } from "@/components/status-dot"
+import { canApply, clip, entryLabel, entryTone, pullHeadline, summarizeLog } from "../sync-state"
 
 const SHOWN = 10
 
@@ -23,6 +25,28 @@ function List({ title, items }: { title: string; items: string[] }) {
                 ))}
             </ul>
             {items.length > SHOWN && <p className="text-muted-foreground mt-1 pl-5 text-xs">and {items.length - SHOWN} more</p>}
+        </div>
+    )
+}
+
+/** The merge log as one hairline-ruled list: a dot and short label for what happened, then the roadmap line itself in mono. */
+function MergeLog({ log }: { log: RoadmapPullResult["log"] }) {
+    const { fromMaster, appOnly, needLook } = summarizeLog(log)
+    return (
+        <div className="text-sm">
+            <p className="font-medium">What happens</p>
+            <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
+                {fromMaster} from master · {appOnly} only in the app · {needLook} to look at
+            </p>
+            <ul className="mt-2 max-h-64 divide-y overflow-y-auto rounded-md border">
+                {log.map((entry, i) => (
+                    <li key={i} className="flex items-baseline gap-2.5 px-3 py-2">
+                        <StatusDot tone={entryTone(entry)} className="translate-y-[-1px]" />
+                        <span className="text-muted-foreground w-36 shrink-0 text-xs">{entryLabel(entry)}</span>
+                        <span className="min-w-0 flex-1 font-mono text-xs break-words">{clip(entry.text, 120)}</span>
+                    </li>
+                ))}
+            </ul>
         </div>
     )
 }
@@ -113,7 +137,7 @@ export function PullDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                             </>
                         )}
 
-                        {result.mode === "merge" && <List title="What happens" items={result.log.map(describeEntry)} />}
+                        {result.mode === "merge" && result.log.length > 0 && <MergeLog log={result.log} />}
                         {result.mode === "merge" && result.log.length === 0 && result.appChanged === false && (
                             <p className="text-muted-foreground text-sm">Master has changes, but none that the app needs.</p>
                         )}

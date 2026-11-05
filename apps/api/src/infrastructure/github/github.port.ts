@@ -35,6 +35,15 @@ export interface OpenPullRequest {
     base: string;
 }
 
+export interface GithubIssue {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    labels: string[];
+    createdAt: string;
+}
+
 export interface GithubPort {
     /** Whether a token is configured (reads of a public repository work without one). */
     isConfigured(): boolean;
@@ -47,6 +56,14 @@ export interface GithubPort {
     writeFileOnBranch(input: WriteFileOnBranch): Promise<{ commit: string }>;
     openPullRequest(input: OpenPullRequest): Promise<GithubPullRequest>;
     updatePullRequest(number: number, body: string): Promise<void>;
+    /** Open issues carrying `label` (pull requests excluded), newest first, up to 100. */
+    listOpenIssues(label: string): Promise<GithubIssue[]>;
+    /** Comments on an issue and closes it. `completed` for a promoted idea, `not_planned` for a dismissed one. */
+    closeIssue(
+        number: number,
+        comment: string,
+        reason: 'completed' | 'not_planned',
+    ): Promise<void>;
 }
 
 export const GITHUB = Symbol('GITHUB');

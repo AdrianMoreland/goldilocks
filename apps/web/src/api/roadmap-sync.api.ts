@@ -1,8 +1,12 @@
 import { useApiClient } from '@/api/api-client';
 import {
+    RoadmapInboxItemSchema,
+    RoadmapInboxRefreshSchema,
+    RoadmapInboxSchema,
     RoadmapPullResultSchema,
     RoadmapPushResultSchema,
     RoadmapSyncStatusSchema,
+    type RoadmapInboxPromote,
     type RoadmapPullRequest,
     type RoadmapPushRequest,
 } from '@goldilocks/shared-types';
@@ -15,5 +19,9 @@ export function useRoadmapSyncApi() {
         getSyncStatus: () => client.get('/roadmap/sync', RoadmapSyncStatusSchema),
         pull: (body: RoadmapPullRequest) => client.post('/roadmap/sync/pull', body, RoadmapPullResultSchema),
         push: (body: RoadmapPushRequest) => client.post('/roadmap/sync/push', body, RoadmapPushResultSchema),
+        getInbox: () => client.get('/roadmap/inbox', RoadmapInboxSchema),
+        refreshInbox: () => client.post('/roadmap/inbox/refresh', {}, RoadmapInboxRefreshSchema),
+        promoteInboxItem: (id: number, body: RoadmapInboxPromote) => client.post(`/roadmap/inbox/${id}/promote`, body, RoadmapInboxItemSchema),
+        dismissInboxItem: (id: number) => client.post(`/roadmap/inbox/${id}/dismiss`, {}, RoadmapInboxItemSchema),
     };
 }
