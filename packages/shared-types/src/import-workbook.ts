@@ -19,7 +19,7 @@ const MAX_YEAR = 2100;
 const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const URL_RE = /\bhttps?:\/\/|\bwww\./i;
 
-type Coerced = { value: unknown; issue?: ImportRowIssueCode; raw?: string };
+export type Coerced = { value: unknown; issue?: ImportRowIssueCode; raw?: string };
 const ok = (value: unknown): Coerced => ({ value });
 const bad = (issue: ImportRowIssueCode, raw: unknown): Coerced => ({ value: null, issue, raw: String(raw).slice(0, 40) });
 
@@ -52,7 +52,8 @@ function dateParts(v: unknown): { y: number; m: number; d: number | null; hasDay
   return null;
 }
 
-function coerce(kind: ColumnKind, v: unknown): Coerced {
+/** One cell read the way the workbook reader reads it; `issue` is set when the value could not be used. */
+export function coerceCell(kind: ColumnKind, v: unknown): Coerced {
   if (isEmpty(v)) return ok(null);
   if (kind === 's') {
     let s: string;
@@ -164,7 +165,7 @@ export function readImportWorkbook(sheets: RawSheets): ImportReadResult {
       let drop = false;
       colIndex.forEach((col, i) => {
         if (!col) return;
-        const res = coerce(spec[col]!, cells[i]);
+        const res = coerceCell(spec[col]!, cells[i]);
         row[col] = res.value;
         if (!res.issue) return;
         const key = `${name}.${res.issue}`;

@@ -89,3 +89,4 @@ export * from './product-resolver';
 export * from './detect-file-type';
 export * from './import-workbook.fixture';
 export * from './import-workbook-api.schema';
+export * from './import-hub';

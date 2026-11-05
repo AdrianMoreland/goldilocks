@@ -90,3 +90,16 @@ export const BcAwaitingResultSchema = z.object({
   noTrade: z.number().int(),
 });
 export type BcAwaitingResult = z.infer<typeof BcAwaitingResultSchema>;
+
+export const ImportBatchSummarySchema = z.object({
+  id: z.number().int(),
+  fileName: z.string(),
+  importedBy: z.string(),
+  importedAt: z.string(),
+  status: z.string(),
+  schemaVersion: z.string().nullable(),
+  /** Per table: added, changed, unchanged, unmatched. */
+  tableCounts: z.record(z.string(), z.record(z.string(), z.number())).nullable(),
+});
+export type ImportBatchSummary = z.infer<typeof ImportBatchSummarySchema>;
+export const ImportBatchListSchema = z.array(ImportBatchSummarySchema);
