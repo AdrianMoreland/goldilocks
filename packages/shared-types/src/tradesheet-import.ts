@@ -191,6 +191,32 @@ export const mapSaleHeaders = (headers: SheetValue[]): HeaderMap<SaleField> => m
 export const mapPurchaseHeaders = (headers: SheetValue[]): HeaderMap<PurchaseField> => mapHeaders(headers, PURCHASE_ALIASES);
 
 /**
+ * The month a file covers, read from the dates in its rows, for a file whose name does not say. It is the month of
+ * the newest sale or purchase date that is not in the future, so a master file that runs January to August reads as
+ * 2026-08. A stray date far in the past or the future (a typo such as the year 206) cannot win. Null when no tab
+ * holds a usable date.
+ */
+export function guessSheetMonthFromTabs(
+  tabs: ReadonlyArray<{ headers: SheetValue[]; rows: ReadonlyArray<{ cells: SheetValue[] }> }>,
+  now: Date = new Date(),
+): string | null {
+  const latestAllowed = new Date(now.getTime() + 31 * 86400000).toISOString().slice(0, 10);
+  const earliestAllowed = '2020-01-01';
+  let best: string | null = null;
+  for (const tab of tabs) {
+    const columns = [mapSaleHeaders(tab.headers).date, mapPurchaseHeaders(tab.headers).received].filter((c): c is number => c !== undefined);
+    if (columns.length === 0) continue;
+    for (const row of tab.rows) {
+      for (const column of columns) {
+        const iso = toIsoDate(row.cells[column] ?? null);
+        if (iso && iso >= earliestAllowed && iso <= latestAllowed && (best === null || iso > best)) best = iso;
+      }
+    }
+  }
+  return best ? best.slice(0, 7) : null;
+}
+
+/**
  * The header is on row 1 in the real sheets and on row 2 in the July copy (row 1 is a timestamp). Looks at the
  * first rows for the one that names a reference column and enough other known columns.
  */
