@@ -4,11 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { countTasks, parseRoadmap, type RoadmapEdit } from "@goldilocks/shared-types"
 import { useRoadmapApi } from "@/api/roadmap.api"
+import { useRoadmapSyncApi } from "@/api/roadmap-sync.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { newItems } from "../inbox-state"
 import { NO_FILTER, sectionMatches, type RoadmapFilter } from "../roadmap-state"
 import { BoardTab } from "./board-tab"
+import { InboxTab } from "./inbox-tab"
 import { OverviewTab } from "./overview-tab"
 import { RoadmapTree } from "./roadmap-tree"
 import { SectionSheet } from "./section-sheet"
@@ -17,6 +20,7 @@ const TABS = [
     { key: "overview", label: "Overview" },
     { key: "roadmap", label: "Roadmap" },
     { key: "board", label: "Board" },
+    { key: "inbox", label: "Inbox" },
 ] as const
 
 type TabKey = (typeof TABS)[number]["key"]
@@ -30,11 +34,14 @@ type TabKey = (typeof TABS)[number]["key"]
  */
 export function RoadmapView() {
     const api = useRoadmapApi()
+    const syncApi = useRoadmapSyncApi()
     const queryClient = useQueryClient()
     const [params, setParams] = useSearchParams()
     const [filter, setFilter] = useState<RoadmapFilter>(NO_FILTER)
 
     const roadmap = useQuery({ queryKey: queryKeys.roadmap, queryFn: api.getRoadmap })
+    // Shares its key with the Inbox tab, so opening the tab does not fetch again. A failure only hides the count.
+    const inbox = useQuery({ queryKey: queryKeys.roadmapInbox, queryFn: syncApi.getInbox })
     const markdown = roadmap.data?.markdown
     const sections = useMemo(() => (markdown ? parseRoadmap(markdown) : []), [markdown])
     const visible = useMemo(() => sections.filter((s) => sectionMatches(s, filter)), [sections, filter])
@@ -85,7 +92,7 @@ export function RoadmapView() {
         const { done, total } = countTasks(s.tasks)
         return done < total
     }).length
-    const counts: Record<TabKey, number | null> = { overview: null, roadmap: sections.length, board: openSections }
+    const counts: Record<TabKey, number | null> = { overview: null, roadmap: sections.length, board: openSections, inbox: inbox.data ? newItems(inbox.data.items).length : null }
     const runEdit = (change: RoadmapEdit) => edit.mutate(change)
     const select = (next: TabKey) => update({ tab: next === "overview" ? null : next, s: null })
 
@@ -138,7 +145,9 @@ export function RoadmapView() {
             )}
             {tab === "board" && <BoardTab sections={sections} onOpen={(key) => update({ s: key })} />}
 
-            {tab !== "roadmap" && <SectionSheet section={openSection} hideDone={filter.hideDone} busy={edit.isPending} onEdit={runEdit} onClose={() => update({ s: null })} />}
+            {tab === "inbox" && <InboxTab sections={sections} version={roadmap.data?.version ?? 0} busy={edit.isPending} />}
+
+            {(tab === "overview" || tab === "board") && <SectionSheet section={openSection} hideDone={filter.hideDone} busy={edit.isPending} onEdit={runEdit} onClose={() => update({ s: null })} />}
         </div>
     )
 }

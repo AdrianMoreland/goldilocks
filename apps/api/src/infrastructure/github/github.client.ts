@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
     GithubFile,
+    GithubIssue,
     GithubPort,
     GithubPullRequest,
     OpenPullRequest,
@@ -226,6 +227,47 @@ export class GithubClient implements GithubPort {
     async updatePullRequest(number: number, body: string) {
         await this.json(`/repos/${this.repo}/pulls/${number}`, 'PATCH', {
             body,
+        });
+    }
+
+    async listOpenIssues(label: string): Promise<GithubIssue[]> {
+        const res = await this.request(
+            `/repos/${this.repo}/issues?state=open&labels=${encodeURIComponent(label)}&per_page=100&sort=created&direction=desc`,
+            'application/vnd.github+json',
+        );
+        const rows = (await res.json()) as {
+            number: number;
+            title: string;
+            body: string | null;
+            html_url: string;
+            created_at: string;
+            labels: (string | { name?: string })[];
+            pull_request?: unknown;
+        }[];
+        return rows
+            .filter((r) => !r.pull_request)
+            .map((r) => ({
+                number: r.number,
+                title: r.title,
+                body: r.body ?? '',
+                url: r.html_url,
+                createdAt: r.created_at,
+                labels: r.labels.map((l) =>
+                    typeof l === 'string' ? l : (l.name ?? ''),
+                ),
+            }));
+    }
+
+    async closeIssue(
+        number: number,
+        comment: string,
+        reason: 'completed' | 'not_planned',
+    ) {
+        const repo = `/repos/${this.repo}/issues/${number}`;
+        await this.json(`${repo}/comments`, 'POST', { body: comment });
+        await this.json(repo, 'PATCH', {
+            state: 'closed',
+            state_reason: reason,
         });
     }
 }

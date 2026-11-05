@@ -13,6 +13,7 @@ import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { isValidGithubSignature } from './github-signature';
+import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 
 /**
@@ -28,6 +29,7 @@ export class RoadmapWebhookController {
 
     constructor(
         private readonly pulls: RoadmapPullService,
+        private readonly inbox: RoadmapInboxService,
         private readonly config: ConfigService,
     ) {}
 
@@ -45,6 +47,11 @@ export class RoadmapWebhookController {
             throw new UnauthorizedException('Invalid signature');
         }
         if (event === 'ping') return { ok: true };
+        // A new or relabelled issue: copy it into the inbox in the background (a no-op when it is not a roadmap one).
+        if (event === 'issues') {
+            void this.inbox.autoRefresh();
+            return { accepted: true };
+        }
 
         const body = req.body as { ref?: unknown } | undefined;
         if (event !== 'push' || body?.ref !== 'refs/heads/master') {

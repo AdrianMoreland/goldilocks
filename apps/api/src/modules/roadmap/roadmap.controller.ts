@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    ParseIntPipe,
+    Post,
+    Req,
+    UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
     ApiBearerAuth,
@@ -15,6 +24,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import {
     RoadmapDocumentDto,
     RoadmapEditRequestDto,
+    RoadmapInboxDto,
+    RoadmapInboxItemDto,
+    RoadmapInboxPromoteDto,
+    RoadmapInboxRefreshDto,
     RoadmapPullRequestDto,
     RoadmapPullResultDto,
     RoadmapPushRequestDto,
@@ -22,6 +35,7 @@ import {
     RoadmapSyncStatusDto,
 } from '../../common/dto/dtos';
 import { RoadmapService } from './roadmap.service';
+import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
 import { RoadmapSyncService } from './roadmap-sync.service';
@@ -37,6 +51,7 @@ export class RoadmapController {
         private readonly sync: RoadmapSyncService,
         private readonly pulls: RoadmapPullService,
         private readonly pushes: RoadmapPushService,
+        private readonly inbox: RoadmapInboxService,
     ) {}
 
     @Get()
@@ -85,5 +100,46 @@ export class RoadmapController {
     @ApiResponse({ status: 201, type: RoadmapDocumentDto })
     edit(@Body() body: RoadmapEditRequestDto, @Req() req: RequestWithUser) {
         return this.service.edit(body, req.user);
+    }
+
+    @Get('inbox')
+    @ApiOperation({
+        summary:
+            'Captured ideas (GitHub issues labelled roadmap) to triage (admin)',
+    })
+    @ApiResponse({ status: 200, type: RoadmapInboxDto })
+    inboxList() {
+        return this.inbox.list();
+    }
+
+    @Post('inbox/refresh')
+    @Throttle({ default: { limit: 6, ttl: 60_000 } })
+    @ApiOperation({ summary: 'Fetch new roadmap issues from GitHub (admin)' })
+    @ApiResponse({ status: 201, type: RoadmapInboxRefreshDto })
+    inboxRefresh() {
+        return this.inbox.refresh();
+    }
+
+    @Post('inbox/:id/promote')
+    @ApiOperation({
+        summary: 'Add an inbox item to the roadmap as a task (admin)',
+    })
+    @ApiResponse({ status: 201, type: RoadmapInboxItemDto })
+    inboxPromote(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: RoadmapInboxPromoteDto,
+        @Req() req: RequestWithUser,
+    ) {
+        return this.inbox.promote(id, body, req.user.email);
+    }
+
+    @Post('inbox/:id/dismiss')
+    @ApiOperation({ summary: 'Dismiss an inbox item (admin)' })
+    @ApiResponse({ status: 201, type: RoadmapInboxItemDto })
+    inboxDismiss(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: RequestWithUser,
+    ) {
+        return this.inbox.dismiss(id, req.user.email);
     }
 }

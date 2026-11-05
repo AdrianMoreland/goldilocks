@@ -38,6 +38,8 @@ describe('RoadmapPushService', () => {
         writeFileOnBranch: jest.fn(),
         openPullRequest: jest.fn(),
         updatePullRequest: jest.fn(),
+        listOpenIssues: jest.fn(),
+        closeIssue: jest.fn(),
     } satisfies GithubPort & Record<string, unknown>;
 
     beforeEach(async () => {
