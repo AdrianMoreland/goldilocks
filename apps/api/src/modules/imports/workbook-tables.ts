@@ -391,7 +391,21 @@ export function comparable(v: unknown): unknown {
     ) {
         return (v as { toNumber(): number }).toNumber();
     }
+    // A JSON column: compare by content, not by object identity or key order (the database keeps keys in its own order).
+    if (typeof v === 'object') return canonicalJson(v);
     return v;
+}
+
+function canonicalJson(v: unknown): string {
+    if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
+    if (v !== null && typeof v === 'object') {
+        const o = v as Record<string, unknown>;
+        return `{${Object.keys(o)
+            .sort()
+            .map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`)
+            .join(',')}}`;
+    }
+    return JSON.stringify(v);
 }
 
 /** The fields of `next` that differ from `existing`. */

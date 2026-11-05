@@ -422,6 +422,28 @@ describe('WorkbookImportService', () => {
         ]);
     });
 
+    it('does not call a JSON column changed just because the database reordered its keys', async () => {
+        const { service, t } = setup();
+        const coins = rowsOf('stock_coins', (r) => ({
+            ...r,
+            snapshot: 'safe',
+            counts_json: '{"oct":4,"sept":2}',
+        }));
+        await service.commit(req('stock_coins', coins), 'a');
+        for (const row of t.stocktakeCoin.rows)
+            row['countsJson'] = { sept: 2, oct: 4 };
+        const again = await service.commit(req('stock_coins', coins), 'a');
+        expect(again).toMatchObject({ added: 0, changed: 0, unchanged: 3 });
+
+        const edited = coins.map((c) => ({
+            ...c,
+            counts_json: '{"oct":5,"sept":2}',
+        }));
+        expect(
+            (await service.commit(req('stock_coins', edited), 'a')).changed,
+        ).toBe(3);
+    });
+
     it('keeps a confirmed alias link: productKey is only set on create', async () => {
         const { service, t } = setup();
         const aliases = rowsOf('product_aliases', (r) => ({ ...r, uses: 5 }));
