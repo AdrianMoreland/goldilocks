@@ -100,5 +100,8 @@ export type ReconcileResult = z.infer<typeof ReconcileResultSchema>;
 
 export const HandoverSchema = z.object({ id: z.number(), note: z.string(), by: z.string(), createdAt: z.iso.datetime() });
 export type Handover = z.infer<typeof HandoverSchema>;
+/** Wrapped so that "no note yet" is a normal answer, not an empty body. */
+export const LatestHandoverSchema = z.object({ handover: HandoverSchema.nullable() });
+export type LatestHandover = z.infer<typeof LatestHandoverSchema>;
 export const SaveHandoverRequestSchema = z.object({ note: z.string().trim().min(1).max(2000) });
 export type SaveHandoverRequest = z.infer<typeof SaveHandoverRequestSchema>;
