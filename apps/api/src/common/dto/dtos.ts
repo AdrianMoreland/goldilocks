@@ -47,6 +47,9 @@ import {
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
     BcAwaitingRequestSchema,
+    LinkDecisionRequestSchema,
+    CreateSalesProductRequestSchema,
+    MapAliasRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -538,4 +541,19 @@ export class SaveHandoverRequestDto extends createDto(
 export class BcAwaitingRequestDto extends createDto(
     BcAwaitingRequestSchema,
     'BcAwaitingRequestDto',
+) {}
+
+export class LinkDecisionRequestDto extends createDto(
+    LinkDecisionRequestSchema,
+    'LinkDecisionRequestDto',
+) {}
+
+export class CreateSalesProductRequestDto extends createDto(
+    CreateSalesProductRequestSchema,
+    'CreateSalesProductRequestDto',
+) {}
+
+export class MapAliasRequestDto extends createDto(
+    MapAliasRequestSchema,
+    'MapAliasRequestDto',
 ) {}

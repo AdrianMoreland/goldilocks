@@ -6,9 +6,10 @@ import TradesheetsPage from "@/app/tradesheets/page"
 import { BatchHistory } from "./batch-history"
 import { BcReportTab } from "./bc-report-tab"
 import { MapStep } from "./map-step"
+import { ReviewTab } from "./review-tab"
 import { WorkbookTab } from "./workbook-tab"
 
-type Tab = "tradesheet" | "workbook" | "bc"
+type Tab = "tradesheet" | "workbook" | "bc" | "review"
 
 /**
  * Where files go in. The monthly tradesheet is the existing import. The assembled workbook and the Business Central
@@ -28,10 +29,16 @@ export default function ImportHubPage() {
                         { value: "tradesheet", label: "Tradesheet" },
                         { value: "workbook", label: "Assembled workbook" },
                         { value: "bc", label: "BC awaiting collection" },
+                        { value: "review", label: "Review" },
                     ]}
                 />
                 {tab === "tradesheet" && <TradesheetsPage embedded />}
-                {tab !== "tradesheet" && (
+                {tab === "review" && (
+                    <div className="mx-auto w-full max-w-6xl">
+                        <ReviewTab />
+                    </div>
+                )}
+                {(tab === "workbook" || tab === "bc") && (
                     <div className="mx-auto w-full max-w-6xl space-y-4">
                         <MapStep map={map} onChange={setMap} />
                         {tab === "workbook" && <WorkbookTab map={map} />}
