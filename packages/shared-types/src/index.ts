@@ -91,3 +91,4 @@ export * from './import-workbook.fixture';
 export * from './import-workbook-api.schema';
 export * from './import-hub';
 export * from './review.schema';
+export * from './customer-records.schema';

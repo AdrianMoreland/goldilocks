@@ -47,6 +47,7 @@ import {
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
     BcAwaitingRequestSchema,
+    RecordSearchRequestSchema,
     LinkDecisionRequestSchema,
     CreateSalesProductRequestSchema,
     MapAliasRequestSchema,
@@ -556,4 +557,9 @@ export class CreateSalesProductRequestDto extends createDto(
 export class MapAliasRequestDto extends createDto(
     MapAliasRequestSchema,
     'MapAliasRequestDto',
+) {}
+
+export class RecordSearchRequestDto extends createDto(
+    RecordSearchRequestSchema,
+    'RecordSearchRequestDto',
 ) {}

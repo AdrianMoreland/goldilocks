@@ -12,7 +12,7 @@ describe("navGroupsFor", () => {
   it("gives an admin the Stock & orders group and a separate Admin group when asked", () => {
     const groups = navGroupsFor({ isAdmin: true, isManager: true, grouped: true, capabilities: withWorkbook })
     expect(groups.map((group) => group.label)).toEqual(["Navigation", "Stock & orders", "Admin"])
-    expect(groups[1].items.map((item) => item.url)).toEqual(["/inventory", "/orders", "/import"])
+    expect(groups[1].items.map((item) => item.url)).toEqual(["/inventory", "/orders", "/import", "/customers", "/invoices"])
     expect(groups[2].items.map((item) => item.url)).toEqual(["/admin", "/project"])
   })
 
