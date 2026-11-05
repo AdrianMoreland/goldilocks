@@ -70,6 +70,7 @@ export * from './roadmap.schema';
 export * from './roadmap';
 export * from './roadmap-merge';
 export * from './roadmap-sync.schema';
+export * from './roadmap-inbox.schema';
 export * from './roadmap-sync';
 export * from './design-md';
 export * from './stocktake';

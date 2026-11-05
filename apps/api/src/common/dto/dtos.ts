@@ -17,6 +17,10 @@ import {
     BranchSchema,
     MarketModeStateSchema,
     RoadmapDocumentSchema,
+    RoadmapInboxItemSchema,
+    RoadmapInboxPromoteSchema,
+    RoadmapInboxRefreshSchema,
+    RoadmapInboxSchema,
     RoadmapEditRequestSchema,
     RoadmapPullRequestSchema,
     RoadmapPullResultSchema,
@@ -389,6 +393,26 @@ export class MarketModeStateDto extends createDto(
 export class UpdateMarketModeRequestDto extends createDto(
     UpdateMarketModeRequestSchema,
     'UpdateMarketModeRequestDto',
+) {}
+
+export class RoadmapInboxDto extends createDto(
+    RoadmapInboxSchema,
+    'RoadmapInboxDto',
+) {}
+
+export class RoadmapInboxItemDto extends createDto(
+    RoadmapInboxItemSchema,
+    'RoadmapInboxItemDto',
+) {}
+
+export class RoadmapInboxRefreshDto extends createDto(
+    RoadmapInboxRefreshSchema,
+    'RoadmapInboxRefreshDto',
+) {}
+
+export class RoadmapInboxPromoteDto extends createDto(
+    RoadmapInboxPromoteSchema,
+    'RoadmapInboxPromoteDto',
 ) {}
 
 export class RoadmapDocumentDto extends createDto(

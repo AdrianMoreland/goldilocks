@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
 
@@ -16,11 +17,13 @@ export class RoadmapCron {
     constructor(
         private readonly pulls: RoadmapPullService,
         private readonly pushes: RoadmapPushService,
+        private readonly inbox: RoadmapInboxService,
     ) {}
 
     @Cron('15 6 * * *', { timeZone: 'Europe/Dublin' })
     async daily() {
         await this.pulls.autoPull(ACTOR);
+        await this.inbox.autoRefresh();
         if (process.env.ROADMAP_DAILY_PUSH !== 'true') return;
         try {
             const r = await this.pushes.push(ACTOR);
