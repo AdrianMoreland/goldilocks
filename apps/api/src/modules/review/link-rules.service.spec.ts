@@ -3,7 +3,13 @@ import { LinkRulesService } from './link-rules.service';
 type R = Record<string, unknown>;
 
 /** Just the Prisma calls the rules make, over in-memory rows. */
-function setup(data: { links: R[]; trades: R[]; lots: R[]; lines?: R[] }) {
+function setup(data: {
+    links: R[];
+    trades: R[];
+    lots: R[];
+    lines?: R[];
+    quotes?: R[];
+}) {
     const updates: { ids: number[]; data: R }[] = [];
     const db = {
         entityLink: {
@@ -57,6 +63,30 @@ function setup(data: { links: R[]; trades: R[]; lots: R[]; lines?: R[] }) {
                     data.lots.filter((l) =>
                         where.sourceKey.in.includes(l.sourceKey as string),
                     ),
+            ),
+        },
+        quote: {
+            findMany: jest.fn(
+                async ({ where }: { where: { sourceKey: { in: string[] } } }) =>
+                    (data.quotes ?? []).filter((q) =>
+                        where.sourceKey.in.includes(q.sourceKey as string),
+                    ),
+            ),
+            updateMany: jest.fn(
+                async ({
+                    where,
+                }: {
+                    where: { sourceKey: { in: string[] } };
+                }) => {
+                    const hit = (data.quotes ?? []).filter(
+                        (q) =>
+                            where.sourceKey.in.includes(
+                                q.sourceKey as string,
+                            ) && q.status === 'OPEN',
+                    );
+                    for (const q of hit) q.status = 'INVOICED';
+                    return { count: hit.length };
+                },
             ),
         },
         zohoInvoiceLine: {
@@ -117,6 +147,7 @@ describe('LinkRulesService', () => {
             confirmed: 1,
             asked: 1,
             overAllocated: 1,
+            quotesInvoiced: 0,
         });
         expect(updates).toEqual([
             {
@@ -146,6 +177,7 @@ describe('LinkRulesService', () => {
             confirmed: 1,
             asked: 1,
             overAllocated: 0,
+            quotesInvoiced: 0,
         });
     });
 
@@ -162,6 +194,7 @@ describe('LinkRulesService', () => {
             confirmed: 0,
             asked: 0,
             overAllocated: 0,
+            quotesInvoiced: 0,
         });
     });
 
@@ -176,6 +209,46 @@ describe('LinkRulesService', () => {
             confirmed: 0,
             asked: 0,
             overAllocated: 0,
+            quotesInvoiced: 0,
         });
+    });
+
+    it('judges an invoice line against a sale the sheet still calls a quote, and marks the quote invoiced', async () => {
+        const quotes = [
+            {
+                sourceKey: 'Q1',
+                qty: 2,
+                productText: '1oz Gold Britannia',
+                status: 'OPEN',
+            },
+        ];
+        const { service, db } = setup({
+            links: [
+                link(20, 'invoice_line_trade', 'LN1', 'Q1'),
+                link(21, 'invoice_line_trade', 'LN2', 'Q1'),
+            ],
+            trades: [],
+            lots: [],
+            quotes,
+            lines: [
+                {
+                    sourceKey: 'LN1',
+                    qty: 2,
+                    itemName: '1oz Gold Bullion Britannia',
+                },
+                {
+                    sourceKey: 'LN2',
+                    qty: 9,
+                    itemName: '1oz Gold Bullion Britannia',
+                },
+            ],
+        });
+        expect(await service.settle(db as never)).toEqual({
+            confirmed: 1,
+            asked: 1,
+            overAllocated: 0,
+            quotesInvoiced: 1,
+        });
+        expect(quotes[0].status).toBe('INVOICED');
     });
 });

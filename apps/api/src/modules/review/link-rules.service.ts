@@ -109,6 +109,22 @@ export class LinkRulesService {
             const tradeBy = new Map<string, SaleEnd>(
                 trades.map((t) => [t.sourceKey!, t]),
             );
+            // A sale the tradesheet still calls a quote: the Zoho invoice shows it happened, so judge it as the sale it is.
+            const missing = keysOf(lineTrades, 'toKey').filter(
+                (k) => !tradeBy.has(k),
+            );
+            if (missing.length) {
+                const quotes = await db.quote.findMany({
+                    where: { sourceKey: { in: missing } },
+                    select: { sourceKey: true, qty: true, productText: true },
+                });
+                for (const q of quotes)
+                    tradeBy.set(q.sourceKey, {
+                        qty: q.qty === null ? null : Number(q.qty),
+                        productKey: null,
+                        productText: q.productText,
+                    });
+            }
             for (const l of lineTrades)
                 out.set(
                     l.id,
@@ -127,6 +143,7 @@ export class LinkRulesService {
             confirmed: 0,
             asked: 0,
             overAllocated: 0,
+            quotesInvoiced: 0,
         };
         let after = 0;
         for (;;) {
@@ -166,6 +183,21 @@ export class LinkRulesService {
                     },
                 });
                 result.confirmed += confirm.length;
+                // An invoiced sale the sheet still lists as a quote: the quote is now invoiced.
+                const quoteKeys = batch
+                    .filter(
+                        (l) =>
+                            l.linkType === 'invoice_line_trade' &&
+                            confirm.includes(l.id),
+                    )
+                    .map((l) => l.toKey);
+                if (quoteKeys.length) {
+                    const done = await db.quote.updateMany({
+                        where: { sourceKey: { in: quoteKeys }, status: 'OPEN' },
+                        data: { status: 'INVOICED' },
+                    });
+                    result.quotesInvoiced += done.count;
+                }
             }
         }
         return result;

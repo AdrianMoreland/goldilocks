@@ -36,27 +36,81 @@ const SYNONYMS: Record<string, string> = {
     philharmonics: 'philharmonic',
 };
 
+/** Words that make a product a coin or a named piece rather than a plain bar of a weight. */
+const COIN_WORDS = new Set([
+    'britannia',
+    'krugerrand',
+    'maple',
+    'eagle',
+    'sovereign',
+    'philharmonic',
+    'buffalo',
+    'libertad',
+    'kangaroo',
+    'nugget',
+    'panda',
+    'lunar',
+    'tree',
+    'life',
+    'proof',
+    'half',
+    'full',
+    'quarter',
+    'noble',
+    'angel',
+    'bullion',
+    'coin',
+]);
+
+const WEIGHT = /^[\d./]+(g|kg)?$/;
+
+/** A word with its unit folded: "1/4oz" and "1/4" are the same size. */
+function canon(token: string): string {
+    const t = SYNONYMS[token] ?? token;
+    return /^[\d./]+oz$/.test(t) ? t.slice(0, -2) : t;
+}
+
 /** Words that say what a product is, so "1oz brits" and "1oz Britannia" can be compared. */
 export function productTokens(text: string): Set<string> {
     return new Set(
-        normaliseProductText(text)
-            .split(' ')
-            .filter(Boolean)
-            .map((t) => SYNONYMS[t] ?? t),
+        normaliseProductText(text).split(' ').filter(Boolean).map(canon),
     );
 }
 
-/** The same product when the catalogue keys agree, or when every word of the shorter name is in the longer one. */
+const withoutBar = (tokens: Set<string>) =>
+    new Set([...tokens].filter((t) => t !== 'bar'));
+const subset = (small: Set<string>, big: Set<string>) =>
+    small.size > 0 && [...small].every((t) => big.has(t));
+
+/**
+ * The same product when the catalogue keys agree. Otherwise by name: equal once "bar" is ignored; when a side has
+ * no catalogue key, every word of the shorter name is in the longer one; and a plain bar of a weight ("1oz bar")
+ * is the same as a named bar of that weight ("1oz PAMP Lady Fortuna") unless the named one is a coin.
+ */
 export function sameProduct(
     a: { productKey: string | null; text: string },
     b: { productKey: string | null; text: string },
 ): boolean {
-    if (a.productKey && b.productKey) return a.productKey === b.productKey;
+    if (a.productKey && b.productKey && a.productKey === b.productKey)
+        return true;
     const ta = productTokens(a.text);
     const tb = productTokens(b.text);
     if (ta.size === 0 || tb.size === 0) return false;
-    const [small, big] = ta.size <= tb.size ? [ta, tb] : [tb, ta];
-    return [...small].every((t) => big.has(t));
+
+    const ba = withoutBar(ta);
+    const bb = withoutBar(tb);
+    if (ba.size === bb.size && subset(ba, bb)) return true;
+
+    const missingKey = !a.productKey || !b.productKey;
+    if (missingKey && (subset(ba, bb) || subset(bb, ba))) return true;
+
+    // "1oz bar" against "1oz PAMP Lady Fortuna": one side is only a weight, the other has no coin word.
+    const plain = (t: Set<string>) =>
+        t.size > 0 && [...t].every((x) => WEIGHT.test(x));
+    const named = (t: Set<string>) => [...t].some((x) => COIN_WORDS.has(x));
+    if (plain(ba) && !named(bb) && subset(ba, bb)) return true;
+    if (plain(bb) && !named(ba) && subset(bb, ba)) return true;
+    return false;
 }
 
 /** A sale and the purchase line its CPTY names. */

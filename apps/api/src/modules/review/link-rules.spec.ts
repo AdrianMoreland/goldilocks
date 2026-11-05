@@ -31,8 +31,8 @@ describe('sameProduct', () => {
         ).toBe(true);
         expect(
             sameProduct(
-                { productKey: 'a', text: 'same' },
-                { productKey: 'b', text: 'same' },
+                { productKey: 'a', text: '1oz Eagle' },
+                { productKey: 'b', text: '1oz Krugerrand' },
             ),
         ).toBe(false);
     });
@@ -64,8 +64,40 @@ describe('sameProduct', () => {
         ).toBe(false);
     });
 
+    it('treats spelling variants as the same product even when the catalogue keys differ', () => {
+        const same = (
+            a: string,
+            b: string,
+            ka: string | null = 'ka',
+            kb: string | null = 'kb',
+        ) =>
+            sameProduct(
+                { productKey: ka, text: a },
+                { productKey: kb, text: b },
+            );
+        expect(same('50g Combi bar', '50G Combi')).toBe(true);
+        expect(same('1/4oz Maple', '1/4 Maple')).toBe(true);
+        expect(same('1/10oz Maple', '1/10 Maple')).toBe(true);
+        expect(same('1oz PAMP Lady Fortuna', '1oz bar')).toBe(true);
+        expect(same('1oz Bar PAMP', '1oz bar')).toBe(true);
+    });
+
+    it('still tells real differences apart', () => {
+        const same = (a: string, b: string) =>
+            sameProduct(
+                { productKey: 'ka', text: a },
+                { productKey: 'kb', text: b },
+            );
+        expect(same('1/10oz Eagle', '1oz Eagle')).toBe(false);
+        expect(same('1oz bar', 'half sovereign')).toBe(false);
+        expect(same('Full Sovereign', '1oz bar')).toBe(false);
+        expect(same('20g bar', '1oz Krugerrand')).toBe(false);
+        expect(same('100g bar', '1oz Krugerrand')).toBe(false);
+        expect(same('1oz Krugerrand', '1oz Britannia')).toBe(false);
+    });
+
     it('tokens fold plurals and synonyms', () => {
-        expect([...productTokens('1oz Brits')]).toEqual(['1oz', 'britannia']);
+        expect([...productTokens('1oz Brits')]).toEqual(['1', 'britannia']);
     });
 });
 

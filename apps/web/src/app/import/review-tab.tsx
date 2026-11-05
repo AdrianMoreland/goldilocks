@@ -93,7 +93,7 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
     const settle = useMutation({
         mutationFn: () => api.settle(),
         onSuccess: (r) => {
-            toast.success(`${r.confirmed} confirmed by the rules. ${r.asked} left to ask about, ${r.overAllocated} on over-sold purchase lines.`)
+            toast.success(`${r.confirmed} confirmed by the rules (${r.quotesInvoiced} quotes now invoiced). ${r.asked} left to ask about, ${r.overAllocated} on over-sold purchase lines.`)
             void queryClient.invalidateQueries({ queryKey: ["review"] })
         },
         onError: (e: Error) => toast.error(e.message),

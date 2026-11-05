@@ -63,12 +63,23 @@ export class ReviewService {
 
     // --- summary ---------------------------------------------------------------------------------
 
+    /** Pending trade-to-lot links on a purchase line with more sold than bought belong to Too many sales, not here. */
+    private async notOverSold(): Promise<Prisma.EntityLinkWhereInput> {
+        const keys = (await this.overAllocatedLots())
+            .map((l) => l.sourceKey)
+            .filter((k): k is string => k !== null);
+        return keys.length
+            ? { NOT: { linkType: 'trade_lot', toKey: { in: keys } } }
+            : {};
+    }
+
     async summary(): Promise<ReviewSummary> {
+        const hide = await this.notOverSold();
         const [byType, unresolvedLots, duplicates, aliases, overAllocated] =
             await Promise.all([
                 this.prisma.entityLink.groupBy({
                     by: ['linkType'],
-                    where: { status: 'PENDING' },
+                    where: { status: 'PENDING', ...hide },
                     _count: { _all: true },
                 }),
                 this.prisma.trade.count({ where: this.unresolvedWhere() }),
@@ -95,7 +106,9 @@ export class ReviewService {
         rawQuery: Record<string, unknown>,
     ): Promise<ReviewLinksResponse> {
         const { type, limit, offset } = this.linkQuery(rawQuery);
+        const hide = await this.notOverSold();
         const where: Prisma.EntityLinkWhereInput = {
+            ...hide,
             status: 'PENDING',
             ...(type ? { linkType: type } : {}),
         };
@@ -175,6 +188,25 @@ export class ReviewService {
                     ),
                     join(day(t.date), t.client),
                 );
+            }
+            // A sale the sheet still lists as a quote (an invoice shows it happened).
+            const quoteKeys = keys.filter((k) => !out.has(k));
+            if (quoteKeys.length) {
+                for (const q of await this.prisma.quote.findMany({
+                    where: { sourceKey: { in: quoteKeys } },
+                    include: { customer: true },
+                })) {
+                    put(
+                        q.sourceKey,
+                        join(
+                            q.reference,
+                            num(q.qty) !== null ? `${num(q.qty)} ×` : null,
+                            q.productText,
+                            'quote only on the sheet',
+                        ),
+                        join(day(q.date), q.customer?.name),
+                    );
+                }
             }
         } else if (table === 'purchase_lots') {
             for (const l of await this.prisma.purchaseLot.findMany({

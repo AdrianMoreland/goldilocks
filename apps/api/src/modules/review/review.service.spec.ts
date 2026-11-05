@@ -16,6 +16,7 @@ function setup() {
         trade: { count: jest.fn(), findMany: jest.fn() },
         purchaseLot: { findMany: jest.fn().mockResolvedValue([]) },
         bcSalesOrder: { findMany: jest.fn().mockResolvedValue([]) },
+        quote: { findMany: jest.fn().mockResolvedValue([]) },
         zohoInvoiceLine: { findMany: jest.fn() },
         productAlias: {
             count: jest.fn(),
@@ -264,11 +265,13 @@ describe('ReviewService', () => {
             confirmed: 600,
             asked: 50,
             overAllocated: 21,
+            quotesInvoiced: 3,
         });
         expect(await service.settle('a@example.com')).toEqual({
             confirmed: 600,
             asked: 50,
             overAllocated: 21,
+            quotesInvoiced: 3,
         });
         expect(audit.record).toHaveBeenCalledWith(
             'a@example.com',

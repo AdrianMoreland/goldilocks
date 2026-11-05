@@ -140,6 +140,8 @@ export const SettleResultSchema = z.object({
   asked: z.number().int(),
   /** Pending links left because their purchase line has more sold than bought. */
   overAllocated: z.number().int(),
+  /** Quotes the sheet still lists, now invoiced because a Zoho invoice line matches. */
+  quotesInvoiced: z.number().int(),
 });
 export type SettleResult = z.infer<typeof SettleResultSchema>;
 
