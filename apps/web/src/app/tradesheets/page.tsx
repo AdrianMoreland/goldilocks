@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { FileSpreadsheet, Upload } from "lucide-react"
 import {
     guessSheetMonth,
+    guessSheetMonthFromTabs,
     type PlanRow,
     type PlanRowStatus,
     type TabPlan,
@@ -67,6 +68,8 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
     const [file, setFile] = useState<File | null>(null)
     const [backfill, setBackfill] = useState(false)
     const [request, setRequest] = useState<TradesheetImportRequest | null>(null)
+    // The month came from the dates in the file because its name did not say.
+    const [monthFromDates, setMonthFromDates] = useState(false)
     const [plan, setPlan] = useState<TradesheetImportPlan | null>(null)
     const [done, setDone] = useState<TradesheetImportResult | null>(null)
 
@@ -95,6 +98,7 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
         setRequest(null)
         setPlan(null)
         setDone(null)
+        setMonthFromDates(false)
         if (input.current) input.current.value = ""
     }
 
@@ -108,10 +112,14 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
             setPlan(null)
             setDone(null)
             try {
-                const body = await readTradesheetFile(chosen, month, source)
+                let body = await readTradesheetFile(chosen, month, source)
+                // A file whose name has no month (a master copy) is dated by its rows, so nobody has to type one.
+                const fromDates = !month ? guessSheetMonthFromTabs(body.tabs) : null
+                if (fromDates) body = { ...body, sheetMonth: fromDates }
                 setFile(chosen)
                 setRequest(body)
-                if (month) preview.mutate(body)
+                setMonthFromDates(fromDates !== null)
+                if (body.sheetMonth) preview.mutate(body)
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Could not read that file.")
             } finally {
@@ -135,6 +143,7 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
     }
     const setMonth = (month: string) => {
         if (!request) return
+        setMonthFromDates(false)
         const next = { ...request, sheetMonth: month }
         setRequest(next)
         setPlan(null)
@@ -219,7 +228,7 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
                                 <span className="font-medium">{file?.name}</span>
                             </div>
                             <label className="text-sm">
-                                <span className="text-muted-foreground mb-1 block">Month this file covers</span>
+                                <span className="text-muted-foreground mb-1 block">{monthFromDates ? "Newest month in the file" : "Month this file covers"}</span>
                                 <Input type="month" className="w-44" value={request.sheetMonth} onChange={(e) => setMonth(e.target.value)} />
                             </label>
                             <div className="ml-auto flex gap-2">
