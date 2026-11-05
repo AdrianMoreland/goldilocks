@@ -19,6 +19,11 @@ export const WORKBOOK_LOAD_ORDER = [
   'purchase_orders',
   'bc_sales_orders',
   'bc_tracking_entries',
+  'bc_items',
+  'stock_bars',
+  'stock_coins',
+  'bc_journal_lines',
+  'product_aliases',
   'links',
 ] as const;
 export type WorkbookLoadTable = (typeof WORKBOOK_LOAD_ORDER)[number];
@@ -57,3 +62,31 @@ export const WorkbookChunkResultSchema = z.object({
   markedMissing: z.number().int(),
 });
 export type WorkbookChunkResult = z.infer<typeof WorkbookChunkResultSchema>;
+
+/**
+ * The Business Central "Orders Awaiting Collection" report, read in the browser into `bc_sales_orders` rows
+ * (id = the BC order number, so a newer report updates the same order). The whole report goes in one request: an
+ * order that is no longer in it has been posted, so a partial file would post orders wrongly.
+ */
+export const BcAwaitingRequestSchema = z.object({
+  fileName: z.string().min(1).max(200),
+  schemaVersion: z.literal(IMPORT_SCHEMA_VERSION),
+  rows: z.array(z.record(z.string(), z.unknown())).min(1).max(WORKBOOK_CHUNK_MAX_ROWS),
+});
+export type BcAwaitingRequest = z.infer<typeof BcAwaitingRequestSchema>;
+
+export const BcAwaitingResultSchema = z.object({
+  batchId: z.number().int(),
+  added: z.number().int(),
+  changed: z.number().int(),
+  unchanged: z.number().int(),
+  /** Orders in the previous report that are not in this one. */
+  gone: z.number().int(),
+  /** Trades that got a POSTED step because their BC order is gone. */
+  posted: z.number().int(),
+  /** Gone orders whose trade already had a POSTED step. */
+  alreadyPosted: z.number().int(),
+  /** Gone orders that name no trade we have. */
+  noTrade: z.number().int(),
+});
+export type BcAwaitingResult = z.infer<typeof BcAwaitingResultSchema>;

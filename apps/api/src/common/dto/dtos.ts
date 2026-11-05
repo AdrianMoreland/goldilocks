@@ -46,6 +46,7 @@ import {
     ImportCustomerOrdersRequestSchema,
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
+    BcAwaitingRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -532,4 +533,9 @@ export class RecordStepRequestDto extends createDto(
 export class SaveHandoverRequestDto extends createDto(
     SaveHandoverRequestSchema,
     'SaveHandoverRequestDto',
+) {}
+
+export class BcAwaitingRequestDto extends createDto(
+    BcAwaitingRequestSchema,
+    'BcAwaitingRequestDto',
 ) {}

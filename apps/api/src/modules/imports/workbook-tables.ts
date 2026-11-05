@@ -9,7 +9,17 @@ export type FkKind =
     | 'supplierInvoice'
     | 'invoice'
     | 'line';
-export type FieldKind = 's' | 'sReq' | 'n' | 'i' | 'b' | 'd' | 'flag';
+export type FieldKind =
+    | 's'
+    | 'sReq'
+    | 'n'
+    | 'i'
+    | 'iReq'
+    | 'b'
+    | 'd'
+    | 'flag'
+    | 'metal'
+    | 'json';
 
 /** [Prisma field, workbook column, kind]. Required text (`sReq`) becomes '' when the cell is empty. */
 export type FieldSpec = readonly [string, string, FieldKind];
@@ -29,9 +39,17 @@ export interface DirectTableSpec {
     delegate: string;
     /** Workbook column holding the row's own key; stored as `keyField`. */
     keyColumn: string;
-    keyField: 'sourceKey' | 'redactionCode';
+    keyField: 'sourceKey' | 'redactionCode' | 'itemNo' | 'alias';
     fields: readonly FieldSpec[];
     fks: readonly FkSpec[];
+    /** False for models without batch stamps (stocktake rows, BC items, aliases): no missing flag, no stamp. */
+    tracked?: false;
+    /** Rows belong to the imported stocktake named by this column. */
+    stocktakeSnapshotColumn?: string;
+    /** Fields written on create only. */
+    createOnly?: readonly string[];
+    /** Adds values computed from the mapped row. */
+    derive?: (data: Record<string, unknown>) => void;
 }
 
 /** Tables that are plain upserts by key. Trades, purchase lots and links have their own handlers. */
@@ -223,6 +241,90 @@ export const DIRECT_TABLES: Partial<
     },
 };
 
+DIRECT_TABLES.stock_bars = {
+    delegate: 'stocktakeBar',
+    keyColumn: 'id',
+    keyField: 'sourceKey',
+    fks: [],
+    tracked: false,
+    stocktakeSnapshotColumn: 'snapshot',
+    fields: [
+        ['metal', 'metal', 'metal'],
+        ['locationCode', 'branch', 'sReq'],
+        ['weightLabel', 'weight_label', 'sReq'],
+        ['refinery', 'refinery', 's'],
+        ['serial', 'serial', 's'],
+        ['grams', 'grams', 'n'],
+        ['details', 'details', 's'],
+    ],
+};
+DIRECT_TABLES.stock_coins = {
+    delegate: 'stocktakeCoin',
+    keyColumn: 'id',
+    keyField: 'sourceKey',
+    fks: [],
+    tracked: false,
+    stocktakeSnapshotColumn: 'snapshot',
+    fields: [
+        ['metal', 'metal', 'metal'],
+        ['locationCode', 'branch', 'sReq'],
+        ['item', 'item', 'sReq'],
+        ['previousQty', 'qty_prev', 'i'],
+        ['countedQty', 'qty_counted', 'i'],
+        ['details', 'details', 's'],
+        ['countsJson', 'counts_json', 'json'],
+    ],
+};
+DIRECT_TABLES.bc_journal_lines = {
+    delegate: 'stocktakeLine',
+    keyColumn: 'id',
+    keyField: 'sourceKey',
+    fks: [],
+    tracked: false,
+    stocktakeSnapshotColumn: 'snapshot',
+    fields: [
+        ['itemNo', 'item_no', 'sReq'],
+        ['description', 'description', 'sReq'],
+        ['locationCode', 'location_code', 'sReq'],
+        ['qtyCalculated', 'qty_calculated', 'iReq'],
+        ['countedNormal', 'counted_normal', 'i'],
+        ['countedCustomer', 'counted_customer', 'i'],
+        ['reason', 'reason', 's'],
+        ['serialNote', 'serial_note', 's'],
+        ['batchName', 'batch_name', 's'],
+        ['documentNo', 'document_no', 's'],
+    ],
+    derive: (d) => {
+        d['counted'] =
+            d['countedNormal'] !== null || d['countedCustomer'] !== null;
+    },
+};
+DIRECT_TABLES.bc_items = {
+    delegate: 'bcItem',
+    keyColumn: 'id',
+    keyField: 'itemNo',
+    fks: [],
+    tracked: false,
+    fields: [
+        ['description', 'description', 'sReq'],
+        ['refineryHint', 'refinery_hint', 's'],
+    ],
+};
+/** Alias texts for the review queue. A confirmed product link is never overwritten: productKey is create-only. */
+DIRECT_TABLES.product_aliases = {
+    delegate: 'productAlias',
+    keyColumn: 'suggested_key',
+    keyField: 'alias',
+    fks: [],
+    tracked: false,
+    createOnly: ['productKey'],
+    fields: [
+        ['productKey', 'suggested_key', 'sReq'],
+        ['refinery', 'refinery', 's'],
+        ['uses', 'uses', 'iReq'],
+    ],
+};
+
 /** The parent table each foreign-key kind is looked up in, and the column it is matched on. */
 export const FK_LOOKUP: Record<
     FkKind,
@@ -239,6 +341,15 @@ function text(v: unknown): string | null {
     return typeof v === 'string' && v !== '' ? v : null;
 }
 
+function parseJson(v: unknown): unknown {
+    if (typeof v !== 'string' || v === '') return null;
+    try {
+        return JSON.parse(v) as unknown;
+    } catch {
+        return null;
+    }
+}
+
 /** Turns one validated workbook row into the data the table stores (without the key and without foreign keys). */
 export function mapFields(
     row: Row,
@@ -251,7 +362,13 @@ export function mapFields(
         else if (kind === 'd')
             out[field] =
                 typeof v === 'string' ? new Date(`${v}T00:00:00.000Z`) : null;
-        else if (kind === 'i') out[field] = typeof v === 'number' ? v : null;
+        else if (kind === 'i')
+            out[field] = typeof v === 'number' ? Math.round(v) : null;
+        else if (kind === 'iReq')
+            out[field] = typeof v === 'number' ? Math.round(v) : 0;
+        else if (kind === 'metal')
+            out[field] = v === 'GOLD' || v === 'SILVER' ? v : 'PGM';
+        else if (kind === 'json') out[field] = parseJson(v);
         // Money and quantities are stored to 4 places; round here so a re-import compares equal.
         else if (kind === 'n')
             out[field] =

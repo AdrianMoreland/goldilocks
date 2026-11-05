@@ -8,6 +8,7 @@ import {
     type WorkbookLoadTable,
 } from '@goldilocks/shared-types';
 import { WorkbookImportService } from './workbook-import.service';
+import { BcAwaitingImportService } from './bc-awaiting-import.service';
 
 type R = Record<string, unknown>;
 
@@ -15,8 +16,10 @@ function matches(row: R, where: R): boolean {
     return Object.entries(where).every(([k, v]) => {
         if (k === 'OR') return (v as R[]).some((w) => matches(row, w));
         if (v && typeof v === 'object' && !(v instanceof Date)) {
-            const c = v as { in?: unknown[]; not?: unknown };
+            const c = v as { in?: unknown[]; not?: unknown; endsWith?: string };
             if (c.in) return c.in.includes(row[k]);
+            if ('endsWith' in c)
+                return String(row[k]).endsWith(String(c.endsWith));
             if ('not' in c) return row[k] !== c.not;
         }
         return row[k] === v;
@@ -77,6 +80,13 @@ function setup() {
         quote: new FakeTable({ status: 'OPEN' }),
         entityLink: new FakeTable(),
         importBatch: new FakeTable(),
+        stocktake: new FakeTable(),
+        stocktakeBar: new FakeTable(),
+        stocktakeCoin: new FakeTable(),
+        stocktakeLine: new FakeTable(),
+        bcItem: new FakeTable(),
+        productAlias: new FakeTable(),
+        orderEvent: new FakeTable(),
     };
     const prisma = {
         ...t,
@@ -84,7 +94,8 @@ function setup() {
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new WorkbookImportService(prisma as never, audit as never);
-    return { t, service, audit };
+    const bc = new BcAwaitingImportService(prisma as never, service);
+    return { t, service, audit, bc };
 }
 
 const tables = readImportWorkbook(fakeWorkbookSheets(3))
@@ -351,5 +362,169 @@ describe('WorkbookImportService', () => {
         const detail = String(audit.record.mock.calls[0]![2]);
         expect(detail).toMatch(/customers: 3 added/);
         expect(detail).not.toContain('Fake Person');
+    });
+
+    it('puts stock rows into one imported stocktake per snapshot and is repeat-safe', async () => {
+        const { service, t } = setup();
+        const bars = rowsOf('stock_bars', (r, i) => ({
+            ...r,
+            snapshot: 'safe',
+            metal: i === 0 ? 'PLATINUM' : 'GOLD',
+            branch: 'DU',
+        }));
+        const first = await service.commit(req('stock_bars', bars), 'a');
+        expect(first.added).toBe(3);
+        expect(t.stocktake.rows).toHaveLength(1);
+        expect(t.stocktake.rows[0]).toMatchObject({
+            name: 'Imported: safe',
+            imported: true,
+            status: 'DRAFT',
+        });
+        expect(t.stocktakeBar.rows[0]).toMatchObject({
+            metal: 'PGM',
+            locationCode: 'DU',
+            stocktakeId: t.stocktake.rows[0]['id'],
+        });
+
+        const again = await service.commit(
+            req('stock_bars', bars, { batchId: first.batchId }),
+            'a',
+        );
+        expect(again).toMatchObject({ added: 0, changed: 0, unchanged: 3 });
+        expect(t.stocktake.rows).toHaveLength(1);
+    });
+
+    it('imports coin counts and journal lines with derived counted flags', async () => {
+        const { service, t } = setup();
+        const coins = rowsOf('stock_coins', (r) => ({
+            ...r,
+            snapshot: 'safe',
+            counts_json: '{"oct":4}',
+            qty_counted: 4,
+        }));
+        await service.commit(req('stock_coins', coins), 'a');
+        expect(t.stocktakeCoin.rows[0]).toMatchObject({
+            countedQty: 4,
+            countsJson: { oct: 4 },
+        });
+
+        const lines = rowsOf('bc_journal_lines', (r, i) => ({
+            ...r,
+            snapshot: 'BC Report',
+            counted_normal: i === 0 ? 2 : null,
+            counted_customer: null,
+        }));
+        await service.commit(req('bc_journal_lines', lines), 'a');
+        expect(t.stocktakeLine.rows.map((r) => r['counted'])).toEqual([
+            true,
+            false,
+            false,
+        ]);
+    });
+
+    it('keeps a confirmed alias link: productKey is only set on create', async () => {
+        const { service, t } = setup();
+        const aliases = rowsOf('product_aliases', (r) => ({ ...r, uses: 5 }));
+        await service.commit(req('product_aliases', aliases), 'a');
+        t.productAlias.rows[0]['productKey'] = 'confirmed-key';
+        const again = await service.commit(
+            req(
+                'product_aliases',
+                aliases.map((a) => ({ ...a, uses: 9 })),
+            ),
+            'a',
+        );
+        expect(again.changed).toBe(3);
+        expect(t.productAlias.rows[0]).toMatchObject({
+            productKey: 'confirmed-key',
+            uses: 9,
+        });
+    });
+
+    it('loads BC items keyed by item number', async () => {
+        const { service, t } = setup();
+        const r = await service.commit(
+            req('bc_items', rowsOf('bc_items')),
+            'a',
+        );
+        expect(r.added).toBe(3);
+        expect(t.bcItem.rows[0]).toMatchObject({ itemNo: 'id-1' });
+        expect(
+            (await service.commit(req('bc_items', rowsOf('bc_items')), 'a'))
+                .unchanged,
+        ).toBe(3);
+    });
+
+    describe('BC awaiting-collection report', () => {
+        const order = (id: string, core: string): R => ({
+            ...rowsOf('bc_sales_orders')[0],
+            id,
+            ext_doc_no: `DU-${core}`,
+            ext_doc_core: core,
+        });
+        const report = (...orders: R[]) => ({
+            fileName: 'bc.xlsx',
+            schemaVersion: IMPORT_SCHEMA_VERSION as '1.1',
+            rows: orders,
+        });
+
+        it('posts the trade of an order that dropped out of the report, once', async () => {
+            const { bc, t } = setup();
+            t.trade.rows.push({
+                id: 5,
+                referenceKey: referenceMatchKey('DU-G20260941'),
+                occurrence: 1,
+            });
+            t.trade.rows.push({
+                id: 6,
+                referenceKey: referenceMatchKey('DU-G20260970'),
+                occurrence: 1,
+            });
+
+            const first = await bc.commit(
+                report(order('SO1', 'G20260941'), order('SO2', 'G20260970')),
+                'a',
+            );
+            expect(first).toMatchObject({ added: 2, gone: 0, posted: 0 });
+
+            const second = await bc.commit(
+                report(order('SO2', 'G20260970')),
+                'a',
+            );
+            expect(second).toMatchObject({ unchanged: 1, gone: 1, posted: 1 });
+            expect(t.orderEvent.rows).toEqual([
+                expect.objectContaining({
+                    tradeId: 5,
+                    step: 'POSTED',
+                    by: 'import',
+                }),
+            ]);
+            expect(
+                t.bcSalesOrder.rows.find((o) => o['sourceKey'] === 'SO1'),
+            ).toMatchObject({ missingFromImport: true });
+
+            const third = await bc.commit(
+                report(order('SO2', 'G20260970')),
+                'a',
+            );
+            expect(third.posted).toBe(0);
+            expect(t.orderEvent.rows).toHaveLength(1);
+        });
+
+        it('previews without posting', async () => {
+            const { bc, t } = setup();
+            t.trade.rows.push({
+                id: 5,
+                referenceKey: referenceMatchKey('DU-G20260941'),
+                occurrence: 1,
+            });
+            await bc.commit(report(order('SO1', 'G20260941')), 'a');
+            const p = await bc.preview(report(order('SO9', 'G20260999')));
+            expect(p).toMatchObject({ gone: 1, posted: 1 });
+            expect(t.orderEvent.rows).toHaveLength(0);
+            expect(
+                t.bcSalesOrder.rows.filter((o) => o['missingFromImport']),
+            ).toHaveLength(0);
+        });
     });
 });

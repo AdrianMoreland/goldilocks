@@ -30,6 +30,7 @@ interface Delegate {
     findMany(args: unknown): Promise<Row[]>;
     createMany(args: unknown): Promise<unknown>;
     update(args: unknown): Promise<unknown>;
+    create(args: unknown): Promise<Row>;
     updateMany(args: unknown): Promise<{ count: number }>;
 }
 
@@ -68,7 +69,7 @@ export class WorkbookImportService {
 
     /** What this chunk would do. Writes nothing (the batch id is 0 until a commit creates one). */
     async preview(dto: WorkbookChunkRequest): Promise<WorkbookChunkResult> {
-        return this.run(dto, this.prisma, 'preview', true);
+        return this.loadChunk(dto, this.prisma, 'preview', true);
     }
 
     async commit(
@@ -76,12 +77,13 @@ export class WorkbookImportService {
         actor: string,
     ): Promise<WorkbookChunkResult> {
         return this.prisma.$transaction(
-            (tx) => this.run(dto, tx, actor, false),
+            (tx) => this.loadChunk(dto, tx, actor, false),
             { timeout: 120_000, maxWait: 10_000 },
         );
     }
 
-    private async run(
+    /** One chunk, inside the caller's transaction (or none, for a preview). */
+    async loadChunk(
         dto: WorkbookChunkRequest,
         db: Db,
         actor: string,
@@ -89,7 +91,7 @@ export class WorkbookImportService {
     ): Promise<WorkbookChunkResult> {
         const rows = this.validate(dto.table, dto.rows);
         const batchId = await this.openBatch(db, dto, actor, dry);
-        const ctx: Ctx = { db, dry, batchId };
+        const ctx: Ctx = { db, dry, batchId, actor };
 
         let counts: Counts;
         if (dto.table === 'trades')
@@ -284,6 +286,7 @@ export class WorkbookImportService {
             const key = str(row[spec.keyColumn]);
             if (!key) continue;
             const data = mapFields(row, spec.fields);
+            spec.derive?.(data);
             let skip = false;
             for (const fk of spec.fks) {
                 const parentKey = str(row[fk.column]);
@@ -305,6 +308,26 @@ export class WorkbookImportService {
             if (!skip) byKey.set(key, data);
         }
 
+        const tracked = spec.tracked !== false;
+        if (spec.stocktakeSnapshotColumn) {
+            const snapshots = new Map<string, string>();
+            for (const row of input) {
+                const k = str(row[spec.keyColumn]);
+                if (k)
+                    snapshots.set(
+                        k,
+                        str(row[spec.stocktakeSnapshotColumn]) ?? 'unknown',
+                    );
+            }
+            const ids = await this.ensureStocktakes(ctx, [
+                ...new Set(snapshots.values()),
+            ]);
+            for (const [key, data] of byKey) {
+                const id = ids.get(snapshots.get(key) ?? 'unknown');
+                if (id !== undefined) data['stocktakeId'] = id;
+            }
+        }
+
         const d = this.delegate(ctx.db, spec.delegate);
         const keys = [...byKey.keys()];
         const existing = new Map<string, Row>();
@@ -324,11 +347,14 @@ export class WorkbookImportService {
                 toCreate.push({
                     ...data,
                     [spec.keyField]: key,
-                    importBatchId: ctx.batchId,
+                    ...(tracked ? { importBatchId: ctx.batchId } : {}),
                 });
                 continue;
             }
-            const diff = changedFields(old, data);
+            // Fields in createOnly are set when a row is created and left to people afterwards.
+            const writable = { ...data };
+            for (const f of spec.createOnly ?? []) delete writable[f];
+            const diff = changedFields(old, writable);
             if (Object.keys(diff).length === 0) {
                 counts.unchanged++;
                 toTouch.push(key);
@@ -336,21 +362,65 @@ export class WorkbookImportService {
                 counts.changed++;
                 if (!ctx.dry)
                     await d.update({
-                        where: { id: old['id'] },
-                        data: {
-                            ...diff,
-                            importBatchId: ctx.batchId,
-                            missingFromImport: false,
-                        },
+                        where: { [spec.keyField]: key },
+                        data: tracked
+                            ? {
+                                  ...diff,
+                                  importBatchId: ctx.batchId,
+                                  missingFromImport: false,
+                              }
+                            : diff,
                     });
             }
         }
         if (!ctx.dry) {
             for (let i = 0; i < toCreate.length; i += 1000)
-                await d.createMany({ data: toCreate.slice(i, i + 1000) });
-            await this.stamp(ctx, d, spec.keyField, toTouch);
+                await d.createMany({
+                    data: toCreate.slice(i, i + 1000),
+                    ...(tracked ? {} : { skipDuplicates: true }),
+                });
+            if (tracked) await this.stamp(ctx, d, spec.keyField, toTouch);
         }
         return counts;
+    }
+
+    /** One imported stocktake per snapshot name, found again on a re-import. Rows belong to it by `stocktakeId`. */
+    private async ensureStocktakes(
+        ctx: Ctx,
+        snapshots: string[],
+    ): Promise<Map<string, number>> {
+        const names = snapshots.map((s) => `Imported: ${s}`);
+        const st = this.delegate(ctx.db, 'stocktake');
+        const found = await st.findMany({
+            where: { imported: true, name: { in: names } },
+        });
+        const out = new Map<string, number>();
+        for (const f of found) {
+            out.set(
+                String(f['name']).replace(/^Imported: /, ''),
+                f['id'] as number,
+            );
+        }
+        if (ctx.dry) return out;
+        const today = new Date(
+            `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`,
+        );
+        for (const snap of snapshots) {
+            if (out.has(snap)) continue;
+            const created = await st.create({
+                data: {
+                    name: `Imported: ${snap}`,
+                    countDate: today,
+                    cutoffDate: today,
+                    status: 'DRAFT',
+                    createdBy: ctx.actor,
+                    imported: true,
+                    importBatchId: ctx.batchId,
+                },
+            });
+            out.set(snap, created['id'] as number);
+        }
+        return out;
     }
 
     /** Marks rows seen again in this batch (and clears a missing flag) without counting that as a change. */
@@ -392,7 +462,7 @@ export class WorkbookImportService {
             ).count;
         }
         const spec = DIRECT_TABLES[table];
-        if (!spec) return 0; // purchase lots and links: the tradesheet importer / the review queue own those flags
+        if (!spec || spec.tracked === false) return 0; // purchase lots and links: the tradesheet importer / the review queue own those flags
         return (
             await this.delegate(ctx.db, spec.delegate).updateMany({
                 where,
@@ -724,4 +794,5 @@ interface Ctx {
     db: Db;
     dry: boolean;
     batchId: number;
+    actor: string;
 }
