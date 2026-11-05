@@ -1,0 +1,469 @@
+import {
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
+import {
+    ReviewLinksQuerySchema,
+    ReviewPageQuerySchema,
+    type AliasesResponse,
+    type CreateSalesProductRequest,
+    type DuplicatesResponse,
+    type LinkDecisionRequest,
+    type LinkDecisionResult,
+    type MapAliasRequest,
+    type PricingProductOption,
+    type ReviewLinksQuery,
+    type ReviewLinksResponse,
+    type ReviewPageQuery,
+    type ReviewSummary,
+    type SalesProduct,
+    type UnresolvedLotsResponse,
+} from '@goldilocks/shared-types';
+import type { Prisma } from '../../../prisma/generated/client';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+
+type End = { table: string; label: string; detail: string | null };
+
+const day = (d: unknown): string | null =>
+    d instanceof Date ? d.toISOString().slice(0, 10) : null;
+const num = (v: unknown): number | null =>
+    v === null || v === undefined ? null : Number(v);
+const join = (...parts: (string | number | null | undefined)[]): string =>
+    parts.filter((p) => p !== null && p !== undefined && p !== '').join(' · ');
+
+/**
+ * What the import could not settle by itself, for an admin to decide. A decision is stored on the link or the alias;
+ * it never rewrites a trade, lot or invoice. Customer names appear only in the detail line of a row, admin only.
+ */
+@Injectable()
+export class ReviewService {
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly audit: AuditLogService,
+    ) {}
+
+    private linkQuery(query: Record<string, unknown>): ReviewLinksQuery {
+        const parsed = ReviewLinksQuerySchema.safeParse(query);
+        if (!parsed.success) throw new BadRequestException('Invalid query.');
+        return parsed.data;
+    }
+
+    private pageQuery(query: Record<string, unknown>): ReviewPageQuery {
+        const parsed = ReviewPageQuerySchema.safeParse(query);
+        if (!parsed.success) throw new BadRequestException('Invalid query.');
+        return parsed.data;
+    }
+
+    // --- summary ---------------------------------------------------------------------------------
+
+    async summary(): Promise<ReviewSummary> {
+        const [byType, unresolvedLots, duplicates, aliases] = await Promise.all(
+            [
+                this.prisma.entityLink.groupBy({
+                    by: ['linkType'],
+                    where: { status: 'PENDING' },
+                    _count: { _all: true },
+                }),
+                this.prisma.trade.count({ where: this.unresolvedWhere() }),
+                this.prisma.trade.count({ where: this.duplicateWhere() }),
+                this.prisma.productAlias.count({
+                    where: { salesProductId: null },
+                }),
+            ],
+        );
+        return {
+            links: Object.fromEntries(
+                byType.map((g) => [g.linkType, g._count._all]),
+            ),
+            unresolvedLots,
+            duplicates,
+            aliases,
+        };
+    }
+
+    // --- links -----------------------------------------------------------------------------------
+
+    async links(
+        rawQuery: Record<string, unknown>,
+    ): Promise<ReviewLinksResponse> {
+        const { type, limit, offset } = this.linkQuery(rawQuery);
+        const where: Prisma.EntityLinkWhereInput = {
+            status: 'PENDING',
+            ...(type ? { linkType: type } : {}),
+        };
+        const [total, rows] = await Promise.all([
+            this.prisma.entityLink.count({ where }),
+            this.prisma.entityLink.findMany({
+                where,
+                orderBy: { id: 'asc' },
+                skip: offset,
+                take: limit,
+            }),
+        ]);
+
+        const wanted = new Map<string, Set<string>>();
+        const want = (table: string, key: string) =>
+            (wanted.get(table) ?? wanted.set(table, new Set()).get(table)!).add(
+                key,
+            );
+        for (const r of rows) {
+            want(r.fromTable, r.fromKey);
+            want(r.toTable, r.toKey);
+        }
+        const described = new Map<string, End>();
+        for (const [table, keys] of wanted) {
+            for (const [key, end] of await this.describe(table, [...keys]))
+                described.set(`${table}\u0001${key}`, end);
+        }
+        const end = (table: string, key: string): End =>
+            described.get(`${table}\u0001${key}`) ?? {
+                table,
+                label: key,
+                detail: null,
+            };
+
+        return {
+            total,
+            rows: rows.map((r) => ({
+                id: r.id,
+                linkType: r.linkType,
+                confidence: r.confidence,
+                method: r.method,
+                note: r.note,
+                from: end(r.fromTable, r.fromKey),
+                to: end(r.toTable, r.toKey),
+            })),
+        };
+    }
+
+    /** A recognisable line for each imported row a link points at. Unknown tables fall back to the key. */
+    private async describe(
+        table: string,
+        keys: string[],
+    ): Promise<Map<string, End>> {
+        const out = new Map<string, End>();
+        const put = (key: string, label: string, detail: string | null) =>
+            out.set(key, { table, label, detail });
+        const by = { sourceKey: { in: keys } };
+
+        if (table === 'trades') {
+            for (const t of await this.prisma.trade.findMany({ where: by })) {
+                put(
+                    t.sourceKey!,
+                    join(
+                        t.reference,
+                        t.qty !== null ? `${t.qty} ×` : null,
+                        t.productText,
+                    ),
+                    join(day(t.date), t.client),
+                );
+            }
+        } else if (table === 'purchase_lots') {
+            for (const l of await this.prisma.purchaseLot.findMany({
+                where: by,
+            })) {
+                put(
+                    l.sourceKey!,
+                    join(
+                        l.reference,
+                        l.qty !== null ? `${l.qty} ×` : null,
+                        l.productText,
+                    ),
+                    join(day(l.received), l.client),
+                );
+            }
+        } else if (table === 'invoice_lines') {
+            for (const l of await this.prisma.zohoInvoiceLine.findMany({
+                where: by,
+                include: { customer: true },
+            })) {
+                put(
+                    l.sourceKey,
+                    join(
+                        num(l.qty) !== null ? `${num(l.qty)} ×` : null,
+                        l.itemName,
+                        l.refinery,
+                    ),
+                    join(day(l.date), l.customer?.name),
+                );
+            }
+        } else if (table === 'bc_sales_orders') {
+            for (const o of await this.prisma.bcSalesOrder.findMany({
+                where: by,
+                include: { customer: true },
+            })) {
+                put(
+                    o.sourceKey,
+                    join(o.extDocNo, o.sourceKey),
+                    join(
+                        day(o.docDate),
+                        num(o.amount) !== null ? `€${num(o.amount)}` : null,
+                        o.customer?.name,
+                    ),
+                );
+            }
+        } else if (table === 'supplier_invoices') {
+            for (const s of await this.prisma.supplierInvoice.findMany({
+                where: by,
+            }))
+                put(s.sourceKey, join(s.supplier, s.number), day(s.lastDate));
+        } else if (table === 'stock_bars') {
+            for (const b of await this.prisma.stocktakeBar.findMany({
+                where: by,
+            }))
+                put(
+                    b.sourceKey!,
+                    join(b.weightLabel, b.refinery, b.serial),
+                    b.locationCode,
+                );
+        } else if (table === 'line_serials') {
+            for (const s of await this.prisma.lineSerial.findMany({
+                where: by,
+            }))
+                put(s.sourceKey, join(s.refinery, s.serial), null);
+        } else if (table === 'bc_tracking_entries') {
+            for (const e of await this.prisma.bcTrackingEntry.findMany({
+                where: by,
+            }))
+                put(e.sourceKey, join(e.itemNo, e.serialNo), e.locationCode);
+        }
+        return out;
+    }
+
+    /** Pending links only; a link someone has already decided is left alone. */
+    async decide(
+        body: LinkDecisionRequest,
+        actor: string,
+    ): Promise<LinkDecisionResult> {
+        return this.prisma.$transaction(async (tx) => {
+            const res = await tx.entityLink.updateMany({
+                where: { id: { in: body.ids }, status: 'PENDING' },
+                data: {
+                    status: body.decision,
+                    confirmedBy: actor,
+                    confirmedAt: new Date(),
+                },
+            });
+            await this.audit.record(
+                actor,
+                'review-links',
+                `${res.count} link${res.count === 1 ? '' : 's'} ${body.decision.toLowerCase()}`,
+                tx,
+            );
+            return { updated: res.count };
+        });
+    }
+
+    // --- unresolved purchase lines and duplicate references --------------------------------------
+
+    private unresolvedWhere(): Prisma.TradeWhereInput {
+        return {
+            cptyKind: 'LOT_REF',
+            lotKey: { not: null },
+            lotId: null,
+            missingFromImport: false,
+        };
+    }
+
+    private duplicateWhere(): Prisma.TradeWhereInput {
+        return { occurrence: { gt: 1 }, missingFromImport: false };
+    }
+
+    async unresolvedLots(
+        rawQuery: Record<string, unknown>,
+    ): Promise<UnresolvedLotsResponse> {
+        const { limit, offset } = this.pageQuery(rawQuery);
+        const where = this.unresolvedWhere();
+        const [total, rows] = await Promise.all([
+            this.prisma.trade.count({ where }),
+            this.prisma.trade.findMany({
+                where,
+                orderBy: [{ date: 'desc' }, { id: 'desc' }],
+                skip: offset,
+                take: limit,
+            }),
+        ]);
+        return {
+            total,
+            rows: rows.map((t) => ({
+                tradeId: t.id,
+                reference: t.reference,
+                date: day(t.date),
+                qty: t.qty,
+                productText: t.productText,
+                lotKey: t.lotKey ?? '',
+                branchCode: t.branchCode,
+            })),
+        };
+    }
+
+    async duplicates(
+        rawQuery: Record<string, unknown>,
+    ): Promise<DuplicatesResponse> {
+        const { limit, offset } = this.pageQuery(rawQuery);
+        const where = this.duplicateWhere();
+        const [total, rows] = await Promise.all([
+            this.prisma.trade.count({ where }),
+            this.prisma.trade.findMany({
+                where,
+                orderBy: [{ date: 'desc' }, { id: 'desc' }],
+                skip: offset,
+                take: limit,
+            }),
+        ]);
+        return {
+            total,
+            rows: rows.map((t) => ({
+                tradeId: t.id,
+                reference: t.reference,
+                occurrence: t.occurrence,
+                date: day(t.date),
+                qty: t.qty,
+                productText: t.productText,
+                branchCode: t.branchCode,
+            })),
+        };
+    }
+
+    // --- product aliases ---------------------------------------------------------------------------
+
+    async aliases(rawQuery: Record<string, unknown>): Promise<AliasesResponse> {
+        const { limit, offset } = this.pageQuery(rawQuery);
+        const where: Prisma.ProductAliasWhereInput = { salesProductId: null };
+        const [total, rows] = await Promise.all([
+            this.prisma.productAlias.count({ where }),
+            this.prisma.productAlias.findMany({
+                where,
+                orderBy: [{ uses: 'desc' }, { alias: 'asc' }],
+                skip: offset,
+                take: limit,
+            }),
+        ]);
+        return {
+            total,
+            rows: rows.map((a) => ({
+                id: a.id,
+                alias: a.alias,
+                uses: a.uses,
+                refinery: a.refinery,
+            })),
+        };
+    }
+
+    async salesProducts(): Promise<SalesProduct[]> {
+        const rows = await this.prisma.salesProduct.findMany({
+            orderBy: { name: 'asc' },
+            include: { pricingProduct: true },
+        });
+        return rows.map((p) => ({
+            id: p.id,
+            name: p.name,
+            metal: p.metal,
+            genericNorm: p.genericNorm,
+            refinery: p.refinery,
+            pricingProductId: p.pricingProductId,
+            pricingProductName: p.pricingProduct?.name ?? null,
+        }));
+    }
+
+    /** The reduced catalogue behind the price table, for tying a sales product to one. */
+    async pricingProducts(): Promise<PricingProductOption[]> {
+        const rows = await this.prisma.product.findMany({
+            where: { deletedAt: null },
+            select: { id: true, name: true, metalType: true },
+            orderBy: { name: 'asc' },
+        });
+        return rows.map((p) => ({
+            id: p.id,
+            name: p.name,
+            metalType: p.metalType,
+        }));
+    }
+
+    async createSalesProduct(
+        body: CreateSalesProductRequest,
+        actor: string,
+    ): Promise<SalesProduct> {
+        if (body.pricingProductId) {
+            const pricing = await this.prisma.product.findUnique({
+                where: { id: body.pricingProductId },
+            });
+            if (!pricing)
+                throw new BadRequestException(
+                    `Pricing product ${body.pricingProductId} not found.`,
+                );
+        }
+        const clash = await this.prisma.salesProduct.findUnique({
+            where: { name: body.name },
+        });
+        if (clash)
+            throw new ConflictException(
+                'A sales product with that name already exists.',
+            );
+        const created = await this.prisma.$transaction(async (tx) => {
+            const p = await tx.salesProduct.create({
+                data: {
+                    name: body.name,
+                    metal: body.metal,
+                    genericNorm: body.genericNorm,
+                    refinery: body.refinery || null,
+                    pricingProductId: body.pricingProductId ?? null,
+                },
+                include: { pricingProduct: true },
+            });
+            await this.audit.record(
+                actor,
+                'sales-product-create',
+                `sales product ${p.id} created`,
+                tx,
+            );
+            return p;
+        });
+        return {
+            id: created.id,
+            name: created.name,
+            metal: created.metal,
+            genericNorm: created.genericNorm,
+            refinery: created.refinery,
+            pricingProductId: created.pricingProductId,
+            pricingProductName: created.pricingProduct?.name ?? null,
+        };
+    }
+
+    async mapAlias(
+        id: number,
+        body: MapAliasRequest,
+        actor: string,
+    ): Promise<{ id: number }> {
+        const [alias, product] = await Promise.all([
+            this.prisma.productAlias.findUnique({ where: { id } }),
+            this.prisma.salesProduct.findUnique({
+                where: { id: body.salesProductId },
+            }),
+        ]);
+        if (!alias) throw new NotFoundException(`Alias ${id} not found.`);
+        if (!product)
+            throw new BadRequestException(
+                `Sales product ${body.salesProductId} not found.`,
+            );
+        await this.prisma.$transaction(async (tx) => {
+            await tx.productAlias.update({
+                where: { id },
+                data: {
+                    salesProductId: product.id,
+                    refinery: alias.refinery ?? product.refinery,
+                },
+            });
+            await this.audit.record(
+                actor,
+                'alias-map',
+                `alias ${id} mapped to sales product ${product.id}`,
+                tx,
+            );
+        });
+        return { id };
+    }
+}
