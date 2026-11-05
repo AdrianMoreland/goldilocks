@@ -77,6 +77,8 @@ export * from './stocktake.schema';
 export * from './stocktake-physical';
 export * from './customer-orders';
 export * from './customer-orders.schema';
+export * from './orders';
+export * from './orders.schema';
 export * from './tradesheet-import';
 export * from './tradesheet-import.schema';
 export * from './product-order';

@@ -39,6 +39,8 @@ import {
     UpdateCoinRequestSchema,
     CarryForwardRequestSchema,
     CreateCustomerOrderRequestSchema,
+    RecordStepRequestSchema,
+    SaveHandoverRequestSchema,
     UpdateCustomerOrderRequestSchema,
     AddEvidenceRequestSchema,
     ImportCustomerOrdersRequestSchema,
@@ -514,4 +516,14 @@ export class ImportCustomerOrdersRequestDto extends createDto(
 export class TradesheetImportRequestDto extends createDto(
     TradesheetImportRequestSchema,
     'TradesheetImportRequestDto',
+) {}
+
+export class RecordStepRequestDto extends createDto(
+    RecordStepRequestSchema,
+    'RecordStepRequestDto',
+) {}
+
+export class SaveHandoverRequestDto extends createDto(
+    SaveHandoverRequestSchema,
+    'SaveHandoverRequestDto',
 ) {}
