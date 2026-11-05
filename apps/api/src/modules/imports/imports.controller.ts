@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Get,
     HttpCode,
     Post,
     Req,
@@ -9,6 +10,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
     BcAwaitingResult,
+    ImportBatchSummary,
     WorkbookChunkResult,
 } from '@goldilocks/shared-types';
 import { WorkbookImportService } from './workbook-import.service';
@@ -30,6 +32,12 @@ import {
 @Roles('admin')
 export class ImportsController {
     constructor(private readonly workbook: WorkbookImportService) {}
+
+    @Get('batches')
+    @ApiOperation({ summary: 'The last workbook imports, newest first.' })
+    batches(): Promise<ImportBatchSummary[]> {
+        return this.workbook.recentBatches();
+    }
 
     @Post('preview')
     @HttpCode(200)

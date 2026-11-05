@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
     ImportTableSchemas,
+    type ImportBatchSummary,
     referenceMatchKey,
     type ImportTableName,
     type WorkbookChunkRequest,
@@ -80,6 +81,25 @@ export class WorkbookImportService {
             (tx) => this.loadChunk(dto, tx, actor, false),
             { timeout: 120_000, maxWait: 10_000 },
         );
+    }
+
+    /** The last imports, newest first, for the Import hub's history. Counts only. */
+    async recentBatches(limit = 20): Promise<ImportBatchSummary[]> {
+        const rows = await this.prisma.importBatch.findMany({
+            where: { kind: 'WORKBOOK' },
+            orderBy: { importedAt: 'desc' },
+            take: limit,
+        });
+        return rows.map((r) => ({
+            id: r.id,
+            fileName: r.fileName,
+            importedBy: r.importedBy,
+            importedAt: r.importedAt.toISOString(),
+            status: r.status,
+            schemaVersion: r.schemaVersion,
+            tableCounts: (r.tableCounts ??
+                null) as ImportBatchSummary['tableCounts'],
+        }));
     }
 
     /** One chunk, inside the caller's transaction (or none, for a preview). */
