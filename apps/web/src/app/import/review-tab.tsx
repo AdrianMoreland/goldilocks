@@ -26,7 +26,7 @@ const LINK_LABELS: Record<string, string> = {
     bc_trade: "BC order to sale",
 }
 
-type Queue = "links" | "lots" | "duplicates" | "aliases"
+type Queue = "links" | "overallocated" | "lots" | "duplicates" | "aliases"
 
 function Pager({ total, offset, onOffset }: { total: number; offset: number; onOffset: (n: number) => void }) {
     if (total <= PAGE) return null
@@ -67,12 +67,14 @@ export function ReviewTab() {
                 onValueChange={(v) => setQueue(v as Queue)}
                 items={[
                     { value: "links", label: "Pending links", count: summary.data ? pendingLinks : undefined },
+                    { value: "overallocated", label: "Too many sales", count: summary.data?.overAllocated },
                     { value: "lots", label: "Missing purchase lines", count: summary.data?.unresolvedLots },
                     { value: "duplicates", label: "Repeated references", count: summary.data?.duplicates },
                     { value: "aliases", label: "Product names", count: summary.data?.aliases },
                 ]}
             />
             {queue === "links" && <LinksQueue counts={summary.data?.links ?? {}} />}
+            {queue === "overallocated" && <OverAllocatedQueue />}
             {queue === "lots" && <LotsQueue />}
             {queue === "duplicates" && <DuplicatesQueue />}
             {queue === "aliases" && <AliasesQueue />}
@@ -87,6 +89,15 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
     const [offset, setOffset] = useState(0)
     const [selected, setSelected] = useState<Set<number>>(new Set())
     const links = useQuery({ queryKey: ["review", "links", type, offset], queryFn: () => api.links(type || undefined, PAGE, offset) })
+
+    const settle = useMutation({
+        mutationFn: () => api.settle(),
+        onSuccess: (r) => {
+            toast.success(`${r.confirmed} confirmed by the rules. ${r.asked} left to ask about, ${r.overAllocated} on over-sold purchase lines.`)
+            void queryClient.invalidateQueries({ queryKey: ["review"] })
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
 
     const decide = useMutation({
         mutationFn: (v: { ids: number[]; decision: "CONFIRMED" | "REJECTED" }) => api.decide(v),
@@ -128,7 +139,10 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
                         </option>
                     ))}
                 </select>
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex flex-wrap gap-2">
+                    <Button variant="secondary" disabled={settle.isPending} onClick={() => settle.mutate()}>
+                        {settle.isPending ? "Settling..." : "Settle the obvious ones"}
+                    </Button>
                     <Button variant="outline" disabled={selected.size === 0 || decide.isPending} onClick={() => decide.mutate({ ids: [...selected], decision: "REJECTED" })}>
                         Reject {selected.size || ""}
                     </Button>
@@ -137,6 +151,10 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
                     </Button>
                 </div>
             </div>
+            <p className="text-muted-foreground text-sm">
+                A sale and a purchase line that share the CPTY reference and the product, and an invoice line that matches a sale on product and quantity,
+                are confirmed by the rules without asking. What is left here does not add up; the reason is shown on each.
+            </p>
             <Card>
                 <CardContent className="pt-6">
                     {rows.length === 0 ? (
@@ -156,7 +174,7 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
                                     <TableHead>Type</TableHead>
                                     <TableHead>From</TableHead>
                                     <TableHead>To</TableHead>
-                                    <TableHead>Matched on</TableHead>
+                                    <TableHead>Why it needs you</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
@@ -175,7 +193,7 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
                                             <div className="text-sm">{r.to.label}</div>
                                             {r.to.detail && <div className="text-muted-foreground text-xs">{r.to.detail}</div>}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground text-xs">{r.method.replace(/_/g, " ").toLowerCase()}</TableCell>
+                                        <TableCell className="text-sm">{r.why ?? <span className="text-muted-foreground text-xs">{r.method.replace(/_/g, " ").toLowerCase()}</span>}</TableCell>
                                         <TableCell className="space-x-1 text-right whitespace-nowrap">
                                             <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate({ ids: [r.id], decision: "REJECTED" })}>
                                                 Reject
@@ -192,6 +210,50 @@ function LinksQueue({ counts }: { counts: Record<string, number> }) {
                 </CardContent>
             </Card>
             <Pager total={links.data?.total ?? 0} offset={offset} onOffset={setOffset} />
+        </div>
+    )
+}
+
+function OverAllocatedQueue() {
+    const api = useReviewApi()
+    const [offset, setOffset] = useState(0)
+    const q = useQuery({ queryKey: ["review", "overallocated", offset], queryFn: () => api.overAllocated(PAGE, offset) })
+    return (
+        <div className="space-y-3">
+            <p className="text-muted-foreground text-sm">
+                Purchase lines that more was sold from than was bought, worst first. Nothing is confirmed or changed for these: a sale may name the wrong
+                purchase line, or the purchase quantity may be wrong in the sheet. Fix it in the sheet and import that month again.
+            </p>
+            {!q.data?.rows.length ? (
+                <Card>
+                    <CardContent className="pt-6">
+                        <Empty text={q.isLoading ? "Loading..." : "Nothing waiting."} />
+                    </CardContent>
+                </Card>
+            ) : (
+                q.data.rows.map((l) => (
+                    <Card key={l.lotId}>
+                        <CardContent className="space-y-2 pt-6">
+                            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                                <span className="font-medium">{l.reference}</span>
+                                <span className="text-sm">{l.productText}</span>
+                                <span className="text-muted-foreground text-xs tabular-nums">{l.received ?? ""}</span>
+                                <Badge variant="outline" className="ml-auto tabular-nums">
+                                    bought {l.bought}, sold {l.sold}
+                                </Badge>
+                            </div>
+                            <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                {l.sales.map((s) => (
+                                    <span key={s.tradeId} className="tabular-nums">
+                                        {s.reference} {s.qty ?? ""} {s.date ? `(${s.date})` : ""}
+                                    </span>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))
+            )}
+            <Pager total={q.data?.total ?? 0} offset={offset} onOffset={setOffset} />
         </div>
     )
 }

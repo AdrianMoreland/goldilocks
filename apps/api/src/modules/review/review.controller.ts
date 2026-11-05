@@ -15,10 +15,12 @@ import type {
     AliasesResponse,
     DuplicatesResponse,
     LinkDecisionResult,
+    OverAllocatedResponse,
     PricingProductOption,
     ReviewLinksResponse,
     ReviewSummary,
     SalesProduct,
+    SettleResult,
     UnresolvedLotsResponse,
 } from '@goldilocks/shared-types';
 import { ReviewService } from './review.service';
@@ -63,6 +65,26 @@ export class ReviewController {
         @Req() req: RequestWithUser,
     ): Promise<LinkDecisionResult> {
         return this.review.decide(body, req.user.email);
+    }
+
+    @Post('links/settle')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Confirm the pending links that make sense, leaving the rest to ask about.',
+    })
+    settle(@Req() req: RequestWithUser): Promise<SettleResult> {
+        return this.review.settle(req.user.email);
+    }
+
+    @Get('over-allocated')
+    @ApiOperation({
+        summary: 'Purchase lines with more sold from them than was bought.',
+    })
+    overAllocated(
+        @Query() query: Record<string, string>,
+    ): Promise<OverAllocatedResponse> {
+        return this.review.overAllocated(query);
     }
 
     @Get('unresolved-lots')

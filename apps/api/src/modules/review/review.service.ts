@@ -13,6 +13,8 @@ import {
     type LinkDecisionRequest,
     type LinkDecisionResult,
     type MapAliasRequest,
+    type OverAllocatedResponse,
+    type SettleResult,
     type PricingProductOption,
     type ReviewLinksQuery,
     type ReviewLinksResponse,
@@ -24,6 +26,7 @@ import {
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { LinkRulesService } from './link-rules.service';
 
 type End = { table: string; label: string; detail: string | null };
 
@@ -43,6 +46,7 @@ export class ReviewService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        private readonly rules: LinkRulesService,
     ) {}
 
     private linkQuery(query: Record<string, unknown>): ReviewLinksQuery {
@@ -60,8 +64,8 @@ export class ReviewService {
     // --- summary ---------------------------------------------------------------------------------
 
     async summary(): Promise<ReviewSummary> {
-        const [byType, unresolvedLots, duplicates, aliases] = await Promise.all(
-            [
+        const [byType, unresolvedLots, duplicates, aliases, overAllocated] =
+            await Promise.all([
                 this.prisma.entityLink.groupBy({
                     by: ['linkType'],
                     where: { status: 'PENDING' },
@@ -72,8 +76,8 @@ export class ReviewService {
                 this.prisma.productAlias.count({
                     where: { salesProductId: null },
                 }),
-            ],
-        );
+                this.overAllocatedLots().then((l) => l.length),
+            ]);
         return {
             links: Object.fromEntries(
                 byType.map((g) => [g.linkType, g._count._all]),
@@ -81,6 +85,7 @@ export class ReviewService {
             unresolvedLots,
             duplicates,
             aliases,
+            overAllocated,
         };
     }
 
@@ -125,10 +130,20 @@ export class ReviewService {
                 detail: null,
             };
 
+        const verdicts = await this.rules.judge(this.prisma, rows);
+        const whyOf = (id: number): string | null => {
+            const v = verdicts.get(id);
+            if (!v) return null;
+            return v.verdict === 'CONFIRM'
+                ? 'Looks right; the rules have not settled it yet.'
+                : v.reason;
+        };
+
         return {
             total,
             rows: rows.map((r) => ({
                 id: r.id,
+                why: whyOf(r.id),
                 linkType: r.linkType,
                 confidence: r.confidence,
                 method: r.method,
@@ -231,6 +246,67 @@ export class ReviewService {
                 put(e.sourceKey, join(e.itemNo, e.serialNo), e.locationCode);
         }
         return out;
+    }
+
+    /** Confirms every pending link that makes sense (same product, quantity agrees, nothing over-sold). */
+    async settle(actor: string): Promise<SettleResult> {
+        return this.prisma.$transaction(async (tx) => {
+            const res = await this.rules.settle(tx);
+            await this.audit.record(
+                actor,
+                'review-settle',
+                `${res.confirmed} confirmed by rule, ${res.asked} left to ask, ${res.overAllocated} over-allocated`,
+                tx,
+            );
+            return res;
+        });
+    }
+
+    // --- purchase lines with more sold than bought ----------------------------------------------
+
+    /** Lots whose sales add up to more than was bought. Compared in memory: a lot count is in the hundreds. */
+    private async overAllocatedLots() {
+        const lots = await this.prisma.purchaseLot.findMany({
+            where: { allocatedQty: { gt: 0 }, missingFromImport: false },
+        });
+        return lots.filter((l) => l.qty !== null && l.allocatedQty > l.qty);
+    }
+
+    async overAllocated(
+        rawQuery: Record<string, unknown>,
+    ): Promise<OverAllocatedResponse> {
+        const { limit, offset } = this.pageQuery(rawQuery);
+        const lots = (await this.overAllocatedLots()).sort(
+            (a, b) => b.allocatedQty - b.qty! - (a.allocatedQty - a.qty!),
+        );
+        const page = lots.slice(offset, offset + limit);
+        const sales = await this.prisma.trade.findMany({
+            where: {
+                lotId: { in: page.map((l) => l.id) },
+                missingFromImport: false,
+            },
+            orderBy: [{ date: 'desc' }, { id: 'desc' }],
+        });
+        return {
+            total: lots.length,
+            rows: page.map((l) => ({
+                lotId: l.id,
+                reference: l.reference,
+                productText: l.productText,
+                received: day(l.received),
+                bought: l.qty!,
+                sold: l.allocatedQty,
+                sales: sales
+                    .filter((t) => t.lotId === l.id)
+                    .slice(0, 20)
+                    .map((t) => ({
+                        tradeId: t.id,
+                        reference: t.reference,
+                        date: day(t.date),
+                        qty: t.qty,
+                    })),
+            })),
+        };
     }
 
     /** Pending links only; a link someone has already decided is left alone. */

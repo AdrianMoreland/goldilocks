@@ -93,7 +93,11 @@ function setup() {
         $transaction: async (fn: (tx: unknown) => unknown) => fn(prisma),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
-    const service = new WorkbookImportService(prisma as never, audit as never);
+    const service = new WorkbookImportService(
+        prisma as never,
+        audit as never,
+        { settle: jest.fn() } as never,
+    );
     const bc = new BcAwaitingImportService(prisma as never, service);
     return { t, service, audit, bc };
 }

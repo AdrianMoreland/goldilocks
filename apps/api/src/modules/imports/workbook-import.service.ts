@@ -16,6 +16,7 @@ import {
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { LinkRulesService } from '../review/link-rules.service';
 import {
     DIRECT_TABLES,
     FK_LOOKUP,
@@ -66,6 +67,7 @@ export class WorkbookImportService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        private readonly rules: LinkRulesService,
     ) {}
 
     /** What this chunk would do. Writes nothing (the batch id is 0 until a commit creates one). */
@@ -806,6 +808,8 @@ export class WorkbookImportService {
         if (!ctx.dry)
             for (let i = 0; i < toCreate.length; i += 1000)
                 await l.createMany({ data: toCreate.slice(i, i + 1000) });
+        // Links that make sense (same product, quantity agrees, nothing over-sold) are confirmed without asking.
+        if (!ctx.dry) await this.rules.settle(ctx.db);
         return counts;
     }
 }

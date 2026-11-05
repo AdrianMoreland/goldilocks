@@ -17,6 +17,8 @@ export const ReviewSummarySchema = z.object({
   duplicates: z.number().int(),
   /** Product texts not yet tied to a specific sales product. */
   aliases: z.number().int(),
+  /** Purchase lines that more was sold from than was bought. */
+  overAllocated: z.number().int(),
 });
 export type ReviewSummary = z.infer<typeof ReviewSummarySchema>;
 
@@ -35,6 +37,8 @@ export const ReviewLinkRowSchema = z.object({
   note: z.string().nullable(),
   from: EndSchema,
   to: EndSchema,
+  /** Why the rules did not settle this one themselves; null when they have no view on this link type. */
+  why: z.string().nullable(),
 });
 export type ReviewLinkRow = z.infer<typeof ReviewLinkRowSchema>;
 
@@ -128,3 +132,27 @@ export type ReviewPageQuery = z.infer<typeof ReviewPageQuerySchema>;
 export const PricingProductOptionSchema = z.object({ id: z.number().int(), name: z.string(), metalType: z.string() });
 export type PricingProductOption = z.infer<typeof PricingProductOptionSchema>;
 export const PricingProductOptionListSchema = z.array(PricingProductOptionSchema);
+
+export const SettleResultSchema = z.object({
+  /** Pending links the rules confirmed because they make sense. */
+  confirmed: z.number().int(),
+  /** Pending links left for a person: the product or quantity does not fit. */
+  asked: z.number().int(),
+  /** Pending links left because their purchase line has more sold than bought. */
+  overAllocated: z.number().int(),
+});
+export type SettleResult = z.infer<typeof SettleResultSchema>;
+
+export const OverAllocatedLotSchema = z.object({
+  lotId: z.number().int(),
+  reference: z.string(),
+  productText: z.string(),
+  received: z.string().nullable(),
+  bought: z.number().int(),
+  sold: z.number().int(),
+  /** The sales that name this purchase line, newest first, at most 20. */
+  sales: z.array(z.object({ tradeId: z.number().int(), reference: z.string(), date: z.string().nullable(), qty: z.number().int().nullable() })),
+});
+export type OverAllocatedLot = z.infer<typeof OverAllocatedLotSchema>;
+export const OverAllocatedResponseSchema = z.object({ total: z.number().int(), rows: z.array(OverAllocatedLotSchema) });
+export type OverAllocatedResponse = z.infer<typeof OverAllocatedResponseSchema>;
