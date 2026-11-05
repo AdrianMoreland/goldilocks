@@ -350,6 +350,25 @@ model RoadmapSnapshot {
   @@map("roadmap_snapshot")
 }
 
+/// Ideas captured as GitHub issues labelled `roadmap` (phone shortcut, the "Idea or task" form), copied here to triage.
+/// `status` is new, promoted (became a roadmap task) or dismissed. Rows are never deleted.
+model RoadmapInbox {
+  id             Int       @id @default(autoincrement())
+  issueNumber    Int       @unique
+  title          String
+  body           String    @default("")
+  kind           String?
+  url            String
+  status         String    @default("new")
+  issueCreatedAt DateTime  @db.Timestamptz(6)
+  fetchedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  handledAt      DateTime? @db.Timestamptz(6)
+  handledBy      String?
+
+  @@index([status, issueCreatedAt(sort: Desc)])
+  @@map("roadmap_inbox")
+}
+
 /// Who changed what from the admin console, the roadmap page and market mode. Written in the same
 /// transaction as the change it describes, so an entry exists exactly when the change committed.
 /// `actor` is the account email, kept as text so deleting a user never orphans or erases history.
