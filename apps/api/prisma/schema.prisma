@@ -35,34 +35,35 @@ model User {
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
-  sku         String    @unique
-  name        String
-  metalType   MetalType
+  salesProducts SalesProduct[]
+  id            Int              @id @default(autoincrement())
+  sku           String           @unique
+  name          String
+  metalType     MetalType
   /// Weight in grams
-  weight      Decimal   @db.Decimal(10, 4)
+  weight        Decimal          @db.Decimal(10, 4)
   /// Dealer spread applied to spot price
-  spreadBuy   Decimal   @db.Decimal(5, 4)
-  spreadSell  Decimal   @db.Decimal(5, 4)
+  spreadBuy     Decimal          @db.Decimal(5, 4)
+  spreadSell    Decimal          @db.Decimal(5, 4)
   /// VAT rate (0.00 or 0.23)
-  vatRate     Decimal   @db.Decimal(4, 2)
-  stock       Int       @default(0)
+  vatRate       Decimal          @db.Decimal(4, 2)
+  stock         Int              @default(0)
   /// Whether this product is shown/sellable — admin-toggleable, doesn't delete the row.
-  isActive    Boolean   @default(true)
+  isActive      Boolean          @default(true)
   /// Bar or coin, chosen when the product is created. Null on older rows —
   /// the dashboard then infers it from the name.
-  category    ProductCategory?
-  description String?
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  category      ProductCategory?
+  description   String?
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
   /// Soft delete — set instead of removing the row, so a deleted product
   /// is hidden everywhere but can be restored from the admin panel.
-  deletedAt   DateTime? @db.Timestamptz(6)
+  deletedAt     DateTime?        @db.Timestamptz(6)
 
-  bcItems     BcItem[]
-  trades      Trade[]
-  lots        PurchaseLot[]
-  aliases     ProductAlias[]
+  bcItems BcItem[]
+  trades  Trade[]
+  lots    PurchaseLot[]
+  aliases ProductAlias[]
 
   @@index([metalType])
   @@index([metalType, stock])
@@ -107,13 +108,13 @@ model HistoricSpotPrice {
 }
 
 model Branch {
-  id        Int          @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   name      String
   address   String?
   /// IE and ES branches see the whole app; UK branches lose the Pricing Workbook and see only shared SOPs.
-  region    BranchRegion @default(IE)
-  currency  Currency     @default(EUR)
-  createdAt DateTime     @default(now()) @db.Timestamptz(6)
+  region    BranchRegion  @default(IE)
+  currency  Currency      @default(EUR)
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
   users     User[]
   trades    Trade[]
   lots      PurchaseLot[]
@@ -368,15 +369,19 @@ model AuditLog {
 /// Many BC items can point at one Goldilocks product (the generic "250g Gold Bar"), so the catalogue
 /// keeps one row per product, not per refinery. productId stays null until a person confirms the link.
 model BcItem {
-  itemNo      String   @id
+  itemNo         String        @id
   /// The description exactly as Business Central shows it. Never used to rename a product.
-  description String
-  productId   Int?
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  description    String
+  productId      Int?
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  refineryHint   String?
+  salesProductId Int?
+  salesProduct   SalesProduct? @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
 
   @@index([productId])
+  @@index([salesProductId])
   @@map("bc_items")
 }
 
@@ -416,6 +421,9 @@ model Stocktake {
   finalisedAt   DateTime?       @db.Timestamptz(6)
   createdAt     DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime        @updatedAt @db.Timestamptz(6)
+  /// A snapshot loaded from the import workbook, not counted in Goldilocks.
+  imported      Boolean         @default(false)
+  importBatchId Int?
 
   lines         StocktakeLine[]
   discrepancies StocktakeDiscrepancy[]
@@ -447,6 +455,7 @@ model StocktakeLine {
   entryType       String?
   unitAmount      Decimal?        @db.Decimal(14, 5)
   unitCost        Decimal?        @db.Decimal(14, 5)
+  sourceKey       String?         @unique
 
   @@unique([stocktakeId, itemNo, locationCode])
   @@map("stocktake_lines")
@@ -502,6 +511,7 @@ model StocktakeBar {
   status        BarStatus  @default(UNCONFIRMED)
   /// The bar row in the earlier stocktake this was carried from. Makes carrying forward repeat-safe.
   carriedFromId Int?
+  sourceKey     String?    @unique
   createdAt     DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime   @updatedAt @db.Timestamptz(6)
 
@@ -522,6 +532,9 @@ model StocktakeCoin {
   previousQty  Int?
   countedQty   Int?
   details      String?
+  /// Per-column counts from the import workbook, kept as written.
+  countsJson   Json?
+  sourceKey    String?    @unique
 
   @@unique([stocktakeId, metal, locationCode, item])
   @@map("stocktake_coins")
@@ -532,6 +545,8 @@ enum CustomerOrderStatus {
   IN_TRANSIT
   DELIVERED
   BAGGED
+  /// Replaces BAGGED. Both exist until code and rows move over; BAGGED is dropped in a later migration.
+  ALLOCATED
   COLLECTED
 }
 
@@ -566,9 +581,13 @@ model CustomerOrderItem {
   createdBy    String
   createdAt    DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+  /// The sale this item is held for, once matched.
+  tradeId      Int?
+  trade        Trade?              @relation(fields: [tradeId], references: [id], onDelete: SetNull)
 
   evidence CustomerOrderEvidence[]
 
+  @@index([tradeId])
   @@index([status])
   @@index([locationCode, status])
   @@index([reference])
@@ -622,16 +641,23 @@ enum CollectedSource {
 
 /// One uploaded file. Kept so every row can say which import last touched it.
 model ImportBatch {
-  id         Int      @id @default(autoincrement())
-  fileName   String
+  id            Int      @id @default(autoincrement())
+  fileName      String
   /// The month the file covers, "2026-10".
-  sheetMonth String
+  sheetMonth    String
   /// TRADESHEET for a monthly export, BACKFILL for the one-off RawG / RawGP tabs.
-  source     String   @default("TRADESHEET")
-  importedBy String
-  importedAt DateTime @default(now()) @db.Timestamptz(6)
+  source        String   @default("TRADESHEET")
+  importedBy    String
+  importedAt    DateTime @default(now()) @db.Timestamptz(6)
   /// Counts per tab (added, changed, unchanged, missing, flagged) shown in the preview and kept as the receipt.
-  summary    Json
+  summary       Json
+  /// TRADESHEET, WORKBOOK or BC_AWAITING for the Import hub. `source` keeps its old meaning for tradesheet files.
+  kind          String   @default("TRADESHEET")
+  schemaVersion String?
+  /// Workbook imports: rows added, changed, unchanged and flagged per table. Also the resume point.
+  tableCounts   Json?
+  /// OPEN while a chunked import is still being sent, COMPLETE once the last table is in.
+  status        String   @default("COMPLETE")
 
   trades Trade[]
   lots   PurchaseLot[]
@@ -673,7 +699,7 @@ model Trade {
   lotKey          String?
   /// The imported purchase lot that line resolves to. Null while lotKey is empty, or names a lot that is not imported.
   lotId           Int?
-  lot             PurchaseLot? @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  lot             PurchaseLot?     @relation(fields: [lotId], references: [id], onDelete: SetNull)
   supplierName    String?
   supplierInvoice String?
   collected       Boolean          @default(false)
@@ -710,12 +736,29 @@ model Trade {
   createdAt         DateTime    @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime    @updatedAt @db.Timestamptz(6)
 
+  /// Workbook import. The tradesheet importer never writes these; it still owns the rest of the row.
+  sourceKey          String?             @unique
+  system             OrderSystem?
+  cptyFill           String?
+  refinery           String?
+  customerId         Int?
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplierInvoiceId  Int?
+  supplierInvoiceRef SupplierInvoice?    @relation(fields: [supplierInvoiceId], references: [id], onDelete: SetNull)
+  salesProductId     Int?
+  salesProduct       SalesProduct?       @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  quotes             Quote[]
+  orderItems         CustomerOrderItem[]
+
   /// Items of the matched purchase line this sale uses. Empty until the sale is matched.
   units  StockUnit[]
   events OrderEvent[]
   tasks  SheetTask[]
 
   @@unique([referenceKey, occurrence])
+  @@index([customerId])
+  @@index([supplierInvoiceId])
+  @@index([salesProductId])
   @@index([sourceMonth])
   @@index([state])
   @@index([lotKey])
@@ -769,10 +812,23 @@ model PurchaseLot {
   createdAt         DateTime    @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime    @updatedAt @db.Timestamptz(6)
 
+  /// Workbook import.
+  sourceKey          String?          @unique
+  system             OrderSystem?
+  refinery           String?
+  sellerId           Int?
+  seller             Customer?        @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  supplierInvoiceId  Int?
+  supplierInvoiceRef SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id], onDelete: SetNull)
+  salesProductId     Int?
+  salesProduct       SalesProduct?    @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+
   units  StockUnit[]
   trades Trade[]
 
   @@unique([referenceKey, occurrence])
+  @@index([sellerId])
+  @@index([supplierInvoiceId])
   @@index([sourceMonth])
   @@index([metal, productKey])
   @@map("purchase_lots")
@@ -796,18 +852,23 @@ model StockUnit {
 /// A name from the sheets ("1oz Tree of Life") and the catalogue key it stands for. Seeded from the Master Data
 /// alias sheet. productId links the key to a Goldilocks product once a person confirms it.
 model ProductAlias {
-  id         Int      @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   /// Cleaned alias text, the form product text is compared in.
-  alias      String   @unique
-  productKey String
-  productId  Int?
-  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  alias          String        @unique
+  productKey     String
+  productId      Int?
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// Alias queue: the specific sales product (product + refinery) this text resolves to, once a person confirms it.
+  salesProductId Int?
+  salesProduct   SalesProduct? @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  refinery       String?
+  uses           Int           @default(0)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
 
   @@index([productKey])
+  @@index([salesProductId])
   @@map("product_aliases")
 }
-
 
 enum OrderStep {
   ORDERED
@@ -881,4 +942,386 @@ model Handover {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("handovers")
+}
+
+// --- Import workbook (assembled from Zoho, Business Central and the tradesheets) ---------------------------------
+// Every imported row has a sourceKey (the workbook id), unique, so importing the same file twice changes nothing.
+// A row that disappears from a newer file is flagged missingFromImport, never deleted. Admin and manager only:
+// the API enforces it, and row level security gives Supabase's own REST roles nothing. Names live only in
+// Customer and Vendor; every other row points at them by id.
+
+enum OrderSystem {
+  ZOHO
+  BC
+}
+
+enum CollectedFlag {
+  YES
+  NO
+  CHECK
+}
+
+enum QuoteStatus {
+  OPEN
+  INVOICED
+  EXPIRED
+}
+
+enum LinkConfidence {
+  EXACT
+  PROBABLE
+}
+
+enum LinkStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model Customer {
+  id                Int      @id @default(autoincrement())
+  /// The redacted code (C000123), the workbook's own id for the customer.
+  redactionCode     String   @unique
+  /// Real name, restored in the owner's browser before upload. Never logged, in a URL, or sent to an AI model.
+  name              String
+  zohoNumber        String?
+  status            String?
+  currency          String?
+  sources           String?
+  missingFromImport Boolean  @default(false)
+  importBatchId     Int
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  trades   Trade[]
+  lots     PurchaseLot[]
+  invoices ZohoInvoice[]
+  lines    ZohoInvoiceLine[]
+  payments ZohoPayment[]
+  bcOrders BcSalesOrder[]
+  quotes   Quote[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Vendor {
+  id                Int      @id @default(autoincrement())
+  redactionCode     String   @unique
+  name              String
+  zohoNumber        String?
+  status            String?
+  currency          String?
+  sources           String?
+  missingFromImport Boolean  @default(false)
+  importBatchId     Int
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  purchaseOrderLines ZohoPurchaseOrderLine[]
+
+  @@index([name])
+  @@map("vendors")
+}
+
+model SupplierInvoice {
+  id                Int       @id @default(autoincrement())
+  sourceKey         String    @unique
+  supplier          String
+  number            String
+  firstDate         DateTime? @db.Date
+  lastDate          DateTime? @db.Date
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  trades Trade[]
+  lots   PurchaseLot[]
+
+  @@unique([supplier, number])
+  @@map("supplier_invoices")
+}
+
+/// The specific product an invoice, order, stock row or BC item refers to ("1oz Valcambi Suisse bar").
+/// It maps to exactly one pricing product, the reduced catalogue behind the price table.
+model SalesProduct {
+  id               Int        @id @default(autoincrement())
+  name             String     @unique
+  metal            StockMetal
+  /// The workbook's product_norm for the generic version, e.g. "1oz bar".
+  genericNorm      String
+  weightLabel      String?
+  /// Normalised refinery; null for coins.
+  refinery         String?
+  pricingProductId Int?
+  pricingProduct   Product?   @relation(fields: [pricingProductId], references: [id], onDelete: SetNull)
+  active           Boolean    @default(true)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(6)
+
+  bcItems      BcItem[]
+  aliases      ProductAlias[]
+  trades       Trade[]
+  lots         PurchaseLot[]
+  invoiceLines ZohoInvoiceLine[]
+  quotes       Quote[]
+
+  @@index([genericNorm, refinery])
+  @@index([pricingProductId])
+  @@map("sales_products")
+}
+
+/// A spelling of a refinery seen in the data and the canonical refinery it stands for.
+model RefineryAlias {
+  id        Int      @id @default(autoincrement())
+  alias     String   @unique
+  refinery  String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("refinery_aliases")
+}
+
+/// A tradesheet row with QUOTE_ONLY. Not a trade: it reserves nothing. When a later import shows the same
+/// reference with a real counterparty it becomes INVOICED and points at the Trade.
+model Quote {
+  id                Int           @id @default(autoincrement())
+  sourceKey         String        @unique
+  reference         String
+  referenceKey      String
+  date              DateTime?     @db.Date
+  metal             StockMetal
+  branchCode        String?
+  qty               Decimal?      @db.Decimal(14, 4)
+  productText       String
+  productNorm       String?
+  customerId        Int?
+  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  salesProductId    Int?
+  salesProduct      SalesProduct? @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  status            QuoteStatus   @default(OPEN)
+  convertedTradeId  Int?
+  convertedTrade    Trade?        @relation(fields: [convertedTradeId], references: [id], onDelete: SetNull)
+  missingFromImport Boolean       @default(false)
+  importBatchId     Int
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@index([referenceKey])
+  @@index([status])
+  @@index([customerId])
+  @@map("quotes")
+}
+
+/// Zoho invoice history. Read-only in the app.
+model ZohoInvoice {
+  id                Int       @id @default(autoincrement())
+  sourceKey         String    @unique
+  date              DateTime? @db.Date
+  customerId        Int?
+  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  status            String?
+  salesOrderNumber  String?
+  total             Decimal?  @db.Decimal(14, 4)
+  lineCount         Int?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  lines    ZohoInvoiceLine[]
+  payments ZohoPayment[]
+
+  @@index([customerId, date])
+  @@map("zoho_invoices")
+}
+
+model ZohoInvoiceLine {
+  id                Int            @id @default(autoincrement())
+  sourceKey         String         @unique
+  invoiceId         Int
+  invoice           ZohoInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  lineNo            Int?
+  date              DateTime?      @db.Date
+  customerId        Int?
+  customer          Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  qty               Decimal?       @db.Decimal(14, 4)
+  itemName          String
+  productNorm       String?
+  unitPrice         Decimal?       @db.Decimal(14, 4)
+  lineTotal         Decimal?       @db.Decimal(14, 4)
+  itemDesc          String?
+  collectedFlag     CollectedFlag?
+  collectedDate     DateTime?      @db.Date
+  refinery          String?
+  salesProductId    Int?
+  salesProduct      SalesProduct?  @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  deliveredBrinks   Boolean?
+  soldBack          Boolean?
+  refsFound         String?
+  missingFromImport Boolean        @default(false)
+  importBatchId     Int
+  createdAt         DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(6)
+
+  serials LineSerial[]
+
+  @@index([invoiceId])
+  @@index([customerId, date])
+  @@index([salesProductId])
+  @@map("zoho_invoice_lines")
+}
+
+model LineSerial {
+  id                Int             @id @default(autoincrement())
+  sourceKey         String          @unique
+  lineId            Int
+  line              ZohoInvoiceLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  serial            String
+  serialNorm        String
+  refinery          String?
+  collectedFlag     CollectedFlag?
+  collectedDate     DateTime?       @db.Date
+  missingFromImport Boolean         @default(false)
+  importBatchId     Int
+  createdAt         DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @db.Timestamptz(6)
+
+  @@index([serialNorm])
+  @@index([lineId])
+  @@map("line_serials")
+}
+
+model ZohoPayment {
+  id                Int          @id @default(autoincrement())
+  sourceKey         String       @unique
+  invoiceId         Int?
+  invoice           ZohoInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  customerId        Int?
+  customer          Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  zohoCustomerId    String?
+  date              DateTime?    @db.Date
+  invoiceDate       DateTime?    @db.Date
+  amount            Decimal?     @db.Decimal(14, 4)
+  invoiceAmount     Decimal?     @db.Decimal(14, 4)
+  mode              String?
+  reference         String?
+  type              String?
+  missingFromImport Boolean      @default(false)
+  importBatchId     Int
+  createdAt         DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(6)
+
+  @@index([invoiceId])
+  @@index([customerId, date])
+  @@map("zoho_payments")
+}
+
+model ZohoPurchaseOrderLine {
+  id                Int       @id @default(autoincrement())
+  sourceKey         String    @unique
+  poNumber          String
+  lineNo            Int?
+  date              DateTime? @db.Date
+  vendorNumber      String?
+  vendorId          Int?
+  vendor            Vendor?   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  itemName          String
+  productNorm       String?
+  qtyOrdered        Decimal?  @db.Decimal(14, 4)
+  qtyReceived       Decimal?  @db.Decimal(14, 4)
+  qtyBilled         Decimal?  @db.Decimal(14, 4)
+  price             Decimal?  @db.Decimal(14, 4)
+  itemTotal         Decimal?  @db.Decimal(14, 4)
+  status            String?
+  reference         String?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([poNumber])
+  @@index([vendorId])
+  @@map("zoho_purchase_order_lines")
+}
+
+/// A row of the Business Central "Orders Awaiting Collection" report. A trade whose BC order is absent from a
+/// fresh report is POSTED.
+model BcSalesOrder {
+  id                Int       @id @default(autoincrement())
+  sourceKey         String    @unique
+  branchCode        String?
+  snapshot          String?
+  snapshotDate      DateTime? @db.Date
+  bcCustomerNo      String?
+  customerId        Int?
+  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  extDocNo          String?
+  extDocCore        String?
+  location          String?
+  docDate           DateTime? @db.Date
+  amount            Decimal?  @db.Decimal(14, 4)
+  amountInclVat     Decimal?  @db.Decimal(14, 4)
+  prepaid           Decimal?  @db.Decimal(14, 4)
+  remaining         Decimal?  @db.Decimal(14, 4)
+  paid              Boolean?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([extDocCore])
+  @@index([customerId])
+  @@map("bc_sales_orders")
+}
+
+model BcTrackingEntry {
+  id                Int       @id @default(autoincrement())
+  sourceKey         String    @unique
+  snapshot          String?
+  entryNo           String?
+  itemNo            String
+  locationCode      String?
+  serialNo          String?
+  serialNorm        String?
+  lotNo             String?
+  remainingQuantity Decimal?  @db.Decimal(14, 4)
+  postingDate       DateTime? @db.Date
+  documentNo        String?
+  entryType         String?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([serialNorm])
+  @@index([itemNo, locationCode])
+  @@map("bc_tracking_entries")
+}
+
+/// One suggested or confirmed relation between two imported rows, both named by sourceKey: trade to purchase line,
+/// invoice line to trade, trade to supplier invoice, trade to BC order, serial to stock bar, and the evidence that
+/// a package arrived. EXACT links are applied and stored CONFIRMED; PROBABLE wait as PENDING until an admin decides.
+model EntityLink {
+  id            Int            @id @default(autoincrement())
+  linkType      String
+  fromTable     String
+  fromKey       String
+  toTable       String
+  toKey         String
+  method        String
+  confidence    LinkConfidence
+  status        LinkStatus     @default(PENDING)
+  note          String?
+  confirmedBy   String?
+  confirmedAt   DateTime?      @db.Timestamptz(6)
+  importBatchId Int?
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(6)
+
+  @@unique([linkType, fromTable, fromKey, toTable, toKey])
+  @@index([status, linkType])
+  @@index([fromTable, fromKey])
+  @@index([toTable, toKey])
+  @@map("entity_links")
 }
