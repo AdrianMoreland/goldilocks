@@ -711,7 +711,9 @@ model Trade {
   updatedAt         DateTime    @updatedAt @db.Timestamptz(6)
 
   /// Items of the matched purchase line this sale uses. Empty until the sale is matched.
-  units StockUnit[]
+  units  StockUnit[]
+  events OrderEvent[]
+  tasks  SheetTask[]
 
   @@unique([referenceKey, occurrence])
   @@index([sourceMonth])
@@ -804,4 +806,79 @@ model ProductAlias {
 
   @@index([productKey])
   @@map("product_aliases")
+}
+
+
+enum OrderStep {
+  ORDERED
+  ARRIVED
+  ALLOCATED
+  MATCHED
+  COLLECTED
+  POSTED
+}
+
+enum SheetTaskStatus {
+  OPEN
+  DONE
+}
+
+enum TaskCheck {
+  TRADE_COLLECTED
+  TRADE_CPTY
+  MANUAL
+}
+
+enum TaskClosedVia {
+  MANUAL
+  IMPORT
+}
+
+/// A step staff took on an order. Append-only. The tradesheet stays the source of truth, so this sits beside the
+/// imported Trade row instead of changing it, and an import can never overwrite it.
+model OrderEvent {
+  id      Int       @id @default(autoincrement())
+  tradeId Int
+  trade   Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  step    OrderStep
+  by      String
+  at      DateTime  @default(now()) @db.Timestamptz(6)
+  note    String?
+
+  @@index([tradeId])
+  @@map("order_events")
+}
+
+/// A change staff must make by hand in a sheet, with the exact value to paste. Closed by a person, or by an import
+/// that shows the change.
+model SheetTask {
+  id        Int             @id @default(autoincrement())
+  tradeId   Int?
+  trade     Trade?          @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  reference String
+  client    String
+  sheet     String
+  what      String
+  value     String
+  check     TaskCheck
+  status    SheetTaskStatus @default(OPEN)
+  createdAt DateTime        @default(now()) @db.Timestamptz(6)
+  createdBy String
+  closedAt  DateTime?       @db.Timestamptz(6)
+  closedBy  String?
+  closedVia TaskClosedVia?
+
+  @@index([status])
+  @@index([tradeId])
+  @@map("sheet_tasks")
+}
+
+/// The note one person leaves for the next when they close the day.
+model Handover {
+  id        Int      @id @default(autoincrement())
+  note      String
+  by        String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("handovers")
 }
