@@ -8,7 +8,11 @@ export interface RedactionMapRow {
   type?: string;
 }
 
-/** Columns that hold exactly one redacted code (or a supplier name that was left readable on purpose). */
+/**
+ * Columns that hold exactly one redacted code (or a supplier name left readable on purpose). These stay codes:
+ * only the customers and vendors tables get a `name`, so a real name lives in one place in the database and
+ * every other row points at it by code. They are still scanned so a code with no mapping is reported.
+ */
 export const REDACTED_CODE_COLUMNS: Partial<Record<ImportTableName, readonly string[]>> = {
   trades: ['client_code'],
   purchase_lots: ['seller_code'],
@@ -18,9 +22,10 @@ export const REDACTED_CODE_COLUMNS: Partial<Record<ImportTableName, readonly str
   purchase_orders: ['vendor_code'],
   customer_safe_items: ['client_code'],
   bc_sales_orders: ['client_code'],
-  customers: ['id'],
-  vendors: ['id'],
 };
+
+/** Tables whose rows are the people themselves: `id` stays the code and a `name` is added. */
+export const REDACTED_NAME_TABLES = ['customers', 'vendors'] as const;
 
 /** Free-text columns where the script replaced names inside sentences with codes. */
 export const REDACTED_TEXT_COLUMNS: Partial<Record<ImportTableName, readonly string[]>> = {
@@ -48,8 +53,9 @@ export interface UnredactResult<Tables> {
 }
 
 /**
- * Rewrites every code column and every code inside the free-text columns to the real name. Pure: the input is not changed.
- * Values that are not codes (supplier names, invoice numbers) are left as they are.
+ * Adds the real `name` to every customers and vendors row, and restores names inside the free-text columns.
+ * Code columns elsewhere are checked (unmapped codes are reported) but kept as codes. Pure: the input is not changed.
+ * Values that are not codes (supplier names, invoice numbers) are left as they are, and name themselves.
  */
 export function unredactTables<Tables extends Partial<{ [T in ImportTableName]: ImportRow<T>[] }>>(
   tables: Tables,
@@ -64,15 +70,8 @@ export function unredactTables<Tables extends Partial<{ [T in ImportTableName]: 
   const unmapped = new Set<string>();
   let replaced = 0;
 
-  const swapCode = (v: string): string => {
-    if (!CODE.test(v)) return v;
-    const name = names.get(v);
-    if (name === undefined) {
-      unmapped.add(v);
-      return v;
-    }
-    replaced++;
-    return name;
+  const checkCode = (v: string): void => {
+    if (CODE.test(v) && !names.has(v)) unmapped.add(v);
   };
   const swapText = (v: string): string =>
     v.replace(CODE_IN_TEXT, (code) => {
@@ -90,7 +89,8 @@ export function unredactTables<Tables extends Partial<{ [T in ImportTableName]: 
     if (!rows) continue;
     const codeCols = REDACTED_CODE_COLUMNS[table] ?? [];
     const textCols = REDACTED_TEXT_COLUMNS[table] ?? [];
-    if (codeCols.length === 0 && textCols.length === 0) {
+    const isPeople = (REDACTED_NAME_TABLES as readonly string[]).includes(table);
+    if (codeCols.length === 0 && textCols.length === 0 && !isPeople) {
       out[table] = rows;
       continue;
     }
@@ -98,10 +98,13 @@ export function unredactTables<Tables extends Partial<{ [T in ImportTableName]: 
       let next: Record<string, unknown> | null = null;
       for (const col of codeCols) {
         const v = row[col];
-        if (typeof v === 'string') {
-          const s = swapCode(v);
-          if (s !== v) (next ??= { ...row })[col] = s;
-        }
+        if (typeof v === 'string') checkCode(v);
+      }
+      if (isPeople) {
+        const id = String(row['id'] ?? '');
+        checkCode(id);
+        next = { ...row, name: names.get(id) ?? id };
+        if (names.has(id)) replaced++;
       }
       for (const col of textCols) {
         const v = row[col];

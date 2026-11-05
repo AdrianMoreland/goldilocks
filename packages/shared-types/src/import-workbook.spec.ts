@@ -98,24 +98,32 @@ describe('readImportWorkbook', () => {
 });
 
 describe('unredactTables', () => {
-  it('rewrites code columns and codes inside free text, leaving other values alone', () => {
+  it('adds names to customers and vendors, restores names in free text, and keeps other code columns as codes', () => {
     let s = fakeWorkbookSheets();
     s = withCell(s, 'trades', 'client_code', 'C000002');
     s = withCell(s, 'trades', 'notes', 'paid by C000001 and C000009');
     s = withCell(s, 'trades', 'paid_by', 'STONEX 12345', 2);
+    s = withCell(s, 'customers', 'id', 'C000003');
     const read = readImportWorkbook(s);
-    const out = unredactTables({ trades: read.tables.trades }, fakeRedactionMap());
-    expect(out.tables.trades[0]!.client_code).toBe('Fake Birch Holdings');
-    expect(out.tables.trades[0]!.notes).toBe('paid by Fake Alder Trading and C000009');
-    expect(out.tables.trades[1]!.paid_by).toBe('STONEX 12345');
+    const out = unredactTables({ trades: read.tables.trades, customers: read.tables.customers }, fakeRedactionMap());
+    expect(out.tables.customers![0]).toMatchObject({ id: 'C000003', name: 'Fake Cedar Jewellers' });
+    expect(out.tables.trades![0]!.client_code).toBe('C000002');
+    expect(out.tables.trades![0]!.notes).toBe('paid by Fake Alder Trading and C000009');
+    expect(out.tables.trades![1]!.paid_by).toBe('STONEX 12345');
     expect(out.unmappedCodes).toEqual(['C000009']);
-    expect(read.tables.trades[0]!.client_code).toBe('C000002');
+    expect(read.tables.trades[0]!.notes).toBe('paid by C000001 and C000009');
   });
 
-  it('lists a supplier-style code column value as untouched, not unmapped', () => {
-    const s = withCell(fakeWorkbookSheets(), 'trades', 'client_code', 'COININVEST');
-    const out = unredactTables({ trades: readImportWorkbook(s).tables.trades }, fakeRedactionMap());
-    expect(out.tables.trades[0]!.client_code).toBe('COININVEST');
+  it('lets a supplier-style id name itself and reports no unmapped code', () => {
+    const s = withCell(fakeWorkbookSheets(), 'customers', 'id', 'COININVEST');
+    const out = unredactTables({ customers: readImportWorkbook(s).tables.customers }, fakeRedactionMap());
+    expect(out.tables.customers![0]).toMatchObject({ id: 'COININVEST', name: 'COININVEST' });
     expect(out.unmappedCodes).toEqual([]);
+  });
+
+  it('reports a code column value the map does not know', () => {
+    const s = withCell(fakeWorkbookSheets(), 'trades', 'client_code', 'C000099');
+    const out = unredactTables({ trades: readImportWorkbook(s).tables.trades }, fakeRedactionMap());
+    expect(out.unmappedCodes).toEqual(['C000099']);
   });
 });
