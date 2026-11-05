@@ -45,6 +45,8 @@ import {
     AddEvidenceRequestSchema,
     ImportCustomerOrdersRequestSchema,
     TradesheetImportRequestSchema,
+    WorkbookChunkRequestSchema,
+    BcAwaitingRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -518,6 +520,11 @@ export class TradesheetImportRequestDto extends createDto(
     'TradesheetImportRequestDto',
 ) {}
 
+export class WorkbookChunkRequestDto extends createDto(
+    WorkbookChunkRequestSchema,
+    'WorkbookChunkRequestDto',
+) {}
+
 export class RecordStepRequestDto extends createDto(
     RecordStepRequestSchema,
     'RecordStepRequestDto',
@@ -526,4 +533,9 @@ export class RecordStepRequestDto extends createDto(
 export class SaveHandoverRequestDto extends createDto(
     SaveHandoverRequestSchema,
     'SaveHandoverRequestDto',
+) {}
+
+export class BcAwaitingRequestDto extends createDto(
+    BcAwaitingRequestSchema,
+    'BcAwaitingRequestDto',
 ) {}

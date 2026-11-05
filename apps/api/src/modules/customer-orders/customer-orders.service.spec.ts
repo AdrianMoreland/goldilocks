@@ -169,7 +169,7 @@ describe('CustomerOrdersService.expectedStock', () => {
         ]);
         expect(prisma.customerOrderItem.findMany).toHaveBeenCalledWith(
             expect.objectContaining({
-                where: { status: { in: ['DELIVERED', 'BAGGED'] } },
+                where: { status: { in: ['DELIVERED', 'BAGGED', 'ALLOCATED'] } },
             }),
         );
     });
