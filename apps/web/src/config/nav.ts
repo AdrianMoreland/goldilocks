@@ -3,6 +3,8 @@ import {
   ClipboardCheck,
   Boxes,
   Download,
+  Receipt,
+  Users,
   FileSpreadsheet,
   ListChecks,
   KanbanSquare,
@@ -65,7 +67,9 @@ const tradesheetsItem: NavItem = { title: "Trade sheets", url: "/tradesheets", i
 const stockOrdersItems: NavItem[] = [
   { title: "Inventory", url: "/inventory", icon: Boxes, keywords: ["stock", "bars", "coins", "stocktake", "month end"] },
   { title: "Orders", url: "/orders", icon: ListChecks, keywords: ["customer orders", "allocate", "collect", "sheet updates"] },
-  { title: "Import hub", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report"] },
+  { title: "Import hub", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report", "review"] },
+  { title: "Customers", url: "/customers", icon: Users, keywords: ["customer", "client", "history"] },
+  { title: "Invoices", url: "/invoices", icon: Receipt, keywords: ["invoice", "zoho", "serial", "payment"] },
 ]
 
 const adminItems: NavItem[] = [

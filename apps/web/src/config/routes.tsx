@@ -19,6 +19,10 @@ const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
+const Customers = lazy(() => import('@/app/customers/page'))
+const CustomerDetail = lazy(() => import('@/app/customers/detail/page'))
+const Invoices = lazy(() => import('@/app/invoices/page'))
+const InvoiceDetail = lazy(() => import('@/app/invoices/detail/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
@@ -112,6 +116,10 @@ export const routes: RouteConfig[] = [
         { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
         { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
+        { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
+        { path: "/customers/:id", element: <RequireAdmin><CustomerDetail /></RequireAdmin> },
+        { path: "/invoices", element: <RequireAdmin><Invoices /></RequireAdmin> },
+        { path: "/invoices/:id", element: <RequireAdmin><InvoiceDetail /></RequireAdmin> },
       ]
     : []),
   // Month-end stocktake: admins and managers; the API enforces the same on every call
