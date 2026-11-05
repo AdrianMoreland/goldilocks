@@ -14,7 +14,9 @@ function setup() {
             updateMany: jest.fn(),
         },
         trade: { count: jest.fn(), findMany: jest.fn() },
-        purchaseLot: { findMany: jest.fn() },
+        purchaseLot: { findMany: jest.fn().mockResolvedValue([]) },
+        bcSalesOrder: { findMany: jest.fn().mockResolvedValue([]) },
+        quote: { findMany: jest.fn().mockResolvedValue([]) },
         zohoInvoiceLine: { findMany: jest.fn() },
         productAlias: {
             count: jest.fn(),
@@ -34,10 +36,15 @@ function setup() {
         fn(prisma),
     );
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const rules = {
+        judge: jest.fn().mockResolvedValue(new Map()),
+        settle: jest.fn(),
+    };
     return {
         prisma,
         audit,
-        service: new ReviewService(prisma as never, audit as never),
+        rules,
+        service: new ReviewService(prisma as never, audit as never, rules),
     };
 }
 
@@ -59,6 +66,7 @@ describe('ReviewService', () => {
             unresolvedLots: 215,
             duplicates: 122,
             aliases: 689,
+            overAllocated: 0,
         });
         expect(prisma.entityLink.groupBy).toHaveBeenCalledWith(
             expect.objectContaining({ where: { status: 'PENDING' } }),
@@ -248,6 +256,129 @@ describe('ReviewService', () => {
             alias: '1oz bar|VALCAMBI',
             uses: 40,
             refinery: 'VALCAMBI',
+        });
+    });
+
+    it('settles pending links through the rules and audits counts only', async () => {
+        const { service, rules, audit, prisma } = setup();
+        rules.settle.mockResolvedValue({
+            confirmed: 600,
+            asked: 50,
+            overAllocated: 21,
+            quotesInvoiced: 3,
+        });
+        expect(await service.settle('a@example.com')).toEqual({
+            confirmed: 600,
+            asked: 50,
+            overAllocated: 21,
+            quotesInvoiced: 3,
+        });
+        expect(audit.record).toHaveBeenCalledWith(
+            'a@example.com',
+            'review-settle',
+            '600 confirmed by rule, 50 left to ask, 21 over-allocated',
+            prisma,
+        );
+    });
+
+    it('says why a pending link was left to ask about', async () => {
+        const { service, prisma, rules } = setup();
+        prisma.entityLink.count.mockResolvedValue(2);
+        prisma.entityLink.findMany.mockResolvedValue([
+            {
+                id: 1,
+                linkType: 'trade_lot',
+                confidence: 'PROBABLE',
+                method: 'CPTY_REF',
+                note: null,
+                fromTable: 'trades',
+                fromKey: 'T1',
+                toTable: 'purchase_lots',
+                toKey: 'L1',
+            },
+            {
+                id: 2,
+                linkType: 'bc_trade',
+                confidence: 'PROBABLE',
+                method: 'X',
+                note: null,
+                fromTable: 'bc_sales_orders',
+                fromKey: 'B1',
+                toTable: 'trades',
+                toKey: 'T1',
+            },
+        ]);
+        prisma.trade.findMany.mockResolvedValue([]);
+        rules.judge.mockResolvedValue(
+            new Map([
+                [
+                    1,
+                    {
+                        verdict: 'ASK',
+                        reason: 'The sale and the purchase line are different products.',
+                    },
+                ],
+            ]),
+        );
+        const res = await service.links({});
+        expect(res.rows[0].why).toBe(
+            'The sale and the purchase line are different products.',
+        );
+        expect(res.rows[1].why).toBeNull();
+    });
+
+    it('lists purchase lines with more sold than bought, worst first, with their sales', async () => {
+        const { service, prisma } = setup();
+        prisma.purchaseLot.findMany.mockResolvedValue([
+            {
+                id: 1,
+                reference: 'DU-GP1',
+                productText: '1oz Bar',
+                received: date('2026-03-01'),
+                qty: 10,
+                allocatedQty: 12,
+            },
+            {
+                id: 2,
+                reference: 'DU-GP2',
+                productText: '1oz Bar',
+                received: null,
+                qty: 10,
+                allocatedQty: 30,
+            },
+            {
+                id: 3,
+                reference: 'DU-GP3',
+                productText: '1oz Bar',
+                received: null,
+                qty: 10,
+                allocatedQty: 10,
+            },
+            {
+                id: 4,
+                reference: 'DU-GP4',
+                productText: '1oz Bar',
+                received: null,
+                qty: null,
+                allocatedQty: 5,
+            },
+        ]);
+        prisma.trade.findMany.mockResolvedValue([
+            {
+                id: 7,
+                lotId: 2,
+                reference: 'DU-G7',
+                date: date('2026-04-01'),
+                qty: 20,
+            },
+        ]);
+        const res = await service.overAllocated({});
+        expect(res.total).toBe(2);
+        expect(res.rows.map((r) => r.reference)).toEqual(['DU-GP2', 'DU-GP1']);
+        expect(res.rows[0]).toMatchObject({
+            bought: 10,
+            sold: 30,
+            sales: [{ reference: 'DU-G7', qty: 20 }],
         });
     });
 
