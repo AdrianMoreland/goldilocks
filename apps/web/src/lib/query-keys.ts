@@ -10,6 +10,13 @@ export const queryKeys = {
         list: ['customer-orders', 'list'] as const,
         expected: ['customer-orders', 'expected'] as const,
     },
+    orders: {
+        list: (queue: string, q: string) => ['orders', 'list', queue, q] as const,
+        detail: (id: number) => ['orders', 'detail', id] as const,
+        tasks: (status: string) => ['orders', 'tasks', status] as const,
+        handover: ['orders', 'handover'] as const,
+        all: ['orders'] as const,
+    },
     stocktake: {
         list: ['stocktake', 'list'] as const,
         detail: (id: number) => ['stocktake', 'detail', id] as const,

@@ -15,6 +15,7 @@ import {
 import { useTradesheetImportApi } from "@/api/tradesheet-import.api"
 import { readTradesheetFile } from "@/lib/tradesheet-reader"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { useOrdersApi } from "@/api/orders.api"
 import { features } from "@/config/features"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,8 +54,13 @@ const ROWS_SHOWN = 100
  * Drop a monthly trade sheet (.xlsx exported from Google Sheets) and see what it would add, change or flag
  * before anything is saved. The sheets stay the source: reimporting a month updates its rows by reference.
  */
-export default function TradesheetsPage() {
+function Shell({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) {
+    return embedded ? <>{children}</> : <BaseLayout title="Trade sheets" description="Import a monthly trade sheet and see what changes before it is saved">{children}</BaseLayout>
+}
+
+export default function TradesheetsPage({ embedded = false }: { embedded?: boolean }) {
     const api = useTradesheetImportApi()
+    const orders = useOrdersApi()
     const input = useRef<HTMLInputElement>(null)
     const [dragging, setDragging] = useState(false)
     const [reading, setReading] = useState(false)
@@ -74,6 +80,12 @@ export default function TradesheetsPage() {
         onSuccess: (result) => {
             setDone(result)
             toast.success("Import saved")
+            // Sheet tasks the new trades show as done close themselves. Best effort: the import is already saved.
+            if (features.redesign)
+                orders
+                    .reconcile()
+                    .then((r) => r.closed && toast.success(`${r.closed} sheet task${r.closed > 1 ? "s" : ""} closed: this import shows them done.`))
+                    .catch(() => undefined)
         },
         onError: (e: Error) => toast.error(e.message),
     })
@@ -132,7 +144,7 @@ export default function TradesheetsPage() {
     const changes = plan ? plan.totals.added + plan.totals.changed + plan.totals.restored + plan.totals.missing : 0
 
     return (
-        <BaseLayout title="Trade sheets" description="Import a monthly trade sheet and see what changes before it is saved">
+        <Shell embedded={embedded}>
             <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
                 {features.redesign && (
                     <ol className="flex flex-wrap gap-2 text-sm" aria-label="Steps">
@@ -249,7 +261,7 @@ export default function TradesheetsPage() {
                     </>
                 )}
             </div>
-        </BaseLayout>
+        </Shell>
     )
 }
 

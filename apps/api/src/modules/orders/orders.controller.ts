@@ -17,6 +17,7 @@ import {
     OrderStepEnum,
     SheetTaskListQuerySchema,
     type Handover,
+    type LatestHandover,
     type OrderDetail,
     type OrderListResponse,
     type ReconcileResult,
@@ -125,8 +126,8 @@ export class HandoverController {
 
     @Get()
     @ApiOperation({ summary: 'The latest handover note' })
-    latest(): Promise<Handover | null> {
-        return this.service.latestHandover();
+    async latest(): Promise<LatestHandover> {
+        return { handover: await this.service.latestHandover() };
     }
 
     @Post()

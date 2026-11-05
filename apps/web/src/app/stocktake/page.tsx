@@ -21,7 +21,12 @@ const localIso = (d: Date) =>
 /** Last day of the current month: the usual cutoff the count is reconciled to. */
 const monthEnd = () => localIso(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0))
 
-export default function StocktakeListPage() {
+/** The page frame, or nothing when the page sits inside Inventory. */
+function Shell({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) {
+    return embedded ? <>{children}</> : <BaseLayout title="Stocktake" description="Month-end count against the Business Central Physical Inventory Journal">{children}</BaseLayout>
+}
+
+export default function StocktakeListPage({ embedded = false }: { embedded?: boolean }) {
     const api = useStocktakeApi()
     const qc = useQueryClient()
     const { data, isLoading } = useQuery({ queryKey: queryKeys.stocktake.list, queryFn: api.list })
@@ -48,7 +53,7 @@ export default function StocktakeListPage() {
     // The prototype's two cards: a form to start a stocktake, and the list of them.
     if (features.redesign) {
         return (
-            <BaseLayout title="Stocktake" description="Month-end count against the Business Central Physical Inventory Journal">
+            <Shell embedded={embedded}>
                 <div className="mx-auto grid w-full max-w-6xl items-start gap-4 p-4 md:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                     <form className="bg-card space-y-3 rounded-xl border p-4" onSubmit={submit}>
                         <div>
@@ -101,7 +106,7 @@ export default function StocktakeListPage() {
                         )}
                     </section>
                 </div>
-            </BaseLayout>
+            </Shell>
         )
     }
 

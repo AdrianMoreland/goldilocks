@@ -9,10 +9,10 @@ function urls(access: Parameters<typeof navGroupsFor>[0]): string[] {
 }
 
 describe("navGroupsFor", () => {
-  it("splits an admin's pages into Manager and Admin groups when asked", () => {
+  it("gives an admin the Stock & orders group and a separate Admin group when asked", () => {
     const groups = navGroupsFor({ isAdmin: true, isManager: true, grouped: true, capabilities: withWorkbook })
-    expect(groups.map((group) => group.label)).toEqual(["Navigation", "Manager", "Admin"])
-    expect(groups[1].items.map((item) => item.url)).toEqual(["/stocktake", "/customer-orders", "/tradesheets"])
+    expect(groups.map((group) => group.label)).toEqual(["Navigation", "Stock & orders", "Admin"])
+    expect(groups[1].items.map((item) => item.url)).toEqual(["/inventory", "/orders", "/import"])
     expect(groups[2].items.map((item) => item.url)).toEqual(["/admin", "/project"])
   })
 

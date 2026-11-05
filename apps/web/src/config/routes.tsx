@@ -16,6 +16,9 @@ const Stocktake = lazy(() => import('@/app/stocktake/page'))
 const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
+const Inventory = lazy(() => import('@/app/inventory/page'))
+const Orders = lazy(() => import('@/app/orders/page'))
+const ImportHub = lazy(() => import('@/app/import/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
@@ -103,6 +106,14 @@ export const routes: RouteConfig[] = [
       ? <RequireAdmin><Navigate to="/project" replace /></RequireAdmin>
       : <RequireAdmin><Project2 /></RequireAdmin>
   },
+  // The redesign's stock and order pages: admins only for now (the API enforces the same).
+  ...(features.redesign
+    ? [
+        { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
+        { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
+        { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
+      ]
+    : []),
   // Month-end stocktake: admins and managers; the API enforces the same on every call
   {
     path: "/stocktake",

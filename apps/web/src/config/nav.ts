@@ -1,7 +1,10 @@
 import {
   BookOpen,
   ClipboardCheck,
+  Boxes,
+  Download,
   FileSpreadsheet,
+  ListChecks,
   KanbanSquare,
   LayoutDashboard,
   PackageCheck,
@@ -58,6 +61,13 @@ const stocktakeItem: NavItem = { title: "Stocktake", url: "/stocktake", icon: Cl
 const customerOrdersItem: NavItem = { title: "Customer orders", url: "/customer-orders", icon: PackageCheck, keywords: ["orders"] }
 const tradesheetsItem: NavItem = { title: "Trade sheets", url: "/tradesheets", icon: FileSpreadsheet, keywords: ["tradesheet", "import", "monthly"] }
 
+/** The redesign's stock and order pages. Admin only for now; the old pages stay for managers. */
+const stockOrdersItems: NavItem[] = [
+  { title: "Inventory", url: "/inventory", icon: Boxes, keywords: ["stock", "bars", "coins", "stocktake", "month end"] },
+  { title: "Orders", url: "/orders", icon: ListChecks, keywords: ["customer orders", "allocate", "collect", "sheet updates"] },
+  { title: "Import hub", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report"] },
+]
+
 const adminItems: NavItem[] = [
   { title: "Admin Console", url: "/admin", icon: ShieldCheck, keywords: ["admin", "logs", "errors", "health", "users"] },
   { title: "Project Management", url: "/project", icon: KanbanSquare, keywords: ["roadmap", "tasks", "plan"] },
@@ -76,7 +86,7 @@ export function navGroupsFor({ isAdmin, isManager, grouped, capabilities }: NavA
   if (isAdmin && grouped) {
     return [
       ...visible,
-      { label: "Manager", items: [stocktakeItem, customerOrdersItem, tradesheetsItem] },
+      { label: "Stock & orders", items: stockOrdersItems },
       { label: "Admin", items: adminItems },
     ]
   }
