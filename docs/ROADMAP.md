@@ -69,6 +69,7 @@ Single source of truth for what to build and in what order. Merges three earlier
   - [ ] *(deferred by the owner 2026-10-25)* *(review 2026-10-25, verified)* Eight API dependencies with no import in `apps/api/src` or `prisma`: `@prisma/extension-accelerate`, `@trpc/server`, `axios`, `cheerio`, `class-transformer`, `class-validator`, `event-emitter`, `jose`; also check the web `package.json` (the review counted 13 unused there)
   - [ ] *(review 2026-10-25, verified)* `future-impl-ideas/` (7 files importing modules that do not exist); `packages/shared-types/src/invoice.schema.ts` and `quote.schema.ts` (not exported, used by no app, and ground rule 1 says no invoicing); four dead web files (`hooks/use-metals.hook.ts`, `hooks/use-metal-spot-prices.hook.ts`, `hooks/use-fullscreen.ts`, `api/metal-spot-prices.api.ts`) - delete
   - [ ] *(review 2026-10-25, verified)* 648 tracked files under `dist/` (tracked on purpose for Railway's runtime image, see `.gitignore`, but stale: no audit-log or capability code), plus `goldilocks.iml` and `apps/web/.env`. Decide: stop tracking `dist/` and fix the Railway build, or add a CI check that `dist/` is rebuilt; untrack the IDE file
+- [x] Testing mobile 3
 
 ## 0.2 Money correctness 🔴
 
@@ -553,8 +554,8 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 - [x] Slice 0: add this section to the roadmap - S
 - [x] Slice 1: `GithubPort`, `GET /roadmap/sync` status, read-only sync banner on the new `/project2` page (built beside `/project`, which stays untouched until `/project2` replaces it), `mergeRoadmap` in `shared-types` with tests; needs `GITHUB_SYNC_TOKEN` - M
 - [x] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
-- [x] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
-- [x] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
+- [ ] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
+- [ ] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
 
 ---
