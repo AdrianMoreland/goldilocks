@@ -26,6 +26,11 @@ import {
     RoadmapPullResultSchema,
     RoadmapPushRequestSchema,
     RoadmapPushResultSchema,
+    RoadmapQueueAppendedSchema,
+    RoadmapQueueFiledRequestSchema,
+    RoadmapQueueFiledResultSchema,
+    RoadmapQueueListSchema,
+    RoadmapQueueRequestSchema,
     RoadmapScopeRefreshSchema,
     RoadmapScopeSchema,
     RoadmapSyncStatusSchema,
@@ -598,4 +603,29 @@ export class RoadmapScopeDto extends createDto(
 export class RoadmapScopeRefreshDto extends createDto(
     RoadmapScopeRefreshSchema,
     'RoadmapScopeRefreshDto',
+) {}
+
+export class RoadmapQueueRequestDto extends createDto(
+    RoadmapQueueRequestSchema,
+    'RoadmapQueueRequestDto',
+) {}
+
+export class RoadmapQueueListDto extends createDto(
+    RoadmapQueueListSchema,
+    'RoadmapQueueListDto',
+) {}
+
+export class RoadmapQueueAppendedDto extends createDto(
+    RoadmapQueueAppendedSchema,
+    'RoadmapQueueAppendedDto',
+) {}
+
+export class RoadmapQueueFiledRequestDto extends createDto(
+    RoadmapQueueFiledRequestSchema,
+    'RoadmapQueueFiledRequestDto',
+) {}
+
+export class RoadmapQueueFiledResultDto extends createDto(
+    RoadmapQueueFiledResultSchema,
+    'RoadmapQueueFiledResultDto',
 ) {}

@@ -2,6 +2,7 @@ import {
     Body,
     Controller,
     Get,
+    Inject,
     Param,
     ParseIntPipe,
     Post,
@@ -32,6 +33,9 @@ import {
     RoadmapPullResultDto,
     RoadmapPushRequestDto,
     RoadmapPushResultDto,
+    RoadmapQueueAppendedDto,
+    RoadmapQueueListDto,
+    RoadmapQueueRequestDto,
     RoadmapScopeDto,
     RoadmapScopeRefreshDto,
     RoadmapSyncStatusDto,
@@ -40,6 +44,8 @@ import { RoadmapService } from './roadmap.service';
 import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
+import { RoadmapQueueService } from './roadmap-queue.service';
+import { ROADMAP_WRITER, type RoadmapWriter } from './roadmap-writer';
 import { RoadmapScopeService } from './roadmap-scope.service';
 import { RoadmapSyncService } from './roadmap-sync.service';
 
@@ -56,7 +62,30 @@ export class RoadmapController {
         private readonly pushes: RoadmapPushService,
         private readonly inbox: RoadmapInboxService,
         private readonly scope: RoadmapScopeService,
+        private readonly queue: RoadmapQueueService,
+        @Inject(ROADMAP_WRITER) private readonly writer: RoadmapWriter,
     ) {}
+
+    @Get('queue')
+    @ApiOperation({
+        summary:
+            'Notes queued from the app or the phone, waiting for a laptop session to file them (admin)',
+    })
+    @ApiResponse({ status: 200, type: RoadmapQueueListDto })
+    queueList() {
+        return this.queue.list();
+    }
+
+    @Post('queue')
+    @Throttle({ default: { limit: 20, ttl: 60_000 } })
+    @ApiOperation({
+        summary:
+            'Queue a note. It becomes a dated line in the roadmap inbox at the next laptop session (admin)',
+    })
+    @ApiResponse({ status: 201, type: RoadmapQueueAppendedDto })
+    queueAppend(@Body() body: RoadmapQueueRequestDto) {
+        return this.writer.append({ text: body.text, source: 'web' });
+    }
 
     @Get('scope')
     @ApiOperation({
