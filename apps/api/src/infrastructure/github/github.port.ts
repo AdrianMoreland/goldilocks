@@ -50,7 +50,8 @@ export interface GithubPort {
     readonly repo: string;
     /** When the token expires, as GitHub last reported it; null until a call has been made or if none. */
     tokenExpiresAt(): Date | null;
-    readFile(path: string, branch: string): Promise<GithubFile>;
+    /** Reads one file. `repo` (`owner/name`) overrides the configured repository for this call. */
+    readFile(path: string, branch: string, repo?: string): Promise<GithubFile>;
     listOpenPullRequests(): Promise<GithubPullRequest[]>;
     /** Puts `branch` at `baseCommit` (forced if it exists), commits `content` to `path` on it; returns the new commit. */
     writeFileOnBranch(input: WriteFileOnBranch): Promise<{ commit: string }>;
