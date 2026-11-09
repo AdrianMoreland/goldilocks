@@ -26,6 +26,8 @@ import {
     RoadmapPullResultSchema,
     RoadmapPushRequestSchema,
     RoadmapPushResultSchema,
+    RoadmapScopeRefreshSchema,
+    RoadmapScopeSchema,
     RoadmapSyncStatusSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
@@ -586,4 +588,14 @@ export class MapAliasRequestDto extends createDto(
 export class RecordSearchRequestDto extends createDto(
     RecordSearchRequestSchema,
     'RecordSearchRequestDto',
+) {}
+
+export class RoadmapScopeDto extends createDto(
+    RoadmapScopeSchema,
+    'RoadmapScopeDto',
+) {}
+
+export class RoadmapScopeRefreshDto extends createDto(
+    RoadmapScopeRefreshSchema,
+    'RoadmapScopeRefreshDto',
 ) {}

@@ -32,12 +32,15 @@ import {
     RoadmapPullResultDto,
     RoadmapPushRequestDto,
     RoadmapPushResultDto,
+    RoadmapScopeDto,
+    RoadmapScopeRefreshDto,
     RoadmapSyncStatusDto,
 } from '../../common/dto/dtos';
 import { RoadmapService } from './roadmap.service';
 import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
+import { RoadmapScopeService } from './roadmap-scope.service';
 import { RoadmapSyncService } from './roadmap-sync.service';
 
 @ApiTags('roadmap')
@@ -52,7 +55,29 @@ export class RoadmapController {
         private readonly pulls: RoadmapPullService,
         private readonly pushes: RoadmapPushService,
         private readonly inbox: RoadmapInboxService,
+        private readonly scope: RoadmapScopeService,
     ) {}
+
+    @Get('scope')
+    @ApiOperation({
+        summary:
+            'The roadmap kept as scope files in the roadmap repository, as last pulled (admin)',
+    })
+    @ApiResponse({ status: 200, type: RoadmapScopeDto })
+    scopeGet() {
+        return this.scope.get();
+    }
+
+    @Post('scope/refresh')
+    @Throttle({ default: { limit: 6, ttl: 60_000 } })
+    @ApiOperation({
+        summary:
+            'Pull the scope files from the roadmap repository and store them (admin, read only on GitHub)',
+    })
+    @ApiResponse({ status: 201, type: RoadmapScopeRefreshDto })
+    scopeRefresh(@Req() req: RequestWithUser) {
+        return this.scope.refresh(req.user.email);
+    }
 
     @Get()
     @ApiOperation({ summary: 'The roadmap Markdown and its version (admin)' })

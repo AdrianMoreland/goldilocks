@@ -7,6 +7,7 @@ import { RoadmapController } from './roadmap.controller';
 import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
+import { RoadmapScopeService } from './roadmap-scope.service';
 import { RoadmapCron } from './roadmap.cron';
 import { RoadmapWebhookController } from './roadmap-webhook.controller';
 import { RoadmapService } from './roadmap.service';
@@ -25,6 +26,7 @@ import { RoadmapSyncService } from './roadmap-sync.service';
         RoadmapSyncService,
         RoadmapPullService,
         RoadmapPushService,
+        RoadmapScopeService,
         RoadmapInboxService,
         RoadmapCron,
     ],
