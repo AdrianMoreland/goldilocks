@@ -8,8 +8,7 @@ import { cn } from "@/lib/utils"
 import { UNDERLINE_TAB } from "@/lib/underline-tabs"
 import RoadmapView from "./views/roadmap-view"
 import { features } from "@/config/features"
-import { RoadmapView as NewRoadmapView } from "../project2/components/roadmap-view"
-import { SyncBanner } from "../project2/components/sync-banner"
+import { RoadmapSource, useScopeRoadmap } from "../project2/components/roadmap-source"
 
 // The two reference views bundle large Markdown files; load them only when opened.
 const EngineeringView = lazy(() => import("./views/engineering-view"))
@@ -30,6 +29,9 @@ const VIEWS: { key: string; label: string; icon: LucideIcon }[] = [
 export default function ProjectPage() {
     const [params, setParams] = useSearchParams()
     const view = VIEWS.find((v) => v.key === params.get("view"))?.key ?? "roadmap"
+    // Once the API reads the roadmap from the scope files, the old copy of docs/ROADMAP.md is stale, so the rebuilt page shows here too.
+    const scope = useScopeRoadmap()
+    const scopeFiles = scope.data?.enabled === true
 
     return (
         <BaseLayout
@@ -65,7 +67,7 @@ export default function ProjectPage() {
                     ))}
                 </div>
 
-                {view === "roadmap" && (features.redesign ? <NewRoadmap /> : <RoadmapView />)}
+                {view === "roadmap" && (features.redesign || scopeFiles ? <RoadmapSource /> : <RoadmapView />)}
                 {view !== "roadmap" && (
                     <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>{view === "engineering" ? <EngineeringView /> : <DesignView />}</Suspense>
                 )}
@@ -75,11 +77,3 @@ export default function ProjectPage() {
 }
 
 /** The rebuilt roadmap (formerly /project2): sync status above the roadmap itself. Shown instead of the old one when the redesign is on. */
-function NewRoadmap() {
-    return (
-        <div className="flex flex-col gap-4">
-            <SyncBanner />
-            <NewRoadmapView />
-        </div>
-    )
-}
