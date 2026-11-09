@@ -8,7 +8,7 @@ import { TextEntry } from "./text-entry"
 import { PriorityGlyph } from "./priority-glyph"
 import { PRIORITIES, PRIORITY_LABEL, type Priority } from "../roadmap-state"
 import { filterScopeItems, isScopeFiltering, NO_SCOPE_FILTER, noteForItem, SCOPE_LABEL, sortScopeItems, STATUS_TONE, taskCount, verifiedText, type ScopeFilter } from "../scope-state"
-import { useQueueNote } from "./scope-queue"
+import { useQueueNote } from "../use-queue-note"
 
 const SCOPES = Object.keys(SCOPE_LABEL) as RoadmapScopeKey[]
 

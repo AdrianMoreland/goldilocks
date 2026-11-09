@@ -1,6 +1,5 @@
 import { useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
 import { useRoadmapScopeApi } from "@/api/roadmap-scope.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Button } from "@/components/ui/button"
@@ -9,21 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatusDot } from "@/components/status-dot"
 import { QUEUE_MAX, queueSummary } from "../scope-state"
-
-/** Adds one note to the queue and refreshes the list. Used by the Queue tab and by the note box on each item. */
-export function useQueueNote(onDone?: () => void) {
-    const api = useRoadmapScopeApi()
-    const queryClient = useQueryClient()
-    return useMutation({
-        mutationFn: (text: string) => api.addToQueue(text),
-        onSuccess: () => {
-            toast.success("Queued. It becomes an inbox line at the next laptop session.")
-            void queryClient.invalidateQueries({ queryKey: queryKeys.roadmapQueue })
-            onDone?.()
-        },
-        onError: (error) => toast.error(error instanceof Error ? error.message : "Could not queue the note"),
-    })
-}
+import { useQueueNote } from "../use-queue-note"
 
 /**
  * The only way to change the roadmap from this page: a note. Nothing here edits the scope files. A laptop
@@ -36,7 +21,8 @@ export function ScopeQueue() {
     const queue = useQuery({ queryKey: queryKeys.roadmapQueue, queryFn: api.getQueue })
     const add = useQueueNote(() => setText(""))
     const submit = () => {
-        if (text.trim()) add.mutate(text.trim())
+        // The box is cleared only once the note is saved, so a second Enter while the request is in flight must not send it again.
+        if (text.trim() && !add.isPending) add.mutate(text.trim())
     }
     const summary = queue.data ? queueSummary(queue.data.entries) : null
 
