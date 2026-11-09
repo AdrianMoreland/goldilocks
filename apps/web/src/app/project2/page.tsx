@@ -2,8 +2,7 @@ import { Link } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
-import { RoadmapView } from "./components/roadmap-view"
-import { SyncBanner } from "./components/sync-banner"
+import { RoadmapSource } from "./components/roadmap-source"
 
 /**
  * Project Management, next version (roadmap 1.20; docs/ROADMAP-TOOL-PLAN.md). Built beside /project so
@@ -26,8 +25,7 @@ export default function Project2Page() {
             )}
         >
             <div className="flex flex-col gap-4 px-4 lg:px-6">
-                <SyncBanner />
-                <RoadmapView />
+                <RoadmapSource />
             </div>
         </BaseLayout>
     )
