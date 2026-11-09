@@ -354,7 +354,8 @@ model RoadmapSnapshot {
 /// `status` is new, promoted (became a roadmap task) or dismissed. Rows are never deleted.
 model RoadmapInbox {
   id             Int       @id @default(autoincrement())
-  issueNumber    Int       @unique
+  /// GitHub issue number; null for queue rows (source phone or web), which have no issue.
+  issueNumber    Int?      @unique
   title          String
   body           String    @default("")
   kind           String?
@@ -364,8 +365,11 @@ model RoadmapInbox {
   fetchedAt      DateTime  @default(now()) @db.Timestamptz(6)
   handledAt      DateTime? @db.Timestamptz(6)
   handledBy      String?
+  /// github (an issue), or phone / web (a queued note a laptop session files into docs/INBOX.md).
+  source         String    @default("github")
 
   @@index([status, issueCreatedAt(sort: Desc)])
+  @@index([source, status])
   @@map("roadmap_inbox")
 }
 

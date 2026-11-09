@@ -74,6 +74,7 @@ export * from './roadmap-inbox.schema';
 export * from './roadmap-sync';
 export * from './roadmap-scope.schema';
 export * from './roadmap-scope';
+export * from './roadmap-queue.schema';
 export * from './design-md';
 export * from './stocktake';
 export * from './stocktake.schema';

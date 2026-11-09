@@ -42,7 +42,8 @@ function capitalise(s: string) {
 
 type Row = {
     id: number;
-    issueNumber: number;
+    /** Null for queue rows (source phone or web); only GitHub rows reach the inbox page. */
+    issueNumber: number | null;
     title: string;
     body: string;
     kind: string | null;
@@ -56,7 +57,7 @@ type Row = {
 function toItem(r: Row): RoadmapInboxItem {
     return {
         id: r.id,
-        issueNumber: r.issueNumber,
+        issueNumber: r.issueNumber ?? 0,
         title: r.title,
         body: r.body,
         kind: r.kind,
@@ -88,6 +89,7 @@ export class RoadmapInboxService {
 
     async list(): Promise<RoadmapInbox> {
         const rows = await this.prisma.roadmapInbox.findMany({
+            where: { source: 'github' },
             orderBy: [{ issueCreatedAt: 'desc' }],
             take: 200,
         });
@@ -137,9 +139,17 @@ export class RoadmapInboxService {
             );
         }
 
-        const known = await this.prisma.roadmapInbox.findMany({
-            select: { issueNumber: true, status: true },
-        });
+        // Queue rows (phone or web) have no issue number and are not part of this comparison.
+        const known = (
+            await this.prisma.roadmapInbox.findMany({
+                where: { source: 'github' },
+                select: { issueNumber: true, status: true },
+            })
+        ).flatMap((k) =>
+            k.issueNumber === null
+                ? []
+                : [{ issueNumber: k.issueNumber, status: k.status }],
+        );
         const knownNumbers = new Set(known.map((k) => k.issueNumber));
         const fresh = issues.filter((i) => !knownNumbers.has(i.number));
         if (fresh.length > 0) {
@@ -224,7 +234,9 @@ export class RoadmapInboxService {
         const item = await this.prisma.roadmapInbox.findUnique({
             where: { id },
         });
-        if (!item) throw new NotFoundException('Inbox item not found');
+        if (!item || item.source !== 'github' || item.issueNumber === null) {
+            throw new NotFoundException('Inbox item not found');
+        }
         if (item.status !== 'new') {
             throw new BadRequestException('That item was already handled');
         }
@@ -247,7 +259,7 @@ export class RoadmapInboxService {
             await this.audit.record(actor, 'roadmap-inbox', detail, tx);
             return row;
         });
-        if (this.github.isConfigured()) {
+        if (this.github.isConfigured() && item.issueNumber !== null) {
             try {
                 await this.github.closeIssue(item.issueNumber, comment, reason);
             } catch (e) {
