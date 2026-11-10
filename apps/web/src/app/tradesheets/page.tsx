@@ -150,7 +150,7 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
         if (/^\d{4}-\d{2}$/.test(month)) preview.mutate(next)
     }
 
-    const changes = plan ? plan.totals.added + plan.totals.changed + plan.totals.restored + plan.totals.missing : 0
+    const changes = plan ? plan.totals.added + plan.totals.changed + plan.totals.restored + plan.totals.missing + plan.totals.refreshed : 0
 
     return (
         <Shell embedded={embedded}>
@@ -287,12 +287,13 @@ function Totals({ plan }: { plan: TradesheetImportPlan }) {
         ["Added", t.added, STATUS_STYLE.ADDED],
         ["Changed", t.changed, STATUS_STYLE.CHANGED],
         ["Restored", t.restored, STATUS_STYLE.RESTORED],
+        ["Product filled", t.refreshed, STATUS_STYLE.CHANGED],
         ["Unchanged", t.unchanged, STATUS_STYLE.UNCHANGED],
         ["Missing from file", t.missing, STATUS_STYLE.MISSING],
         ["Need a look", t.flagged, "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200"],
     ]
     return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
             {items.map(([label, n, style]) => (
                 <div key={label} className={cn("rounded-lg px-3 py-2", style)}>
                     <div className="text-2xl font-semibold tabular-nums">{n}</div>
@@ -338,6 +339,7 @@ function TabCard({ tab }: { tab: TabPlan }) {
                     <span className="text-muted-foreground text-sm tabular-nums">
                         {tab.counts.added} added, {tab.counts.changed + tab.counts.restored} changed, {tab.counts.unchanged} unchanged
                         {tab.counts.missing > 0 && `, ${tab.counts.missing} missing`}
+                        {tab.counts.refreshed > 0 && `, ${tab.counts.refreshed} product filled`}
                         {tab.counts.flagged > 0 && `, ${tab.counts.flagged} need a look`}
                     </span>
                 )}

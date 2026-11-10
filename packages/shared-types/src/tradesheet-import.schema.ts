@@ -50,6 +50,8 @@ export const PlanCountsSchema = z.object({
   unchanged: z.number(),
   missing: z.number(),
   flagged: z.number(),
+  /** Unchanged rows whose product or issues the commit will rewrite. */
+  refreshed: z.number().default(0),
 });
 export type PlanCounts = z.infer<typeof PlanCountsSchema>;
 

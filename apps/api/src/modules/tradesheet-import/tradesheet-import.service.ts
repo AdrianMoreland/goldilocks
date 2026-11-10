@@ -13,6 +13,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import {
     parseTab,
     reconcileTab,
+    needsProductRefresh,
     summarise,
     type ExistingLot,
     type ExistingTrade,
@@ -108,7 +109,7 @@ export class TradesheetImportService {
                 await this.audit.record(
                     actor,
                     'tradesheet-import',
-                    `${dto.fileName} (${dto.sheetMonth}): ${t.added} added, ${t.changed + t.restored} updated, ${t.missing} missing, ${t.flagged} flagged; ${allocation.salesLinked} sales linked, ${allocation.lotNotImported} to a lot not imported`,
+                    `${dto.fileName} (${dto.sheetMonth}): ${t.added} added, ${t.changed + t.restored} updated, ${t.refreshed} products filled, ${t.missing} missing, ${t.flagged} flagged; ${allocation.salesLinked} sales linked, ${allocation.lotNotImported} to a lot not imported`,
                     tx,
                 );
                 return { batchId: batch.id, plan: built.plan, allocation };
@@ -510,14 +511,7 @@ export class TradesheetImportService {
         }
         // An unchanged row keeps its data but picks up a better product match.
         for (const s of rec.sales) {
-            if (
-                s.status === 'UNCHANGED' &&
-                s.existing &&
-                (s.existing.productKey !== s.productKey ||
-                    s.existing.productId !== s.productId ||
-                    JSON.stringify(s.existing.issues) !==
-                        JSON.stringify(s.issues))
-            ) {
+            if (needsProductRefresh(s) && s.existing) {
                 await tx.trade.update({
                     where: { id: s.existing.id },
                     data: {
@@ -633,14 +627,7 @@ export class TradesheetImportService {
             }
         }
         for (const l of rec.lots) {
-            if (
-                l.status === 'UNCHANGED' &&
-                l.existing &&
-                (l.existing.productKey !== l.productKey ||
-                    l.existing.productId !== l.productId ||
-                    JSON.stringify(l.existing.issues) !==
-                        JSON.stringify(l.issues))
-            ) {
+            if (needsProductRefresh(l) && l.existing) {
                 await tx.purchaseLot.update({
                     where: { id: l.existing.id },
                     data: {
