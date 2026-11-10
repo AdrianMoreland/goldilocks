@@ -113,7 +113,8 @@ export class TradesheetImportService {
                 );
                 return { batchId: batch.id, plan: built.plan, allocation };
             },
-            { timeout: 120_000, maxWait: 10_000 },
+            // Backstop: the API is ~140 ms from the database, so even batched, a big file needs room.
+            { timeout: 300_000, maxWait: 10_000 },
         );
     }
 
@@ -173,56 +174,77 @@ export class TradesheetImportService {
                 lotByKey.set(lot.referenceKey, lot);
         }
 
+        // Collected per lot, then written in a few set-based queries: each query is a round trip to the database.
+        const unlink: Array<{ lotId: number; key: string }> = [];
+        const link: Array<{ tradeId: number; lotId: number }> = [];
+        const orphanIds: number[] = [];
+        const totals: Array<{ lotId: number; allocatedQty: number }> = [];
+        const goldLotIds: number[] = [];
+        const ranges: Array<{
+            lotId: number;
+            fromSeq: number;
+            toSeq: number;
+            tradeId: number;
+        }> = [];
+
         for (const key of lotKeys) {
             const lot = lotByKey.get(key);
             const cited = sales.filter((s) => s.lotKey === key);
 
-            // A sale that used to point at this lot but now names another one stops pointing here.
-            if (lot) {
-                await tx.trade.updateMany({
-                    where: {
-                        lotId: lot.id,
-                        OR: [{ lotKey: null }, { lotKey: { not: key } }],
-                    },
-                    data: { lotId: null },
-                });
-            }
-            if (cited.length > 0) {
-                await tx.trade.updateMany({
-                    where: { id: { in: cited.map((s) => s.id) } },
-                    data: { lotId: lot?.id ?? null },
-                });
-            }
             if (!lot) {
+                for (const s of cited) orphanIds.push(s.id);
                 summary.lotNotImported += cited.length;
                 continue;
             }
+            unlink.push({ lotId: lot.id, key });
+            for (const s of cited) link.push({ tradeId: s.id, lotId: lot.id });
 
             const plan = planLotAllocation(lot.qty, cited);
-            await tx.purchaseLot.update({
-                where: { id: lot.id },
-                data: { allocatedQty: plan.allocatedQty },
-            });
+            totals.push({ lotId: lot.id, allocatedQty: plan.allocatedQty });
             // Silver has no per-item rows yet; its quantity is tracked on the lot alone.
             if (lot.metal === 'GOLD') {
-                await tx.stockUnit.updateMany({
-                    where: { lotId: lot.id },
-                    data: { tradeId: null },
-                });
-                for (const r of plan.ranges) {
-                    await tx.stockUnit.updateMany({
-                        where: {
-                            lotId: lot.id,
-                            seq: { gte: r.fromSeq, lte: r.toSeq },
-                        },
-                        data: { tradeId: r.tradeId },
-                    });
-                }
+                goldLotIds.push(lot.id);
+                for (const r of plan.ranges)
+                    ranges.push({ lotId: lot.id, ...r });
             }
             summary.lotsChecked++;
             summary.salesLinked += cited.length;
             if (plan.overBy > 0) summary.overAllocated++;
             if (soldMismatch(lot, plan.allocatedQty)) summary.soldMismatches++;
+        }
+
+        // A sale that used to point at a lot but now names another one stops pointing there.
+        if (unlink.length > 0) {
+            await tx.$executeRaw`UPDATE trades SET "lotId" = NULL
+                FROM unnest(${unlink.map((u) => u.lotId)}::int[], ${unlink.map((u) => u.key)}::text[]) AS v(lot_id, key)
+                WHERE trades."lotId" = v.lot_id AND (trades."lotKey" IS NULL OR trades."lotKey" <> v.key)`;
+        }
+        if (orphanIds.length > 0) {
+            await tx.trade.updateMany({
+                where: { id: { in: orphanIds } },
+                data: { lotId: null },
+            });
+        }
+        if (link.length > 0) {
+            await tx.$executeRaw`UPDATE trades SET "lotId" = v.lot_id
+                FROM unnest(${link.map((l) => l.tradeId)}::int[], ${link.map((l) => l.lotId)}::int[]) AS v(trade_id, lot_id)
+                WHERE trades.id = v.trade_id`;
+        }
+        if (totals.length > 0) {
+            await tx.$executeRaw`UPDATE purchase_lots SET "allocatedQty" = v.qty
+                FROM unnest(${totals.map((t) => t.lotId)}::int[], ${totals.map((t) => t.allocatedQty)}::int[]) AS v(lot_id, qty)
+                WHERE purchase_lots.id = v.lot_id`;
+        }
+        if (goldLotIds.length > 0) {
+            await tx.stockUnit.updateMany({
+                where: { lotId: { in: goldLotIds } },
+                data: { tradeId: null },
+            });
+        }
+        if (ranges.length > 0) {
+            await tx.$executeRaw`UPDATE stock_units SET "tradeId" = v.trade_id
+                FROM unnest(${ranges.map((r) => r.lotId)}::int[], ${ranges.map((r) => r.fromSeq)}::int[], ${ranges.map((r) => r.toSeq)}::int[], ${ranges.map((r) => r.tradeId)}::int[]) AS v(lot_id, from_seq, to_seq, trade_id)
+                WHERE stock_units."lotId" = v.lot_id AND stock_units.seq BETWEEN v.from_seq AND v.to_seq`;
         }
         return summary;
     }
@@ -581,11 +603,16 @@ export class TradesheetImportService {
             const idBySlot = new Map(
                 created.map((c) => [`${c.referenceKey}#${c.occurrence}`, c.id]),
             );
+            // A new lot has no units yet, so all of them go in one insert without counting first.
+            const units: Array<{ lotId: number; seq: number }> = [];
             for (const l of added) {
                 const id = idBySlot.get(`${l.referenceKey}#${l.occurrence}`);
-                if (id !== undefined)
-                    await this.syncUnits(tx, id, l.qty, l.metal);
+                if (id === undefined || l.metal !== 'GOLD') continue;
+                for (let seq = 1; seq <= (l.qty ?? 0); seq++)
+                    units.push({ lotId: id, seq });
             }
+            if (units.length > 0)
+                await tx.stockUnit.createMany({ data: units });
         }
         for (const l of rec.lots) {
             if (
