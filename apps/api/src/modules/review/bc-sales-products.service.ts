@@ -52,8 +52,10 @@ export class BcSalesProductsService {
         actor: string,
     ): Promise<BcSalesProductsApplyResult> {
         try {
-            return await this.prisma.$transaction((tx) =>
-                this.applyIn(tx, body, actor),
+            // One create and one link per BC item: well past the default 5 s on the hosted database.
+            return await this.prisma.$transaction(
+                (tx) => this.applyIn(tx, body, actor),
+                { timeout: 120_000, maxWait: 10_000 },
             );
         } catch (e) {
             if ((e as { code?: string }).code === 'P2002')
