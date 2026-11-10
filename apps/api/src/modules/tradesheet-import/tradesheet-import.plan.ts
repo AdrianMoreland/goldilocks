@@ -404,6 +404,20 @@ export function reconcileTab(
     };
 }
 
+/**
+ * An unchanged row keeps its data but picks up a better product match or fresh issues. The commit rewrites
+ * exactly the rows this returns true for, and the preview counts them with the same test.
+ */
+export function needsProductRefresh(r: PlannedSale | PlannedLot): boolean {
+    return (
+        r.status === 'UNCHANGED' &&
+        !!r.existing &&
+        (r.existing.productKey !== r.productKey ||
+            r.existing.productId !== r.productId ||
+            JSON.stringify(r.existing.issues) !== JSON.stringify(r.issues))
+    );
+}
+
 // --- the preview ------------------------------------------------------------------------
 
 const zeroCounts = (): PlanCounts => ({
@@ -413,6 +427,7 @@ const zeroCounts = (): PlanCounts => ({
     unchanged: 0,
     missing: 0,
     flagged: 0,
+    refreshed: 0,
 });
 
 const addCounts = (a: PlanCounts, b: PlanCounts): PlanCounts => ({
@@ -422,6 +437,7 @@ const addCounts = (a: PlanCounts, b: PlanCounts): PlanCounts => ({
     unchanged: a.unchanged + b.unchanged,
     missing: a.missing + b.missing,
     flagged: a.flagged + b.flagged,
+    refreshed: a.refreshed + b.refreshed,
 });
 
 export function summariseTab(rec: TabReconciliation): TabPlan {
@@ -436,6 +452,7 @@ export function summariseTab(rec: TabReconciliation): TabPlan {
         else if (r.status === 'CHANGED') counts.changed++;
         else if (r.status === 'RESTORED') counts.restored++;
         else counts.unchanged++;
+        if (needsProductRefresh(r)) counts.refreshed++;
         if (r.issues.length > 0) counts.flagged++;
         if (r.how) {
             if (r.how === 'NONE') productMatches.none++;

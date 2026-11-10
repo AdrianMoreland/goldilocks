@@ -1,6 +1,7 @@
 import type { RowResolverData, TradesheetTab } from '@goldilocks/shared-types';
 import {
     parseTab,
+    needsProductRefresh,
     reconcileTab,
     summarise,
     type ExistingLot,
@@ -539,6 +540,7 @@ describe('summarise', () => {
             unchanged: 1,
             missing: 1,
             flagged: 0,
+            refreshed: 0,
         });
         const tab = plan.tabs[0];
         expect(tab.rows.map((r) => r.reference)).toEqual([
@@ -557,5 +559,42 @@ describe('summarise', () => {
             notProduct: 0,
         });
         expect(plan.warnings).toEqual(['warn']);
+    });
+});
+
+describe('product refresh on unchanged rows', () => {
+    const planFor = (existing: Partial<ExistingTrade>) => {
+        const parsed = parseTab(
+            salesTab([sale(2, 'DU-G20261002', 'HEDGED')]),
+            aliases,
+        );
+        const fp = parsed.sales[0].parsed.fingerprint;
+        const rec = reconcileTab(
+            parsed,
+            '2026-10',
+            [existingTrade({ fingerprint: fp, ...existing })],
+            [],
+        );
+        return { rec, plan: summarise('october.xlsx', '2026-10', [rec], []) };
+    };
+
+    it('counts an unchanged row whose stored product is empty but now resolves', () => {
+        const { rec, plan } = planFor({ productKey: null, productId: null });
+        expect(rec.sales[0].status).toBe('UNCHANGED');
+        expect(rec.sales[0].productId).not.toBeNull();
+        expect(needsProductRefresh(rec.sales[0])).toBe(true);
+        expect(plan.totals.refreshed).toBe(1);
+        expect(plan.totals.unchanged).toBe(1);
+    });
+
+    it('counts nothing when the product and issues already match', () => {
+        const first = planFor({});
+        const { rec, plan } = planFor({
+            productKey: first.rec.sales[0].productKey,
+            productId: first.rec.sales[0].productId,
+            issues: first.rec.sales[0].issues,
+        });
+        expect(needsProductRefresh(rec.sales[0])).toBe(false);
+        expect(plan.totals.refreshed).toBe(0);
     });
 });
