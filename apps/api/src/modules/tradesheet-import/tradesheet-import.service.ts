@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
     AllocationSummary,
+    RowResolverData,
     TradesheetImportPlan,
     TradesheetImportRequest,
     TradesheetImportResult,
@@ -13,7 +14,6 @@ import {
     parseTab,
     reconcileTab,
     summarise,
-    type AliasIndex,
     type ExistingLot,
     type ExistingTrade,
     type PlannedLot,
@@ -230,7 +230,7 @@ export class TradesheetImportService {
     // --- planning ---------------------------------------------------------------------
 
     private async build(dto: TradesheetImportRequest, db: Db): Promise<Built> {
-        const aliases = await this.loadAliases(db);
+        const products = await this.loadProducts(db);
         // A branch is named by the two-letter code the sheets use (DU, CO, BL, BC), so its name is its code.
         const branches = await db.branch.findMany({
             select: { id: true, name: true },
@@ -240,7 +240,7 @@ export class TradesheetImportService {
 
         const recs: TabReconciliation[] = [];
         for (const tab of dto.tabs) {
-            const parsed = parseTab(tab, aliases, dto.source);
+            const parsed = parseTab(tab, products, dto.source);
             const read = parsed.kind !== null && parsed.problems.length === 0;
             const trades =
                 read && parsed.sales.length + parsed.lots.length > 0
@@ -253,23 +253,53 @@ export class TradesheetImportService {
             recs.push(reconcileTab(parsed, dto.sheetMonth, trades, lots));
         }
         return {
-            plan: summarise(dto.fileName, dto.sheetMonth, recs),
+            plan: summarise(
+                dto.fileName,
+                dto.sheetMonth,
+                recs,
+                products.decisions && products.decisions.length > 0
+                    ? []
+                    : [
+                          'No saved product-name decisions yet: products are matched by built-in rules only.',
+                      ],
+            ),
             recs,
             branchIds,
         };
     }
 
-    private async loadAliases(db: Db): Promise<AliasIndex> {
-        const rows = await db.productAlias.findMany({
-            select: { alias: true, productKey: true, productId: true },
-        });
-        const index: AliasIndex = { keys: {}, productIds: {} };
-        for (const r of rows) {
-            index.keys[r.alias] = r.productKey;
-            if (r.productId !== null)
-                index.productIds[r.productKey] = r.productId;
-        }
-        return index;
+    private async loadProducts(db: Db): Promise<RowResolverData> {
+        const [catalogue, aliases, sales] = await Promise.all([
+            db.product.findMany({
+                where: { deletedAt: null },
+                orderBy: { id: 'asc' },
+                select: { id: true, sku: true, metalType: true },
+            }),
+            db.productAlias.findMany({
+                orderBy: { id: 'asc' },
+                select: { alias: true, productId: true, salesProductId: true },
+            }),
+            db.salesProduct.findMany({
+                orderBy: { id: 'asc' },
+                select: {
+                    id: true,
+                    metal: true,
+                    name: true,
+                    genericNorm: true,
+                    refinery: true,
+                    pricingProductId: true,
+                },
+            }),
+        ]);
+        return {
+            catalogue,
+            salesProducts: sales,
+            decisions: aliases.map((a) => ({
+                key: a.alias,
+                productId: a.productId,
+                salesProductId: a.salesProductId,
+            })),
+        };
     }
 
     private async existingTrades(
@@ -307,6 +337,9 @@ export class TradesheetImportService {
             receipt: num(r.receipt),
             notes: r.notes,
             lotKey: r.lotKey,
+            productKey: r.productKey,
+            productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -341,6 +374,9 @@ export class TradesheetImportService {
             pricePaid: num(r.pricePaid),
             hedgedAt: num(r.hedgedAt),
             commentsRaw: r.commentsRaw,
+            productKey: r.productKey,
+            productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -444,6 +480,26 @@ export class TradesheetImportService {
                 });
             }
         }
+        // An unchanged row keeps its data but picks up a better product match.
+        for (const s of rec.sales) {
+            if (
+                s.status === 'UNCHANGED' &&
+                s.existing &&
+                (s.existing.productKey !== s.productKey ||
+                    s.existing.productId !== s.productId ||
+                    JSON.stringify(s.existing.issues) !==
+                        JSON.stringify(s.issues))
+            ) {
+                await tx.trade.update({
+                    where: { id: s.existing.id },
+                    data: {
+                        productKey: s.productKey,
+                        productId: s.productId,
+                        issues: s.issues,
+                    },
+                });
+            }
+        }
         if (rec.missingTradeIds.length > 0) {
             await tx.trade.updateMany({
                 where: { id: { in: rec.missingTradeIds } },
@@ -541,6 +597,25 @@ export class TradesheetImportService {
                     ),
                 });
                 await this.syncUnits(tx, l.existing.id, l.qty, l.metal);
+            }
+        }
+        for (const l of rec.lots) {
+            if (
+                l.status === 'UNCHANGED' &&
+                l.existing &&
+                (l.existing.productKey !== l.productKey ||
+                    l.existing.productId !== l.productId ||
+                    JSON.stringify(l.existing.issues) !==
+                        JSON.stringify(l.issues))
+            ) {
+                await tx.purchaseLot.update({
+                    where: { id: l.existing.id },
+                    data: {
+                        productKey: l.productKey,
+                        productId: l.productId,
+                        issues: l.issues,
+                    },
+                });
             }
         }
         if (rec.missingLotIds.length > 0) {
