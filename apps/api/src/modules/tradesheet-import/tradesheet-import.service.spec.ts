@@ -156,6 +156,7 @@ function setup(
             updateMany: jest.fn(),
         },
         importBatch: { create: jest.fn().mockResolvedValue({ id: 11 }) },
+        $executeRaw: jest.fn().mockResolvedValue(0),
     };
     const prisma = {
         ...tx,
@@ -289,6 +290,43 @@ describe('TradesheetImportService.commit', () => {
             expect.stringContaining('2 added'),
             tx,
         );
+    });
+
+    it('creates the stock rows of all new gold lots in one insert', async () => {
+        const { service, tx } = setup();
+        tx.purchaseLot.createManyAndReturn.mockResolvedValue([
+            { id: 50, referenceKey: 'DUGP20261002', occurrence: 1 },
+            { id: 51, referenceKey: 'DUGP20261003', occurrence: 1 },
+        ]);
+        const base = request();
+        const lotTab = base.tabs[1];
+        const second = {
+            ...lotTab.rows[0],
+            row: 3,
+            cells: lotTab.rows[0].cells.map((c, i) =>
+                i === 2 ? 2 : i === 9 ? 'DU-GP20261003' : c,
+            ),
+        };
+        await service.commit(
+            request({
+                tabs: [
+                    base.tabs[0],
+                    { ...lotTab, rows: [lotTab.rows[0], second] },
+                ],
+            }),
+            'admin@merrion.ie',
+        );
+        expect(tx.stockUnit.count).not.toHaveBeenCalled();
+        expect(tx.stockUnit.createMany).toHaveBeenCalledTimes(1);
+        expect(tx.stockUnit.createMany).toHaveBeenCalledWith({
+            data: [
+                { lotId: 50, seq: 1 },
+                { lotId: 50, seq: 2 },
+                { lotId: 50, seq: 3 },
+                { lotId: 51, seq: 1 },
+                { lotId: 51, seq: 2 },
+            ],
+        });
     });
 
     it('refreshes the product of an unchanged row without touching anything else', async () => {
@@ -579,21 +617,18 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             'admin@merrion.ie',
         );
 
-        expect(tx.trade.updateMany).toHaveBeenCalledWith({
-            where: { id: { in: [70] } },
-            data: { lotId: 50 },
-        });
-        expect(tx.purchaseLot.update).toHaveBeenCalledWith({
-            where: { id: 50 },
-            data: { allocatedQty: 2 },
-        });
+        // Set-based writes: [unlink, link, lot totals, unit ranges], each with parallel value arrays.
+        const raw = tx.$executeRaw.mock.calls.map((c) => c.slice(1));
+        expect(raw).toEqual([
+            [[50], ['DUGP20261002']],
+            [[70], [50]],
+            [[50], [2]],
+            [[50], [1], [2], [70]],
+        ]);
+        expect(tx.stockUnit.updateMany).toHaveBeenCalledTimes(1);
         expect(tx.stockUnit.updateMany).toHaveBeenCalledWith({
-            where: { lotId: 50 },
+            where: { lotId: { in: [50] } },
             data: { tradeId: null },
-        });
-        expect(tx.stockUnit.updateMany).toHaveBeenCalledWith({
-            where: { lotId: 50, seq: { gte: 1, lte: 2 } },
-            data: { tradeId: 70 },
         });
         expect(result.allocation).toEqual({
             lotsChecked: 1,
@@ -617,7 +652,7 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             where: { id: { in: [70] } },
             data: { lotId: null },
         });
-        expect(tx.purchaseLot.update).not.toHaveBeenCalled();
+        expect(tx.$executeRaw).not.toHaveBeenCalled();
         expect(result.allocation).toMatchObject({
             lotNotImported: 1,
             salesLinked: 0,
@@ -650,7 +685,10 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             'admin@merrion.ie',
         );
         expect(tx.stockUnit.updateMany).not.toHaveBeenCalled();
-        expect(tx.purchaseLot.update).toHaveBeenCalled();
+        // Lot totals are still written; no unit-range update is.
+        const sqls = tx.$executeRaw.mock.calls.map((c) => c[0].join('?'));
+        expect(sqls.some((q) => q.includes('purchase_lots'))).toBe(true);
+        expect(sqls.some((q) => q.includes('stock_units'))).toBe(false);
     });
 
     it('checks nothing when no sale or lot named a purchase line', async () => {
@@ -658,5 +696,6 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
         const result = await service.commit(request(), 'admin@merrion.ie');
         expect(result.allocation.lotsChecked).toBe(0);
         expect(tx.trade.updateMany).not.toHaveBeenCalled();
+        expect(tx.$executeRaw).not.toHaveBeenCalled();
     });
 });
