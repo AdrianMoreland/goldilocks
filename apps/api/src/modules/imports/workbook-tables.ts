@@ -1,4 +1,10 @@
-import type { WorkbookLoadTable } from '@goldilocks/shared-types';
+import {
+    aliasKey,
+    aliasOk,
+    normaliseProductText,
+    normaliseRefinery,
+    type WorkbookLoadTable,
+} from '@goldilocks/shared-types';
 
 /** A row after validation: column name -> cleaned value (string, number, boolean, null; dates are YYYY-MM-DD text). */
 export type Row = Record<string, unknown>;
@@ -48,8 +54,10 @@ export interface DirectTableSpec {
     stocktakeSnapshotColumn?: string;
     /** Fields written on create only. */
     createOnly?: readonly string[];
-    /** Adds values computed from the mapped row. */
-    derive?: (data: Record<string, unknown>) => void;
+    /** Adds values computed from the mapped row (and the row's key, when `keyOf` made one). */
+    derive?: (data: Record<string, unknown>, row: Row, key: string) => void;
+    /** Computes the key from the row instead of reading `keyColumn`; null skips the row (counted as unmatched). */
+    keyOf?: (row: Row) => string | null;
 }
 
 /** Tables that are plain upserts by key. Trades, purchase lots and links have their own handlers. */
@@ -310,11 +318,30 @@ DIRECT_TABLES.bc_items = {
         ['refineryHint', 'refinery_hint', 's'],
     ],
 };
+/**
+ * The key a workbook alias row is stored under: the cleaned name, plus the refinery when it has one (`name|REFINERY`).
+ * It is built from the example text (or the part of `suggested_key` before " | "), never copied from the sheet.
+ * Null for a row whose name is not fit to be saved.
+ */
+export function workbookAliasKey(row: Row): string | null {
+    const raw =
+        text(row['example_text']) ??
+        (text(row['suggested_key']) ?? '').split(' | ')[0] ??
+        '';
+    const norm = normaliseProductText(raw);
+    if (!aliasOk(raw, norm)) return null;
+    return aliasKey(norm, normaliseRefinery(text(row['refinery'])));
+}
+
 /** Alias texts for the review queue. A confirmed product link is never overwritten: productKey is create-only. */
 DIRECT_TABLES.product_aliases = {
     delegate: 'productAlias',
     keyColumn: 'suggested_key',
     keyField: 'alias',
+    keyOf: workbookAliasKey,
+    derive: (data, _row, key) => {
+        data['productKey'] = key;
+    },
     fks: [],
     tracked: false,
     createOnly: ['productKey'],

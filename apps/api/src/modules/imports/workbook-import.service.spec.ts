@@ -467,6 +467,54 @@ describe('WorkbookImportService', () => {
         });
     });
 
+    it('stores aliases under the cleaned name plus refinery, and skips names not fit to save', async () => {
+        const { service, t } = setup();
+        const rows: R[] = [
+            {
+                id: 'a1',
+                suggested_key: '1oz Gold Bar Argor-Heraeus | x',
+                example_text: '1oz Gold Bar',
+                refinery: 'Argor Heraeus',
+                uses: 2,
+                sources: 's',
+            },
+            {
+                id: 'a2',
+                suggested_key: '1/2oz Krugerrand',
+                example_text: null,
+                refinery: null,
+                uses: 1,
+                sources: 's',
+            },
+            {
+                id: 'a3',
+                suggested_key: '#REF!',
+                example_text: '#REF!',
+                refinery: null,
+                uses: 1,
+                sources: 's',
+            },
+            {
+                id: 'a4',
+                suggested_key: 'bars, coins',
+                example_text: 'bars, coins',
+                refinery: null,
+                uses: 1,
+                sources: 's',
+            },
+        ];
+        const r = await service.commit(req('product_aliases', rows), 'a');
+        expect(r).toMatchObject({ added: 2, unmatched: 2 });
+        expect(t.productAlias.rows.map((x) => x['alias'])).toEqual([
+            '1oz bar|ARGOR-HERAEUS',
+            '1/2oz krugerrand',
+        ]);
+        expect(t.productAlias.rows[0]).toMatchObject({
+            productKey: '1oz bar|ARGOR-HERAEUS',
+            refinery: 'Argor Heraeus',
+        });
+    });
+
     it('loads BC items keyed by item number', async () => {
         const { service, t } = setup();
         const r = await service.commit(

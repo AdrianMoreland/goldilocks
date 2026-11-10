@@ -123,6 +123,48 @@ export const CreateSalesProductRequestSchema = z.object({
 });
 export type CreateSalesProductRequest = z.infer<typeof CreateSalesProductRequestSchema>;
 
+/** Specific products made from the Business Central item list. */
+export const BcSalesProductActionSchema = z.enum(['CREATE', 'LINKED', 'SKIP']);
+export type BcSalesProductAction = z.infer<typeof BcSalesProductActionSchema>;
+
+export const BcSalesProductRowSchema = z.object({
+  itemNo: z.string(),
+  description: z.string(),
+  action: BcSalesProductActionSchema,
+  reason: z.string().optional(),
+  name: z.string(),
+  /** Null only when nothing says what metal the item is (such a row is skipped). */
+  metal: z.enum(['GOLD', 'SILVER', 'PGM']).nullable(),
+  refinery: z.string().nullable(),
+  genericNorm: z.string(),
+  pricingProductId: z.number().int().nullable(),
+  pricingProductName: z.string().nullable(),
+  suggestedSku: z.string().optional(),
+});
+export type BcSalesProductRow = z.infer<typeof BcSalesProductRowSchema>;
+
+export const BcSalesProductsPreviewSchema = z.object({
+  rows: z.array(BcSalesProductRowSchema),
+  totals: z.object({ create: z.number().int(), linked: z.number().int(), skip: z.number().int(), total: z.number().int() }),
+});
+export type BcSalesProductsPreview = z.infer<typeof BcSalesProductsPreviewSchema>;
+
+/** Empty or missing `itemNos` = every row that is ready to create. */
+export const BcSalesProductsApplyRequestSchema = z.object({
+  itemNos: z.array(z.string().trim().min(1).max(40)).max(5000).optional(),
+});
+export type BcSalesProductsApplyRequest = z.infer<typeof BcSalesProductsApplyRequestSchema>;
+
+export const BcSalesProductsApplyResultSchema = z.object({
+  /** New specific products. */
+  created: z.number().int(),
+  /** Items linked to a specific product that already had the same name. */
+  linked: z.number().int(),
+  /** Selected items that are not ready (see the preview's reasons). */
+  skipped: z.number().int(),
+});
+export type BcSalesProductsApplyResult = z.infer<typeof BcSalesProductsApplyResultSchema>;
+
 export const MapAliasRequestSchema = z.object({ salesProductId: z.number().int().positive() });
 export type MapAliasRequest = z.infer<typeof MapAliasRequestSchema>;
 

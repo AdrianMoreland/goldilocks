@@ -61,6 +61,7 @@ import {
     RecordSearchRequestSchema,
     LinkDecisionRequestSchema,
     CreateSalesProductRequestSchema,
+    BcSalesProductsApplyRequestSchema,
     MapAliasRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
@@ -583,6 +584,11 @@ export class LinkDecisionRequestDto extends createDto(
 export class CreateSalesProductRequestDto extends createDto(
     CreateSalesProductRequestSchema,
     'CreateSalesProductRequestDto',
+) {}
+
+export class BcSalesProductsApplyRequestDto extends createDto(
+    BcSalesProductsApplyRequestSchema,
+    'BcSalesProductsApplyRequestDto',
 ) {}
 
 export class MapAliasRequestDto extends createDto(

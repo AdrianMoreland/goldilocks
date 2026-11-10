@@ -202,6 +202,29 @@ describe('TradesheetImportService.preview: saved decisions', () => {
     });
 });
 
+describe('TradesheetImportService.preview: names settled as not a product', () => {
+    it('counts them as saved and does not list them as unrecognised', async () => {
+        const { service, tx } = setup();
+        tx.productAlias.findMany.mockResolvedValue([
+            {
+                alias: 'mystery fee',
+                productId: null,
+                salesProductId: null,
+                noProduct: true,
+            },
+        ]);
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Mystery Fee';
+        const plan = await service.preview(req);
+        expect(plan.tabs[0].productMatches).toEqual({
+            saved: 1,
+            rule: 0,
+            none: 0,
+        });
+        expect(plan.tabs[0].unmatchedProducts).toEqual([]);
+    });
+});
+
 describe('TradesheetImportService.commit', () => {
     it('stores the batch, the sale and the lot, one stock row per gold item, and audits it', async () => {
         const { service, tx, audit } = setup();

@@ -8,6 +8,7 @@
  * decision, generic name + refinery, built-in rules, else not recognised.
  */
 import { aliasOk, normaliseProductText } from './product-text';
+import { listedRefinery, refineryWords } from './refineries';
 import { metalInText, pricingSkuFor } from './product-rules';
 import type { MetalType } from './spot-price.schema';
 
@@ -22,14 +23,16 @@ export interface RefineryAliasEntry {
 
 const UNKNOWN_REFINERY = new Set(['', 'UNKNOWN', 'N A', 'NA', 'NONE']);
 
-const refineryKey = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
-
-/** "ARGOR HERAEUS" and "ARGOR-HERAEUS" become one refinery; listed aliases map onto their canonical name. Null = not known. */
+/**
+ * "ARGOR HERAEUS" and "ARGOR-HERAEUS" become one refinery. Explicit `aliases` win; then the built-in list of
+ * refineries and spellings; any other text is kept as its upper-case words. Null = not known or mixed.
+ */
 export function normaliseRefinery(text: string | null | undefined, aliases: readonly RefineryAliasEntry[] = []): string | null {
-  const key = refineryKey(String(text ?? ''));
+  const key = refineryWords(String(text ?? ''));
   if (UNKNOWN_REFINERY.has(key)) return null;
-  for (const a of aliases) if (refineryKey(a.alias) === key) return refineryKey(a.refinery);
-  return key;
+  for (const a of aliases) if (refineryWords(a.alias) === key) return listedRefinery(a.refinery) ?? refineryWords(a.refinery);
+  const listed = listedRefinery(key);
+  return listed === undefined ? key : listed;
 }
 
 export interface SalesProductRef {
@@ -135,6 +138,8 @@ export interface ProductDecision {
   key: string;
   productId: number | null;
   salesProductId: SalesProductId | null;
+  /** Settled as not a product (a fee, a deposit). */
+  noProduct?: boolean;
 }
 
 export interface CatalogueProductRef {
@@ -159,7 +164,7 @@ export interface RowResolveInput {
   bcItemNo?: string | null;
 }
 
-export type RowResolveMethod = 'BC_ITEM' | 'ALIAS' | 'GENERIC_REFINERY' | 'RULE' | 'NONE';
+export type RowResolveMethod = 'BC_ITEM' | 'ALIAS' | 'GENERIC_REFINERY' | 'RULE' | 'NOT_PRODUCT' | 'NONE';
 
 export interface RowResolveResult {
   /** The cleaned product text. */
@@ -193,7 +198,7 @@ function bestDecision(
   let best: ProductDecision | null = null;
   let bestTokens = 0;
   for (const d of decisions) {
-    if (d.productId === null && d.salesProductId === null) continue;
+    if (d.productId === null && d.salesProductId === null && !d.noProduct) continue;
     const bar = d.key.indexOf('|');
     const name = (bar < 0 ? d.key : d.key.slice(0, bar)).trim();
     const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
@@ -242,6 +247,7 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
   // 2. A saved name decision.
   if (key && aliasOk(text, key)) {
     const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases);
+    if (d?.noProduct) return { ...base, pricingProductId: null, salesProductId: null, method: 'NOT_PRODUCT' };
     if (d) {
       const r = d.salesProductId !== null ? viaSales('ALIAS', d.salesProductId) : null;
       if (r) return { ...r, pricingProductId: r.pricingProductId ?? d.productId };
