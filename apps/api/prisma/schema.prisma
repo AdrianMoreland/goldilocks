@@ -886,6 +886,8 @@ model ProductAlias {
   salesProductId Int?
   salesProduct   SalesProduct? @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
   refinery       String?
+  /// A name settled as not a product, e.g. a fee or deposit.
+  noProduct      Boolean       @default(false)
   uses           Int           @default(0)
   createdAt      DateTime      @default(now()) @db.Timestamptz(6)
 
