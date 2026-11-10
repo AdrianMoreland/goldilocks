@@ -110,6 +110,7 @@ const existingTrade = (over: Partial<ExistingTrade> = {}): ExistingTrade => ({
     lotKey: null,
     productKey: '1oz krugerrand',
     productId: 7,
+    issues: [],
     ...over,
 });
 
@@ -195,35 +196,84 @@ describe('parseTab', () => {
     it('uses a saved decision before the rules', () => {
         const parsed = parseTab(
             salesTab([
-                sale(2, 'DU-G20261002', 'Quote Only', { 4: 'Sovereign' }),
+                sale(2, 'DU-G20261002', 'Quote Only', {
+                    4: 'Elizabeth Sovereign',
+                }),
             ]),
             {
                 ...aliases,
                 decisions: [
-                    { key: 'sovereign', productId: 8, salesProductId: null },
+                    {
+                        key: 'elizabeth sovereign',
+                        productId: 8,
+                        salesProductId: null,
+                    },
                 ],
             },
         );
         expect(parsed.sales[0]).toMatchObject({ productId: 8, how: 'ALIAS' });
     });
 
-    it('flags platinum text on a silver tab', () => {
-        const parsed = parseTab(
-            {
-                ...salesTab([
-                    sale(2, 'DU-G20261002', 'Quote Only', {
-                        4: 'Platinum - 100g bar',
-                    }),
-                ]),
-                name: 'IE - Silver',
-            },
-            aliases,
-        );
-        expect(parsed.metal).toBe('SILVER');
-        expect(parsed.sales[0].productId).toBe(10);
-        expect(parsed.sales[0].issues).toEqual([
-            'Product says platinum but the tab is silver.',
-        ]);
+    describe('metal in the product text', () => {
+        const catalogue: RowResolverData['catalogue'] = [
+            ...aliases.catalogue,
+            { id: 11, sku: 'SILVER-1OZ-BRITANNIA-COIN', metalType: 'SILVER' },
+            { id: 12, sku: 'GOLD-1OZ-BAR', metalType: 'GOLD' },
+        ];
+        const run = (
+            tabName: string,
+            product: string,
+            data: RowResolverData = { ...aliases, catalogue },
+        ) =>
+            parseTab(
+                {
+                    ...salesTab([
+                        sale(2, 'DU-G20261002', 'Quote Only', { 4: product }),
+                    ]),
+                    name: tabName,
+                },
+                data,
+            ).sales[0];
+
+        it.each([
+            ['IE - Gold', 'Silver 1oz Britannia', 11, 'silver', 'gold'],
+            ['IE - Silver', '1oz Gold Bar', 12, 'gold', 'silver'],
+            ['IE - Silver', 'Platinum - 100g bar', 10, 'platinum', 'silver'],
+        ])('flags %s: %s', (tab, text, id, says, tabIs) => {
+            const r = run(tab, text);
+            expect(r.productId).toBe(id);
+            expect(r.issues).toEqual([
+                `Product says ${says} but the tab is ${tabIs}.`,
+            ]);
+        });
+
+        it('stays quiet when the product matches the tab', () => {
+            expect(run('IE - Gold', '1oz Krugerrand').issues).toEqual([]);
+        });
+
+        it('checks the metal of a product that came from a saved decision', () => {
+            const r = run('IE - Gold', 'Britannia mix', {
+                catalogue,
+                decisions: [
+                    {
+                        key: 'britannia mix',
+                        productId: 11,
+                        salesProductId: null,
+                    },
+                ],
+            });
+            expect(r.issues).toEqual([
+                'Product says silver but the tab is gold.',
+            ]);
+        });
+
+        it('uses the text metal when nothing resolved', () => {
+            const r = run('IE - Gold', '1oz Platinum');
+            expect(r.productId).toBeNull();
+            expect(r.issues).toEqual([
+                'Product says platinum but the tab is gold.',
+            ]);
+        });
     });
 
     it('flags a fractional quantity and drops the quantity', () => {
@@ -444,6 +494,7 @@ describe('purchase lots', () => {
             commentsRaw: '3 sold',
             productKey: '250g bar',
             productId: 8,
+            issues: [],
         };
         const rec = reconcileTab(parsed, '2026-10', [], [stored]);
         expect(rec.lots[0]).toMatchObject({

@@ -12,31 +12,36 @@ export interface PricingSkuGuess {
   sku: string;
   /** Every SKU worth trying, best first. */
   candidates: string[];
-  /** Set when the text itself names platinum or palladium. */
+  /** Set when the text itself names one metal. */
   metalFromText: MetalType | null;
 }
 
-/** Platinum or palladium named in the text, else null. */
+/** The metal the text names, as a whole word. Null when it names none, or names two different ones. */
 export function metalInText(text: string | null | undefined): MetalType | null {
   const s = String(text ?? '').toLowerCase();
-  if (/\bplatinum\b/.test(s)) return 'PLATINUM';
-  if (/\bpalladium\b/.test(s)) return 'PALLADIUM';
-  return null;
+  const found = new Set<MetalType>();
+  if (/\bgold\b/.test(s)) found.add('GOLD');
+  if (/\bsilver\b/.test(s)) found.add('SILVER');
+  if (/\bplatinum\b/.test(s)) found.add('PLATINUM');
+  if (/\bpalladium\b/.test(s)) found.add('PALLADIUM');
+  return found.size === 1 ? [...found][0]! : null;
 }
 
-const WEIGHT_RE = /(?<![\d./])(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)\b/;
+const WEIGHT_RE = /(?<![\d./])(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)\b/g;
 const FRACTIONS = new Set(['1/10OZ', '1/4OZ', '1/2OZ']);
 const BAR_BRANDS =
   /\b(pamp|valcambi|metalor|umicore|argor|heraeus|nadir|combi|combibar|credit suisse|baird|hafner|johnson matthey|rand refinery)\b/;
 // Coin names that are not in the catalogue: send them to review, never to a generic coin.
 const UNKNOWN_COINS = /\b(buffalo|panda|angel|lunar|gauden|double eagle|ducat|isle of man|libertad)\b/;
 
-function weightOf(key: string): string | null {
-  if (/\bhalf oz\b/.test(key)) return '1/2OZ';
-  if (/\bquarter oz\b/.test(key)) return '1/4OZ';
-  if (/\btenth oz\b/.test(key)) return '1/10OZ';
-  const m = WEIGHT_RE.exec(key);
-  return m ? `${m[1]}${m[2]}`.toUpperCase() : null;
+/** Every weight in the text, in order; "half oz" style words come first. */
+function weightsOf(key: string): string[] {
+  const out: string[] = [];
+  if (/\bhalf oz\b/.test(key)) out.push('1/2OZ');
+  if (/\bquarter oz\b/.test(key)) out.push('1/4OZ');
+  if (/\btenth oz\b/.test(key)) out.push('1/10OZ');
+  for (const m of key.matchAll(WEIGHT_RE)) out.push(`${m[1]}${m[2]}`.toUpperCase());
+  return [...new Set(out)];
 }
 
 /** The design word for the catalogue SKU, or null when the text names none of the designs we hold. */
@@ -60,7 +65,7 @@ function sovereignSku(key: string): string | null {
   return 'GOLD-FULL-SOVEREIGN-COIN';
 }
 
-/** `metal` is the metal of the sheet the text came from; platinum or palladium in the text overrides it. */
+/** `metal` is the metal of the sheet the text came from; a metal named in the text overrides it. */
 export function pricingSkuFor(text: string | null | undefined, metal: MetalType): PricingSkuGuess | null {
   const raw = String(text ?? '').toLowerCase();
   // Several products in one cell cannot be one product.
@@ -68,7 +73,7 @@ export function pricingSkuFor(text: string | null | undefined, metal: MetalType)
   const key = normaliseProductText(raw);
   if (!key) return null;
 
-  const metalFromText = metalInText(key);
+  const metalFromText = metalInText(raw);
   const M = metalFromText ?? metal;
   const done = (candidates: string[]): PricingSkuGuess | null => {
     const unique = [...new Set(candidates)];
@@ -81,41 +86,35 @@ export function pricingSkuFor(text: string | null | undefined, metal: MetalType)
     return sku ? done([sku]) : null;
   }
 
-  const W = weightOf(key);
-  if (!W) return null;
+  const weights = weightsOf(key);
+  if (weights.length === 0) return null;
   const design = designOf(key, M);
   if (/\bdouble eagle\b/.test(key) || (!design && UNKNOWN_COINS.test(key))) return null;
 
   const bonded = /\bbonded\b/.test(key);
   const coinWord = /\bcoins?\b/.test(raw);
-  const generic = FRACTIONS.has(W) || W === '1G';
-
-  if (design) {
-    const out: string[] = [];
-    if (design === 'USEAGLE' && FRACTIONS.has(W)) out.push(`${M}-${W}-US-COIN`);
-    out.push(`${M}-${W}-${design}-COIN`);
-    if (generic) out.push(`${M}-${W}-COIN`);
-    return done(out);
-  }
-
   const isBar = /\bbar\b/.test(key) || BAR_BRANDS.test(key);
-  if (isBar) {
-    const out = bonded ? [`${M}-${W}-BONDED-BAR`] : [];
-    out.push(`${M}-${W}-BAR`);
-    if (M === 'SILVER') out.push(`${W}-SILVER-BAR`);
-    return done(out);
-  }
 
-  if (coinWord) {
+  const forWeight = (W: string): string[] => {
     const out: string[] = [];
-    if (bonded) out.push(`${M}-${W}-BONDED-COIN`);
-    if (M === 'SILVER' && W === '1KG') out.push('SILVER-1KG-COINS-COIN');
-    out.push(`${M}-${W}-COIN`);
-    if (M === 'SILVER') out.push(`${W}-SILVER-COIN`);
-    return done(out);
-  }
-
-  // A bare fractional gold weight is a gold coin.
-  if (M === 'GOLD' && FRACTIONS.has(W)) return done([`GOLD-${W}-COIN`]);
-  return null;
+    if (design) {
+      if (design === 'USEAGLE' && FRACTIONS.has(W)) out.push(`${M}-${W}-US-COIN`);
+      out.push(`${M}-${W}-${design}-COIN`);
+      if (FRACTIONS.has(W) || W === '1G') out.push(`${M}-${W}-COIN`);
+    } else if (isBar) {
+      if (bonded) out.push(`${M}-${W}-BONDED-BAR`);
+      out.push(`${M}-${W}-BAR`);
+      if (M === 'SILVER') out.push(`${W}-SILVER-BAR`);
+    } else if (coinWord) {
+      if (bonded) out.push(`${M}-${W}-BONDED-COIN`);
+      if (M === 'SILVER' && W === '1KG') out.push('SILVER-1KG-COINS-COIN');
+      out.push(`${M}-${W}-COIN`);
+      if (M === 'SILVER') out.push(`${W}-SILVER-COIN`);
+    } else if (M === 'GOLD' && FRACTIONS.has(W)) {
+      // A bare fractional gold weight is a gold coin.
+      out.push(`GOLD-${W}-COIN`);
+    }
+    return out;
+  };
+  return done(weights.flatMap(forWeight));
 }

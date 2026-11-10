@@ -40,6 +40,8 @@ export interface SalesProductRef {
   /** Normalised refinery, or null for products with no refinery (coins). */
   refinery: string | null;
   pricingProductId: number | null;
+  /** The metal of the product, for products with no pricing product to say. */
+  metal?: string | null;
 }
 
 export interface ResolverData {
@@ -167,7 +169,7 @@ export interface RowResolveResult {
   salesProductId: SalesProductId | null;
   refinery: string | null;
   method: RowResolveMethod;
-  /** Platinum or palladium named in the text. */
+  /** The metal the text names, when it names exactly one. */
   metalFromText: MetalType | null;
   /** "scrap" or "melt" in the text: bought back for its metal, not for resale. */
   melt: boolean;
@@ -175,15 +177,31 @@ export interface RowResolveResult {
 
 const MELT_RE = /\b(scrap|melt)\b/;
 
-/** A decision matches when every word of its key is among the words of the text; most words wins, then the longer key. */
-function bestDecision(keyTokens: ReadonlySet<string>, decisions: readonly ProductDecision[]): ProductDecision | null {
+const WEIGHT_TOKEN = /^(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)$/;
+
+/**
+ * A decision matches when every word of its name is among the words of the text; most words wins, then the longer
+ * key, then the earlier one. The key may be "name|REFINERY" (or "name | refinery"): that decision only applies to
+ * rows with the same refinery. A name needs two words or a weight, so one loose word cannot claim many rows.
+ */
+function bestDecision(
+  keyTokens: ReadonlySet<string>,
+  refinery: string | null,
+  decisions: readonly ProductDecision[],
+  refineryAliases: readonly RefineryAliasEntry[] | undefined,
+): ProductDecision | null {
   let best: ProductDecision | null = null;
   let bestTokens = 0;
   for (const d of decisions) {
     if (d.productId === null && d.salesProductId === null) continue;
-    if (!aliasOk(d.key, d.key)) continue;
-    const tokens = d.key.split(' ').filter(Boolean);
-    if (tokens.length === 0 || !tokens.every((t) => keyTokens.has(t))) continue;
+    const bar = d.key.indexOf('|');
+    const name = (bar < 0 ? d.key : d.key.slice(0, bar)).trim();
+    const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
+    if (bar >= 0 && decisionRefinery !== refinery) continue;
+    if (!aliasOk(name, name)) continue;
+    const tokens = name.split(' ').filter(Boolean);
+    if (tokens.length < 2 && !tokens.some((t) => WEIGHT_TOKEN.test(t))) continue;
+    if (!tokens.every((t) => keyTokens.has(t))) continue;
     if (!best || tokens.length > bestTokens || (tokens.length === bestTokens && d.key.length > best.key.length)) {
       best = d;
       bestTokens = tokens.length;
@@ -201,12 +219,11 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
   const text = input.productText ?? '';
   const key = normaliseProductText(text);
   const refinery = normaliseRefinery(input.refinery, data.refineryAliases);
-  const salesProducts = data.salesProducts ?? [];
-  const byId = new Map(salesProducts.map((p) => [p.id, p]));
+  const byId = new Map((data.salesProducts ?? []).map((p) => [p.id, p]));
   const base = {
     key,
     refinery,
-    metalFromText: metalInText(key),
+    metalFromText: metalInText(text),
     melt: MELT_RE.test(key),
   };
   const viaSales = (method: 'BC_ITEM' | 'ALIAS' | 'GENERIC_REFINERY', id: SalesProductId): RowResolveResult | null => {
@@ -224,7 +241,7 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
 
   // 2. A saved name decision.
   if (key && aliasOk(text, key)) {
-    const d = bestDecision(new Set(key.split(' ')), data.decisions ?? []);
+    const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases);
     if (d) {
       const r = d.salesProductId !== null ? viaSales('ALIAS', d.salesProductId) : null;
       if (r) return { ...r, pricingProductId: r.pricingProductId ?? d.productId };
@@ -233,6 +250,14 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
   }
 
   // 3. The generic name plus the refinery, against the specific products.
+  const rowMetal = metalInText(text) ?? input.metal;
+  const catalogueMetal = new Map(data.catalogue.map((c) => [c.id, c.metalType as string]));
+  const sameMetal = (p: SalesProductRef): boolean => {
+    const m = p.pricingProductId !== null ? catalogueMetal.get(p.pricingProductId) : p.metal;
+    if (!m) return false;
+    return m === rowMetal || (m === 'PGM' && (rowMetal === 'PLATINUM' || rowMetal === 'PALLADIUM'));
+  };
+  const salesProducts = (data.salesProducts ?? []).filter(sameMetal);
   if (key && salesProducts.length > 0) {
     const g = matchGeneric(key, refinery, aliasKey(key, refinery), salesProducts, (method, id) => {
       const p = byId.get(id);

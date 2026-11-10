@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { aliasKey, normaliseRefinery, resolveProduct, resolveRowProduct, type ResolverData, type RowResolverData } from './product-resolver';
 import { aliasOk, normaliseProductText, PRODUCT_NORM_EXAMPLES } from './product-text';
-import { pricingSkuFor } from './product-rules';
+import { metalInText, pricingSkuFor } from './product-rules';
 
 const data: ResolverData = {
   salesProducts: [
@@ -127,6 +127,11 @@ describe('pricingSkuFor', () => {
     ['Sovereign', 'SILVER', null],
     ['Platinum - 100g bar', 'SILVER', 'PLATINUM-100G-BAR'],
     ['1oz Platinum', 'SILVER', null],
+    ['Silver 1oz Britannia', 'GOLD', 'SILVER-1OZ-BRITANNIA-COIN'],
+    ['1oz Gold Bar', 'SILVER', 'GOLD-1OZ-BAR'],
+    ['1oz Gold Krugerrand', 'GOLD', 'GOLD-1OZ-KRUGERRAND-COIN'],
+    ['1oz gold and silver bar', 'GOLD', null],
+    ['(31.1g) 1oz Gold Bar', 'GOLD', 'GOLD-31.1G-BAR'],
     ['1oz Platinum Britannia', 'GOLD', 'PLATINUM-1OZ-BRITANNIA-COIN'],
     ['1oz Palladium Maple Leaf', 'GOLD', 'PALLADIUM-1OZ-MAPLE-COIN'],
     ['1oz Buffalo', 'GOLD', null],
@@ -158,6 +163,17 @@ describe('pricingSkuFor', () => {
     expect(pricingSkuFor('1/10oz eagle', 'GOLD')?.candidates).toEqual(['GOLD-1/10OZ-US-COIN', 'GOLD-1/10OZ-USEAGLE-COIN', 'GOLD-1/10OZ-COIN']);
     expect(pricingSkuFor('10oz Coin', 'SILVER')?.candidates).toEqual(['SILVER-10OZ-COIN', '10OZ-SILVER-COIN']);
     expect(pricingSkuFor('1oz Bonded Bar', 'SILVER')?.candidates[0]).toBe('SILVER-1OZ-BONDED-BAR');
+  });
+
+  it('tries the later weights after the first', () => {
+    expect(pricingSkuFor('(31.1g) 1oz Gold Bar', 'GOLD')?.candidates).toEqual(['GOLD-31.1G-BAR', 'GOLD-1OZ-BAR']);
+  });
+
+  it('reports the metal a text names, unless it names two', () => {
+    expect(pricingSkuFor('Silver 1oz Britannia', 'GOLD')).toMatchObject({ metalFromText: 'SILVER' });
+    expect(metalInText('Gold and silver')).toBeNull();
+    expect(metalInText('silvery')).toBeNull();
+    expect(metalInText('1oz Palladium')).toBe('PALLADIUM');
   });
 
   it('reports a platinum or palladium text', () => {
@@ -218,6 +234,49 @@ describe('resolveRowProduct', () => {
     expect(resolve('Melt Oz')).toMatchObject({ method: 'NONE', melt: true });
     expect(resolve('')).toMatchObject({ method: 'NONE', key: '' });
   });
+  it('resolves a (31.1g) 1oz bar to the 1oz bar product', () => {
+    expect(resolve('(31.1g) 1oz Gold Bar', { })).toMatchObject({ method: 'ALIAS' });
+    expect(resolveRowProduct({ productText: '(31.1g) 1oz Gold Bar', metal: 'GOLD' }, { ...rowData, decisions: [] })).toMatchObject({ method: 'RULE', pricingProductId: 1 });
+  });
+
+  describe('decisions', () => {
+    const base: RowResolverData = {
+      catalogue: rowData.catalogue,
+      salesProducts: [],
+    };
+    const withDecisions = (decisions: RowResolverData['decisions'], refinery?: string) =>
+      resolveRowProduct({ productText: '1oz Gold Bar', metal: 'GOLD', refinery }, { ...base, decisions });
+
+    it('applies a refinery decision only to rows with that refinery', () => {
+      const d = [{ key: '1oz bar | argor heraeus', productId: 3, salesProductId: null }];
+      expect(withDecisions(d, 'Argor-Heraeus')).toMatchObject({ method: 'ALIAS', pricingProductId: 3 });
+      expect(withDecisions(d)).toMatchObject({ method: 'RULE', pricingProductId: 1 });
+      expect(withDecisions(d, 'Valcambi')).toMatchObject({ method: 'RULE' });
+      expect(withDecisions([{ key: '1oz bar|ARGOR HERAEUS', productId: 3, salesProductId: null }], 'argor heraeus')).toMatchObject({ method: 'ALIAS' });
+    });
+    it('ignores a one-word name but takes a lone weight', () => {
+      expect(withDecisions([{ key: 'bar', productId: 3, salesProductId: null }])).toMatchObject({ method: 'RULE' });
+      expect(resolveRowProduct({ productText: '10g', metal: 'GOLD' }, { ...base, decisions: [{ key: '10g', productId: 3, salesProductId: null }] })).toMatchObject({ method: 'NONE' });
+    });
+    it('breaks a tie by the earlier decision', () => {
+      const d = [
+        { key: '1oz bar', productId: 3, salesProductId: null },
+        { key: 'bar 1oz', productId: 4, salesProductId: null },
+      ];
+      expect(withDecisions(d)).toMatchObject({ pricingProductId: 3 });
+    });
+  });
+
+  it('does not pick a sales product of another metal', () => {
+    const d: RowResolverData = {
+      ...rowData,
+      decisions: [],
+      salesProducts: [{ id: 21, name: '1oz Krugerrand', genericNorm: '1oz krugerrand', refinery: null, pricingProductId: 3 }],
+    };
+    expect(resolveRowProduct({ productText: '1oz Krugerrand', metal: 'SILVER' }, d).method).toBe('NONE');
+    expect(resolveRowProduct({ productText: '1oz Krugerrand', metal: 'GOLD' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 21 });
+  });
+
   it('does not apply decisions to a text that lists several products', () => {
     expect(resolve('1oz bar, 5g bar').method).toBe('NONE');
   });

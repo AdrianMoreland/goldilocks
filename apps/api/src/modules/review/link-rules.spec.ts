@@ -37,6 +37,34 @@ describe('sameProduct', () => {
         ).toBe(false);
     });
 
+    it('compares catalogue products when both rows have one', () => {
+        // One generic catalogue coin covers several designs: the names still decide.
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 3, text: '1/10oz Krugerrand' },
+                { productKey: 'b', productId: 3, text: '1/10oz Britannia' },
+            ),
+        ).toBe(false);
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+            ),
+        ).toBe(true);
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+                { productKey: 'a', productId: 8, text: '1oz Eagle' },
+            ),
+        ).toBe(false);
+        expect(
+            sameProduct(
+                { productKey: null, productId: null, text: '1oz brits' },
+                { productKey: null, productId: 8, text: '1oz Britannia' },
+            ),
+        ).toBe(true);
+    });
+
     it('compares names when a key is missing, knowing brits is Britannia', () => {
         expect(
             sameProduct(

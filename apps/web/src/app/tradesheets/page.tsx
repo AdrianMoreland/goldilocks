@@ -264,9 +264,9 @@ export default function TradesheetsPage({ embedded = false }: { embedded?: boole
                 {plan && !done && (
                     <>
                         <Totals plan={plan} />
-                        {plan.warnings.length > 0 && (
+                        {(plan.warnings ?? []).length > 0 && (
                             <div role="status" className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-200">
-                                {plan.warnings.map((w) => (
+                                {(plan.warnings ?? []).map((w) => (
                                     <p key={w}>{w}</p>
                                 ))}
                             </div>
@@ -344,7 +344,7 @@ function TabCard({ tab }: { tab: TabPlan }) {
             </CardHeader>
             {!skipped && (
                 <CardContent className="space-y-3">
-                    {tab.productMatches.saved + tab.productMatches.rule + tab.productMatches.none > 0 && (
+                    {tab.productMatches && tab.productMatches.saved + tab.productMatches.rule + tab.productMatches.none > 0 && (
                         <p className="text-muted-foreground text-sm tabular-nums">
                             Products: {tab.productMatches.saved} by saved name, {tab.productMatches.rule} by rule, {tab.productMatches.none} not recognised
                         </p>

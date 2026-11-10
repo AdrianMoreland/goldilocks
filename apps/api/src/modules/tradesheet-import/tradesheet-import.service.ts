@@ -272,14 +272,18 @@ export class TradesheetImportService {
         const [catalogue, aliases, sales] = await Promise.all([
             db.product.findMany({
                 where: { deletedAt: null },
+                orderBy: { id: 'asc' },
                 select: { id: true, sku: true, metalType: true },
             }),
             db.productAlias.findMany({
+                orderBy: { id: 'asc' },
                 select: { alias: true, productId: true, salesProductId: true },
             }),
             db.salesProduct.findMany({
+                orderBy: { id: 'asc' },
                 select: {
                     id: true,
+                    metal: true,
                     name: true,
                     genericNorm: true,
                     refinery: true,
@@ -335,6 +339,7 @@ export class TradesheetImportService {
             lotKey: r.lotKey,
             productKey: r.productKey,
             productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -371,6 +376,7 @@ export class TradesheetImportService {
             commentsRaw: r.commentsRaw,
             productKey: r.productKey,
             productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -480,11 +486,17 @@ export class TradesheetImportService {
                 s.status === 'UNCHANGED' &&
                 s.existing &&
                 (s.existing.productKey !== s.productKey ||
-                    s.existing.productId !== s.productId)
+                    s.existing.productId !== s.productId ||
+                    JSON.stringify(s.existing.issues) !==
+                        JSON.stringify(s.issues))
             ) {
                 await tx.trade.update({
                     where: { id: s.existing.id },
-                    data: { productKey: s.productKey, productId: s.productId },
+                    data: {
+                        productKey: s.productKey,
+                        productId: s.productId,
+                        issues: s.issues,
+                    },
                 });
             }
         }
@@ -592,11 +604,17 @@ export class TradesheetImportService {
                 l.status === 'UNCHANGED' &&
                 l.existing &&
                 (l.existing.productKey !== l.productKey ||
-                    l.existing.productId !== l.productId)
+                    l.existing.productId !== l.productId ||
+                    JSON.stringify(l.existing.issues) !==
+                        JSON.stringify(l.issues))
             ) {
                 await tx.purchaseLot.update({
                     where: { id: l.existing.id },
-                    data: { productKey: l.productKey, productId: l.productId },
+                    data: {
+                        productKey: l.productKey,
+                        productId: l.productId,
+                        issues: l.issues,
+                    },
                 });
             }
         }

@@ -293,13 +293,55 @@ describe('TradesheetImportService.commit', () => {
             lotKey: null,
             productKey: null,
             productId: null,
+            issues: [],
         };
         const { service, tx } = setup({ trades: [stored] });
         await service.commit(request(), 'admin@merrion.ie');
         expect(tx.trade.update).toHaveBeenCalledTimes(1);
         expect(tx.trade.update).toHaveBeenCalledWith({
             where: { id: 40 },
-            data: { productKey: '1oz krugerrand', productId: 7 },
+            data: { productKey: '1oz krugerrand', productId: 7, issues: [] },
+        });
+    });
+
+    it('refreshes the issues of an unchanged row when only they differ', async () => {
+        const first = setup();
+        await first.service.commit(request(), 'admin@merrion.ie');
+        const created = (
+            first.tx.trade.createMany.mock.calls[0]![0] as {
+                data: Array<Record<string, unknown>>;
+            }
+        ).data[0];
+        const { service, tx } = setup({
+            trades: [
+                {
+                    id: 40,
+                    referenceKey: 'DUG20261002',
+                    occurrence: 1,
+                    fingerprint: created.fingerprint,
+                    missingFromImport: false,
+                    sourceMonth: '2026-10',
+                    sourceTab: 'IE - Gold',
+                    client: 'Tom',
+                    qty: 20,
+                    productText: '1oz Krugerrand',
+                    cptyRaw: 'HEDGED',
+                    state: 'HEDGED',
+                    collected: false,
+                    cost: null,
+                    receipt: null,
+                    notes: null,
+                    lotKey: null,
+                    productKey: '1oz krugerrand',
+                    productId: 7,
+                    issues: ['Product "x" is not recognised.'],
+                },
+            ],
+        });
+        await service.commit(request(), 'admin@merrion.ie');
+        expect(tx.trade.update).toHaveBeenCalledWith({
+            where: { id: 40 },
+            data: { productKey: '1oz krugerrand', productId: 7, issues: [] },
         });
     });
 

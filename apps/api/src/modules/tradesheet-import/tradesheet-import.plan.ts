@@ -55,6 +55,7 @@ export interface ExistingTrade {
     lotKey: string | null;
     productKey: string | null;
     productId: number | null;
+    issues: string[];
 }
 
 export interface ExistingLot {
@@ -73,6 +74,7 @@ export interface ExistingLot {
     commentsRaw: string | null;
     productKey: string | null;
     productId: number | null;
+    issues: string[];
 }
 
 interface Keyed {
@@ -212,9 +214,17 @@ function keyRows<T extends ParsedSale | ParsedPurchase>(
         const match = p.product
             ? resolveRowProduct({ productText: p.product, metal }, products)
             : null;
-        if (match?.metalFromText && match.metalFromText !== metal)
+        // The resolved product's metal says what it is; the text's own metal only counts when nothing resolved.
+        const productMetal =
+            match?.pricingProductId != null
+                ? products.catalogue.find(
+                      (c) => c.id === match.pricingProductId,
+                  )?.metalType
+                : undefined;
+        const saysMetal = productMetal ?? match?.metalFromText ?? null;
+        if (saysMetal && saysMetal !== metal)
             issues.push(
-                `Product says ${match.metalFromText.toLowerCase()} but the tab is ${metal.toLowerCase()}.`,
+                `Product says ${saysMetal.toLowerCase()} but the tab is ${metal.toLowerCase()}.`,
             );
 
         let qty = p.qty;
