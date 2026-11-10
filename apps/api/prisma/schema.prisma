@@ -872,8 +872,9 @@ model StockUnit {
   @@map("stock_units")
 }
 
-/// A name from the sheets ("1oz Tree of Life") and the catalogue key it stands for. Seeded from the Master Data
-/// alias sheet. productId links the key to a Goldilocks product once a person confirms it.
+/// A cleaned product name from the sheets ("1oz tree of life") and what it was settled to: a specific product
+/// (salesProductId), or a pricing product for generic names (productId). Filled from the import workbook and the
+/// review queue.
 model ProductAlias {
   id             Int           @id @default(autoincrement())
   /// Cleaned alias text, the form product text is compared in.

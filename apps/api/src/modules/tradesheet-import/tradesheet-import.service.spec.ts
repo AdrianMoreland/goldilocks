@@ -97,16 +97,22 @@ function setup(
     } = {},
 ) {
     const tx = {
+        product: {
+            findMany: jest.fn().mockResolvedValue([
+                { id: 7, sku: 'GOLD-1OZ-KRUGERRAND-COIN', metalType: 'GOLD' },
+                { id: 8, sku: 'GOLD-250G-BAR', metalType: 'GOLD' },
+            ]),
+        },
         productAlias: {
             findMany: jest.fn().mockResolvedValue([
                 {
                     alias: '1oz krugerrand',
-                    productKey: '1oz_krugerrand',
                     productId: 7,
+                    salesProductId: null,
                 },
-                { alias: '250g bar', productKey: '250g_bar', productId: null },
             ]),
         },
+        salesProduct: { findMany: jest.fn().mockResolvedValue([]) },
         branch: {
             findMany: jest.fn().mockResolvedValue([{ id: 3, name: 'DU' }]),
         },
@@ -168,9 +174,31 @@ describe('TradesheetImportService.preview', () => {
         const { service, prisma, tx } = setup();
         const plan = await service.preview(request());
         expect(plan.totals).toMatchObject({ added: 2, changed: 0, missing: 0 });
+        expect(plan.warnings).toEqual([]);
+        expect(plan.tabs[0].productMatches).toEqual({
+            saved: 1,
+            rule: 0,
+            none: 0,
+        });
+        expect(plan.tabs[1].productMatches).toEqual({
+            saved: 0,
+            rule: 1,
+            none: 0,
+        });
         expect(prisma.$transaction).not.toHaveBeenCalled();
         expect(tx.trade.createMany).not.toHaveBeenCalled();
         expect(tx.importBatch.create).not.toHaveBeenCalled();
+    });
+});
+
+describe('TradesheetImportService.preview: saved decisions', () => {
+    it('warns when there are none yet', async () => {
+        const { service, tx } = setup();
+        tx.productAlias.findMany.mockResolvedValue([]);
+        const plan = await service.preview(request());
+        expect(plan.warnings).toEqual([
+            'No saved product-name decisions yet: products are matched by built-in rules only.',
+        ]);
     });
 });
 
@@ -200,7 +228,7 @@ describe('TradesheetImportService.commit', () => {
             metal: 'GOLD',
             state: 'HEDGED',
             qty: 20,
-            productKey: '1oz_krugerrand',
+            productKey: '1oz krugerrand',
             productId: 7,
             branchId: 3,
             sourceMonth: '2026-10',
@@ -218,7 +246,8 @@ describe('TradesheetImportService.commit', () => {
             referenceKey: 'DUGP20261002',
             qty: 3,
             commentSoldQty: 1,
-            productKey: '250g_bar',
+            productKey: '250g bar',
+            productId: 8,
         });
 
         expect(tx.stockUnit.createMany).toHaveBeenCalledWith({
@@ -234,6 +263,44 @@ describe('TradesheetImportService.commit', () => {
             expect.stringContaining('2 added'),
             tx,
         );
+    });
+
+    it('refreshes the product of an unchanged row without touching anything else', async () => {
+        const first = setup();
+        await first.service.commit(request(), 'admin@merrion.ie');
+        const created = (
+            first.tx.trade.createMany.mock.calls[0]![0] as {
+                data: Array<Record<string, unknown>>;
+            }
+        ).data[0];
+        const stored = {
+            id: 40,
+            referenceKey: 'DUG20261002',
+            occurrence: 1,
+            fingerprint: created.fingerprint,
+            missingFromImport: false,
+            sourceMonth: '2026-10',
+            sourceTab: 'IE - Gold',
+            client: 'Tom',
+            qty: 20,
+            productText: '1oz Krugerrand',
+            cptyRaw: 'HEDGED',
+            state: 'HEDGED',
+            collected: false,
+            cost: null,
+            receipt: null,
+            notes: null,
+            lotKey: null,
+            productKey: null,
+            productId: null,
+        };
+        const { service, tx } = setup({ trades: [stored] });
+        await service.commit(request(), 'admin@merrion.ie');
+        expect(tx.trade.update).toHaveBeenCalledTimes(1);
+        expect(tx.trade.update).toHaveBeenCalledWith({
+            where: { id: 40 },
+            data: { productKey: '1oz krugerrand', productId: 7 },
+        });
     });
 
     it('does not make stock rows for silver lots', async () => {

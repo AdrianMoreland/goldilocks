@@ -510,44 +510,6 @@ export function extractQtyAndProduct(value: SheetValue): QtyAndProduct {
   return { qty: null, product: s };
 }
 
-/** Lower-case, punctuation to spaces: what both the alias table and the product text are compared in. */
-export function cleanAliasText(value: SheetValue): string {
-  return text(value)
-    .toLowerCase()
-    .replace(/[^\w\s/.]/g, ' ')
-    .replace(/(\d)\s+(oz|ounces?|grams?|g|kg)\b/g, '$1$2')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export interface ProductMatch {
-  /** The catalogue key, e.g. "1oz_bar". Null when nothing matched: the row goes to the review queue. */
-  key: string | null;
-  source: 'ALIAS' | 'WEIGHT' | 'NONE';
-  /** "scrap" or "melt" in the text: the same item bought back for its metal, not for resale. */
-  melt: boolean;
-}
-
-const MELT_RE = /\b(scrap|melt)\b/;
-
-/**
- * Alias table first (the longest alias contained in the text wins, so "1oz tree of life" beats "1oz"), then a
- * key built from weight and bar or coin ("10g_bar"). `aliases` maps cleaned alias text to a catalogue key.
- */
-export function matchProduct(raw: SheetValue, aliases: Record<string, string>): ProductMatch {
-  const clean = cleanAliasText(raw);
-  if (!clean) return { key: null, source: 'NONE', melt: false };
-  const melt = MELT_RE.test(clean);
-  const hit = Object.keys(aliases)
-    .sort((a, b) => b.length - a.length)
-    .find((alias) => alias && clean.includes(alias));
-  if (hit) return { key: aliases[hit]!, source: 'ALIAS', melt };
-  const w = /(\d+(?:[./]\d+)?)(g|gram|grams|kg|oz|ounce|ounces)\b/.exec(clean);
-  if (!w) return { key: null, source: 'NONE', melt };
-  const unit = w[2]!.startsWith('gram') ? 'g' : w[2]!.startsWith('ounce') ? 'oz' : w[2]!;
-  return { key: `${w[1]}${unit}_${/\bbars?\b/.test(clean) ? 'bar' : 'coin'}`, source: 'WEIGHT', melt };
-}
-
 // --- fingerprints -----------------------------------------------------------------------
 
 /** A short stable hash of the fields that matter, to tell on reimport whether a row changed. Not a security hash. */
