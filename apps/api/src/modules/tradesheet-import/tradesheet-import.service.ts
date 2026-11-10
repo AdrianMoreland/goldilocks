@@ -277,7 +277,12 @@ export class TradesheetImportService {
             }),
             db.productAlias.findMany({
                 orderBy: { id: 'asc' },
-                select: { alias: true, productId: true, salesProductId: true },
+                select: {
+                    alias: true,
+                    productId: true,
+                    salesProductId: true,
+                    noProduct: true,
+                },
             }),
             db.salesProduct.findMany({
                 orderBy: { id: 'asc' },
@@ -298,6 +303,7 @@ export class TradesheetImportService {
                 key: a.alias,
                 productId: a.productId,
                 salesProductId: a.salesProductId,
+                noProduct: a.noProduct,
             })),
         };
     }

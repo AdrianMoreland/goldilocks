@@ -401,6 +401,13 @@ describe('ReviewService', () => {
                 pricingProduct: { name: '1oz Gold Bar' },
             });
             const res = await service.createSalesProduct(body, 'a@example.com');
+            expect(prisma.salesProduct.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        refinery: 'VALCAMBI SUISSE',
+                    }),
+                }),
+            );
             expect(res).toMatchObject({
                 id: 1,
                 name: '1oz Valcambi bar',
@@ -442,7 +449,7 @@ describe('ReviewService', () => {
             await service.mapAlias(3, { salesProductId: 8 }, 'a@example.com');
             expect(prisma.productAlias.update).toHaveBeenCalledWith({
                 where: { id: 3 },
-                data: { salesProductId: 8, refinery: 'VALCAMBI' },
+                data: { salesProductId: 8, refinery: 'VALCAMBI SUISSE' },
             });
             expect(audit.record).toHaveBeenCalledWith(
                 'a@example.com',

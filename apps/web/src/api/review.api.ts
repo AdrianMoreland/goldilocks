@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
 import {
     AliasesResponseSchema,
+    BcSalesProductsApplyResultSchema,
+    BcSalesProductsPreviewSchema,
     DuplicatesResponseSchema,
     LinkDecisionResultSchema,
     OverAllocatedResponseSchema,
@@ -12,6 +14,7 @@ import {
     SettleResultSchema,
     SalesProductSchema,
     UnresolvedLotsResponseSchema,
+    type BcSalesProductsApplyRequest,
     type CreateSalesProductRequest,
     type LinkDecisionRequest,
     type MapAliasRequest,
@@ -38,6 +41,8 @@ export function useReviewApi() {
         salesProducts: () => client.get('/review/sales-products', SalesProductListSchema),
         pricingProducts: () => client.get('/review/pricing-products', PricingProductOptionListSchema),
         createSalesProduct: (body: CreateSalesProductRequest) => client.post('/review/sales-products', body, SalesProductSchema),
+        bcSalesProductsPreview: () => client.get('/review/sales-products/from-bc', BcSalesProductsPreviewSchema),
+        bcSalesProductsApply: (body: BcSalesProductsApplyRequest) => client.post('/review/sales-products/from-bc', body, BcSalesProductsApplyResultSchema),
         mapAlias: (id: number, body: MapAliasRequest) => client.post(`/review/aliases/${id}/map`, body, z.object({ id: z.number() })),
     };
 }

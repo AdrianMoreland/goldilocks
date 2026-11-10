@@ -305,10 +305,13 @@ export class WorkbookImportService {
         // Last row wins when a key repeats inside one chunk.
         const byKey = new Map<string, Record<string, unknown>>();
         for (const row of input) {
-            const key = str(row[spec.keyColumn]);
-            if (!key) continue;
+            const key = spec.keyOf ? spec.keyOf(row) : str(row[spec.keyColumn]);
+            if (!key) {
+                if (spec.keyOf) counts.unmatched++;
+                continue;
+            }
             const data = mapFields(row, spec.fields);
-            spec.derive?.(data);
+            spec.derive?.(data, row, key);
             let skip = false;
             for (const fk of spec.fks) {
                 const parentKey = str(row[fk.column]);
@@ -334,7 +337,9 @@ export class WorkbookImportService {
         if (spec.stocktakeSnapshotColumn) {
             const snapshots = new Map<string, string>();
             for (const row of input) {
-                const k = str(row[spec.keyColumn]);
+                const k = spec.keyOf
+                    ? spec.keyOf(row)
+                    : str(row[spec.keyColumn]);
                 if (k)
                     snapshots.set(
                         k,

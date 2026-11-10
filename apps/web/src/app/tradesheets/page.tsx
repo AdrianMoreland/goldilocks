@@ -344,9 +344,9 @@ function TabCard({ tab }: { tab: TabPlan }) {
             </CardHeader>
             {!skipped && (
                 <CardContent className="space-y-3">
-                    {tab.productMatches && tab.productMatches.saved + tab.productMatches.rule + tab.productMatches.none > 0 && (
+                    {tab.productMatches && tab.productMatches.saved + tab.productMatches.rule + tab.productMatches.none + (tab.productMatches.notProduct ?? 0) > 0 && (
                         <p className="text-muted-foreground text-sm tabular-nums">
-                            Products: {tab.productMatches.saved} by saved name, {tab.productMatches.rule} by rule, {tab.productMatches.none} not recognised
+                            Products: {tab.productMatches.saved} by saved name, {tab.productMatches.rule} by rule, {tab.productMatches.none} not recognised{(tab.productMatches.notProduct ?? 0) > 0 ? `, ${tab.productMatches.notProduct} not products` : ""}
                         </p>
                     )}
                     {tab.unmatchedProducts.length > 0 && (

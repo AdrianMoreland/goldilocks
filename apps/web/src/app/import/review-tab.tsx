@@ -379,6 +379,7 @@ function AliasesQueue() {
                     New sales product
                 </Button>
             </div>
+            <FromBcPanel />
             <Card>
                 <CardContent className="pt-6">
                     {!aliases.data?.rows.length ? (
@@ -431,6 +432,105 @@ function AliasesQueue() {
             <Pager total={aliases.data?.total ?? 0} offset={offset} onOffset={setOffset} />
             <NewSalesProduct open={creating} onClose={() => setCreating(false)} />
         </div>
+    )
+}
+
+/** Specific products made from the Business Central item list: preview what would be made, then make it. */
+function FromBcPanel() {
+    const api = useReviewApi()
+    const queryClient = useQueryClient()
+    const [shown, setShown] = useState(false)
+    const [confirming, setConfirming] = useState(false)
+    const preview = useQuery({
+        queryKey: ["review", "sales-products-from-bc"],
+        queryFn: () => api.bcSalesProductsPreview(),
+        enabled: shown,
+        staleTime: 0,
+    })
+    const create = useMutation({
+        mutationFn: () => api.bcSalesProductsApply({}),
+        onSuccess: (r) => {
+            toast.success(`${r.created} specific product${r.created === 1 ? "" : "s"} created, ${r.linked} linked to existing ones, ${r.skipped} skipped`)
+            setConfirming(false)
+            void queryClient.invalidateQueries({ queryKey: ["review"] })
+            void queryClient.invalidateQueries({ queryKey: ["stocktake", "bc-items"] })
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const totals = preview.data?.totals
+
+    return (
+        <Card>
+            <CardContent className="space-y-3 pt-6">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="max-w-2xl">
+                        <h3 className="text-sm font-medium">Specific products from BC</h3>
+                        <p className="text-muted-foreground text-sm">
+                            One specific product for each Business Central item that has a pricing product. Nothing is made until you confirm.
+                        </p>
+                    </div>
+                    <Button className="ml-auto" variant="outline" disabled={preview.isFetching} onClick={() => (shown ? void preview.refetch() : setShown(true))}>
+                        {preview.isFetching ? "Loading..." : "Preview"}
+                    </Button>
+                    <Button disabled={!totals?.create || create.isPending} onClick={() => setConfirming(true)}>
+                        Create {totals?.create ?? 0} specific products
+                    </Button>
+                </div>
+                {preview.error && <p className="text-destructive text-sm">{(preview.error as Error).message}</p>}
+                {totals && (
+                    <>
+                        <p className="text-sm tabular-nums">
+                            {totals.total} items: {totals.create} to create, {totals.linked} already linked, {totals.skip} skipped.
+                        </p>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Item</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Metal</TableHead>
+                                    <TableHead>Refinery</TableHead>
+                                    <TableHead>Pricing product</TableHead>
+                                    <TableHead>Result</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {preview.data?.rows.map((r) => (
+                                    <TableRow key={r.itemNo}>
+                                        <TableCell className="tabular-nums">{r.itemNo}</TableCell>
+                                        <TableCell>{r.name}</TableCell>
+                                        <TableCell>{r.metal ?? "-"}</TableCell>
+                                        <TableCell>{r.refinery ?? "-"}</TableCell>
+                                        <TableCell>{r.pricingProductName ?? "-"}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={r.action === "CREATE" ? "default" : "outline"}>{r.action === "CREATE" ? "Create" : r.action === "LINKED" ? "Linked" : "Skip"}</Badge>
+                                            {r.reason && <span className="text-muted-foreground ml-2 text-xs">{r.reason}</span>}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </>
+                )}
+                <Dialog open={confirming} onOpenChange={(o) => !o && setConfirming(false)}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Create {totals?.create ?? 0} specific products?</DialogTitle>
+                            <DialogDescription>
+                                Each one is tied to the pricing product of its Business Central item, and the item is linked to it. Items shown as skipped are left alone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setConfirming(false)}>
+                                Cancel
+                            </Button>
+                            <Button disabled={create.isPending} onClick={() => create.mutate()}>
+                                {create.isPending ? "Creating..." : "Create"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+        </Card>
     )
 }
 

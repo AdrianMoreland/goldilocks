@@ -13,6 +13,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
     AliasesResponse,
+    BcSalesProductsApplyResult,
+    BcSalesProductsPreview,
     DuplicatesResponse,
     LinkDecisionResult,
     OverAllocatedResponse,
@@ -24,11 +26,13 @@ import type {
     UnresolvedLotsResponse,
 } from '@goldilocks/shared-types';
 import { ReviewService } from './review.service';
+import { BcSalesProductsService } from './bc-sales-products.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
+    BcSalesProductsApplyRequestDto,
     CreateSalesProductRequestDto,
     LinkDecisionRequestDto,
     MapAliasRequestDto,
@@ -41,7 +45,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class ReviewController {
-    constructor(private readonly review: ReviewService) {}
+    constructor(
+        private readonly review: ReviewService,
+        private readonly bcProducts: BcSalesProductsService,
+    ) {}
 
     @Get('summary')
     @ApiOperation({ summary: 'How many items wait in each review queue.' })
@@ -134,6 +141,26 @@ export class ReviewController {
         @Req() req: RequestWithUser,
     ): Promise<SalesProduct> {
         return this.review.createSalesProduct(body, req.user.email);
+    }
+
+    @Get('sales-products/from-bc')
+    @ApiOperation({
+        summary: 'Preview the specific products the BC items would become.',
+    })
+    bcSalesProductsPreview(): Promise<BcSalesProductsPreview> {
+        return this.bcProducts.preview();
+    }
+
+    @Post('sales-products/from-bc')
+    @HttpCode(200)
+    @ApiOperation({
+        summary: 'Create specific products from the BC items that are ready.',
+    })
+    bcSalesProductsApply(
+        @Body() body: BcSalesProductsApplyRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<BcSalesProductsApplyResult> {
+        return this.bcProducts.apply(body, req.user.email);
     }
 
     @Post('aliases/:id/map')

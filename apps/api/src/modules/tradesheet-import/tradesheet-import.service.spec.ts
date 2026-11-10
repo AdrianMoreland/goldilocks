@@ -179,11 +179,13 @@ describe('TradesheetImportService.preview', () => {
             saved: 1,
             rule: 0,
             none: 0,
+            notProduct: 0,
         });
         expect(plan.tabs[1].productMatches).toEqual({
             saved: 0,
             rule: 1,
             none: 0,
+            notProduct: 0,
         });
         expect(prisma.$transaction).not.toHaveBeenCalled();
         expect(tx.trade.createMany).not.toHaveBeenCalled();
@@ -199,6 +201,30 @@ describe('TradesheetImportService.preview: saved decisions', () => {
         expect(plan.warnings).toEqual([
             'No saved product-name decisions yet: products are matched by built-in rules only.',
         ]);
+    });
+});
+
+describe('TradesheetImportService.preview: names settled as not a product', () => {
+    it('counts them as saved and does not list them as unrecognised', async () => {
+        const { service, tx } = setup();
+        tx.productAlias.findMany.mockResolvedValue([
+            {
+                alias: 'mystery fee',
+                productId: null,
+                salesProductId: null,
+                noProduct: true,
+            },
+        ]);
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Mystery Fee';
+        const plan = await service.preview(req);
+        expect(plan.tabs[0].productMatches).toEqual({
+            saved: 0,
+            rule: 0,
+            none: 0,
+            notProduct: 1,
+        });
+        expect(plan.tabs[0].unmatchedProducts).toEqual([]);
     });
 });
 

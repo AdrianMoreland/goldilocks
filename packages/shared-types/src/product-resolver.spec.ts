@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { aliasKey, normaliseRefinery, resolveProduct, resolveRowProduct, type ResolverData, type RowResolverData } from './product-resolver';
+import { refineryInText, REFINERIES } from './refineries';
 import { aliasOk, normaliseProductText, PRODUCT_NORM_EXAMPLES } from './product-text';
 import { metalInText, pricingSkuFor } from './product-rules';
 
 const data: ResolverData = {
   salesProducts: [
     { id: 'sp-val', name: '1oz Valcambi Suisse bar', genericNorm: '1oz bar', refinery: 'VALCAMBI SUISSE', pricingProductId: 10 },
-    { id: 'sp-arg', name: '1oz Argor-Heraeus bar', genericNorm: '1oz bar', refinery: 'ARGOR HERAEUS', pricingProductId: 10 },
+    { id: 'sp-arg', name: '1oz Argor-Heraeus bar', genericNorm: '1oz bar', refinery: 'ARGOR-HERAEUS', pricingProductId: 10 },
     { id: 'sp-kr', name: '1/10oz Krugerrand', genericNorm: '1/10oz krugerrand', refinery: null, pricingProductId: 20 },
   ],
   bcItems: { 'GB-001': 'sp-val' },
@@ -58,7 +59,49 @@ describe('normaliseRefinery', () => {
     expect(normaliseRefinery('ARGOR HERAEUS')).toBe(normaliseRefinery('argor-heraeus'));
     expect(normaliseRefinery('UNKNOWN')).toBeNull();
     expect(normaliseRefinery('')).toBeNull();
-    expect(normaliseRefinery('Argor', data.refineryAliases)).toBe('ARGOR HERAEUS');
+    expect(normaliseRefinery('Argor', data.refineryAliases)).toBe('ARGOR-HERAEUS');
+  });
+});
+
+describe('matching a specific product stored with a raw refinery', () => {
+  it('compares refineries after normalising the stored one', () => {
+    const d: ResolverData = {
+      salesProducts: [
+        { id: 'a', name: 'x', genericNorm: '1oz bar', refinery: 'ARGOR HERAEUS', pricingProductId: 1 },
+        { id: 'b', name: 'y', genericNorm: '10g bar', refinery: 'Baird & Co', pricingProductId: 2 },
+      ],
+    };
+    expect(resolveProduct({ productText: '1oz bar', refinery: 'Argor-Heraeus' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 'a' });
+    expect(resolveProduct({ productText: '10g bar', refinery: 'Baird' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 'b' });
+  });
+});
+
+describe('refinery list', () => {
+  it('maps spellings to the canonical name, ignoring case, punctuation and accents', () => {
+    expect(normaliseRefinery('Pamp Lady Fortuna')).toBe('PAMP SUISSE');
+    expect(normaliseRefinery('argor heraeus')).toBe('ARGOR-HERAEUS');
+    expect(normaliseRefinery('Münze Österreich')).toBe('MUNZE OSTERREICH');
+    expect(normaliseRefinery('C.Hafner')).toBe('C HAFNER');
+    expect(normaliseRefinery('Baird & Co.')).toBe('BAIRD & CO');
+    expect(normaliseRefinery('Heareus')).toBe('HERAEUS');
+  });
+  it('treats mixed and unknown as no refinery, and explicit aliases still win', () => {
+    for (const t of ['Best Value (Mixed Refiners)', 'Mixed', 'Mixed/Other', 'Unknown']) expect(normaliseRefinery(t)).toBeNull();
+    expect(normaliseRefinery('Valcambi', [{ alias: 'Valcambi', refinery: 'Custom One' }])).toBe('CUSTOM ONE');
+  });
+  it('lists every canonical name once', () => {
+    expect(new Set(REFINERIES.map((r) => r.refinery)).size).toBe(REFINERIES.length);
+  });
+  it('finds the longest refinery in free text, whole words only', () => {
+    expect(refineryInText('Argor-Heraeus 1oz bar')).toBe('ARGOR-HERAEUS');
+    expect(refineryInText('500g Argor-Heraeus Silver Bars')).toBe('ARGOR-HERAEUS');
+    expect(refineryInText('The Perth Mint Australia 1oz Bar')).toBe('PERTH MINT');
+    expect(refineryInText('PAMP Suisse Lady Fortuna 10g bar')).toBe('PAMP SUISSE');
+    expect(refineryInText('Royal Canadian Mint 1oz')).toBe('ROYAL CANADIAN MINT');
+    expect(refineryInText('1/2oz Gold Krugerrand')).toBeNull();
+    expect(refineryInText('Best Value (Mixed Refiners) 100g bar')).toBeNull();
+    expect(refineryInText('Opmetal bar')).toBeNull();
+    expect(refineryInText(null)).toBeNull();
   });
 });
 
@@ -191,7 +234,7 @@ describe('resolveRowProduct', () => {
       { id: 4, sku: 'GOLD-1/10OZ-COIN', metalType: 'GOLD' },
     ],
     salesProducts: [
-      { id: 7, name: '1oz Valcambi bar', genericNorm: '1oz bar', refinery: 'VALCAMBI', pricingProductId: 1 },
+      { id: 7, name: '1oz Valcambi bar', genericNorm: '1oz bar', refinery: 'VALCAMBI SUISSE', pricingProductId: 1 },
       { id: 8, name: 'Loose sovereign', genericNorm: 'old sov', refinery: null, pricingProductId: null },
     ],
     bcItems: { 'GB-9': 7 },
@@ -221,12 +264,17 @@ describe('resolveRowProduct', () => {
   it('matches generic name plus refinery before the rules', () => {
     const noDecisions = { ...rowData, decisions: [] };
     expect(resolveRowProduct({ productText: '1oz bar', metal: 'GOLD', refinery: 'Valcambi' }, noDecisions)).toMatchObject({
-      method: 'GENERIC_REFINERY', salesProductId: 7, pricingProductId: 1, refinery: 'VALCAMBI',
+      method: 'GENERIC_REFINERY', salesProductId: 7, pricingProductId: 1, refinery: 'VALCAMBI SUISSE',
     });
   });
   it('then uses the rules, picking the first candidate that exists', () => {
     expect(resolveRowProduct({ productText: '1/10oz Maple', metal: 'GOLD' }, rowData)).toMatchObject({ method: 'RULE', pricingProductId: 4, salesProductId: null });
     expect(resolve('Sovereign')).toMatchObject({ method: 'RULE', pricingProductId: 2 });
+  });
+  it('ends with NOT_PRODUCT when the saved decision says the name is not a product', () => {
+    const d = { ...rowData, decisions: [{ key: 'delivery fee', productId: null, salesProductId: null, noProduct: true }] };
+    expect(resolveRowProduct({ productText: 'Delivery Fee', metal: 'GOLD' }, d)).toMatchObject({ method: 'NOT_PRODUCT', pricingProductId: null, salesProductId: null });
+    expect(resolveRowProduct({ productText: 'Delivery Fee', metal: 'GOLD', refinery: 'PAMP' }, d)).toMatchObject({ method: 'NOT_PRODUCT' });
   });
   it('is NONE when nothing matches, keeping the metal and melt hints', () => {
     expect(resolve('1oz Buffalo')).toMatchObject({ method: 'NONE', pricingProductId: null, key: '1oz buffalo' });
@@ -252,7 +300,7 @@ describe('resolveRowProduct', () => {
       expect(withDecisions(d, 'Argor-Heraeus')).toMatchObject({ method: 'ALIAS', pricingProductId: 3 });
       expect(withDecisions(d)).toMatchObject({ method: 'RULE', pricingProductId: 1 });
       expect(withDecisions(d, 'Valcambi')).toMatchObject({ method: 'RULE' });
-      expect(withDecisions([{ key: '1oz bar|ARGOR HERAEUS', productId: 3, salesProductId: null }], 'argor heraeus')).toMatchObject({ method: 'ALIAS' });
+      expect(withDecisions([{ key: '1oz bar|ARGOR-HERAEUS', productId: 3, salesProductId: null }], 'argor heraeus')).toMatchObject({ method: 'ALIAS' });
     });
     it('ignores a one-word name but takes a lone weight', () => {
       expect(withDecisions([{ key: 'bar', productId: 3, salesProductId: null }])).toMatchObject({ method: 'RULE' });
