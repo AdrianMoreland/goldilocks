@@ -32,6 +32,9 @@ const prisma = new PrismaService(new ConfigService());
  * must keep the literal words "Bar" and the metal name for that to keep
  * working; only the coin side of that naming was in scope here.
  *
+ * Each product also gets its category (BAR or COIN) from its kind, and the
+ * fractional gold coins are named "1/10oz Coin", "1/4oz Coin" and "1/2oz Coin".
+ *
  * PAMP/CombiBar brand-stamp variants and any row the sheet marks
  * unavailable ("-" or a zero premium placeholder) are deliberately left out
  * - same call as the previous round, still true of this workbook.
@@ -110,11 +113,11 @@ const GOLD_ENTRIES: Entry[] = [
     coin("FULL-SOVEREIGN", "Full Sovereign", 7.3224, 0.0675, 0.055, 15),
     coin("DOUBLE-SOVEREIGN", "Double Sovereign", 14.6447, 0.095, 0.065, 8),
     coin("1G", "1g Coin", 1, 0.325, 0.08, 100),
-    coin("1/10OZ", "1/10oz", GRAMS_PER_TROY_OUNCE / 10, 0.225, 0.07, 60),
+    coin("1/10OZ", "1/10oz Coin", GRAMS_PER_TROY_OUNCE / 10, 0.225, 0.07, 60),
     coin("1/10OZ-US", "1/10oz US Eagle", GRAMS_PER_TROY_OUNCE / 10, 0.25, 0.06, 50),
-    coin("1/4OZ", "1/4oz", GRAMS_PER_TROY_OUNCE / 4, 0.15, 0.06, 45),
+    coin("1/4OZ", "1/4oz Coin", GRAMS_PER_TROY_OUNCE / 4, 0.15, 0.06, 45),
     coin("1/4OZ-US", "1/4oz US Eagle", GRAMS_PER_TROY_OUNCE / 4, 0.1675, 0.06, 40),
-    coin("1/2OZ", "1/2oz", GRAMS_PER_TROY_OUNCE / 2, 0.115, 0.06, 35),
+    coin("1/2OZ", "1/2oz Coin", GRAMS_PER_TROY_OUNCE / 2, 0.115, 0.06, 35),
     coin("1/2OZ-US", "1/2oz US Eagle", GRAMS_PER_TROY_OUNCE / 2, 0.125, 0.05, 32),
 ];
 
@@ -203,6 +206,7 @@ async function upsertEntry(metal: MetalType, entry: Entry) {
             spreadSell: entry.premium,
             spreadBuy: -entry.discount,
             vatRate,
+            category: entry.kind,
         },
         create: {
             sku,
@@ -212,6 +216,7 @@ async function upsertEntry(metal: MetalType, entry: Entry) {
             spreadSell: entry.premium,
             spreadBuy: -entry.discount,
             vatRate,
+            category: entry.kind,
             stock: entry.stock,
             description: entry.name,
         },
