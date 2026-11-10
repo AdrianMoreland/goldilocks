@@ -63,6 +63,19 @@ describe('normaliseRefinery', () => {
   });
 });
 
+describe('matching a specific product stored with a raw refinery', () => {
+  it('compares refineries after normalising the stored one', () => {
+    const d: ResolverData = {
+      salesProducts: [
+        { id: 'a', name: 'x', genericNorm: '1oz bar', refinery: 'ARGOR HERAEUS', pricingProductId: 1 },
+        { id: 'b', name: 'y', genericNorm: '10g bar', refinery: 'Baird & Co', pricingProductId: 2 },
+      ],
+    };
+    expect(resolveProduct({ productText: '1oz bar', refinery: 'Argor-Heraeus' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 'a' });
+    expect(resolveProduct({ productText: '10g bar', refinery: 'Baird' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 'b' });
+  });
+});
+
 describe('refinery list', () => {
   it('maps spellings to the canonical name, ignoring case, punctuation and accents', () => {
     expect(normaliseRefinery('Pamp Lady Fortuna')).toBe('PAMP SUISSE');

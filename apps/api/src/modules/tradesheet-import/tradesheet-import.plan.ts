@@ -428,7 +428,7 @@ export function summariseTab(rec: TabReconciliation): TabPlan {
     const counts = zeroCounts();
     const rows: PlanRow[] = [];
     const unmatched = new Map<string, number>();
-    const productMatches = { saved: 0, rule: 0, none: 0 };
+    const productMatches = { saved: 0, rule: 0, none: 0, notProduct: 0 };
 
     const all: Array<PlannedSale | PlannedLot> = [...rec.sales, ...rec.lots];
     for (const r of all) {
@@ -439,6 +439,7 @@ export function summariseTab(rec: TabReconciliation): TabPlan {
         if (r.issues.length > 0) counts.flagged++;
         if (r.how) {
             if (r.how === 'NONE') productMatches.none++;
+            else if (r.how === 'NOT_PRODUCT') productMatches.notProduct++;
             else if (r.how === 'RULE') productMatches.rule++;
             else productMatches.saved++;
         }

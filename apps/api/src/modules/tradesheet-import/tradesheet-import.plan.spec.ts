@@ -550,7 +550,12 @@ describe('summarise', () => {
             { text: 'Mystery coin', rows: 1 },
         ]);
         expect(tab.rows[0].issues).toEqual([]);
-        expect(tab.productMatches).toEqual({ saved: 0, rule: 2, none: 1 });
+        expect(tab.productMatches).toEqual({
+            saved: 0,
+            rule: 2,
+            none: 1,
+            notProduct: 0,
+        });
         expect(plan.warnings).toEqual(['warn']);
     });
 });

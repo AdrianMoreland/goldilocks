@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import type {
-    BcSalesProductsApplyRequest,
-    BcSalesProductsApplyResult,
-    BcSalesProductsPreview,
+import { ConflictException, Injectable } from '@nestjs/common';
+import {
+    normaliseRefinery,
+    type BcSalesProductsApplyRequest,
+    type BcSalesProductsApplyResult,
+    type BcSalesProductsPreview,
 } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -20,7 +21,7 @@ export class BcSalesProductsService {
     ) {}
 
     private async plan(db: Db): Promise<BcSalesProductsPreview> {
-        const [items, catalogue] = await Promise.all([
+        const [items, catalogue, sales] = await Promise.all([
             db.bcItem.findMany({
                 orderBy: { itemNo: 'asc' },
                 select: {
@@ -34,8 +35,11 @@ export class BcSalesProductsService {
                 where: { deletedAt: null },
                 select: { id: true, sku: true, name: true, metalType: true },
             }),
+            db.salesProduct.findMany({
+                select: { name: true, metal: true, pricingProductId: true },
+            }),
         ]);
-        return planBcSalesProducts(items, catalogue);
+        return planBcSalesProducts(items, catalogue, sales);
     }
 
     preview(): Promise<BcSalesProductsPreview> {
@@ -47,55 +51,86 @@ export class BcSalesProductsService {
         body: BcSalesProductsApplyRequest,
         actor: string,
     ): Promise<BcSalesProductsApplyResult> {
-        return this.prisma.$transaction(async (tx) => {
-            // Worked out again inside the transaction, so only rows that are ready now are created.
-            const { rows } = await this.plan(tx);
-            const chosen = body.itemNos?.length ? new Set(body.itemNos) : null;
-            const picked = rows.filter((r) => !chosen || chosen.has(r.itemNo));
-            const ready = picked.filter((r) => r.action === 'CREATE');
-
-            const existing = ready.length
-                ? await tx.salesProduct.findMany({
-                      where: { name: { in: ready.map((r) => r.name) } },
-                      select: { id: true, name: true },
-                  })
-                : [];
-            const byName = new Map(existing.map((p) => [p.name, p.id]));
-
-            let created = 0;
-            let linked = 0;
-            for (const r of ready) {
-                let id = byName.get(r.name);
-                if (id === undefined) {
-                    const p = await tx.salesProduct.create({
-                        data: {
-                            name: r.name,
-                            metal: r.metal ?? 'GOLD',
-                            genericNorm: r.genericNorm,
-                            refinery: r.refinery,
-                            pricingProductId: r.pricingProductId,
-                            active: true,
-                        },
-                        select: { id: true },
-                    });
-                    id = p.id;
-                    byName.set(r.name, id);
-                    created++;
-                } else linked++;
-                await tx.bcItem.update({
-                    where: { itemNo: r.itemNo },
-                    data: { salesProductId: id },
-                });
-            }
-            const skipped = picked.filter((r) => r.action === 'SKIP').length;
-            if (created + linked > 0)
-                await this.audit.record(
-                    actor,
-                    'sales-products-from-bc',
-                    `${created} specific products created, ${linked} items linked to existing ones`,
-                    tx,
+        try {
+            return await this.prisma.$transaction((tx) =>
+                this.applyIn(tx, body, actor),
+            );
+        } catch (e) {
+            if ((e as { code?: string }).code === 'P2002')
+                throw new ConflictException(
+                    'Specific products were changed at the same time: preview again.',
                 );
-            return { created, linked, skipped };
-        });
+            throw e;
+        }
+    }
+
+    private async applyIn(
+        tx: Prisma.TransactionClient,
+        body: BcSalesProductsApplyRequest,
+        actor: string,
+    ): Promise<BcSalesProductsApplyResult> {
+        // Worked out again inside the transaction, so only rows that are ready now are created.
+        const { rows } = await this.plan(tx);
+        const chosen = body.itemNos?.length ? new Set(body.itemNos) : null;
+        const picked = rows.filter((r) => !chosen || chosen.has(r.itemNo));
+        const ready = picked.filter((r) => r.action === 'CREATE');
+
+        const existing = ready.length
+            ? await tx.salesProduct.findMany({
+                  where: { name: { in: ready.map((r) => r.name) } },
+                  select: {
+                      id: true,
+                      name: true,
+                      metal: true,
+                      pricingProductId: true,
+                  },
+              })
+            : [];
+        const byName = new Map(existing.map((p) => [p.name, p]));
+
+        let created = 0;
+        let linked = 0;
+        const skipped = picked.filter((r) => r.action === 'SKIP').length;
+        for (const r of ready) {
+            const found = byName.get(r.name);
+            let id: number;
+            if (found) {
+                // The plan only lets a product with the same metal and pricing product through.
+                id = found.id;
+                linked++;
+            } else {
+                const p = await tx.salesProduct.create({
+                    data: {
+                        name: r.name,
+                        metal: r.metal ?? 'GOLD',
+                        genericNorm: r.genericNorm,
+                        refinery: normaliseRefinery(r.refinery),
+                        pricingProductId: r.pricingProductId,
+                        active: true,
+                    },
+                    select: { id: true },
+                });
+                id = p.id;
+                byName.set(r.name, {
+                    id,
+                    name: r.name,
+                    metal: r.metal ?? 'GOLD',
+                    pricingProductId: r.pricingProductId,
+                });
+                created++;
+            }
+            await tx.bcItem.update({
+                where: { itemNo: r.itemNo },
+                data: { salesProductId: id },
+            });
+        }
+        if (created + linked > 0)
+            await this.audit.record(
+                actor,
+                'sales-products-from-bc',
+                `${created} specific products created, ${linked} items linked to existing ones`,
+                tx,
+            );
+        return { created, linked, skipped };
     }
 }

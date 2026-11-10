@@ -15,6 +15,12 @@ export interface BcItemInput {
     salesProductId: number | null;
 }
 
+export interface ExistingSalesProduct {
+    name: string;
+    metal: string;
+    pricingProductId: number | null;
+}
+
 export interface CataloguePricingProduct {
     id: number;
     sku: string;
@@ -78,7 +84,9 @@ export function genericNormOf(
 export function planBcSalesProducts(
     items: readonly BcItemInput[],
     catalogue: readonly CataloguePricingProduct[],
+    existing: readonly ExistingSalesProduct[] = [],
 ): BcSalesProductsPreview {
+    const taken = new Map(existing.map((p) => [p.name, p]));
     const byId = new Map(catalogue.map((p) => [p.id, p]));
     const bySku = new Map(catalogue.map((p) => [p.sku, p]));
 
@@ -94,10 +102,13 @@ export function planBcSalesProducts(
             (nameCount.get(description.toLowerCase()) ?? 0) > 1
                 ? `${description} (${it.itemNo})`
                 : description;
-        const match = refineryMatch(description);
-        const refinery = match?.refinery ?? null;
         const pricing =
             it.productId !== null ? (byId.get(it.productId) ?? null) : null;
+        // Only bars have a refinery; a coin's mint is part of its name.
+        const match = pricing?.sku.endsWith('-BAR')
+            ? refineryMatch(description)
+            : null;
+        const refinery = match?.refinery ?? null;
 
         const textMetal = metalInText(description);
         const range = rangeMetal(it.itemNo);
@@ -118,6 +129,7 @@ export function planBcSalesProducts(
             : [];
         const suggestedSku = candidates.find((sku) => bySku.has(sku));
 
+        // Mixed-refiner wording and metal words are noise for every item; mint words only for bars.
         const row: BcSalesProductRow = {
             itemNo: it.itemNo,
             description: it.description,
@@ -143,6 +155,16 @@ export function planBcSalesProducts(
                 ...row,
                 action: 'SKIP',
                 reason: `Pricing link looks wrong: linked to ${pricing.name}, description suggests ${suggestedSku}. Check it in BC items.`,
+            };
+        const same = taken.get(name);
+        if (
+            same &&
+            (same.metal !== metal || same.pricingProductId !== pricing.id)
+        )
+            return {
+                ...row,
+                action: 'SKIP',
+                reason: 'A specific product with this name already exists for a different product.',
             };
         if (!metal || !row.genericNorm)
             return {

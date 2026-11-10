@@ -27,6 +27,18 @@ const catalogue: CataloguePricingProduct[] = [
         metalType: 'GOLD',
     },
     { id: 5, sku: 'GOLD-100G-BAR', name: '100g Gold Bar', metalType: 'GOLD' },
+    {
+        id: 7,
+        sku: 'GOLD-1OZ-KANGAROO-COIN',
+        name: '1oz Gold Kangaroo',
+        metalType: 'GOLD',
+    },
+    {
+        id: 8,
+        sku: 'GOLD-1OZ-BRITANNIA-COIN',
+        name: '1oz Gold Britannia',
+        metalType: 'GOLD',
+    },
     { id: 6, sku: 'GOLD-10G-BAR', name: '10g Gold Bar', metalType: 'GOLD' },
 ];
 
@@ -95,6 +107,24 @@ describe('genericNormOf and refinery', () => {
     });
 });
 
+describe('coins have no refinery', () => {
+    it('keeps the mint words in the generic name of a coin', () => {
+        const rows = plan([
+            item('2002', '1oz Perth Mint Kangaroo Gold Coin', 7),
+            item('2003', 'Royal Mint Britannia 1oz Gold Coin', 8),
+        ]).rows;
+        expect(rows[0]).toMatchObject({
+            refinery: null,
+            genericNorm: '1oz perth mint kangaroo',
+            action: 'CREATE',
+        });
+        expect(rows[1]).toMatchObject({
+            refinery: null,
+            genericNorm: 'royal mint britannia 1oz',
+        });
+    });
+});
+
 describe('planBcSalesProducts', () => {
     it('creates a row with a fitting pricing product, with its metal', () => {
         const [r] = plan([item('1001', 'Argor-Heraeus 1oz bar', 1)]).rows;
@@ -152,7 +182,12 @@ describe('planBcSalesProducts', () => {
 describe('BcSalesProductsService.apply', () => {
     function setup(
         items: BcItemInput[],
-        existingSales: Array<{ id: number; name: string }> = [],
+        existingSales: Array<{
+            id: number;
+            name: string;
+            metal: string;
+            pricingProductId: number | null;
+        }> = [],
     ) {
         let nextId = 100;
         const tx = {
@@ -228,7 +263,12 @@ describe('BcSalesProductsService.apply', () => {
 
     it('reuses a specific product with the same name instead of duplicating it', async () => {
         const { service, tx } = setup(items, [
-            { id: 7, name: 'Argor-Heraeus 1oz bar' },
+            {
+                id: 7,
+                name: 'Argor-Heraeus 1oz bar',
+                metal: 'GOLD',
+                pricingProductId: 1,
+            },
         ]);
         const r = await service.apply({}, 'a');
         expect(r).toEqual({ created: 0, linked: 1, skipped: 2 });
@@ -237,6 +277,38 @@ describe('BcSalesProductsService.apply', () => {
             where: { itemNo: '1001' },
             data: { salesProductId: 7 },
         });
+    });
+
+    it('skips an item whose name is taken by a specific product for a different pricing product', async () => {
+        const { service, tx } = setup(items, [
+            {
+                id: 7,
+                name: 'Argor-Heraeus 1oz bar',
+                metal: 'GOLD',
+                pricingProductId: 6,
+            },
+        ]);
+        const p = await service.preview();
+        expect(p.rows[0]).toMatchObject({
+            action: 'SKIP',
+            reason: 'A specific product with this name already exists for a different product.',
+        });
+        expect(await service.apply({}, 'a')).toEqual({
+            created: 0,
+            linked: 0,
+            skipped: 3,
+        });
+        expect(tx.bcItem.update).not.toHaveBeenCalled();
+    });
+
+    it('turns a unique-name clash on create into a conflict', async () => {
+        const { service, tx } = setup(items);
+        tx.salesProduct.create.mockRejectedValue(
+            Object.assign(new Error('dup'), { code: 'P2002' }),
+        );
+        await expect(service.apply({}, 'a')).rejects.toThrow(
+            'Specific products were changed at the same time: preview again.',
+        );
     });
 
     it('does nothing the second time, when the items are already linked', async () => {

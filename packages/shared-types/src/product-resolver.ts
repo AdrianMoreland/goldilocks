@@ -89,14 +89,14 @@ function matchGeneric(norm: string, refinery: string | null, key: string, salesP
   if (sameName.length === 0) return { status: 'REVIEW', reason: 'NO_MATCH', key, candidateIds: [] };
 
   if (refinery) {
-    const exact = sameName.filter((p) => p.refinery === refinery);
+    const exact = sameName.filter((p) => normaliseRefinery(p.refinery) === refinery);
     if (exact.length === 1) return done('GENERIC_REFINERY', exact[0]!.id) as ResolveResult;
     if (exact.length > 1) return { status: 'REVIEW', reason: 'AMBIGUOUS', key, candidateIds: exact.map((p) => p.id) };
     return { status: 'REVIEW', reason: 'NO_MATCH', key, candidateIds: sameName.map((p) => p.id) };
   }
 
   // No refinery on the row: fine for products that have none (coins), otherwise a person must say which.
-  const noRefinery = sameName.filter((p) => p.refinery === null);
+  const noRefinery = sameName.filter((p) => normaliseRefinery(p.refinery) === null);
   if (noRefinery.length === 1) return done('GENERIC_REFINERY', noRefinery[0]!.id) as ResolveResult;
   return { status: 'REVIEW', reason: sameName.length ? 'NEEDS_REFINERY' : 'NO_MATCH', key, candidateIds: sameName.map((p) => p.id) };
 }

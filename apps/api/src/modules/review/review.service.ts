@@ -5,6 +5,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import {
+    normaliseRefinery,
     ReviewLinksQuerySchema,
     ReviewPageQuerySchema,
     type AliasesResponse,
@@ -517,7 +518,7 @@ export class ReviewService {
                     name: body.name,
                     metal: body.metal,
                     genericNorm: body.genericNorm,
-                    refinery: body.refinery || null,
+                    refinery: normaliseRefinery(body.refinery),
                     pricingProductId: body.pricingProductId ?? null,
                 },
                 include: { pricingProduct: true },
@@ -562,7 +563,8 @@ export class ReviewService {
                 where: { id },
                 data: {
                     salesProductId: product.id,
-                    refinery: alias.refinery ?? product.refinery,
+                    refinery:
+                        alias.refinery ?? normaliseRefinery(product.refinery),
                 },
             });
             await this.audit.record(

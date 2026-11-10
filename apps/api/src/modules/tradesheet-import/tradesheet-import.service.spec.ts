@@ -179,11 +179,13 @@ describe('TradesheetImportService.preview', () => {
             saved: 1,
             rule: 0,
             none: 0,
+            notProduct: 0,
         });
         expect(plan.tabs[1].productMatches).toEqual({
             saved: 0,
             rule: 1,
             none: 0,
+            notProduct: 0,
         });
         expect(prisma.$transaction).not.toHaveBeenCalled();
         expect(tx.trade.createMany).not.toHaveBeenCalled();
@@ -217,9 +219,10 @@ describe('TradesheetImportService.preview: names settled as not a product', () =
         req.tabs[0].rows[0].cells[3] = 'Mystery Fee';
         const plan = await service.preview(req);
         expect(plan.tabs[0].productMatches).toEqual({
-            saved: 1,
+            saved: 0,
             rule: 0,
             none: 0,
+            notProduct: 1,
         });
         expect(plan.tabs[0].unmatchedProducts).toEqual([]);
     });
