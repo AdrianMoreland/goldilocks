@@ -6,7 +6,9 @@ import {
     type AliasTarget,
     type AliasesResponse,
     type MatchCatalogue,
+    type NameSuggestionAcceptResult,
     type NameSuggestionDecisionResult,
+    type NameSuggestionTarget,
     type ProductMatch,
     type SettleNamesResult,
 } from '@goldilocks/shared-types';
@@ -100,6 +102,16 @@ export function settledState(m: ProductMatch): {
     };
 }
 
+/** A person's decision, or a rule's, is the only thing a scan may write over: never a person's. */
+const SCAN_MAY_WRITE = {
+    OR: [{ decidedBy: null }, { decidedBy: 'RULE' }],
+} satisfies Prisma.ProductAliasWhereInput;
+
+/** Ids per write statement. */
+const WRITE_CHUNK = 1000;
+/** More distinct states than this: one parameterised UPDATE ... FROM unnest per chunk instead of one updateMany per state. */
+const MAX_GROUPS = 100;
+
 const differs = (row: AliasRecord, state: Settled): boolean =>
     (Object.keys(state) as (keyof Settled)[]).some(
         (k) => (row as unknown as Record<string, unknown>)[k] !== state[k],
@@ -165,9 +177,7 @@ export class ProductNamesService {
     ): Promise<SettleNamesResult> {
         const db = opts.db ?? this.prisma;
         const dryRun = opts.dryRun ?? false;
-        const where: Prisma.ProductAliasWhereInput = {
-            OR: [{ decidedBy: null }, { decidedBy: 'RULE' }],
-        };
+        const where: Prisma.ProductAliasWhereInput = { ...SCAN_MAY_WRITE };
         if (scope !== 'all') {
             if ('ids' in scope) where.id = { in: scope.ids };
             else where.alias = { in: scope.aliases };
@@ -204,14 +214,72 @@ export class ProductNamesService {
             }
             writes.push({ id: row.id, data: state });
         }
-        if (!dryRun) {
-            for (const w of writes)
-                await db.productAlias.update({
-                    where: { id: w.id },
-                    data: w.data,
-                });
-        }
+        if (!dryRun) await this.write(db, writes);
         return result;
+    }
+
+    /**
+     * Writes the planned states in a few statements, not one per row (the database is ~140 ms away). Names with the
+     * same target state are written together; names with their own text (reason, question) mostly differ, so if that
+     * still leaves many states, one UPDATE ... FROM unnest writes a chunk at once. Every write is guarded in its
+     * WHERE: a name a person decided since it was read (a decision made during a rescan) is never overwritten.
+     */
+    private async write(
+        db: Db,
+        writes: { id: number; data: Settled }[],
+    ): Promise<void> {
+        if (writes.length === 0) return;
+        const groups = new Map<string, { data: Settled; ids: number[] }>();
+        for (const w of writes) {
+            const key = JSON.stringify(w.data);
+            const g = groups.get(key);
+            if (g) g.ids.push(w.id);
+            else groups.set(key, { data: w.data, ids: [w.id] });
+        }
+        if (groups.size <= MAX_GROUPS) {
+            for (const g of groups.values())
+                for (let i = 0; i < g.ids.length; i += WRITE_CHUNK)
+                    await db.productAlias.updateMany({
+                        where: {
+                            id: { in: g.ids.slice(i, i + WRITE_CHUNK) },
+                            ...SCAN_MAY_WRITE,
+                        },
+                        data: g.data,
+                    });
+            return;
+        }
+        for (let i = 0; i < writes.length; i += WRITE_CHUNK) {
+            const c = writes.slice(i, i + WRITE_CHUNK);
+            const col = <T>(f: (s: Settled) => T) => c.map((w) => f(w.data));
+            await db.$executeRaw`
+                UPDATE product_aliases AS a SET
+                    "productId" = v.pid,
+                    "salesProductId" = v.sid,
+                    "noProduct" = v.np,
+                    "decidedBy" = v.decided::"AliasDecider",
+                    "suggestedProductId" = v.spid,
+                    "suggestedSalesProductId" = v.ssid,
+                    "suggestedNoProduct" = v.snp,
+                    "confidence" = v.conf::"MatchConfidence",
+                    "reason" = v.reason,
+                    "question" = v.question,
+                    "catalogueGap" = v.gap
+                FROM unnest(
+                    ${c.map((w) => w.id)}::int[],
+                    ${col((d) => d.productId ?? null)}::int[],
+                    ${col((d) => d.salesProductId ?? null)}::int[],
+                    ${col((d) => !!d.noProduct)}::boolean[],
+                    ${col((d) => d.decidedBy ?? null)}::text[],
+                    ${col((d) => d.suggestedProductId ?? null)}::int[],
+                    ${col((d) => d.suggestedSalesProductId ?? null)}::int[],
+                    ${col((d) => !!d.suggestedNoProduct)}::boolean[],
+                    ${col((d) => d.confidence ?? null)}::text[],
+                    ${col((d) => d.reason ?? null)}::text[],
+                    ${col((d) => d.question ?? null)}::text[],
+                    ${col((d) => !!d.catalogueGap)}::boolean[]
+                ) AS v(id, pid, sid, np, decided, spid, ssid, snp, conf, reason, question, gap)
+                WHERE a.id = v.id AND (a."decidedBy" IS NULL OR a."decidedBy" = 'RULE')`;
+        }
     }
 
     /** Settles the names a scope names and writes one audit line (counts only). */
@@ -232,28 +300,19 @@ export class ProductNamesService {
     }
 
     /**
-     * Adds the names a source met that were not saved yet (an existing name is left as it is), then settles just
-     * those. Used by the tradesheet import, so a name it could not place reaches the queue with a suggestion.
+     * Adds the names a source met that were not saved yet (an existing name is left as it is). Settling them is a
+     * separate step (`settleAndRecord`), so a caller can do it after its own transaction commits.
      */
-    async registerAndSettle(
+    async registerNames(
         names: {
             alias: string;
             uses: number;
             metalHint: 'GOLD' | 'SILVER' | null;
         }[],
         source: string,
-        actor: string,
-        db: Prisma.TransactionClient,
-        label: string,
-    ): Promise<SettleNamesResult> {
-        if (names.length === 0)
-            return {
-                dryRun: false,
-                certain: 0,
-                likely: 0,
-                unclear: 0,
-                unchanged: 0,
-            };
+        db: Db,
+    ): Promise<void> {
+        if (names.length === 0) return;
         await db.productAlias.createMany({
             data: names.map((n) => ({
                 alias: n.alias,
@@ -264,12 +323,6 @@ export class ProductNamesService {
             })),
             skipDuplicates: true,
         });
-        return this.settleAndRecord(
-            { aliases: names.map((n) => n.alias) },
-            actor,
-            db,
-            label,
-        );
     }
 
     /** The Rescan button. A dry run only counts. */
@@ -277,7 +330,7 @@ export class ProductNamesService {
         if (dryRun) return this.settle('all', { dryRun: true });
         return this.prisma.$transaction(
             (tx) => this.settleAndRecord('all', actor, tx, 'rescan'),
-            { timeout: 120_000, maxWait: 10_000 },
+            { timeout: 300_000, maxWait: 10_000 },
         );
     }
 
@@ -418,43 +471,81 @@ export class ProductNamesService {
         a.suggestedSalesProductId !== null ||
         a.suggestedNoProduct;
 
-    /** Takes the suggestions as a person's own decisions. Names a person already decided, or without one, are skipped. */
+    /**
+     * Takes suggestions as a person's own decisions. A name is accepted only if it is still undecided and its stored
+     * suggestion still equals the one the person saw (`expected`); anything else is skipped and counted.
+     */
     async accept(
-        ids: number[],
+        items: { id: number; expected: NameSuggestionTarget }[],
         actor: string,
-    ): Promise<NameSuggestionDecisionResult> {
-        const unique = [...new Set(ids)];
-        return this.prisma.$transaction(async (tx) => {
-            const rows = await tx.productAlias.findMany({
-                where: { id: { in: unique } },
-            });
-            const done: number[] = [];
-            for (const a of rows) {
-                if (a.decidedBy === 'PERSON' || !this.hasSuggestion(a))
-                    continue;
-                await tx.productAlias.update({
-                    where: { id: a.id },
-                    data: {
-                        productId: a.suggestedProductId,
-                        salesProductId: a.suggestedSalesProductId,
-                        noProduct: a.suggestedNoProduct,
-                        decidedBy: 'PERSON',
-                        suggestedProductId: null,
-                        suggestedSalesProductId: null,
-                        suggestedNoProduct: false,
-                        question: null,
-                    },
-                });
-                done.push(a.id);
-            }
-            await this.audit.record(
-                actor,
-                'name-suggestion-accept',
-                `${done.length} of ${unique.length} accepted: ids ${done.join(',') || 'none'}`,
-                tx,
-            );
-            return { done: done.length, skipped: unique.length - done.length };
-        });
+    ): Promise<NameSuggestionAcceptResult> {
+        const byId = new Map(items.map((i) => [i.id, i.expected]));
+        // Group by the suggestion, so each group is one guarded statement.
+        const groups = new Map<
+            string,
+            { expected: NameSuggestionTarget; ids: number[] }
+        >();
+        for (const [id, expected] of byId) {
+            const key = JSON.stringify([
+                expected.productId ?? null,
+                expected.salesProductId ?? null,
+                expected.noProduct ?? false,
+            ]);
+            const g = groups.get(key);
+            if (g) g.ids.push(id);
+            else groups.set(key, { expected, ids: [id] });
+        }
+        return this.prisma.$transaction(
+            async (tx) => {
+                const done: number[] = [];
+                for (const g of groups.values()) {
+                    for (let i = 0; i < g.ids.length; i += WRITE_CHUNK) {
+                        const ids = g.ids.slice(i, i + WRITE_CHUNK);
+                        const where = {
+                            id: { in: ids },
+                            decidedBy: null,
+                            suggestedProductId: g.expected.productId ?? null,
+                            suggestedSalesProductId:
+                                g.expected.salesProductId ?? null,
+                            suggestedNoProduct: g.expected.noProduct === true,
+                        } satisfies Prisma.ProductAliasWhereInput;
+                        // Read which ids still match, so the audit line can name the ones changed.
+                        const hit = await tx.productAlias.findMany({
+                            where,
+                            select: { id: true },
+                        });
+                        if (hit.length === 0) continue;
+                        const matched = hit.map((h) => h.id);
+                        await tx.productAlias.updateMany({
+                            where: { ...where, id: { in: matched } },
+                            data: {
+                                productId: g.expected.productId ?? null,
+                                salesProductId:
+                                    g.expected.salesProductId ?? null,
+                                noProduct: g.expected.noProduct === true,
+                                decidedBy: 'PERSON',
+                                suggestedProductId: null,
+                                suggestedSalesProductId: null,
+                                suggestedNoProduct: false,
+                                question: null,
+                            },
+                        });
+                        done.push(...matched);
+                    }
+                }
+                await this.audit.record(
+                    actor,
+                    'name-suggestion-accept',
+                    `${done.length} of ${byId.size} accepted: ids ${done.join(',') || 'none'}`,
+                    tx,
+                );
+                return {
+                    accepted: done.length,
+                    skipped: byId.size - done.length,
+                };
+            },
+            { timeout: 120_000, maxWait: 10_000 },
+        );
     }
 
     /** Turns suggestions down: each name stays in the queue as UNCLEAR, undecided, and a rescan will not bring the suggestion back. */

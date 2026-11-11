@@ -614,6 +614,7 @@ describe('WorkbookImportService', () => {
             t.bcItem.rows.push(
                 { itemNo: '1103', productId: 5, salesProductId: 9 },
                 { itemNo: '2705', productId: 6, salesProductId: null },
+                { itemNo: '12345', productId: 7, salesProductId: 3 },
             );
             await service.commit(
                 req('zoho_products', [
@@ -622,6 +623,7 @@ describe('WorkbookImportService', () => {
                     zoho('z3', '2705.0'),
                     zoho('z4', '9999'),
                     zoho('z5', 'GOLD-BAR'),
+                    zoho('z6', '12345'),
                 ]),
                 'a',
             );
@@ -638,6 +640,11 @@ describe('WorkbookImportService', () => {
                 salesProductId: null,
             });
             expect(by('z5')).toMatchObject({ productId: null });
+            // Only a four-digit item number is an item number, even if a BC item with that text exists.
+            expect(by('z6')).toMatchObject({
+                productId: null,
+                salesProductId: null,
+            });
         });
     });
 

@@ -17,6 +17,7 @@ import type {
     BcSalesProductsPreview,
     DuplicatesResponse,
     LinkDecisionResult,
+    NameSuggestionAcceptResult,
     NameSuggestionDecisionResult,
     SettleNamesResult,
     OverAllocatedResponse,
@@ -39,6 +40,7 @@ import {
     CreateSalesProductRequestDto,
     LinkDecisionRequestDto,
     MapAliasRequestDto,
+    NameSuggestionAcceptRequestDto,
     NameSuggestionDecisionRequestDto,
     SettleNamesRequestDto,
 } from '../../common/dto/dtos';
@@ -141,13 +143,14 @@ export class ReviewController {
     @Post('product-names/accept')
     @HttpCode(200)
     @ApiOperation({
-        summary: 'Accept the suggestions for these product names.',
+        summary:
+            'Accept the suggestions for these product names, each only if it is still the one the person saw.',
     })
     acceptNames(
-        @Body() body: NameSuggestionDecisionRequestDto,
+        @Body() body: NameSuggestionAcceptRequestDto,
         @Req() req: RequestWithUser,
-    ): Promise<NameSuggestionDecisionResult> {
-        return this.names.accept(body.ids, req.user.email);
+    ): Promise<NameSuggestionAcceptResult> {
+        return this.names.accept(body.items, req.user.email);
     }
 
     @Post('product-names/reject')

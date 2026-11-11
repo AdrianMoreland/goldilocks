@@ -66,8 +66,9 @@ function setup(rows: R[]) {
             Object.assign(rows.find((r) => matches(r, where)) as R, data);
         }),
         updateMany: jest.fn(async ({ where, data }: { where: R; data: R }) => {
-            for (const r of rows.filter((x) => matches(x, where)))
-                Object.assign(r, data);
+            const hit = rows.filter((x) => matches(x, where));
+            for (const r of hit) Object.assign(r, data);
+            return { count: hit.length };
         }),
         createMany: jest.fn(),
     };
@@ -75,6 +76,7 @@ function setup(rows: R[]) {
         productAlias: table,
         product: { findMany: jest.fn().mockResolvedValue(PRODUCTS) },
         salesProduct: { findMany: jest.fn().mockResolvedValue([]) },
+        $executeRaw: jest.fn().mockResolvedValue(0),
         $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -241,6 +243,95 @@ describe('ProductNamesService.settle', () => {
     });
 });
 
+describe('ProductNamesService.settle writes', () => {
+    it("writes names with the same target state in one updateMany, guarded against a person's decision", async () => {
+        const rows = Array.from({ length: 30 }, (_, i) =>
+            alias({
+                id: i + 1,
+                alias: `1oz gold bar ${i}`,
+                productKey: `k${i}`,
+            }),
+        );
+        const { service, prisma } = setup(rows);
+        // A name that fails the scan's state needs a write; make every row identical in outcome.
+        const r = await service.settle('all');
+        expect(r.certain + r.likely + r.unclear).toBe(30);
+        expect(prisma.productAlias.update).not.toHaveBeenCalled();
+        const calls = prisma.productAlias.updateMany.mock.calls as unknown as {
+            where: R;
+        }[][];
+        expect(calls.length).toBeLessThan(30);
+        for (const [c] of calls)
+            expect(c.where).toMatchObject({
+                OR: [{ decidedBy: null }, { decidedBy: 'RULE' }],
+            });
+    });
+
+    it('does not overwrite a name a person decided while the scan was running', async () => {
+        const { service, rows, prisma } = setup([alias({ id: 1 })]);
+        // The person decides after the scan has read the row but before it writes.
+        const realFind = prisma.productAlias.findMany;
+        prisma.productAlias.findMany = jest.fn(
+            async (args: { where?: R } = {}) => {
+                const found = await realFind(args);
+                const copy = found.map((f) => ({ ...f }));
+                rows[0]['decidedBy'] = 'PERSON';
+                rows[0]['productId'] = 75;
+                return copy;
+            },
+        );
+        await service.settle('all');
+        expect(rows[0]).toMatchObject({ decidedBy: 'PERSON', productId: 75 });
+    });
+
+    it('writes in chunks of at most 1000 ids', async () => {
+        const rows = Array.from({ length: 2500 }, (_, i) =>
+            alias({ id: i + 1, alias: `1oz gold bar`, productKey: `k${i}` }),
+        );
+        const { service, prisma } = setup(rows);
+        await service.settle('all');
+        const calls = prisma.productAlias.updateMany.mock.calls as unknown as {
+            where: { id: { in: number[] } };
+        }[][];
+        expect(calls).toHaveLength(3);
+        expect(Math.max(...calls.map(([c]) => c.where.id.in.length))).toBe(
+            1000,
+        );
+    });
+
+    it('uses one parameterised UPDATE per chunk when the states are too many to group', async () => {
+        // Each name gives its own odd weight, so every stored reason is different.
+        const rows = Array.from({ length: 250 }, (_, i) =>
+            alias({
+                id: i + 1,
+                alias: `${i + 11}.5oz gold bar`,
+                productKey: `k${i}`,
+            }),
+        );
+        const { service, prisma } = setup(rows);
+        const r = await service.settle('all');
+        expect(r.unclear).toBe(250);
+        expect(prisma.productAlias.updateMany).not.toHaveBeenCalled();
+        expect(prisma.productAlias.update).not.toHaveBeenCalled();
+        expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+        const sql = (
+            prisma.$executeRaw.mock.calls[0] as unknown[]
+        )[0] as string[];
+        expect(sql.join('?')).toContain(
+            '"decidedBy" IS NULL OR a."decidedBy" = \'RULE\'',
+        );
+    });
+
+    it('a rescan transaction has room for a long scan', async () => {
+        const { service, prisma } = setup([]);
+        await service.rescan(false, 'a@example.com');
+        expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+            timeout: 300_000,
+            maxWait: 10_000,
+        });
+    });
+});
+
 describe('ProductNamesService accept and reject', () => {
     const waiting = () =>
         alias({
@@ -257,8 +348,16 @@ describe('ProductNamesService accept and reject', () => {
             alias({ id: 6, productId: 74, decidedBy: 'PERSON' }),
             alias({ id: 7 }),
         ]);
-        const r = await service.accept([5, 6, 7, 99], 'a@example.com');
-        expect(r).toEqual({ done: 1, skipped: 3 });
+        const r = await service.accept(
+            [
+                { id: 5, expected: { productId: 75 } },
+                { id: 6, expected: { productId: 74 } },
+                { id: 7, expected: { productId: 75 } },
+                { id: 99, expected: { productId: 75 } },
+            ],
+            'a@example.com',
+        );
+        expect(r).toEqual({ accepted: 1, skipped: 3 });
         expect(rows[0]).toMatchObject({
             productId: 75,
             decidedBy: 'PERSON',
@@ -269,6 +368,44 @@ describe('ProductNamesService accept and reject', () => {
         const detail = audit.record.mock.calls[0][2] as string;
         expect(detail).toContain('ids 5');
         expect(detail).not.toContain('krugerrand');
+    });
+
+    it('skips a name whose stored suggestion is no longer the one the person saw', async () => {
+        const { service, rows } = setup([waiting()]);
+        // The person saw a suggestion for product 74; a rescan since then moved it to 75.
+        const r = await service.accept(
+            [{ id: 5, expected: { productId: 74 } }],
+            'a@example.com',
+        );
+        expect(r).toEqual({ accepted: 0, skipped: 1 });
+        expect(rows[0]).toMatchObject({
+            decidedBy: null,
+            productId: null,
+            suggestedProductId: 75,
+        });
+    });
+
+    it('accepts a "not a product" suggestion only when expected says so', async () => {
+        const { service, rows } = setup([
+            alias({ id: 8, suggestedNoProduct: true, confidence: 'LIKELY' }),
+        ]);
+        expect(
+            await service.accept(
+                [{ id: 8, expected: { productId: 75 } }],
+                'a@example.com',
+            ),
+        ).toEqual({ accepted: 0, skipped: 1 });
+        expect(
+            await service.accept(
+                [{ id: 8, expected: { noProduct: true } }],
+                'a@example.com',
+            ),
+        ).toEqual({ accepted: 1, skipped: 0 });
+        expect(rows[0]).toMatchObject({
+            noProduct: true,
+            decidedBy: 'PERSON',
+            suggestedNoProduct: false,
+        });
     });
 
     it('rejecting clears the suggestion and keeps the name waiting as UNCLEAR', async () => {

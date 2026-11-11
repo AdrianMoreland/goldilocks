@@ -64,6 +64,7 @@ import {
     BcSalesProductsApplyRequestSchema,
     MapAliasRequestSchema,
     SettleNamesRequestSchema,
+    NameSuggestionAcceptRequestSchema,
     NameSuggestionDecisionRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
@@ -601,6 +602,11 @@ export class MapAliasRequestDto extends createDto(
 export class SettleNamesRequestDto extends createDto(
     SettleNamesRequestSchema,
     'SettleNamesRequestDto',
+) {}
+
+export class NameSuggestionAcceptRequestDto extends createDto(
+    NameSuggestionAcceptRequestSchema,
+    'NameSuggestionAcceptRequestDto',
 ) {}
 
 export class NameSuggestionDecisionRequestDto extends createDto(
