@@ -6,6 +6,7 @@ import {
     BcSalesProductsPreviewSchema,
     DuplicatesResponseSchema,
     LinkDecisionResultSchema,
+    NameSuggestionAcceptResultSchema,
     NameSuggestionDecisionResultSchema,
     OverAllocatedResponseSchema,
     PricingProductOptionListSchema,
@@ -20,6 +21,7 @@ import {
     type CreateSalesProductRequest,
     type LinkDecisionRequest,
     type MapAliasRequest,
+    type NameSuggestionAcceptRequest,
     type AliasesQuery,
 } from '@goldilocks/shared-types';
 
@@ -43,7 +45,8 @@ export function useReviewApi() {
         aliases: (view: AliasesQuery['view'], limit: number, offset: number) => client.get(`/review/aliases${page(limit, offset, { view })}`, AliasesResponseSchema),
         /** Rescan the product names with the rules. A dry run only counts. */
         rescanNames: (dryRun: boolean) => client.post('/review/product-names/settle', { dryRun }, SettleNamesResultSchema),
-        acceptNames: (ids: number[]) => client.post('/review/product-names/accept', { ids }, NameSuggestionDecisionResultSchema),
+        /** Each item carries the suggestion the person saw; the server skips a name whose suggestion has changed. */
+        acceptNames: (items: NameSuggestionAcceptRequest['items']) => client.post('/review/product-names/accept', { items }, NameSuggestionAcceptResultSchema),
         rejectNames: (ids: number[]) => client.post('/review/product-names/reject', { ids }, NameSuggestionDecisionResultSchema),
         salesProducts: () => client.get('/review/sales-products', SalesProductListSchema),
         pricingProducts: () => client.get('/review/pricing-products', PricingProductOptionListSchema),

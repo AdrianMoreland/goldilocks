@@ -2,7 +2,7 @@ import { useState } from "react"
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LINK_TYPES, type AliasesQuery, type MapAliasRequest, type SettleNamesResult, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
+import { LINK_TYPES, type AliasRow, type AliasesQuery, type MapAliasRequest, type SettleNamesResult, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
 import { useReviewApi } from "@/api/review.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { planAcceptAll, expectedOf, type AcceptAllPlan } from "./accept-all"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const PAGE = 50
@@ -435,7 +436,7 @@ function AliasesQueue() {
     const [choice, setChoice] = useState<Record<number, AliasChoice>>({})
     const [creating, setCreating] = useState(false)
     const [rescan, setRescan] = useState<SettleNamesResult | null>(null)
-    const [acceptingAll, setAcceptingAll] = useState(false)
+    const [acceptPlan, setAcceptPlan] = useState<AcceptAllPlan | null>(null)
     const aliases = useQuery({ queryKey: queryKeys.review.productNames(view, offset), queryFn: () => api.aliases(view, PAGE, offset) })
     const products = useQuery({ queryKey: queryKeys.review.salesProducts, queryFn: () => api.salesProducts() })
     const pricing = useQuery({ queryKey: queryKeys.review.pricingProducts, queryFn: () => api.pricingProducts() })
@@ -456,9 +457,17 @@ function AliasesQueue() {
         onError: (e: Error) => toast.error(e.message),
     })
     const decide = useMutation({
-        mutationFn: (v: { id: number; yes: boolean }) => (v.yes ? api.acceptNames([v.id]) : api.rejectNames([v.id])),
-        onSuccess: (_r, v) => {
-            toast.success(v.yes ? "Accepted" : "Left for you to decide")
+        mutationFn: async (v: { id: number; yes: boolean; suggestion: NonNullable<AliasRow["suggestion"]> }) => {
+            if (!v.yes) {
+                await api.rejectNames([v.id])
+                return 1
+            }
+            return (await api.acceptNames([{ id: v.id, expected: expectedOf(v.suggestion) }])).accepted
+        },
+        onSuccess: (changed, v) => {
+            if (!v.yes) toast.success("Left for you to decide")
+            else if (changed === 0) toast.warning("That suggestion had changed, so nothing was tied. The list is refreshed.")
+            else toast.success("Accepted")
             void refresh()
         },
         onError: (e: Error) => toast.error(e.message),
@@ -477,21 +486,34 @@ function AliasesQueue() {
         },
         onError: (e: Error) => toast.error(e.message),
     })
-    const acceptAll = useMutation({
+    // Reads every name waiting for a Yes or No, to say what Accept all would do before it does it.
+    const prepareAll = useMutation({
         mutationFn: async () => {
-            const ids: number[] = []
+            const rows: AliasRow[] = []
             for (let from = 0; ; from += 1000) {
                 const page = await api.aliases("confirm", 1000, from)
-                ids.push(...page.rows.map((r) => r.id))
-                if (ids.length >= page.total || page.rows.length === 0) break
+                rows.push(...page.rows)
+                if (rows.length >= page.total || page.rows.length === 0) break
             }
-            let done = 0
-            for (let i = 0; i < ids.length; i += 5000) done += (await api.acceptNames(ids.slice(i, i + 5000))).done
-            return done
+            return planAcceptAll(rows)
         },
-        onSuccess: (done) => {
-            setAcceptingAll(false)
-            toast.success(`${done} accepted`)
+        onSuccess: (plan) => setAcceptPlan(plan),
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const acceptAll = useMutation({
+        mutationFn: async (plan: AcceptAllPlan) => {
+            let accepted = 0
+            let skipped = 0
+            for (let i = 0; i < plan.items.length; i += 1000) {
+                const r = await api.acceptNames(plan.items.slice(i, i + 1000))
+                accepted += r.accepted
+                skipped += r.skipped
+            }
+            return { accepted, skipped }
+        },
+        onSuccess: ({ accepted, skipped }) => {
+            setAcceptPlan(null)
+            toast.success(skipped > 0 ? `${accepted} accepted, ${skipped} skipped because they changed or were already decided` : `${accepted} accepted`)
             void refresh()
         },
         onError: (e: Error) => toast.error(e.message),
@@ -509,8 +531,8 @@ function AliasesQueue() {
                     <Button variant="outline" disabled={dryRun.isPending} onClick={() => dryRun.mutate()}>
                         {dryRun.isPending ? "Counting..." : "Rescan names"}
                     </Button>
-                    <Button variant="outline" disabled={!counts?.toConfirm} onClick={() => setAcceptingAll(true)}>
-                        Accept all suggestions
+                    <Button variant="outline" disabled={!counts?.toConfirm || prepareAll.isPending} onClick={() => prepareAll.mutate()}>
+                        {prepareAll.isPending ? "Reading suggestions..." : "Accept all suggestions"}
                     </Button>
                     <Button variant="outline" onClick={() => setCreating(true)}>
                         New sales product
@@ -578,10 +600,10 @@ function AliasesQueue() {
                                             <TableCell className="text-right">
                                                 {confirming ? (
                                                     <div className="flex justify-end gap-2">
-                                                        <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: a.id, yes: true })}>
+                                                        <Button size="sm" disabled={decide.isPending} onClick={() => a.suggestion && decide.mutate({ id: a.id, yes: true, suggestion: a.suggestion })}>
                                                             Yes
                                                         </Button>
-                                                        <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate({ id: a.id, yes: false })}>
+                                                        <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => a.suggestion && decide.mutate({ id: a.id, yes: false, suggestion: a.suggestion })}>
                                                             No
                                                         </Button>
                                                     </div>
@@ -621,17 +643,21 @@ function AliasesQueue() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <Dialog open={acceptingAll} onOpenChange={(o) => !o && setAcceptingAll(false)}>
+            <Dialog open={acceptPlan !== null} onOpenChange={(o) => !o && setAcceptPlan(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Accept {(counts?.toConfirm ?? 0).toLocaleString()} suggestions?</DialogTitle>
-                        <DialogDescription>Every name waiting for a Yes or No is tied to the product suggested for it, as your decision.</DialogDescription>
+                        <DialogTitle>Accept {(acceptPlan?.items.length ?? 0).toLocaleString()} suggestions?</DialogTitle>
+                        <DialogDescription>
+                            {acceptPlan
+                                ? `Each of these names is tied to the product suggested for it, as your decision. ${acceptPlan.catalogueGaps.toLocaleString()} of them are not in the catalogue yet and go to the generic coin row. ${acceptPlan.notProducts.toLocaleString()} "not a product" suggestions are left out: each needs its own Yes.`
+                                : ""}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setAcceptingAll(false)}>
+                        <Button variant="outline" onClick={() => setAcceptPlan(null)}>
                             Cancel
                         </Button>
-                        <Button disabled={acceptAll.isPending} onClick={() => acceptAll.mutate()}>
+                        <Button disabled={acceptAll.isPending || !acceptPlan?.items.length} onClick={() => acceptPlan && acceptAll.mutate(acceptPlan)}>
                             {acceptAll.isPending ? "Accepting..." : "Accept all"}
                         </Button>
                     </DialogFooter>
