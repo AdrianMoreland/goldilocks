@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { metalLabel, seenInText } from "./name-usage"
+import { RelinkDialog } from "./relink-dialog"
 import { planAcceptAll, expectedOf, type AcceptAllPlan } from "./accept-all"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -538,6 +539,7 @@ function AliasesQueue() {
     const [offset, setOffset] = useState(0)
     const [choice, setChoice] = useState<Record<number, AliasChoice>>({})
     const [creating, setCreating] = useState(false)
+    const [relinking, setRelinking] = useState(false)
     const [rescan, setRescan] = useState<SettleNamesResult | null>(null)
     const [acceptPlan, setAcceptPlan] = useState<AcceptAllPlan | null>(null)
     const aliases = useQuery({ queryKey: queryKeys.review.productNames(view, offset), queryFn: () => api.aliases(view, PAGE, offset) })
@@ -648,6 +650,9 @@ function AliasesQueue() {
                     <Button variant="outline" disabled={!counts?.toConfirm || prepareAll.isPending} onClick={() => prepareAll.mutate()}>
                         {prepareAll.isPending ? "Reading suggestions..." : "Accept all suggestions"}
                     </Button>
+                    <Button variant="outline" onClick={() => setRelinking(true)}>
+                        Relink rows
+                    </Button>
                     <Button variant="outline" onClick={() => setCreating(true)}>
                         New sales product
                     </Button>
@@ -749,6 +754,7 @@ function AliasesQueue() {
                 </CardContent>
             </Card>
             <Pager total={aliases.data?.total ?? 0} offset={offset} onOffset={setOffset} />
+            <RelinkDialog open={relinking} onClose={() => setRelinking(false)} />
             <NewSalesProduct open={creating} onClose={() => setCreating(false)} />
             <Dialog open={rescan !== null} onOpenChange={(o) => !o && setRescan(null)}>
                 <DialogContent>
