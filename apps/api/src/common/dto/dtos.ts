@@ -65,6 +65,7 @@ import {
     MapAliasRequestSchema,
     SettleNamesRequestSchema,
     ApplyPerMetalRequestSchema,
+    RelinkRequestSchema,
     NameSuggestionAcceptRequestSchema,
     NameSuggestionDecisionRequestSchema,
     FetchAttemptSchema,
@@ -603,6 +604,11 @@ export class MapAliasRequestDto extends createDto(
 export class ApplyPerMetalRequestDto extends createDto(
     ApplyPerMetalRequestSchema,
     'ApplyPerMetalRequestDto',
+) {}
+
+export class RelinkRequestDto extends createDto(
+    RelinkRequestSchema,
+    'RelinkRequestDto',
 ) {}
 
 export class SettleNamesRequestDto extends createDto(
