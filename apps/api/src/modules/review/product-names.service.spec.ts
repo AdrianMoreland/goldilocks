@@ -70,6 +70,10 @@ function setup(rows: R[]) {
             for (const r of hit) Object.assign(r, data);
             return { count: hit.length };
         }),
+        findUnique: jest.fn(
+            async ({ where }: { where: R }) =>
+                rows.find((r) => matches(r, where)) ?? null,
+        ),
         createMany: jest.fn(),
     };
     const prisma = {
@@ -77,6 +81,7 @@ function setup(rows: R[]) {
         product: { findMany: jest.fn().mockResolvedValue(PRODUCTS) },
         salesProduct: { findMany: jest.fn().mockResolvedValue([]) },
         $executeRaw: jest.fn().mockResolvedValue(0),
+        $queryRaw: jest.fn().mockResolvedValue([]),
         $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -448,6 +453,7 @@ describe('ProductNamesService.list', () => {
         const all = await service.list({});
         expect(all.counts).toEqual({
             settledByRule: 1,
+            settledPerRow: 0,
             toConfirm: 1,
             toDecide: 1,
         });
@@ -462,5 +468,395 @@ describe('ProductNamesService.list', () => {
         const settled = await service.list({ view: 'settled' });
         expect(settled.rows.map((r) => r.id)).toEqual([3]);
         expect(settled.rows[0].settledTo?.name).toBe('1oz Gold Bar');
+    });
+});
+
+// --- where a name is used --------------------------------------------------------------------
+
+type Raw = {
+    k: string;
+    refinery: string | null;
+    metal: string | null;
+    resolved: boolean;
+    n: number;
+};
+
+/** The four grouped usage queries, answered by the table each one reads. */
+function usageSetup(
+    aliases: R[],
+    data: { trades?: Raw[]; lots?: Raw[]; zoho?: Raw[]; safe?: Raw[] },
+) {
+    const base = setup(aliases);
+    const prisma = base.prisma as unknown as {
+        $queryRaw: jest.Mock;
+        trade: R;
+        purchaseLot: R;
+        salesProduct: R;
+        product: R;
+    };
+    prisma.$queryRaw.mockImplementation(async (strings: string[]) => {
+        const sql = strings.join('?');
+        if (sql.includes('FROM trades')) return data.trades ?? [];
+        if (sql.includes('FROM purchase_lots')) return data.lots ?? [];
+        if (sql.includes('FROM zoho_invoice_lines')) return data.zoho ?? [];
+        if (sql.includes('FROM customer_order_items')) return data.safe ?? [];
+        return [];
+    });
+    return base;
+}
+const g = (
+    k: string,
+    metal: string | null,
+    resolved: boolean,
+    n: number,
+    refinery: string | null = null,
+): Raw => ({ k, refinery, metal, resolved, n });
+
+describe('ProductNamesService.list: settled per row and context', () => {
+    const waiting = (id: number, name: string, over: R = {}) =>
+        alias({
+            id,
+            alias: name,
+            uses: 10 - id,
+            confidence: 'UNCLEAR',
+            ...over,
+        });
+
+    it('moves a name whose sales and purchases all have a product out of the queues', async () => {
+        const { service } = usageSetup(
+            [waiting(1, '1oz maple'), waiting(2, '1oz koala')],
+            {
+                trades: [
+                    g('1oz maple', 'GOLD', true, 98),
+                    g('1oz maple', 'SILVER', true, 48),
+                    g('1oz koala', 'GOLD', false, 3),
+                ],
+                lots: [g('1oz maple', 'GOLD', true, 41)],
+            },
+        );
+        const open = await service.list({});
+        expect(open.rows.map((r) => r.alias)).toEqual(['1oz koala']);
+        expect(open.counts).toMatchObject({
+            settledPerRow: 1,
+            toDecide: 1,
+            toConfirm: 0,
+        });
+        const perRow = await service.list({ view: 'per-row' });
+        expect(perRow.rows.map((r) => r.alias)).toEqual(['1oz maple']);
+        expect(perRow.total).toBe(1);
+        expect((await service.list({ view: 'decide' })).rows).toHaveLength(1);
+    });
+
+    it('keeps a name in the queue when one sale or purchase is still without a product', async () => {
+        const { service } = usageSetup([waiting(1, '1oz maple')], {
+            trades: [
+                g('1oz maple', 'GOLD', true, 98),
+                g('1oz maple', 'SILVER', false, 2),
+            ],
+        });
+        const r = await service.list({});
+        expect(r.rows).toHaveLength(1);
+        expect(r.counts.settledPerRow).toBe(0);
+        expect(r.rows[0].perMetal).toEqual([
+            { metal: 'GOLD', unresolved: 0 },
+            { metal: 'SILVER', unresolved: 2 },
+        ]);
+    });
+
+    it('keeps a name in the queue when a Zoho line using it has no product, and when only a customer safe item uses it', async () => {
+        const { service } = usageSetup(
+            [waiting(1, '1oz maple'), waiting(2, '1oz eagle')],
+            {
+                trades: [g('1oz maple', 'GOLD', true, 5)],
+                zoho: [g('1oz Maple', null, false, 1)],
+                safe: [g('1oz eagle', 'GOLD', true, 2)],
+            },
+        );
+        const r = await service.list({});
+        expect(r.rows.map((x) => x.alias).sort()).toEqual([
+            '1oz eagle',
+            '1oz maple',
+        ]);
+        expect(r.counts.settledPerRow).toBe(0);
+    });
+
+    it('a name with a refinery only counts the rows of that refinery', async () => {
+        const { service } = usageSetup([waiting(1, '1oz bar|ARGOR HERAEUS')], {
+            trades: [
+                g('1oz bar', 'GOLD', true, 4, 'Argor-Heraeus'),
+                g('1oz bar', 'GOLD', false, 9, 'PAMP'),
+            ],
+        });
+        const r = await service.list({ view: 'per-row' });
+        expect(r.rows).toHaveLength(1);
+    });
+
+    it('says where a name is seen, per source and metal', async () => {
+        const { service } = usageSetup([waiting(1, '1oz maple')], {
+            trades: [
+                g('1oz maple', 'GOLD', false, 153),
+                g('1oz maple', 'SILVER', false, 63),
+            ],
+            lots: [g('1oz maple', 'GOLD', false, 74)],
+            zoho: [g('1oz maple', null, true, 4)],
+            safe: [g('1oz Maple 2026', 'GOLD', true, 2)],
+        });
+        const { rows } = await service.list({});
+        expect(rows[0].seenIn).toEqual([
+            { source: 'SALES', metal: 'GOLD', count: 153 },
+            { source: 'SALES', metal: 'SILVER', count: 63 },
+            { source: 'PURCHASES', metal: 'GOLD', count: 74 },
+            { source: 'ZOHO', metal: null, count: 4 },
+            { source: 'CUSTOMER_SAFE', metal: 'GOLD', count: 2 },
+        ]);
+    });
+
+    it('runs the usage queries once for the whole list, not once per name', async () => {
+        const { service, prisma } = usageSetup(
+            [waiting(1, 'a b'), waiting(2, 'c d'), waiting(3, 'e f')],
+            {},
+        );
+        await service.list({});
+        expect(prisma.$queryRaw).toHaveBeenCalledTimes(4);
+    });
+});
+
+describe('ProductNamesService.usage', () => {
+    function usageService(over: R = {}) {
+        const { prisma, service } = usageSetup(
+            [alias({ id: 1, alias: '1oz maple', confidence: 'UNCLEAR' })],
+            {
+                zoho: [g('1oz maple', null, false, 1)],
+                safe: [g('1oz maple', 'GOLD', true, 1)],
+            },
+        );
+        const p = prisma as unknown as R;
+        p.trade = {
+            findMany: jest.fn().mockResolvedValue([
+                {
+                    metal: 'GOLD',
+                    sourceTab: 'IE - Gold',
+                    date: new Date('2026-03-04'),
+                    qty: 2,
+                    totalPrice: { toString: () => '6000' },
+                    refinery: null,
+                    product: { name: '1oz Maple' },
+                    salesProduct: null,
+                },
+            ]),
+        };
+        p.purchaseLot = {
+            findMany: jest.fn().mockResolvedValue([
+                {
+                    metal: 'SILVER',
+                    sourceTab: 'IE-SP',
+                    received: new Date('2026-02-01'),
+                    qty: 10,
+                    pricePerItem: { toString: () => '31.5' },
+                    pricePaid: null,
+                    refinery: null,
+                    product: null,
+                    salesProduct: null,
+                },
+            ]),
+        };
+        p.zohoInvoiceLine = {
+            findMany: jest.fn().mockResolvedValue([
+                {
+                    date: new Date('2026-01-05'),
+                    qty: { toString: () => '1' },
+                    unitPrice: { toString: () => '3100' },
+                    refinery: null,
+                    salesProduct: null,
+                },
+            ]),
+        };
+        p.customerOrderItem = {
+            findMany: jest
+                .fn()
+                .mockResolvedValue([
+                    { metal: 'GOLD', orderedOn: null, quantity: 3 },
+                ]),
+        };
+        (p.$queryRaw as jest.Mock).mockImplementation(async () => [
+            { k: '1oz maple' },
+        ]);
+        void over;
+        return { service, p };
+    }
+
+    it('returns a mix of sources with unit price per item and the resolved product', async () => {
+        const { service } = usageService();
+        const { rows } = await service.usage(1);
+        expect(rows).toEqual([
+            {
+                source: 'SALES',
+                metal: 'GOLD',
+                sheet: 'IE - Gold',
+                date: '2026-03-04',
+                qty: 2,
+                unitPrice: 3000,
+                resolvedTo: '1oz Maple',
+            },
+            {
+                source: 'PURCHASES',
+                metal: 'SILVER',
+                sheet: 'IE-SP',
+                date: '2026-02-01',
+                qty: 10,
+                unitPrice: 31.5,
+                resolvedTo: null,
+            },
+            {
+                source: 'ZOHO',
+                metal: null,
+                sheet: null,
+                date: '2026-01-05',
+                qty: 1,
+                unitPrice: 3100,
+                resolvedTo: null,
+            },
+            {
+                source: 'CUSTOMER_SAFE',
+                metal: 'GOLD',
+                sheet: null,
+                date: null,
+                qty: 3,
+                unitPrice: null,
+                resolvedTo: null,
+            },
+        ]);
+    });
+
+    it('selects no customer, vendor or client fields and returns at most five rows', async () => {
+        const { service, p } = usageService();
+        const res = await service.usage(1);
+        expect(res.rows.length).toBeLessThanOrEqual(5);
+        const keys = res.rows.flatMap((r) => Object.keys(r)).join(',');
+        expect(keys).not.toMatch(
+            /client|customer|seller|supplier|vendor|code/i,
+        );
+        for (const t of [
+            'trade',
+            'purchaseLot',
+            'zohoInvoiceLine',
+            'customerOrderItem',
+        ]) {
+            const select = (
+                (p[t] as { findMany: jest.Mock }).findMany.mock.calls[0][0] as {
+                    select: R;
+                }
+            ).select;
+            expect(Object.keys(select).join(',')).not.toMatch(
+                /client|customer|seller|supplier|cpty|initials|reference/i,
+            );
+        }
+    });
+
+    it('404s for an unknown name', async () => {
+        const { service } = usageService();
+        await expect(service.usage(99)).rejects.toThrow('not found');
+    });
+});
+
+describe('ProductNamesService.applyPerMetal', () => {
+    function perMetal(tradeCount = 3, lotCount = 1) {
+        const { prisma, service, audit } = usageSetup(
+            [alias({ id: 1, alias: '1oz maple', confidence: 'UNCLEAR' })],
+            {},
+        );
+        const p = prisma as unknown as R;
+        (p.product as R).findFirst = jest.fn(
+            async ({ where }: { where: { id: number } }) =>
+                where.id === 10
+                    ? { id: 10, metalType: 'GOLD' }
+                    : where.id === 20
+                      ? { id: 20, metalType: 'SILVER' }
+                      : null,
+        );
+        (p.salesProduct as R).findUnique = jest.fn(async () => ({
+            id: 7,
+            metal: 'GOLD',
+            pricingProductId: 10,
+        }));
+        const updateMany = jest.fn(async () => ({ count: tradeCount }));
+        p.trade = { updateMany, findMany: jest.fn() };
+        const lotUpdate = jest.fn(async () => ({ count: lotCount }));
+        p.purchaseLot = { updateMany: lotUpdate, findMany: jest.fn() };
+        return { service, audit, updateMany, lotUpdate };
+    }
+
+    it('updates only the unresolved rows of the chosen metal, once per table, and audits counts only', async () => {
+        const { service, audit, updateMany, lotUpdate } = perMetal();
+        const r = await service.applyPerMetal(
+            1,
+            {
+                choices: [
+                    { metal: 'GOLD', productId: 10 },
+                    { metal: 'SILVER', productId: 20 },
+                ],
+            },
+            'a@b.c',
+        );
+        expect(r).toEqual({ trades: 6, lots: 2 });
+        expect(updateMany).toHaveBeenCalledTimes(2);
+        expect(updateMany).toHaveBeenNthCalledWith(1, {
+            where: { productKey: '1oz maple', metal: 'GOLD', productId: null },
+            data: { productId: 10 },
+        });
+        expect(lotUpdate).toHaveBeenNthCalledWith(2, {
+            where: {
+                productKey: '1oz maple',
+                metal: 'SILVER',
+                productId: null,
+            },
+            data: { productId: 20 },
+        });
+        const line = audit.record.mock.calls[0][2] as string;
+        expect(line).toBe(
+            'name 1: gold 3 sales, 1 purchases; silver 3 sales, 1 purchases',
+        );
+        expect(line).not.toContain('maple');
+    });
+
+    it('a specific product sets both the pricing and the specific product', async () => {
+        const { service, updateMany } = perMetal();
+        await service.applyPerMetal(
+            1,
+            { choices: [{ metal: 'GOLD', salesProductId: 7 }] },
+            'a@b.c',
+        );
+        expect(updateMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { productId: 10, salesProductId: 7 },
+            }),
+        );
+    });
+
+    it('refuses a product of the wrong metal and leaves the alias undecided', async () => {
+        const { service, updateMany } = perMetal();
+        await expect(
+            service.applyPerMetal(
+                1,
+                { choices: [{ metal: 'GOLD', productId: 20 }] },
+                'a@b.c',
+            ),
+        ).rejects.toThrow('not gold');
+        expect(updateMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses a name a person already decided', async () => {
+        const { prisma, service } = usageSetup(
+            [alias({ id: 1, alias: '1oz maple', decidedBy: 'PERSON' })],
+            {},
+        );
+        void prisma;
+        await expect(
+            service.applyPerMetal(
+                1,
+                { choices: [{ metal: 'GOLD', productId: 10 }] },
+                'a@b.c',
+            ),
+        ).rejects.toThrow('already decided');
     });
 });

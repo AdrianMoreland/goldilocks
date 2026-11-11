@@ -13,6 +13,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
     AliasesResponse,
+    AliasUsageResponse,
+    ApplyPerMetalResult,
     BcSalesProductsApplyResult,
     BcSalesProductsPreview,
     DuplicatesResponse,
@@ -36,6 +38,7 @@ import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
+    ApplyPerMetalRequestDto,
     BcSalesProductsApplyRequestDto,
     CreateSalesProductRequestDto,
     LinkDecisionRequestDto,
@@ -125,6 +128,31 @@ export class ReviewController {
     })
     aliases(@Query() query: Record<string, string>): Promise<AliasesResponse> {
         return this.names.list(query);
+    }
+
+    @Get('aliases/:id/usage')
+    @ApiOperation({
+        summary:
+            'Up to five example rows of where a product name is used (no customer or vendor names).',
+    })
+    aliasUsage(
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<AliasUsageResponse> {
+        return this.names.usage(id);
+    }
+
+    @Post('aliases/:id/per-metal')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Give the unresolved sales and purchases of a name, per metal, their product. The name stays undecided.',
+    })
+    applyPerMetal(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: ApplyPerMetalRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<ApplyPerMetalResult> {
+        return this.names.applyPerMetal(id, body, req.user.email);
     }
 
     @Post('product-names/settle')

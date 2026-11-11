@@ -1,8 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import {
     AliasesQuerySchema,
     matchProductName,
+    normaliseProductText,
+    normaliseRefinery,
     type AliasRow,
+    type AliasUsageExample,
+    type AliasUsageMetal,
+    type AliasUsageResponse,
+    type AliasUsageSource,
+    type ApplyPerMetalRequest,
+    type ApplyPerMetalResult,
     type AliasTarget,
     type AliasesResponse,
     type MatchCatalogue,
@@ -15,6 +27,14 @@ import {
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import {
+    buildUsageIndex,
+    splitAlias,
+    usageOf,
+    type AliasUsage,
+    type UsageGroup,
+    type UsageIndex,
+} from './product-name-usage';
 
 type Db = Prisma.TransactionClient | PrismaService;
 type AliasRecord = Prisma.ProductAliasGetPayload<object>;
@@ -336,53 +356,132 @@ export class ProductNamesService {
 
     // --- the queue ---------------------------------------------------------------------------
 
-    /** Names to confirm, to decide and settled by rule, for the review tab. */
+    /**
+     * Where each name is used, in a few grouped queries (never one per name; the database is ~140 ms away): sales and
+     * purchases by name, refinery, tab metal and whether the row already has its product, Zoho invoice lines by name
+     * and whether they have a specific product, and customer safe items by name and metal.
+     */
+    private async loadUsage(db: Db): Promise<UsageIndex> {
+        type Raw = {
+            k: string;
+            refinery: string | null;
+            metal: string | null;
+            resolved: boolean;
+            n: number;
+        };
+        const [trades, lots, zoho, safe] = await Promise.all([
+            db.$queryRaw<Raw[]>`
+                SELECT "productKey" AS k, "refinery" AS refinery, "metal"::text AS metal,
+                       ("productId" IS NOT NULL) AS resolved, COUNT(*)::int AS n
+                FROM trades WHERE "productKey" IS NOT NULL AND "productKey" <> ''
+                GROUP BY 1, 2, 3, 4`,
+            db.$queryRaw<Raw[]>`
+                SELECT "productKey" AS k, "refinery" AS refinery, "metal"::text AS metal,
+                       ("productId" IS NOT NULL) AS resolved, COUNT(*)::int AS n
+                FROM purchase_lots WHERE "productKey" IS NOT NULL AND "productKey" <> ''
+                GROUP BY 1, 2, 3, 4`,
+            db.$queryRaw<Raw[]>`
+                SELECT COALESCE(NULLIF("productNorm", ''), "itemName") AS k, "refinery" AS refinery,
+                       NULL::text AS metal, ("salesProductId" IS NOT NULL) AS resolved, COUNT(*)::int AS n
+                FROM zoho_invoice_lines GROUP BY 1, 2, 4`,
+            db.$queryRaw<Raw[]>`
+                SELECT "product" AS k, "refinery" AS refinery, "metal"::text AS metal,
+                       true AS resolved, COUNT(*)::int AS n
+                FROM customer_order_items GROUP BY 1, 2, 3`,
+        ]);
+        const groups: UsageGroup[] = [];
+        const add = (
+            rows: Raw[],
+            source: AliasUsageSource,
+            normalise: boolean,
+        ) => {
+            for (const r of rows) {
+                const name = normalise ? normaliseProductText(r.k) : r.k;
+                if (!name) continue;
+                groups.push({
+                    source,
+                    metal: (r.metal as AliasUsageMetal | null) ?? null,
+                    name,
+                    refinery: normaliseRefinery(r.refinery),
+                    resolved: r.resolved,
+                    count: Number(r.n),
+                });
+            }
+        };
+        add(trades, 'SALES', false);
+        add(lots, 'PURCHASES', false);
+        add(zoho, 'ZOHO', true);
+        add(safe, 'CUSTOMER_SAFE', true);
+        return buildUsageIndex(groups);
+    }
+
+    /**
+     * Names to confirm, to decide, settled per row and settled by rule, for the review tab. A name whose sales and
+     * purchases all have their product from their own sheet is "settled per row": it needs no decision and leaves
+     * the confirm and decide queues.
+     */
     async list(rawQuery: Record<string, unknown>): Promise<AliasesResponse> {
         const parsed = AliasesQuerySchema.safeParse(rawQuery);
         if (!parsed.success) throw new BadRequestException('Invalid query.');
         const { view, limit, offset } = parsed.data;
 
-        const toConfirm: Prisma.ProductAliasWhereInput = {
-            ...WAITING,
-            confidence: 'LIKELY',
-        };
-        const toDecide: Prisma.ProductAliasWhereInput = {
-            ...WAITING,
-            OR: [{ confidence: { not: 'LIKELY' } }, { confidence: null }],
-        };
         const settled: Prisma.ProductAliasWhereInput = { decidedBy: 'RULE' };
-        const where: Prisma.ProductAliasWhereInput =
-            view === 'confirm'
-                ? toConfirm
-                : view === 'decide'
-                  ? toDecide
-                  : view === 'settled'
-                    ? settled
-                    : WAITING;
+        const [waiting, settledCount, settledRows, index] = await Promise.all([
+            this.prisma.productAlias.findMany({
+                where: WAITING,
+                // Suggestions first, then the most used names.
+                orderBy: [{ uses: 'desc' }, { alias: 'asc' }],
+            }),
+            this.prisma.productAlias.count({ where: settled }),
+            view === 'settled'
+                ? this.prisma.productAlias.findMany({
+                      where: settled,
+                      orderBy: [{ uses: 'desc' }, { alias: 'asc' }],
+                      skip: offset,
+                      take: limit,
+                  })
+                : Promise.resolve([] as AliasRecord[]),
+            this.loadUsage(this.prisma),
+        ]);
 
-        const [confirmCount, decideCount, settledCount, total, rows] =
-            await Promise.all([
-                this.prisma.productAlias.count({ where: toConfirm }),
-                this.prisma.productAlias.count({ where: toDecide }),
-                this.prisma.productAlias.count({ where: settled }),
-                this.prisma.productAlias.count({ where }),
-                this.prisma.productAlias.findMany({
-                    where,
-                    // Suggestions first, then the most used names.
-                    orderBy: [{ uses: 'desc' }, { alias: 'asc' }],
-                    skip: offset,
-                    take: limit,
-                }),
-            ]);
+        const usage = new Map<number, AliasUsage>();
+        const perRow: AliasRecord[] = [];
+        const confirm: AliasRecord[] = [];
+        const decide: AliasRecord[] = [];
+        for (const a of waiting) {
+            const u = usageOf(a.alias, index);
+            usage.set(a.id, u);
+            if (u.settledPerRow) perRow.push(a);
+            else if (a.confidence === 'LIKELY') confirm.push(a);
+            else decide.push(a);
+        }
+        const open = waiting.filter((a) => !usage.get(a.id)?.settledPerRow);
+        const chosen =
+            view === 'confirm'
+                ? confirm
+                : view === 'decide'
+                  ? decide
+                  : view === 'per-row'
+                    ? perRow
+                    : view === 'settled'
+                      ? settledRows
+                      : open;
+        const rows =
+            view === 'settled'
+                ? settledRows
+                : chosen.slice(offset, offset + limit);
+        for (const a of rows)
+            if (!usage.has(a.id)) usage.set(a.id, usageOf(a.alias, index));
         const names = await this.targetNames(rows);
         return {
-            total,
+            total: view === 'settled' ? settledCount : chosen.length,
             counts: {
                 settledByRule: settledCount,
-                toConfirm: confirmCount,
-                toDecide: decideCount,
+                settledPerRow: perRow.length,
+                toConfirm: confirm.length,
+                toDecide: decide.length,
             },
-            rows: rows.map((a) => this.toRow(a, names)),
+            rows: rows.map((a) => this.toRow(a, names, usage.get(a.id))),
         };
     }
 
@@ -418,6 +517,7 @@ export class ProductNamesService {
     private toRow(
         a: AliasRecord,
         names: Awaited<ReturnType<ProductNamesService['targetNames']>>,
+        usage?: AliasUsage,
     ): AliasRow {
         const pick = (
             productId: number | null,
@@ -461,6 +561,8 @@ export class ProductNamesService {
                 a.suggestedNoProduct,
             ),
             settledTo: pick(a.productId, a.salesProductId, a.noProduct),
+            seenIn: usage?.seenIn ?? [],
+            perMetal: usage?.perMetal ?? null,
         };
     }
 
@@ -579,5 +681,328 @@ export class ProductNamesService {
             );
             return { done: done.length, skipped: unique.length - done.length };
         });
+    }
+
+    // --- where a name is used ----------------------------------------------------------------
+
+    /** Up to five example rows of where a name is used, mixed across sources. Never carries a customer or vendor name or code. */
+    async usage(id: number): Promise<AliasUsageResponse> {
+        const alias = await this.prisma.productAlias.findUnique({
+            where: { id },
+        });
+        if (!alias) throw new NotFoundException(`Alias ${id} not found.`);
+        const { name, refinery } = splitAlias(alias.alias);
+        const sameRefinery = (r: string | null) =>
+            refinery === null || normaliseRefinery(r) === refinery;
+        const day = (d: Date | null) =>
+            d ? d.toISOString().slice(0, 10) : null;
+        const money = (v: { toString(): string } | null | undefined) =>
+            v === null || v === undefined
+                ? null
+                : Math.round(Number(v.toString()) * 100) / 100;
+        const perItem = (
+            total: { toString(): string } | null,
+            qty: number | null,
+        ) =>
+            total !== null && qty && qty > 0
+                ? money({
+                      toString: () => String(Number(total.toString()) / qty),
+                  })
+                : null;
+        const take = refinery === null ? 5 : 100;
+        const pickName = (
+            p: { name: string } | null,
+            sp: { name: string } | null,
+        ) => sp?.name ?? p?.name ?? null;
+
+        const [trades, lots, zohoNames, safeNames] = await Promise.all([
+            this.prisma.trade.findMany({
+                where: { productKey: name },
+                orderBy: [{ date: 'desc' }, { id: 'desc' }],
+                take,
+                select: {
+                    metal: true,
+                    sourceTab: true,
+                    date: true,
+                    qty: true,
+                    totalPrice: true,
+                    refinery: true,
+                    product: { select: { name: true } },
+                    salesProduct: { select: { name: true } },
+                },
+            }),
+            this.prisma.purchaseLot.findMany({
+                where: { productKey: name },
+                orderBy: [{ received: 'desc' }, { id: 'desc' }],
+                take,
+                select: {
+                    metal: true,
+                    sourceTab: true,
+                    received: true,
+                    qty: true,
+                    pricePerItem: true,
+                    pricePaid: true,
+                    refinery: true,
+                    product: { select: { name: true } },
+                    salesProduct: { select: { name: true } },
+                },
+            }),
+            this.prisma.$queryRaw<{ k: string }[]>`
+                SELECT DISTINCT COALESCE(NULLIF("productNorm", ''), "itemName") AS k FROM zoho_invoice_lines`,
+            this.prisma.$queryRaw<{ k: string }[]>`
+                SELECT DISTINCT "product" AS k FROM customer_order_items`,
+        ]);
+        const matching = (rows: { k: string }[]) =>
+            rows
+                .map((r) => r.k)
+                .filter((k) => normaliseProductText(k) === name);
+        const zohoKeys = matching(zohoNames);
+        const safeKeys = matching(safeNames);
+        const zohoQuery = (keys: string[]) =>
+            this.prisma.zohoInvoiceLine.findMany({
+                where: {
+                    OR: [
+                        { productNorm: { in: keys } },
+                        { itemName: { in: keys } },
+                    ],
+                },
+                orderBy: [{ date: 'desc' }, { id: 'desc' }],
+                take,
+                select: {
+                    date: true,
+                    qty: true,
+                    unitPrice: true,
+                    refinery: true,
+                    salesProduct: { select: { name: true } },
+                },
+            });
+        const safeQuery = (keys: string[]) =>
+            this.prisma.customerOrderItem.findMany({
+                where: { product: { in: keys } },
+                orderBy: [{ orderedOn: 'desc' }, { id: 'desc' }],
+                take: 5,
+                select: { metal: true, orderedOn: true, quantity: true },
+            });
+        const [zoho, safe] = await Promise.all([
+            zohoKeys.length
+                ? zohoQuery(zohoKeys)
+                : Promise.resolve([] as Awaited<ReturnType<typeof zohoQuery>>),
+            safeKeys.length
+                ? safeQuery(safeKeys)
+                : Promise.resolve([] as Awaited<ReturnType<typeof safeQuery>>),
+        ]);
+
+        const bySource: AliasUsageExample[][] = [
+            trades
+                .filter((t) => sameRefinery(t.refinery))
+                .slice(0, 5)
+                .map((t) => ({
+                    source: 'SALES' as const,
+                    metal: t.metal,
+                    sheet: t.sourceTab,
+                    date: day(t.date),
+                    qty: t.qty,
+                    unitPrice: perItem(t.totalPrice, t.qty),
+                    resolvedTo: pickName(t.product, t.salesProduct),
+                })),
+            lots
+                .filter((l) => sameRefinery(l.refinery))
+                .slice(0, 5)
+                .map((l) => ({
+                    source: 'PURCHASES' as const,
+                    metal: l.metal,
+                    sheet: l.sourceTab,
+                    date: day(l.received),
+                    qty: l.qty,
+                    unitPrice: l.pricePerItem
+                        ? money(l.pricePerItem)
+                        : perItem(l.pricePaid, l.qty),
+                    resolvedTo: pickName(l.product, l.salesProduct),
+                })),
+            zoho
+                .filter((z) => sameRefinery(z.refinery))
+                .slice(0, 5)
+                .map((z) => ({
+                    source: 'ZOHO' as const,
+                    metal: null,
+                    sheet: null,
+                    date: day(z.date),
+                    qty: z.qty === null ? null : Number(z.qty.toString()),
+                    unitPrice: money(z.unitPrice),
+                    resolvedTo: z.salesProduct?.name ?? null,
+                })),
+            safe.map((c) => ({
+                source: 'CUSTOMER_SAFE' as const,
+                metal: c.metal,
+                sheet: null,
+                date: day(c.orderedOn),
+                qty: c.quantity,
+                unitPrice: null,
+                resolvedTo: null,
+            })),
+        ];
+        // Round-robin across sources so five rows show the spread, not five of the same.
+        const rows: AliasUsageExample[] = [];
+        for (
+            let i = 0;
+            rows.length < 5 && bySource.some((l) => i < l.length);
+            i++
+        )
+            for (const list of bySource)
+                if (i < list.length && rows.length < 5) rows.push(list[i]);
+        return { rows };
+    }
+
+    // --- one name, two metals ----------------------------------------------------------------
+
+    /**
+     * For a name used for more than one metal: gives the sales and purchases of each chosen metal that still have no
+     * product that product, straight on the rows (the name itself stays undecided; once every row has a product it
+     * is "settled per row"). One guarded update per metal and table: a row that has a product is never changed.
+     * The audit line has counts only.
+     */
+    async applyPerMetal(
+        id: number,
+        body: ApplyPerMetalRequest,
+        actor: string,
+    ): Promise<ApplyPerMetalResult> {
+        const alias = await this.prisma.productAlias.findUnique({
+            where: { id },
+        });
+        if (!alias) throw new NotFoundException(`Alias ${id} not found.`);
+        if (alias.decidedBy !== null)
+            throw new BadRequestException(
+                'This name is already decided. Change it with Tie instead.',
+            );
+        const { name, refinery } = splitAlias(alias.alias);
+
+        const fits = (metal: AliasUsageMetal, product: string): boolean =>
+            product === metal ||
+            (metal === 'PGM' &&
+                (product === 'PLATINUM' ||
+                    product === 'PALLADIUM' ||
+                    product === 'PGM'));
+        const targets: {
+            metal: AliasUsageMetal;
+            data: { productId: number; salesProductId?: number };
+        }[] = [];
+        for (const c of body.choices) {
+            if (c.salesProductId !== undefined) {
+                const sp = await this.prisma.salesProduct.findUnique({
+                    where: { id: c.salesProductId },
+                    select: { id: true, metal: true, pricingProductId: true },
+                });
+                if (!sp)
+                    throw new BadRequestException(
+                        `Sales product ${c.salesProductId} not found.`,
+                    );
+                if (sp.pricingProductId === null)
+                    throw new BadRequestException(
+                        'That specific product has no pricing product yet, so rows cannot take it.',
+                    );
+                if (!fits(c.metal, sp.metal))
+                    throw new BadRequestException(
+                        `That product is not ${c.metal.toLowerCase()}.`,
+                    );
+                targets.push({
+                    metal: c.metal,
+                    data: {
+                        productId: sp.pricingProductId,
+                        salesProductId: sp.id,
+                    },
+                });
+            } else {
+                const p = await this.prisma.product.findFirst({
+                    where: { id: c.productId, deletedAt: null },
+                    select: { id: true, metalType: true },
+                });
+                if (!p)
+                    throw new BadRequestException(
+                        `Pricing product ${c.productId} not found.`,
+                    );
+                if (!fits(c.metal, p.metalType))
+                    throw new BadRequestException(
+                        `That product is not ${c.metal.toLowerCase()}.`,
+                    );
+                targets.push({ metal: c.metal, data: { productId: p.id } });
+            }
+        }
+
+        return this.prisma.$transaction(
+            async (tx) => {
+                let trades = 0;
+                let lots = 0;
+                const parts: string[] = [];
+                for (const t of targets) {
+                    const base = {
+                        productKey: name,
+                        metal: t.metal,
+                        productId: null,
+                    };
+                    // A name with a refinery only applies to rows of that refinery, which is compared in code.
+                    const tradeWhere = refinery
+                        ? {
+                              id: {
+                                  in: (
+                                      await tx.trade.findMany({
+                                          where: base,
+                                          select: { id: true, refinery: true },
+                                      })
+                                  )
+                                      .filter(
+                                          (r) =>
+                                              normaliseRefinery(r.refinery) ===
+                                              refinery,
+                                      )
+                                      .map((r) => r.id),
+                              },
+                              productId: null,
+                          }
+                        : base;
+                    const lotWhere = refinery
+                        ? {
+                              id: {
+                                  in: (
+                                      await tx.purchaseLot.findMany({
+                                          where: base,
+                                          select: { id: true, refinery: true },
+                                      })
+                                  )
+                                      .filter(
+                                          (r) =>
+                                              normaliseRefinery(r.refinery) ===
+                                              refinery,
+                                      )
+                                      .map((r) => r.id),
+                              },
+                              productId: null,
+                          }
+                        : base;
+                    const [tr, lo] = await Promise.all([
+                        tx.trade.updateMany({
+                            where: tradeWhere,
+                            data: t.data,
+                        }),
+                        tx.purchaseLot.updateMany({
+                            where: lotWhere,
+                            data: t.data,
+                        }),
+                    ]);
+                    trades += tr.count;
+                    lots += lo.count;
+                    parts.push(
+                        `${t.metal.toLowerCase()} ${tr.count} sales, ${lo.count} purchases`,
+                    );
+                }
+                await this.audit.record(
+                    actor,
+                    'product-name-per-metal',
+                    `name ${id}: ${parts.join('; ')}`,
+                    tx,
+                );
+                return { trades, lots };
+            },
+            { timeout: 60_000, maxWait: 10_000 },
+        );
     }
 }
