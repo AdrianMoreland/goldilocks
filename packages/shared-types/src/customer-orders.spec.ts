@@ -132,4 +132,26 @@ describe('planCustomerOrderImport', () => {
     expect(planCustomerOrderImport([stored()], [row({ missing: true })]).toUpdate[0]?.changes).toEqual({ missing: true });
     expect(planCustomerOrderImport([stored({ missing: true })], [row()]).unchanged).toBe(1);
   });
+
+  describe('statusOnly', () => {
+    it('ignores text and date differences', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ orderedOn: '2026-09-01' })],
+        [row({ notes: 'n', serials: 'S9', supplierRef: 'PO', refinery: 'Umicore', orderedOn: '2026-09-28' })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan).toMatchObject({ toUpdate: [], unchanged: 1 });
+    });
+    it('moves status forward and sets missing only', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ status: 'ALLOCATED' })],
+        [row({ status: 'COLLECTED', notes: 'n', missing: true })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan.toUpdate).toEqual([{ id: 1, changes: { status: 'COLLECTED', missing: true } }]);
+    });
+    it('still adds new items in full', () => {
+      expect(planCustomerOrderImport([], [row({ notes: 'n' })], { fields: 'statusOnly' }).toAdd[0]?.notes).toBe('n');
+    });
+  });
 });

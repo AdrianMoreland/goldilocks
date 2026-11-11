@@ -607,6 +607,53 @@ describe('WorkbookImportService', () => {
                 t.bcSalesOrder.rows.filter((o) => o['missingFromImport']),
             ).toHaveLength(0);
         });
+
+        describe('snapshot date', () => {
+            const dated = (date: string | null, amount = 1): R => ({
+                ...order('SO1', 'G20260941'),
+                snapshot_date: date,
+                amount,
+            });
+
+            it('leaves a stored row alone when the incoming report is older, via the report and the workbook', async () => {
+                const { bc, service, t } = setup();
+                await bc.commit(report(dated('2026-10-05', 10)), 'a');
+                const update = jest.spyOn(t.bcSalesOrder, 'update');
+                const viaReport = await bc.commit(
+                    report(dated('2026-10-01', 99)),
+                    'a',
+                );
+                expect(viaReport).toMatchObject({ changed: 0, unchanged: 1 });
+                const viaWorkbook = await service.commit(
+                    req('bc_sales_orders', [dated('2026-10-01', 99)]),
+                    'a',
+                );
+                expect(viaWorkbook).toMatchObject({
+                    changed: 0,
+                    unchanged: 1,
+                });
+                expect(update).not.toHaveBeenCalled();
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(10);
+            });
+
+            it('updates when the stored date is older or equal, or either date is missing', async () => {
+                const { bc, t } = setup();
+                await bc.commit(report(dated('2026-10-01', 10)), 'a');
+                await bc.commit(report(dated('2026-10-05', 20)), 'a');
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(20);
+                await bc.commit(report(dated('2026-10-05', 30)), 'a');
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(30);
+                await bc.commit(report(dated(null, 40)), 'a');
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(40);
+            });
+
+            it('previews the skip as unchanged', async () => {
+                const { bc } = setup();
+                await bc.commit(report(dated('2026-10-05', 10)), 'a');
+                const p = await bc.preview(report(dated('2026-10-01', 99)));
+                expect(p).toMatchObject({ changed: 0, unchanged: 1 });
+            });
+        });
     });
 });
 
@@ -770,6 +817,96 @@ describe('WorkbookImportService customer safe items', () => {
         expect(items(t)[0]).toMatchObject({
             status: 'COLLECTED',
             serials: 'A1',
+        });
+    });
+
+    it('a matched row never changes text or dates, only status forward', async () => {
+        const { service, t } = await withCustomers();
+        await service.commit(
+            req('customer_safe_items', [safe({ status_norm: 'ORDERED' })]),
+            'admin',
+        );
+        const update = jest.spyOn(t.customerOrderItem, 'update');
+        const text = await service.commit(
+            req('customer_safe_items', [
+                safe({
+                    status_norm: 'ORDERED',
+                    serials: 'Z9',
+                    notes: 'other',
+                    refinery: 'Umicore',
+                    date: '2026-03-03',
+                }),
+            ]),
+            'admin',
+        );
+        expect(text).toMatchObject({ added: 0, changed: 0, unchanged: 1 });
+        expect(update).not.toHaveBeenCalled();
+        const forward = await service.commit(
+            req('customer_safe_items', [
+                safe({
+                    status_norm: 'COLLECTED',
+                    serials: 'Z9',
+                    notes: 'other',
+                }),
+            ]),
+            'admin',
+        );
+        expect(forward).toMatchObject({ changed: 1, unchanged: 0 });
+        expect(update).toHaveBeenCalledTimes(1);
+        expect(update.mock.calls[0][0].data).toEqual({
+            status: 'COLLECTED',
+        });
+        expect(items(t)[0]).toMatchObject({
+            status: 'COLLECTED',
+            serials: 'A1',
+        });
+    });
+
+    it('a matched row never changes text or dates, only status forward', async () => {
+        const { service, t } = await withCustomers();
+        await service.commit(
+            req('customer_safe_items', [safe({ status_norm: 'ORDERED' })]),
+            'admin',
+        );
+        const update = jest.spyOn(t.customerOrderItem, 'update');
+        const text = await service.commit(
+            req('customer_safe_items', [
+                safe({
+                    status_norm: 'ORDERED',
+                    serials: 'Z9',
+                    notes: 'other',
+                    refinery: 'Umicore',
+                    date: '2026-03-03',
+                }),
+            ]),
+            'admin',
+        );
+        expect(text).toMatchObject({ added: 0, changed: 0, unchanged: 1 });
+        expect(update).not.toHaveBeenCalled();
+        const forward = await service.commit(
+            req('customer_safe_items', [
+                safe({
+                    status_norm: 'COLLECTED',
+                    serials: 'Z9',
+                    notes: 'other',
+                }),
+            ]),
+            'admin',
+        );
+        expect(forward).toMatchObject({ changed: 1, unchanged: 0 });
+        expect(update).toHaveBeenCalledTimes(1);
+        expect(update.mock.calls[0][0]).toMatchObject({
+            data: { status: 'COLLECTED' },
+        });
+        expect(Object.keys(update.mock.calls[0][0].data)).toEqual([
+            'status',
+            'orderedOn',
+        ]);
+        expect(items(t)[0]).toMatchObject({
+            status: 'COLLECTED',
+            serials: 'A1',
+            notes: null,
+            refinery: null,
         });
     });
 

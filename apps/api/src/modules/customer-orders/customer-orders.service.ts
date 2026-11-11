@@ -8,6 +8,7 @@ import {
     type AddEvidenceRequest,
     type CreateCustomerOrderRequest,
     type CustomerOrderImportRow,
+    type CustomerOrderPlanOptions,
     type CustomerOrder,
     type CustomerOrderStatus,
     type ExpectedCustomerStockResponse,
@@ -175,7 +176,11 @@ export class CustomerOrdersService {
      * Works out what these rows would add and change, without writing. Shared by the paste import and the
      * workbook import, so both match and update stored items by exactly the same rules.
      */
-    async planRows(db: Db, rows: CustomerOrderImportRow[]) {
+    async planRows(
+        db: Db,
+        rows: CustomerOrderImportRow[],
+        options?: CustomerOrderPlanOptions,
+    ) {
         if (rows.length === 0) return { toAdd: [], toUpdate: [], unchanged: 0 };
         const existing = await db.customerOrderItem.findMany({
             where: {
@@ -203,6 +208,7 @@ export class CustomerOrdersService {
         return planCustomerOrderImport(
             existing.map((e) => ({ ...e, orderedOn: toIso(e.orderedOn) })),
             rows,
+            options,
         );
     }
 

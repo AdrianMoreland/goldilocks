@@ -52,6 +52,11 @@ export interface DirectTableSpec {
     tracked?: false;
     /** Rows belong to the imported stocktake named by this column. */
     stocktakeSnapshotColumn?: string;
+    /**
+     * Name of a date field. A stored row whose date is newer than the incoming row's is left untouched and counted
+     * as unchanged, so an older file never overwrites a fresher one. Either date missing: normal update.
+     */
+    newerWins?: string;
     /** Fields written on create only. */
     createOnly?: readonly string[];
     /** Adds values computed from the mapped row (and the row's key, when `keyOf` made one). */
@@ -211,6 +216,7 @@ export const DIRECT_TABLES: Partial<
         delegate: 'bcSalesOrder',
         keyColumn: 'id',
         keyField: 'sourceKey',
+        newerWins: 'snapshotDate',
         fks: [{ field: 'customerId', column: 'client_code', kind: 'customer' }],
         fields: [
             ['branchCode', 'branch_code', 's'],

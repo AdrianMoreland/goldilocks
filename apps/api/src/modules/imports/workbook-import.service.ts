@@ -384,6 +384,19 @@ export class WorkbookImportService {
                 });
                 continue;
             }
+            if (spec.newerWins) {
+                const stored = old[spec.newerWins];
+                const incoming = data[spec.newerWins];
+                if (
+                    stored instanceof Date &&
+                    incoming instanceof Date &&
+                    stored.getTime() > incoming.getTime()
+                ) {
+                    counts.unchanged++;
+                    toTouch.push(key);
+                    continue;
+                }
+            }
             // Fields in createOnly are set when a row is created and left to people afterwards.
             const writable = { ...data };
             for (const f of spec.createOnly ?? []) delete writable[f];
@@ -508,7 +521,8 @@ export class WorkbookImportService {
 
     /**
      * Customer safe rows become customer order items, matched and updated by the same rules as the Customer Orders
-     * paste import (planRows / writePlan), so the two routes never duplicate each other. The client code is resolved
+     * paste import (planRows / writePlan), so the two routes never duplicate each other. A matched item only moves its status forward
+     * (and gets `missing` set): the paste stays the source for serials, notes, supplier reference, refinery and date. The client code is resolved
      * to the customer's real name from the customers table; a row with an unknown code, no product or branch, or a
      * quantity that is not a whole number above zero is skipped and counted as unmatched. Nothing is flagged missing.
      * Every chunk plans against what is stored, so a table must travel in one chunk: two identical rows split across
@@ -579,7 +593,9 @@ export class WorkbookImportService {
             metals.set(row, metalOf(r['metal']));
         }
 
-        const plan = await this.orders.planRows(ctx.db, rows);
+        const plan = await this.orders.planRows(ctx.db, rows, {
+            fields: 'statusOnly',
+        });
         counts.added = plan.toAdd.length;
         counts.changed = plan.toUpdate.length;
         counts.unchanged = plan.unchanged;
