@@ -153,5 +153,22 @@ describe('planCustomerOrderImport', () => {
     it('still adds new items in full', () => {
       expect(planCustomerOrderImport([], [row({ notes: 'n' })], { fields: 'statusOnly' }).toAdd[0]?.notes).toBe('n');
     });
+    it('matches a differently spelled client by branch, reference, product and quantity', () => {
+      const plan = planCustomerOrderImport([stored({ client: 'J Smith' })], [row({ client: 'John A Smith', status: 'COLLECTED' })], { fields: 'statusOnly' });
+      expect(plan).toMatchObject({ toAdd: [], toUpdate: [{ id: 1, changes: { status: 'COLLECTED' } }] });
+    });
+    it('prefers an exact client match and never reuses an item', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ id: 1, client: 'J Smith' }), stored({ id: 2, client: 'John A Smith' })],
+        [row({ client: 'John A Smith' }), row({ client: 'Someone Else' }), row({ client: 'Third' })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan.unchanged).toBe(2);
+      expect(plan.toAdd).toHaveLength(1);
+    });
+    it('does not match loosely without a reference, nor on the paste route', () => {
+      expect(planCustomerOrderImport([stored({ client: 'B', reference: null })], [row({ reference: null })], { fields: 'statusOnly' }).toAdd).toHaveLength(1);
+      expect(planCustomerOrderImport([stored({ client: 'B' })], [row()]).toAdd).toHaveLength(1);
+    });
   });
 });
