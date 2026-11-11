@@ -387,10 +387,11 @@ export class WorkbookImportService {
             if (spec.newerWins) {
                 const stored = old[spec.newerWins];
                 const incoming = data[spec.newerWins];
+                // A dated row is never replaced by an older one, nor by one that carries no date at all.
                 if (
                     stored instanceof Date &&
-                    incoming instanceof Date &&
-                    stored.getTime() > incoming.getTime()
+                    (!(incoming instanceof Date) ||
+                        stored.getTime() > incoming.getTime())
                 ) {
                     counts.unchanged++;
                     toTouch.push(key);

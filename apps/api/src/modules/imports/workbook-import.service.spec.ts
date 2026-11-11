@@ -636,15 +636,23 @@ describe('WorkbookImportService', () => {
                 expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(10);
             });
 
-            it('updates when the stored date is older or equal, or either date is missing', async () => {
+            it('updates when the stored date is older or equal, or the stored row has none', async () => {
                 const { bc, t } = setup();
+                await bc.commit(report(dated(null, 5)), 'a');
+                await bc.commit(report(dated(null, 6)), 'a');
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(6);
                 await bc.commit(report(dated('2026-10-01', 10)), 'a');
                 await bc.commit(report(dated('2026-10-05', 20)), 'a');
                 expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(20);
                 await bc.commit(report(dated('2026-10-05', 30)), 'a');
                 expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(30);
+            });
+
+            it('never lets an undated row replace a dated one', async () => {
+                const { bc, t } = setup();
+                await bc.commit(report(dated('2026-10-05', 30)), 'a');
                 await bc.commit(report(dated(null, 40)), 'a');
-                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(40);
+                expect(Number(t.bcSalesOrder.rows[0]['amount'])).toBe(30);
             });
 
             it('previews the skip as unchanged', async () => {

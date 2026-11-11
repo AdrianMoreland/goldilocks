@@ -96,7 +96,13 @@ const HEADER_LOOKAHEAD = 5;
  * number is the row id, so a newer report updates the same order. Customer names become codes through the map; a
  * name it does not know is dropped rather than sent.
  */
-export function mapBcReport(sheet: readonly (readonly unknown[])[], fileName: string, names: ReadonlyMap<string, string>): BcReportResult {
+export function mapBcReport(
+  sheet: readonly (readonly unknown[])[],
+  fileName: string,
+  names: ReadonlyMap<string, string>,
+  /** The day the report was taken; it carries no date of its own. Lets a newer report win over an older copy. */
+  snapshotDate: string = new Date().toISOString().slice(0, 10),
+): BcReportResult {
   const norm = (h: unknown) => String(h ?? '').toLowerCase().replace(/:$/, '').trim();
   let headerAt = -1;
   for (let r = 0; r < Math.min(HEADER_LOOKAHEAD, sheet.length); r++) {
@@ -146,7 +152,7 @@ export function mapBcReport(sheet: readonly (readonly unknown[])[], fileName: st
       system: 'BC',
       branch_code: branchOf(get(cells, idx.loc), ext),
       snapshot: fileName,
-      snapshot_date: null,
+      snapshot_date: snapshotDate,
       bc_customer_no: val('bc_customer_no', get(cells, idx.custNo)),
       client_code: code,
       ext_doc_no: val('ext_doc_no', ext),
