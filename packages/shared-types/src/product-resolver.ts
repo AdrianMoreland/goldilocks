@@ -10,6 +10,7 @@
 import { aliasOk, normaliseProductText } from './product-text';
 import { listedRefinery, refineryWords } from './refineries';
 import { metalInText, pricingSkuFor } from './product-rules';
+import { matchProductName, type MatchCatalogue } from './product-match';
 import type { MetalType } from './spot-price.schema';
 
 export type SalesProductId = string | number;
@@ -182,6 +183,22 @@ export interface RowResolveResult {
 
 const MELT_RE = /\b(scrap|melt)\b/;
 
+const engineCatalogues = new WeakMap<object, MatchCatalogue>();
+
+/** The catalogue in the shape the matching engine takes, built once per data set. */
+function engineCatalogue(data: RowResolverData): MatchCatalogue {
+  const hit = engineCatalogues.get(data);
+  if (hit) return hit;
+  const built: MatchCatalogue = {
+    pricing: data.catalogue.map((c) => ({ id: c.id, sku: c.sku, name: c.sku, metal: c.metalType })),
+    specific: (data.salesProducts ?? [])
+      .filter((p): p is SalesProductRef & { id: number } => typeof p.id === 'number' || typeof p.id === 'string')
+      .map((p) => ({ id: p.id, name: p.name, metal: p.metal ?? null, refinery: p.refinery, genericNorm: p.genericNorm, pricingProductId: p.pricingProductId })),
+  };
+  engineCatalogues.set(data, built);
+  return built;
+}
+
 const WEIGHT_TOKEN = /^(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)$/;
 
 /**
@@ -255,7 +272,21 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
     }
   }
 
-  // 3. The generic name plus the refinery, against the specific products.
+  // 3. The matching engine: weight, form, metal, refinery and design read from the text. Only a CERTAIN answer is
+  // taken here; anything less falls through to the older rules below, and the review queue gets the suggestion.
+  const matched = matchProductName(
+    { text, refinery: input.refinery ?? null, metal: input.metal },
+    engineCatalogue(data),
+  );
+  if (matched.confidence === 'CERTAIN' && (matched.outcome === 'PRICING' || matched.outcome === 'SPECIFIC') && matched.productId !== undefined) {
+    if (matched.outcome === 'SPECIFIC' && matched.salesProductId !== undefined) {
+      const r = viaSales('GENERIC_REFINERY', matched.salesProductId);
+      if (r) return { ...r, pricingProductId: matched.productId };
+    }
+    return { ...base, pricingProductId: matched.productId, salesProductId: null, method: 'RULE' };
+  }
+
+  // 3b. The generic name plus the refinery, against the specific products.
   const rowMetal = metalInText(text) ?? input.metal;
   const catalogueMetal = new Map(data.catalogue.map((c) => [c.id, c.metalType as string]));
   const sameMetal = (p: SalesProductRef): boolean => {

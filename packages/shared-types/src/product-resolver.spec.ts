@@ -325,6 +325,22 @@ describe('resolveRowProduct', () => {
     expect(resolveRowProduct({ productText: '1oz Krugerrand', metal: 'GOLD' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 21 });
   });
 
+  it('resolves "1/4oz Eagle" and "1/4oz American Eagle" to the same product', () => {
+    const d: RowResolverData = {
+      catalogue: [
+        { id: 86, sku: 'GOLD-1/4OZ-COIN', metalType: 'GOLD' },
+        { id: 87, sku: 'GOLD-1/4OZ-US-COIN', metalType: 'GOLD' },
+      ],
+      salesProducts: [{ id: 116, name: '1/4oz Gold American Eagle', genericNorm: '1/4oz american eagle', refinery: null, pricingProductId: 86 }],
+      decisions: [],
+    };
+    const a = resolveRowProduct({ productText: '1/4oz Eagle', metal: 'GOLD' }, d);
+    const b = resolveRowProduct({ productText: '1/4oz American Eagle', metal: 'GOLD' }, d);
+    expect(a.pricingProductId).toBe(b.pricingProductId);
+    expect(a.salesProductId).toBe(b.salesProductId);
+    expect(b).toMatchObject({ salesProductId: 116, pricingProductId: 86 });
+  });
+
   it('does not apply decisions to a text that lists several products', () => {
     expect(resolve('1oz bar, 5g bar').method).toBe('NONE');
   });

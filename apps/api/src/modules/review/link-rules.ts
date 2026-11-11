@@ -35,7 +35,28 @@ const SYNONYMS: Record<string, string> = {
     maples: 'maple',
     eagles: 'eagle',
     philharmonics: 'philharmonic',
+    nugget: 'kangaroo',
+    nuggets: 'kangaroo',
+    kruger: 'krugerrand',
+    maplegram: 'maple',
 };
+
+/** Words that only say where a coin comes from: "1/4oz Eagle" and "1/4oz American Eagle" are one product. */
+const COUNTRY_WORDS = new Set([
+    'south',
+    'african',
+    'canadian',
+    'american',
+    'austrian',
+    'australian',
+    'irish',
+    'us',
+    'usa',
+    'british',
+    'uk',
+    'leaf',
+    'vienna',
+]);
 
 /** Words that make a product a coin or a named piece rather than a plain bar of a weight. */
 const COIN_WORDS = new Set([
@@ -74,7 +95,10 @@ function canon(token: string): string {
 /** Words that say what a product is, so "1oz brits" and "1oz Britannia" can be compared. */
 export function productTokens(text: string): Set<string> {
     return new Set(
-        normaliseProductText(text).split(' ').filter(Boolean).map(canon),
+        normaliseProductText(text)
+            .split(' ')
+            .filter((t) => t && !COUNTRY_WORDS.has(t))
+            .map(canon),
     );
 }
 
