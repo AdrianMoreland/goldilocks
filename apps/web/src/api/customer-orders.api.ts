@@ -19,6 +19,7 @@ export function useCustomerOrdersApi() {
         create: (body: CreateCustomerOrderRequest) => client.post('/customer-orders', body, CustomerOrderSchema),
         update: (id: number, body: UpdateCustomerOrderRequest) => client.patch(`/customer-orders/${id}`, body, CustomerOrderSchema),
         addEvidence: (id: number, body: AddEvidenceRequest) => client.post(`/customer-orders/${id}/evidence`, body, CustomerOrderSchema),
+        previewImport: (body: ImportCustomerOrdersRequest) => client.post('/customer-orders/import/preview', body, ImportCustomerOrdersResultSchema),
         importSheet: (body: ImportCustomerOrdersRequest) => client.post('/customer-orders/import', body, ImportCustomerOrdersResultSchema),
     };
 }

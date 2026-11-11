@@ -224,29 +224,85 @@ export function parseCustomerOrdersPaste(
   return { rows, issues };
 }
 
+/** Order of a status in an item's life. BAGGED is the old name of ALLOCATED, so they rank the same. */
+const STATUS_RANK: Record<CustomerOrderStatus, number> = {
+  ORDERED: 0,
+  IN_TRANSIT: 1,
+  DELIVERED: 2,
+  BAGGED: 3,
+  ALLOCATED: 3,
+  COLLECTED: 4,
+};
+
+/** What a stored item holds that a repeat paste may change. */
+export interface ExistingCustomerOrder {
+  id: number;
+  locationCode: string;
+  client: string;
+  reference: string | null;
+  product: string;
+  quantity: number;
+  status: CustomerOrderStatus;
+  serials: string | null;
+  notes: string | null;
+  orderedOn: string | null;
+  missing: boolean;
+  supplierRef: string | null;
+  refinery: string | null;
+}
+
+export interface CustomerOrderChanges {
+  status?: CustomerOrderStatus;
+  serials?: string;
+  notes?: string;
+  orderedOn?: string;
+  missing?: boolean;
+  supplierRef?: string;
+  refinery?: string;
+}
+
+/** The fields a pasted row would change on a stored item. Status only moves forward; text and the missing flag are never cleared. */
+export function customerOrderChanges(stored: ExistingCustomerOrder, row: CustomerOrderImportRow): CustomerOrderChanges {
+  const changes: CustomerOrderChanges = {};
+  if (STATUS_RANK[row.status] > STATUS_RANK[stored.status]) changes.status = row.status;
+  for (const f of ['serials', 'notes', 'supplierRef', 'refinery'] as const) {
+    const next = row[f]?.trim();
+    if (next && next !== (stored[f] ?? '').trim()) changes[f] = next;
+  }
+  if (row.orderedOn && row.orderedOn !== stored.orderedOn) changes.orderedOn = row.orderedOn;
+  // The sheet can flag an item missing; clearing the flag is a decision made in the app.
+  if (row.missing && !stored.missing) changes.missing = true;
+  return changes;
+}
+
 /**
- * Which pasted rows are new. A row is the same as one already stored when branch, client, product, quantity and
- * reference all match; duplicates are skipped only up to the number already there, so two genuine identical
- * orders in one paste are both kept the first time and neither added again on a repeat.
+ * Which pasted rows are new and which change a stored item. A row is the same as one already stored when branch,
+ * client, product, quantity and reference all match; matches are paired up only as many times as the item is
+ * stored, so two genuine identical orders in one paste are both kept the first time and neither added again on
+ * a repeat. A matched row updates the stored item (see customerOrderChanges) or counts as unchanged.
  */
 export function planCustomerOrderImport(
-  existing: { locationCode: string; client: string; reference: string | null; product: string; quantity: number }[],
+  existing: ExistingCustomerOrder[],
   incoming: CustomerOrderImportRow[],
-): { toAdd: CustomerOrderImportRow[]; skipped: number } {
+): { toAdd: CustomerOrderImportRow[]; toUpdate: { id: number; changes: CustomerOrderChanges }[]; unchanged: number } {
   const key = (r: { locationCode: string; client: string; reference: string | null; product: string; quantity: number }) =>
     [r.locationCode.toUpperCase(), normalizeClient(r.client), normalizeReference(r.reference), r.product.trim().toLowerCase(), r.quantity].join('|');
-  const have = new Map<string, number>();
-  for (const e of existing) have.set(key(e), (have.get(key(e)) ?? 0) + 1);
+  const have = new Map<string, ExistingCustomerOrder[]>();
+  for (const e of existing) have.set(key(e), [...(have.get(key(e)) ?? []), e]);
   const toAdd: CustomerOrderImportRow[] = [];
-  let skipped = 0;
+  const toUpdate: { id: number; changes: CustomerOrderChanges }[] = [];
+  let unchanged = 0;
   for (const row of incoming) {
-    const left = have.get(key(row)) ?? 0;
-    if (left > 0) {
-      have.set(key(row), left - 1);
-      skipped++;
-    } else toAdd.push(row);
+    const stored = have.get(key(row))?.shift();
+    if (!stored) {
+      toAdd.push(row);
+      continue;
+    }
+    const changes = customerOrderChanges(stored, row);
+    if (Object.keys(changes).length > 0) toUpdate.push({ id: stored.id, changes });
+    else unchanged++;
   }
-  return { toAdd, skipped };
+  return { toAdd, toUpdate, unchanged };
 }
 
 // --- tying orders to the stocktake --------------------------------------------------

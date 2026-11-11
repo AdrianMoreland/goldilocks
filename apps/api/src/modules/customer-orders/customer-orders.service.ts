@@ -166,17 +166,17 @@ export class CustomerOrdersService {
         return toOrder(row);
     }
 
-    /** Adds rows pasted from the existing Customer Orders sheet. Rows already stored are skipped, so a repeat paste adds nothing. */
-    async importSheet(
-        dto: ImportCustomerOrdersRequest,
-        actor: string,
-    ): Promise<ImportCustomerOrdersResult> {
+    /** Reads the paste and works out what it would add and change, without writing anything. */
+    private async planImport(dto: ImportCustomerOrdersRequest) {
         const parsed = parseCustomerOrdersPaste(
             dto.text,
             dto.fallbackStatus ?? null,
         );
         if (parsed.rows.length === 0) {
-            return { added: 0, skipped: 0, issues: parsed.issues };
+            return {
+                parsed,
+                plan: { toAdd: [], toUpdate: [], unchanged: 0 },
+            };
         }
         const existing = await this.prisma.customerOrderItem.findMany({
             where: {
@@ -185,45 +185,95 @@ export class CustomerOrdersService {
                 },
             },
             select: {
+                id: true,
                 locationCode: true,
                 client: true,
                 reference: true,
                 product: true,
                 quantity: true,
+                status: true,
+                serials: true,
+                notes: true,
+                orderedOn: true,
+                missing: true,
+                supplierRef: true,
+                refinery: true,
             },
+            orderBy: { id: 'asc' },
         });
-        const plan = planCustomerOrderImport(existing, parsed.rows);
-        if (plan.toAdd.length > 0) {
-            await this.prisma.$transaction(async (tx) => {
-                await tx.customerOrderItem.createMany({
-                    data: plan.toAdd.map((r) => ({
-                        locationCode: r.locationCode,
-                        client: r.client,
-                        reference: r.reference,
-                        supplierRef: r.supplierRef,
-                        metal: dto.metal,
-                        product: r.product,
-                        quantity: r.quantity,
-                        refinery: r.refinery,
-                        serials: r.serials,
-                        status: r.status,
-                        orderedOn: toDate(r.orderedOn) ?? null,
-                        missing: r.missing,
-                        notes: r.notes,
-                        createdBy: actor,
-                    })),
-                });
-                await this.audit.record(
-                    actor,
-                    'customer-orders-import',
-                    `${plan.toAdd.length} ${dto.metal} rows added, ${plan.skipped} already there, ${parsed.issues.length} rejected`,
-                    tx,
-                );
-            });
+        const plan = planCustomerOrderImport(
+            existing.map((e) => ({ ...e, orderedOn: toIso(e.orderedOn) })),
+            parsed.rows,
+        );
+        return { parsed, plan };
+    }
+
+    /** What a paste would do, as counts. Writes nothing. */
+    async previewImport(
+        dto: ImportCustomerOrdersRequest,
+    ): Promise<ImportCustomerOrdersResult> {
+        const { parsed, plan } = await this.planImport(dto);
+        return {
+            added: plan.toAdd.length,
+            updated: plan.toUpdate.length,
+            unchanged: plan.unchanged,
+            issues: parsed.issues,
+        };
+    }
+
+    /**
+     * Adds and updates rows pasted from the Customer Orders sheet. A row already stored updates its status
+     * (forward only), serials, notes and the other sheet fields; one with nothing new changes nothing.
+     */
+    async importSheet(
+        dto: ImportCustomerOrdersRequest,
+        actor: string,
+    ): Promise<ImportCustomerOrdersResult> {
+        const { parsed, plan } = await this.planImport(dto);
+        if (plan.toAdd.length > 0 || plan.toUpdate.length > 0) {
+            await this.prisma.$transaction(
+                async (tx) => {
+                    await tx.customerOrderItem.createMany({
+                        data: plan.toAdd.map((r) => ({
+                            locationCode: r.locationCode,
+                            client: r.client,
+                            reference: r.reference,
+                            supplierRef: r.supplierRef,
+                            metal: dto.metal,
+                            product: r.product,
+                            quantity: r.quantity,
+                            refinery: r.refinery,
+                            serials: r.serials,
+                            status: r.status,
+                            orderedOn: toDate(r.orderedOn) ?? null,
+                            missing: r.missing,
+                            notes: r.notes,
+                            createdBy: actor,
+                        })),
+                    });
+                    for (const u of plan.toUpdate) {
+                        await tx.customerOrderItem.update({
+                            where: { id: u.id },
+                            data: {
+                                ...u.changes,
+                                orderedOn: toDate(u.changes.orderedOn),
+                            },
+                        });
+                    }
+                    await this.audit.record(
+                        actor,
+                        'customer-orders-import',
+                        `${plan.toAdd.length} added, ${plan.toUpdate.length} updated, ${plan.unchanged} unchanged, ${parsed.issues.length} rejected`,
+                        tx,
+                    );
+                },
+                { timeout: 120_000, maxWait: 10_000 },
+            );
         }
         return {
             added: plan.toAdd.length,
-            skipped: plan.skipped,
+            updated: plan.toUpdate.length,
+            unchanged: plan.unchanged,
             issues: parsed.issues,
         };
     }

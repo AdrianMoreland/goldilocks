@@ -63,10 +63,23 @@ export class CustomerOrdersController {
         return this.service.expectedStock();
     }
 
+    @Post('import/preview')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'What a paste from the Customer Orders sheet would add and update (writes nothing)',
+    })
+    previewImport(
+        @Body() body: ImportCustomerOrdersRequestDto,
+    ): Promise<ImportCustomerOrdersResult> {
+        return this.service.previewImport(body);
+    }
+
     @Post('import')
     @HttpCode(200)
     @ApiOperation({
-        summary: 'Paste rows from the Customer Orders sheet (repeat-safe)',
+        summary:
+            'Paste rows from the Customer Orders sheet: adds new rows, updates changed ones',
     })
     importSheet(
         @Body() body: ImportCustomerOrdersRequestDto,

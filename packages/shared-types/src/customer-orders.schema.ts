@@ -103,7 +103,8 @@ export type ImportCustomerOrdersRequest = z.infer<typeof ImportCustomerOrdersReq
 
 export const ImportCustomerOrdersResultSchema = z.object({
   added: z.number(),
-  skipped: z.number(),
+  updated: z.number(),
+  unchanged: z.number(),
   issues: z.array(z.object({ row: z.number(), message: z.string() })),
 });
 export type ImportCustomerOrdersResult = z.infer<typeof ImportCustomerOrdersResultSchema>;

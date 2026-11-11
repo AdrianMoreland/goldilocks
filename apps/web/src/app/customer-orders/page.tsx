@@ -10,7 +10,6 @@ import {
     CUSTOMER_ORDER_STATUS_LABELS,
     EVIDENCE_KINDS,
     EVIDENCE_KIND_LABELS,
-    parseCustomerOrdersPaste,
     STOCK_METALS,
     type CustomerOrder,
     type CustomerOrderStatus,
@@ -353,31 +352,42 @@ function ImportBox({ onImported }: { onImported: () => void }) {
     const [metal, setMetal] = useState<StockMetal>("GOLD")
     const [fallback, setFallback] = useState<CustomerOrderStatus | "">("")
     const [text, setText] = useState("")
-    const preview = text.trim() ? parseCustomerOrdersPaste(text, fallback || null) : null
+    const body = { metal, fallbackStatus: fallback || null, text }
+    // Preview runs on the server and writes nothing; a changed paste or option clears it.
+    const preview = useMutation({
+        mutationFn: () => api.previewImport(body),
+        onError: (e: Error) => toast.error(e.message),
+    })
     const run = useMutation({
-        mutationFn: () => api.importSheet({ metal, fallbackStatus: fallback || null, text }),
+        mutationFn: () => api.importSheet(body),
         onSuccess: (r) => {
-            toast.success(`${r.added} added, ${r.skipped} already there${r.issues.length ? `, ${r.issues.length} rows rejected` : ""}`)
-            if (r.issues.length === 0) setText("")
+            toast.success(`${r.added} added, ${r.updated} updated, ${r.unchanged} unchanged${r.issues.length ? `, ${r.issues.length} rows rejected` : ""}`)
+            setText("")
+            preview.reset()
             onImported()
         },
         onError: (e: Error) => toast.error(e.message),
     })
+    const result = preview.data
+    const change = (apply: () => void) => {
+        apply()
+        preview.reset()
+    }
     return (
         <div className="space-y-2 rounded-lg border p-3">
             <p className="text-sm font-medium">Paste rows from the existing Customer Orders sheet</p>
             <p className="text-muted-foreground text-xs">
-                Copy a sheet's table including its header row. One sheet at a time: pick its metal. If the sheet has no status column (such as Not bagged), pick the status for its rows. A row whose status is not recognised is rejected, not guessed. Pasting the same rows again adds nothing.
+                Copy a sheet's table including its header row. One sheet at a time: pick its metal. If the sheet has no status column (such as Not bagged), pick the status for its rows. A row whose status is not recognised is rejected, not guessed. Pasting the same sheet again updates the status, serials and notes of rows already here and adds only new ones. Status never goes backwards, and an empty cell never clears what is stored.
             </p>
             <div className="flex flex-wrap gap-2">
-                <select className={select} value={metal} onChange={(e) => setMetal(e.target.value as StockMetal)} aria-label="Metal">
+                <select className={select} value={metal} onChange={(e) => change(() => setMetal(e.target.value as StockMetal))} aria-label="Metal">
                     {STOCK_METALS.map((m) => (
                         <option key={m} value={m}>
                             {m === "PGM" ? "Platinum / palladium" : m[0] + m.slice(1).toLowerCase()}
                         </option>
                     ))}
                 </select>
-                <select className={select} value={fallback} onChange={(e) => setFallback(e.target.value as CustomerOrderStatus | "")} aria-label="Status for rows without one">
+                <select className={select} value={fallback} onChange={(e) => change(() => setFallback(e.target.value as CustomerOrderStatus | ""))} aria-label="Status for rows without one">
                     <option value="">Status comes from the sheet</option>
                     {CUSTOMER_ORDER_STATUSES.map((s) => (
                         <option key={s} value={s}>
@@ -386,13 +396,14 @@ function ImportBox({ onImported }: { onImported: () => void }) {
                     ))}
                 </select>
             </div>
-            <Textarea rows={5} className="font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} />
-            {preview && (
+            <Textarea rows={5} className="font-mono text-xs" value={text} onChange={(e) => change(() => setText(e.target.value))} />
+            {result && (
                 <div className="text-sm">
-                    {preview.rows.length} rows ready{preview.issues.length > 0 && <span className="text-destructive"> · {preview.issues.length} rejected</span>}
-                    {preview.issues.length > 0 && (
+                    {result.added} new, {result.updated} updated, {result.unchanged} unchanged
+                    {result.issues.length > 0 && <span className="text-destructive"> · {result.issues.length} rejected</span>}
+                    {result.issues.length > 0 && (
                         <ul className="max-h-32 list-disc overflow-y-auto pl-5 text-xs">
-                            {preview.issues.slice(0, 20).map((i, n) => (
+                            {result.issues.slice(0, 20).map((i, n) => (
                                 <li key={n}>
                                     Row {i.row}: {i.message}
                                 </li>
@@ -401,9 +412,14 @@ function ImportBox({ onImported }: { onImported: () => void }) {
                     )}
                 </div>
             )}
-            <Button size="sm" className="cursor-pointer" disabled={!preview || preview.rows.length === 0 || run.isPending} onClick={() => run.mutate()}>
-                Import {preview?.rows.length ?? 0} rows
-            </Button>
+            <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="cursor-pointer" disabled={!text.trim() || preview.isPending} onClick={() => preview.mutate()}>
+                    Preview
+                </Button>
+                <Button size="sm" className="cursor-pointer" disabled={!result || result.added + result.updated === 0 || run.isPending} onClick={() => run.mutate()}>
+                    Save {result ? result.added + result.updated : 0} rows
+                </Button>
+            </div>
         </div>
     )
 }
