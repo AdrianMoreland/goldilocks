@@ -1,14 +1,17 @@
 import { useState } from "react"
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LINK_TYPES, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
+import { LINK_TYPES, type MapAliasRequest, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
 import { useReviewApi } from "@/api/review.api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CountTabs } from "@/components/ui/count-tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const PAGE = 50
@@ -350,17 +353,89 @@ function DuplicatesQueue() {
     )
 }
 
+type AliasChoice = { label: string; body: MapAliasRequest }
+
+/** Every typed word must appear somewhere in the item, in any order ("1oz bar" finds "1oz Gold Bar"). */
+function matchesAllWords(value: string, search: string): number {
+    const words = search.toLowerCase().split(/\s+/).filter(Boolean)
+    const hay = value.toLowerCase()
+    return words.every((w) => hay.includes(w)) ? 1 : 0
+}
+
+/** Searchable picker: a pricing product, a specific sales product, or "not a product". */
+function ProductPicker({
+    name,
+    pricing,
+    specific,
+    value,
+    onChange,
+}: {
+    name: string
+    pricing: PricingProductOption[]
+    specific: SalesProduct[]
+    value: AliasChoice | undefined
+    onChange: (c: AliasChoice) => void
+}) {
+    const [open, setOpen] = useState(false)
+    const pick = (c: AliasChoice) => {
+        onChange(c)
+        setOpen(false)
+    }
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} aria-label={`Product for ${name}`} className="h-8 w-full max-w-72 justify-between px-2 font-normal">
+                    <span className={value ? "truncate" : "text-muted-foreground truncate"}>{value?.label ?? "Choose..."}</span>
+                    <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="start">
+                <Command filter={matchesAllWords}>
+                    <CommandInput placeholder="Type to search..." defaultValue="" />
+                    <CommandList>
+                        <CommandEmpty>No match.</CommandEmpty>
+                        <CommandGroup heading="Pricing products">
+                            {pricing.map((p) => (
+                                <CommandItem key={`p${p.id}`} value={`pricing ${p.name} ${p.metalType}`} onSelect={() => pick({ label: p.name, body: { productId: p.id } })}>
+                                    <span className="flex-1 truncate">{p.name}</span>
+                                    <span className="text-muted-foreground text-xs">{p.metalType}</span>
+                                    {value?.body.productId === p.id && <CheckIcon className="size-4" />}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Specific products">
+                            {specific.map((p) => (
+                                <CommandItem key={`s${p.id}`} value={`specific ${p.name}`} onSelect={() => pick({ label: p.name, body: { salesProductId: p.id } })}>
+                                    <span className="flex-1 truncate">{p.name}</span>
+                                    {value?.body.salesProductId === p.id && <CheckIcon className="size-4" />}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Other">
+                            <CommandItem value="not a product fee shipment storage" onSelect={() => pick({ label: "Not a product", body: { noProduct: true } })}>
+                                Not a product (fee, shipment, storage)
+                                {value?.body.noProduct && <CheckIcon className="ml-auto size-4" />}
+                            </CommandItem>
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
 function AliasesQueue() {
     const api = useReviewApi()
     const queryClient = useQueryClient()
     const [offset, setOffset] = useState(0)
-    const [choice, setChoice] = useState<Record<number, string>>({})
+    const [choice, setChoice] = useState<Record<number, AliasChoice>>({})
     const [creating, setCreating] = useState(false)
     const aliases = useQuery({ queryKey: ["review", "aliases", offset], queryFn: () => api.aliases(PAGE, offset) })
     const products = useQuery({ queryKey: ["review", "sales-products"], queryFn: () => api.salesProducts() })
+    const pricing = useQuery({ queryKey: ["review", "pricing-products"], queryFn: () => api.pricingProducts() })
 
     const map = useMutation({
-        mutationFn: (v: { id: number; salesProductId: number }) => api.mapAlias(v.id, { salesProductId: v.salesProductId }),
+        mutationFn: (v: { id: number; body: MapAliasRequest }) => api.mapAlias(v.id, v.body),
         onSuccess: () => {
             toast.success("Product name tied")
             void queryClient.invalidateQueries({ queryKey: ["review"] })
@@ -372,8 +447,8 @@ function AliasesQueue() {
         <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
                 <p className="text-muted-foreground max-w-2xl text-sm">
-                    Product names from invoices and sheets, with the refinery found, most used first. Tie each to a specific sales product (for example 1oz
-                    Valcambi bar). Each sales product belongs to one pricing product.
+                    Product names from invoices and sheets, with the refinery found, most used first. Tie each name to a pricing product (for example 1oz Gold
+                    Bar), to a specific product (for example 1oz Valcambi bar), or mark it not a product (a fee, shipment or storage).
                 </p>
                 <Button className="ml-auto" variant="outline" onClick={() => setCreating(true)}>
                     New sales product
@@ -390,7 +465,7 @@ function AliasesQueue() {
                                 <TableRow>
                                     <TableHead>Name in the data</TableHead>
                                     <TableHead className="text-right">Used</TableHead>
-                                    <TableHead>Sales product</TableHead>
+                                    <TableHead>Product</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
@@ -403,22 +478,16 @@ function AliasesQueue() {
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums">{a.uses.toLocaleString()}</TableCell>
                                         <TableCell>
-                                            <select
-                                                aria-label={`Sales product for ${a.alias}`}
-                                                className="border-input bg-background h-9 w-full max-w-64 rounded-md border px-2 text-sm"
-                                                value={choice[a.id] ?? ""}
-                                                onChange={(e) => setChoice((c) => ({ ...c, [a.id]: e.target.value }))}
-                                            >
-                                                <option value="">Choose...</option>
-                                                {(products.data ?? []).map((p: SalesProduct) => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <ProductPicker
+                                                name={a.alias}
+                                                pricing={pricing.data ?? []}
+                                                specific={products.data ?? []}
+                                                value={choice[a.id]}
+                                                onChange={(c) => setChoice((prev) => ({ ...prev, [a.id]: c }))}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button size="sm" disabled={!choice[a.id] || map.isPending} onClick={() => map.mutate({ id: a.id, salesProductId: Number(choice[a.id]) })}>
+                                            <Button size="sm" disabled={!choice[a.id] || map.isPending} onClick={() => map.mutate({ id: a.id, body: choice[a.id].body })}>
                                                 Tie
                                             </Button>
                                         </TableCell>

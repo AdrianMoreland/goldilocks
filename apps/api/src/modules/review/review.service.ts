@@ -29,6 +29,13 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { LinkRulesService } from './link-rules.service';
 
+/** A name nobody has settled yet: no specific product, no pricing product, not marked as a non-product. */
+const UNSETTLED_ALIAS = {
+    salesProductId: null,
+    productId: null,
+    noProduct: false,
+} satisfies Prisma.ProductAliasWhereInput;
+
 type End = { table: string; label: string; detail: string | null };
 
 const day = (d: unknown): string | null =>
@@ -85,9 +92,7 @@ export class ReviewService {
                 }),
                 this.prisma.trade.count({ where: this.unresolvedWhere() }),
                 this.prisma.trade.count({ where: this.duplicateWhere() }),
-                this.prisma.productAlias.count({
-                    where: { salesProductId: null },
-                }),
+                this.prisma.productAlias.count({ where: UNSETTLED_ALIAS }),
                 this.overAllocatedLots().then((l) => l.length),
             ]);
         return {
@@ -441,7 +446,7 @@ export class ReviewService {
 
     async aliases(rawQuery: Record<string, unknown>): Promise<AliasesResponse> {
         const { limit, offset } = this.pageQuery(rawQuery);
-        const where: Prisma.ProductAliasWhereInput = { salesProductId: null };
+        const where: Prisma.ProductAliasWhereInput = UNSETTLED_ALIAS;
         const [total, rows] = await Promise.all([
             this.prisma.productAlias.count({ where }),
             this.prisma.productAlias.findMany({
@@ -547,30 +552,61 @@ export class ReviewService {
         body: MapAliasRequest,
         actor: string,
     ): Promise<{ id: number }> {
-        const [alias, product] = await Promise.all([
-            this.prisma.productAlias.findUnique({ where: { id } }),
-            this.prisma.salesProduct.findUnique({
-                where: { id: body.salesProductId },
-            }),
-        ]);
+        const alias = await this.prisma.productAlias.findUnique({
+            where: { id },
+        });
         if (!alias) throw new NotFoundException(`Alias ${id} not found.`);
-        if (!product)
+        const chosen = [
+            body.salesProductId,
+            body.productId,
+            body.noProduct,
+        ].filter((v) => v !== undefined);
+        if (chosen.length !== 1)
             throw new BadRequestException(
-                `Sales product ${body.salesProductId} not found.`,
+                'Choose exactly one of a sales product, a pricing product or not a product.',
             );
-        await this.prisma.$transaction(async (tx) => {
-            await tx.productAlias.update({
-                where: { id },
-                data: {
-                    salesProductId: product.id,
-                    refinery:
-                        alias.refinery ?? normaliseRefinery(product.refinery),
-                },
+
+        let data: Prisma.ProductAliasUncheckedUpdateInput;
+        let what: string;
+        if (body.salesProductId !== undefined) {
+            const product = await this.prisma.salesProduct.findUnique({
+                where: { id: body.salesProductId },
             });
+            if (!product)
+                throw new BadRequestException(
+                    `Sales product ${body.salesProductId} not found.`,
+                );
+            data = {
+                salesProductId: product.id,
+                productId: null,
+                noProduct: false,
+                refinery: alias.refinery ?? normaliseRefinery(product.refinery),
+            };
+            what = `sales product ${product.id}`;
+        } else if (body.productId !== undefined) {
+            const product = await this.prisma.product.findUnique({
+                where: { id: body.productId },
+            });
+            if (!product)
+                throw new BadRequestException(
+                    `Pricing product ${body.productId} not found.`,
+                );
+            data = {
+                productId: product.id,
+                salesProductId: null,
+                noProduct: false,
+            };
+            what = `pricing product ${product.id}`;
+        } else {
+            data = { noProduct: true, salesProductId: null, productId: null };
+            what = 'not a product';
+        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.productAlias.update({ where: { id }, data });
             await this.audit.record(
                 actor,
                 'alias-map',
-                `alias ${id} mapped to sales product ${product.id}`,
+                `alias ${id} mapped to ${what}`,
                 tx,
             );
         });
