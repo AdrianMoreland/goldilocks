@@ -92,15 +92,89 @@ export type DuplicateRow = z.infer<typeof DuplicateRowSchema>;
 export const DuplicatesResponseSchema = z.object({ total: z.number().int(), rows: z.array(DuplicateRowSchema) });
 export type DuplicatesResponse = z.infer<typeof DuplicatesResponseSchema>;
 
+/** What a product name is suggested to become (or, for a settled name, what it was settled to). */
+export const AliasTargetSchema = z.object({
+  kind: z.enum(['PRICING', 'SPECIFIC', 'NOT_A_PRODUCT']),
+  id: z.number().int().nullable(),
+  name: z.string(),
+});
+export type AliasTarget = z.infer<typeof AliasTargetSchema>;
+
 export const AliasRowSchema = z.object({
   id: z.number().int(),
   alias: z.string(),
   uses: z.number().int(),
   refinery: z.string().nullable(),
+  sources: z.string().nullable(),
+  confidence: z.enum(['CERTAIN', 'LIKELY', 'UNCLEAR']).nullable(),
+  reason: z.string().nullable(),
+  /** For a LIKELY suggestion: what to ask, e.g. "South African Krugerrand: match to 1oz Krugerrand?". */
+  question: z.string().nullable(),
+  /** The name needs a catalogue row that is not there yet. */
+  catalogueGap: z.boolean(),
+  /** RULE or PERSON once settled; null while it waits. */
+  decidedBy: z.enum(['RULE', 'PERSON']).nullable(),
+  /** The suggestion for a name that waits. */
+  suggestion: AliasTargetSchema.nullable(),
+  /** What a settled name was settled to. */
+  settledTo: AliasTargetSchema.nullable(),
 });
 export type AliasRow = z.infer<typeof AliasRowSchema>;
-export const AliasesResponseSchema = z.object({ total: z.number().int(), rows: z.array(AliasRowSchema) });
+
+/** Names in each state. "Settled" counts names settled by rule only; a person's own decisions are not queue items. */
+export const AliasCountsSchema = z.object({
+  settledByRule: z.number().int(),
+  toConfirm: z.number().int(),
+  toDecide: z.number().int(),
+});
+export type AliasCounts = z.infer<typeof AliasCountsSchema>;
+
+export const ALIAS_VIEWS = ['open', 'confirm', 'decide', 'settled'] as const;
+export const AliasesQuerySchema = z.object({
+  /** open = to confirm and to decide; confirm = LIKELY suggestions; decide = UNCLEAR; settled = settled by rule. */
+  view: z.enum(ALIAS_VIEWS).default('open'),
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type AliasesQuery = z.infer<typeof AliasesQuerySchema>;
+
+export const AliasesResponseSchema = z.object({
+  total: z.number().int(),
+  counts: AliasCountsSchema,
+  rows: z.array(AliasRowSchema),
+});
 export type AliasesResponse = z.infer<typeof AliasesResponseSchema>;
+
+/** Rescan: re-run the matching rules over every name a person has not decided. dryRun counts and writes nothing. */
+export const SettleNamesRequestSchema = z.object({ dryRun: z.boolean().default(false) });
+export type SettleNamesRequest = z.infer<typeof SettleNamesRequestSchema>;
+
+export const SettleNamesResultSchema = z.object({
+  dryRun: z.boolean(),
+  /** Names the rules now settle (applied, unless dryRun). */
+  certain: z.number().int(),
+  /** Names with a suggestion to confirm. */
+  likely: z.number().int(),
+  /** Names a person has to decide. */
+  unclear: z.number().int(),
+  /** Names whose stored state the scan left as it was. */
+  unchanged: z.number().int(),
+});
+export type SettleNamesResult = z.infer<typeof SettleNamesResultSchema>;
+
+/** Accept or reject the engine's suggestions for these names. */
+export const NameSuggestionDecisionRequestSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1).max(5000),
+});
+export type NameSuggestionDecisionRequest = z.infer<typeof NameSuggestionDecisionRequestSchema>;
+
+export const NameSuggestionDecisionResultSchema = z.object({
+  /** Names changed by this call. */
+  done: z.number().int(),
+  /** Names skipped: gone, already decided by a person, or with no suggestion to act on. */
+  skipped: z.number().int(),
+});
+export type NameSuggestionDecisionResult = z.infer<typeof NameSuggestionDecisionResultSchema>;
 
 export const SalesProductSchema = z.object({
   id: z.number().int(),
