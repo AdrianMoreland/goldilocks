@@ -325,6 +325,50 @@ describe('resolveRowProduct', () => {
     expect(resolveRowProduct({ productText: '1oz Krugerrand', metal: 'GOLD' }, d)).toMatchObject({ method: 'GENERIC_REFINERY', salesProductId: 21 });
   });
 
+  it('does not apply a RULE decision made under a gold tab to a silver-tab row', () => {
+    const d: RowResolverData = {
+      catalogue: [
+        { id: 31, sku: 'GOLD-1OZ-BRITANNIA-COIN', metalType: 'GOLD' },
+        { id: 32, sku: 'SILVER-1OZ-BRITANNIA-COIN', metalType: 'SILVER' },
+        { id: 33, sku: 'PLATINUM-1OZ-BRITANNIA-COIN', metalType: 'PLATINUM' },
+      ],
+      salesProducts: [],
+      decisions: [{ key: '1oz britannia', productId: 31, salesProductId: null, decidedBy: 'RULE', metalHint: 'GOLD' }],
+    };
+    expect(resolveRowProduct({ productText: '1oz Britannia', metal: 'SILVER' }, d)).toMatchObject({ pricingProductId: 32 });
+    expect(resolveRowProduct({ productText: '1oz Britannia', metal: 'GOLD' }, d)).toMatchObject({ pricingProductId: 31 });
+    // A RULE decision with no known metal is not applied to any row.
+    const noMetal = { ...d, decisions: [{ key: '1oz britannia', productId: 31, salesProductId: null, decidedBy: 'RULE' as const, metalHint: null }] };
+    expect(resolveRowProduct({ productText: '1oz Britannia', metal: 'SILVER' }, noMetal)).toMatchObject({ pricingProductId: 32 });
+    // The row's own metal is its text first: "1oz Silver Britannia" on a gold tab is silver.
+    expect(resolveRowProduct({ productText: '1oz Silver Britannia', metal: 'GOLD' }, d)).toMatchObject({ pricingProductId: 32 });
+    // A person's decision is applied whatever the tab.
+    const person = { ...d, decisions: [{ key: '1oz britannia', productId: 31, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: 'GOLD' }] };
+    expect(resolveRowProduct({ productText: '1oz Britannia', metal: 'SILVER' }, person)).toMatchObject({ pricingProductId: 31, method: 'ALIAS' });
+    // A rule decision of the row's own metal is applied.
+    const same = { ...d, decisions: [{ key: '1oz britannia', productId: 32, salesProductId: null, decidedBy: 'RULE' as const, metalHint: 'SILVER' }] };
+    expect(resolveRowProduct({ productText: '1oz Britannia', metal: 'SILVER' }, same)).toMatchObject({ pricingProductId: 32, method: 'ALIAS' });
+    // A rule decision that says "not a product" holds for any metal.
+    const fee = { ...d, decisions: [{ key: 'delivery fee', productId: null, salesProductId: null, noProduct: true, decidedBy: 'RULE' as const, metalHint: null }] };
+    expect(resolveRowProduct({ productText: 'Delivery Fee', metal: 'SILVER' }, fee)).toMatchObject({ method: 'NOT_PRODUCT' });
+  });
+
+  it('resolves "1/4oz Eagle" and "1/4oz American Eagle" to the same product', () => {
+    const d: RowResolverData = {
+      catalogue: [
+        { id: 86, sku: 'GOLD-1/4OZ-COIN', metalType: 'GOLD' },
+        { id: 87, sku: 'GOLD-1/4OZ-US-COIN', metalType: 'GOLD' },
+      ],
+      salesProducts: [{ id: 116, name: '1/4oz Gold American Eagle', genericNorm: '1/4oz american eagle', refinery: null, pricingProductId: 86 }],
+      decisions: [],
+    };
+    const a = resolveRowProduct({ productText: '1/4oz Eagle', metal: 'GOLD' }, d);
+    const b = resolveRowProduct({ productText: '1/4oz American Eagle', metal: 'GOLD' }, d);
+    expect(a.pricingProductId).toBe(b.pricingProductId);
+    expect(a.salesProductId).toBe(b.salesProductId);
+    expect(b).toMatchObject({ salesProductId: 116, pricingProductId: 86 });
+  });
+
   it('does not apply decisions to a text that lists several products', () => {
     expect(resolve('1oz bar, 5g bar').method).toBe('NONE');
   });

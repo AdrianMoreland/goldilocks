@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { aliasOk } from '@goldilocks/shared-types';
 import type {
     AllocationSummary,
     RowResolverData,
@@ -10,6 +11,7 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { ProductNamesService } from '../review/product-names.service';
 import {
     parseTab,
     reconcileTab,
@@ -52,9 +54,12 @@ interface Built {
  */
 @Injectable()
 export class TradesheetImportService {
+    private readonly logger = new Logger(TradesheetImportService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        private readonly names: ProductNamesService,
     ) {}
 
     /** What an import would do. Writes nothing. */
@@ -66,7 +71,8 @@ export class TradesheetImportService {
         dto: TradesheetImportRequest,
         actor: string,
     ): Promise<TradesheetImportResult> {
-        return this.prisma.$transaction(
+        let newNames: string[] = [];
+        const result = await this.prisma.$transaction(
             async (tx) => {
                 // Planned again inside the transaction, so what is written is what is on the table now.
                 const built = await this.build(dto, tx);
@@ -105,6 +111,7 @@ export class TradesheetImportService {
                     );
                 }
                 const allocation = await this.allocate(tx, built.recs);
+                newNames = await this.registerNames(tx, built.recs);
                 const t = built.plan.totals;
                 await this.audit.record(
                     actor,
@@ -117,6 +124,65 @@ export class TradesheetImportService {
             // Backstop: the API is ~140 ms from the database, so even batched, a big file needs room.
             { timeout: 300_000, maxWait: 10_000 },
         );
+        // The names were saved with the import; matching them is best effort and never fails it.
+        await this.settleNames(newNames, actor, result.batchId);
+        return result;
+    }
+
+    // --- product names -----------------------------------------------------------------
+
+    /**
+     * The product names this import added or changed that no saved decision or rule placed: they join the names
+     * queue (if not already there), inside the import's transaction. Returns their texts for `settleNames`.
+     */
+    private async registerNames(
+        tx: Db,
+        recs: TabReconciliation[],
+    ): Promise<string[]> {
+        const found = new Map<
+            string,
+            { alias: string; uses: number; metalHint: 'GOLD' | 'SILVER' | null }
+        >();
+        for (const rec of recs) {
+            for (const r of [...rec.sales, ...rec.lots]) {
+                if (r.status === 'MISSING' || r.status === 'UNCHANGED')
+                    continue;
+                if (r.how !== 'NONE' || !r.productKey) continue;
+                if (!aliasOk(r.parsed.product, r.productKey)) continue;
+                const seen = found.get(r.productKey);
+                if (seen) seen.uses++;
+                else
+                    found.set(r.productKey, {
+                        alias: r.productKey,
+                        uses: 1,
+                        metalHint: r.metal,
+                    });
+            }
+        }
+        const names = [...found.values()];
+        await this.names.registerNames(names, 'tradesheet', tx);
+        return names.map((n) => n.alias);
+    }
+
+    /** After the import has committed: the rules settle or suggest the new names. Best effort: log and carry on. */
+    private async settleNames(
+        aliases: string[],
+        actor: string,
+        batchId: number,
+    ): Promise<void> {
+        if (aliases.length === 0) return;
+        try {
+            await this.names.settleAndRecord(
+                { aliases },
+                actor,
+                this.prisma,
+                `batch ${batchId} tradesheet names`,
+            );
+        } catch (e) {
+            this.logger.error(
+                `Settling the product names of import batch ${batchId} failed; the names stay in the queue for a rescan: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
     }
 
     // --- matching sales to lots --------------------------------------------------------
@@ -305,6 +371,8 @@ export class TradesheetImportService {
                     productId: true,
                     salesProductId: true,
                     noProduct: true,
+                    decidedBy: true,
+                    metalHint: true,
                 },
             }),
             db.salesProduct.findMany({
@@ -327,6 +395,8 @@ export class TradesheetImportService {
                 productId: a.productId,
                 salesProductId: a.salesProductId,
                 noProduct: a.noProduct,
+                decidedBy: a.decidedBy,
+                metalHint: a.metalHint,
             })),
         };
     }

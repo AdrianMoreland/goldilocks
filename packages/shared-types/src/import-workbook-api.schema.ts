@@ -21,6 +21,7 @@ export const WORKBOOK_LOAD_ORDER = [
   'customer_safe_items',
   'bc_tracking_entries',
   'bc_items',
+  'zoho_products',
   'stock_bars',
   'stock_coins',
   'bc_journal_lines',

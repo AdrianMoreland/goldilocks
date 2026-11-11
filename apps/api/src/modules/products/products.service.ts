@@ -14,9 +14,17 @@ export class ProductsService {
 
     /**
      * Raw products, no pricing applied: the module's read API for other
-     * modules and for admin views. Priced products come from MarketDataService.
+     * modules. Priced products come from MarketDataService. Inactive products
+     * are left out, so every price list, the dashboard table, the portfolio
+     * builder and the assistant's lookups never show them; a hidden catalogue
+     * row exists only for product names to settle to.
      */
     async getRawProducts(): Promise<RawProduct[]> {
+        return (await this.productsProvider.getAll()).filter((p) => p.isActive);
+    }
+
+    /** Every live product including the inactive ones, for the admin views that bring a hidden product back. */
+    async getRawProductsIncludingInactive(): Promise<RawProduct[]> {
         return this.productsProvider.getAll();
     }
 

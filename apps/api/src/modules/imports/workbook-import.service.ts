@@ -9,7 +9,7 @@ import {
     type ImportBatchSummary,
     referenceMatchKey,
     type CustomerOrderImportRow,
-    type ImportTableName,
+    bcItemNoFromSku,
     type StockMetal,
     type WorkbookChunkRequest,
     type WorkbookChunkResult,
@@ -19,10 +19,12 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { LinkRulesService } from '../review/link-rules.service';
+import { ProductNamesService } from '../review/product-names.service';
 import { CustomerOrdersService } from '../customer-orders/customer-orders.service';
 import {
     DIRECT_TABLES,
     FK_LOOKUP,
+    workbookAliasKey,
     changedFields,
     mapFields,
     type DirectTableSpec,
@@ -72,6 +74,7 @@ export class WorkbookImportService {
         private readonly audit: AuditLogService,
         private readonly rules: LinkRulesService,
         private readonly orders: CustomerOrdersService,
+        private readonly names: ProductNamesService,
     ) {}
 
     /** What this chunk would do. Writes nothing (the batch id is 0 until a commit creates one). */
@@ -128,6 +131,10 @@ export class WorkbookImportService {
             counts = await this.upsertLinks(ctx, rows);
         else if (dto.table === 'customer_safe_items')
             counts = await this.saveSafeItems(ctx, rows);
+        else if (dto.table === 'zoho_products')
+            counts = await this.saveZohoProducts(ctx, rows);
+        else if (dto.table === 'product_aliases')
+            counts = await this.saveAliases(ctx, rows);
         else
             counts = await this.upsertDirect(
                 ctx,
@@ -145,7 +152,7 @@ export class WorkbookImportService {
 
     /** Checks every row against the table's schema. Errors name the row and column, never the value. */
     private validate(table: WorkbookLoadTable, input: Row[]): Row[] {
-        const schema = ImportTableSchemas[table as ImportTableName];
+        const schema = ImportTableSchemas[table];
         const people = table === 'customers' || table === 'vendors';
         const problems: string[] = [];
         const out = input.map((raw, i) => {
@@ -296,6 +303,70 @@ export class WorkbookImportService {
             );
         }
         return maps;
+    }
+
+    // --- product names ------------------------------------------------------------------------
+
+    /** Aliases are plain upserts; once the chunk is in, the rules settle the names it carried (a person's decisions stay). */
+    private async saveAliases(ctx: Ctx, rows: Row[]): Promise<Counts> {
+        const counts = await this.upsertDirect(
+            ctx,
+            DIRECT_TABLES.product_aliases!,
+            rows,
+        );
+        if (!ctx.dry) {
+            const keys = [
+                ...new Set(
+                    rows
+                        .map((r) => workbookAliasKey(r))
+                        .filter((k): k is string => k !== null),
+                ),
+            ];
+            for (let i = 0; i < keys.length; i += 5000)
+                await this.names.settleAndRecord(
+                    { aliases: keys.slice(i, i + 5000) },
+                    ctx.actor,
+                    ctx.db,
+                    `batch ${ctx.batchId} product_aliases`,
+                );
+        }
+        return counts;
+    }
+
+    /** Zoho products: a SKU that is a BC item number (1103, 1103-HISTORIC, 2705.0) takes that BC item's products. */
+    private async saveZohoProducts(ctx: Ctx, rows: Row[]): Promise<Counts> {
+        const numbers = [
+            ...new Set(
+                rows
+                    .map((r) => bcItemNoFromSku(str(r['sku'])))
+                    .filter((n): n is string => n !== null),
+            ),
+        ];
+        const items = new Map<
+            string,
+            { productId: number | null; salesProductId: number | null }
+        >();
+        for (let i = 0; i < numbers.length; i += 5000) {
+            const found = await ctx.db.bcItem.findMany({
+                where: { itemNo: { in: numbers.slice(i, i + 5000) } },
+                select: {
+                    itemNo: true,
+                    productId: true,
+                    salesProductId: true,
+                },
+            });
+            for (const f of found) items.set(f.itemNo, f);
+        }
+        const linked = rows.map((r) => {
+            const no = bcItemNoFromSku(str(r['sku']));
+            const item = no ? items.get(no) : undefined;
+            return {
+                ...r,
+                _product_id: item?.productId ?? null,
+                _sales_product_id: item?.salesProductId ?? null,
+            };
+        });
+        return this.upsertDirect(ctx, DIRECT_TABLES.zoho_products!, linked);
     }
 
     // --- plain upserts by key ----------------------------------------------------------------

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import type { TradesheetImportRequest } from '@goldilocks/shared-types';
 import { TradesheetImportService } from './tradesheet-import.service';
@@ -163,11 +164,16 @@ function setup(
         $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const names = {
+        registerNames: jest.fn().mockResolvedValue(undefined),
+        settleAndRecord: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new TradesheetImportService(
         prisma as unknown as PrismaService,
         audit as unknown as AuditLogService,
+        names as never,
     );
-    return { service, prisma, tx, audit };
+    return { service, prisma, tx, audit, names };
 }
 
 describe('TradesheetImportService.preview', () => {
@@ -290,6 +296,65 @@ describe('TradesheetImportService.commit', () => {
             expect.stringContaining('2 added'),
             tx,
         );
+    });
+
+    it('registers only the names it could not place, with the tab metal, inside the transaction', async () => {
+        const { service, tx, names } = setup();
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await service.commit(req, 'admin@merrion.ie');
+        expect(tx.importBatch.create).toHaveBeenCalled();
+        expect(names.registerNames).toHaveBeenCalledTimes(1);
+        const [list, source, db] = names.registerNames.mock.calls[0] as [
+            { alias: string; uses: number; metalHint: string }[],
+            string,
+            unknown,
+        ];
+        expect(source).toBe('tradesheet');
+        expect(db).toBe(tx);
+        expect(list).toHaveLength(1);
+        expect(list[0]).toMatchObject({ uses: 1, metalHint: 'GOLD' });
+        expect(list[0].alias).toContain('zorblax');
+    });
+
+    it('settles the new names after the transaction has committed, outside it', async () => {
+        const { service, prisma, names } = setup();
+        const order: string[] = [];
+        prisma.$transaction.mockImplementation(
+            async (fn: (t: never) => unknown) => {
+                const r = await fn(prisma as never);
+                order.push('commit');
+                return r;
+            },
+        );
+        names.settleAndRecord.mockImplementation(async () => {
+            order.push('settle');
+        });
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await service.commit(req, 'admin@merrion.ie');
+        expect(order).toEqual(['commit', 'settle']);
+        expect(names.settleAndRecord).toHaveBeenCalledWith(
+            { aliases: [expect.stringContaining('zorblax')] },
+            'admin@merrion.ie',
+            prisma,
+            expect.stringContaining('tradesheet names'),
+        );
+    });
+
+    it('never fails the import when settling the names fails', async () => {
+        const { service, names } = setup();
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(
+            () => undefined,
+        );
+        names.settleAndRecord.mockRejectedValue(new Error('db gone'));
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await expect(
+            service.commit(req, 'admin@merrion.ie'),
+        ).resolves.toMatchObject({
+            batchId: 11,
+        });
     });
 
     it('creates the stock rows of all new gold lots in one insert', async () => {

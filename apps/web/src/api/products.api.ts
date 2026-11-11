@@ -39,6 +39,7 @@ export function useProductsApi() {
             client.post('/products/admin/products', body, UpdateProductResponseSchema),
         /** Soft delete - hidden everywhere, restorable via restoreProduct. */
         deleteProduct: (id: number) => client.del(`/products/${id}`, DeleteProductResponseSchema),
+        getInactiveProducts: () => client.get('/products/admin/products/inactive', z.array(RawProductSchema)),
         getDeletedProducts: () => client.get('/products/admin/products/deleted', z.array(DeletedProductSchema)),
         restoreProduct: (id: number) =>
             client.post(`/products/admin/products/${id}/restore`, {}, UpdateProductResponseSchema),

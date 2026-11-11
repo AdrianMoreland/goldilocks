@@ -17,6 +17,9 @@ import type {
     BcSalesProductsPreview,
     DuplicatesResponse,
     LinkDecisionResult,
+    NameSuggestionAcceptResult,
+    NameSuggestionDecisionResult,
+    SettleNamesResult,
     OverAllocatedResponse,
     PricingProductOption,
     ReviewLinksResponse,
@@ -27,6 +30,7 @@ import type {
 } from '@goldilocks/shared-types';
 import { ReviewService } from './review.service';
 import { BcSalesProductsService } from './bc-sales-products.service';
+import { ProductNamesService } from './product-names.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -36,6 +40,9 @@ import {
     CreateSalesProductRequestDto,
     LinkDecisionRequestDto,
     MapAliasRequestDto,
+    NameSuggestionAcceptRequestDto,
+    NameSuggestionDecisionRequestDto,
+    SettleNamesRequestDto,
 } from '../../common/dto/dtos';
 
 /** What the import could not settle by itself. Admin only; decisions are recorded, never applied to trades. */
@@ -48,6 +55,7 @@ export class ReviewController {
     constructor(
         private readonly review: ReviewService,
         private readonly bcProducts: BcSalesProductsService,
+        private readonly names: ProductNamesService,
     ) {}
 
     @Get('summary')
@@ -113,10 +121,48 @@ export class ReviewController {
     @Get('aliases')
     @ApiOperation({
         summary:
-            'Product texts not yet tied to a sales product, most used first.',
+            'Product names to confirm, to decide, or settled by rule, most used first.',
     })
     aliases(@Query() query: Record<string, string>): Promise<AliasesResponse> {
-        return this.review.aliases(query);
+        return this.names.list(query);
+    }
+
+    @Post('product-names/settle')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Rescan product names with the rules (dryRun only counts). Names a person decided are never touched.',
+    })
+    settleNames(
+        @Body() body: SettleNamesRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<SettleNamesResult> {
+        return this.names.rescan(body.dryRun, req.user.email);
+    }
+
+    @Post('product-names/accept')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Accept the suggestions for these product names, each only if it is still the one the person saw.',
+    })
+    acceptNames(
+        @Body() body: NameSuggestionAcceptRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<NameSuggestionAcceptResult> {
+        return this.names.accept(body.items, req.user.email);
+    }
+
+    @Post('product-names/reject')
+    @HttpCode(200)
+    @ApiOperation({
+        summary: 'Turn down the suggestions for these product names.',
+    })
+    rejectNames(
+        @Body() body: NameSuggestionDecisionRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<NameSuggestionDecisionResult> {
+        return this.names.reject(body.ids, req.user.email);
     }
 
     @Get('sales-products')

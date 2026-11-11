@@ -60,10 +60,12 @@ model Product {
   /// is hidden everywhere but can be restored from the admin panel.
   deletedAt     DateTime?        @db.Timestamptz(6)
 
-  bcItems BcItem[]
-  trades  Trade[]
-  lots    PurchaseLot[]
-  aliases ProductAlias[]
+  bcItems          BcItem[]
+  trades           Trade[]
+  lots             PurchaseLot[]
+  aliases          ProductAlias[]
+  suggestedAliases ProductAlias[] @relation("AliasSuggestedProduct")
+  zohoProducts     ZohoProduct[]
 
   @@index([metalType])
   @@index([metalType, stock])
@@ -891,9 +893,95 @@ model ProductAlias {
   uses           Int           @default(0)
   createdAt      DateTime      @default(now()) @db.Timestamptz(6)
 
+  /// Comma list of where the name was seen (e.g. "stock_bars,invoice_lines").
+  sources                 String?
+  /// The metal of the tab or source the name came from, when it says one.
+  metalHint               MetalType?
+  /// Who settled the name: RULE (the matching engine, undoable) or PERSON. Null while undecided.
+  decidedBy               AliasDecider?
+  /// What the engine suggests for a name it is not sure of; nothing here is applied until a person accepts it.
+  suggestedProductId      Int?
+  suggestedProduct        Product?         @relation("AliasSuggestedProduct", fields: [suggestedProductId], references: [id], onDelete: SetNull)
+  suggestedSalesProductId Int?
+  suggestedSalesProduct   SalesProduct?    @relation("AliasSuggestedSalesProduct", fields: [suggestedSalesProductId], references: [id], onDelete: SetNull)
+  suggestedNoProduct      Boolean          @default(false)
+  confidence              MatchConfidence?
+  /// Why the engine decided or suggested what it did.
+  reason                  String?
+  /// For a LIKELY suggestion: the question put to the person.
+  question                String?
+  /// The name needs a catalogue row that does not exist yet.
+  catalogueGap            Boolean          @default(false)
+
   @@index([productKey])
   @@index([salesProductId])
+  @@index([decidedBy])
   @@map("product_aliases")
+}
+
+/// Who settled a product name.
+enum AliasDecider {
+  RULE
+  PERSON
+}
+
+/// How sure the matching engine is of a product name.
+enum MatchConfidence {
+  CERTAIN
+  LIKELY
+  UNCLEAR
+}
+
+enum ProductRuleKind {
+  WORD
+  DESIGN
+  DEFAULT
+  NOT_A_PRODUCT
+  SHEET_METAL
+}
+
+/// A matching rule the owner can edit (a word, a coin design, a default, a non-product phrase, a sheet's metal).
+/// The engine ships with built-in rules; rows here are for the rules page.
+model ProductRule {
+  id        Int             @id @default(autoincrement())
+  kind      ProductRuleKind
+  pattern   String
+  value     Json
+  note      String?
+  active    Boolean         @default(true)
+  createdBy String
+  createdAt DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime        @updatedAt @db.Timestamptz(6)
+
+  @@unique([kind, pattern])
+  @@map("product_rules")
+}
+
+/// One Zoho item with what was sold of it (the workbook's zoho_products table). A SKU that is a BC item number
+/// carries that item's products.
+model ZohoProduct {
+  id                Int           @id @default(autoincrement())
+  sourceKey         String        @unique
+  sku               String?
+  itemName          String
+  productNorm       String?
+  metal             String?
+  qtySold           Decimal?      @db.Decimal(14, 4)
+  amount            Decimal?      @db.Decimal(14, 4)
+  avgPrice          Decimal?      @db.Decimal(14, 4)
+  productId         Int?
+  product           Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  salesProductId    Int?
+  salesProduct      SalesProduct? @relation(fields: [salesProductId], references: [id], onDelete: SetNull)
+  missingFromImport Boolean       @default(false)
+  importBatchId     Int
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@index([sku])
+  @@index([productId])
+  @@index([salesProductId])
+  @@map("zoho_products")
 }
 
 enum OrderStep {
@@ -1086,12 +1174,14 @@ model SalesProduct {
   createdAt        DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime   @updatedAt @db.Timestamptz(6)
 
-  bcItems      BcItem[]
-  aliases      ProductAlias[]
-  trades       Trade[]
-  lots         PurchaseLot[]
-  invoiceLines ZohoInvoiceLine[]
-  quotes       Quote[]
+  bcItems          BcItem[]
+  aliases          ProductAlias[]
+  trades           Trade[]
+  lots             PurchaseLot[]
+  invoiceLines     ZohoInvoiceLine[]
+  quotes           Quote[]
+  suggestedAliases ProductAlias[]    @relation("AliasSuggestedSalesProduct")
+  zohoProducts     ZohoProduct[]
 
   @@index([genericNorm, refinery])
   @@index([pricingProductId])

@@ -63,6 +63,8 @@ interface Entry {
     premium: number;
     discount: number;
     stock: number;
+    /** Hidden rows exist only so a product name can settle to them: created with isActive false, never shown in a price list. */
+    hidden?: boolean;
 }
 
 const bar = (skuSuffix: string, name: string, weightGrams: number, premium: number, discount: number, stock: number): Entry => ({
@@ -84,6 +86,10 @@ const coin = (skuSuffix: string, name: string, weightGrams: number, premium: num
     discount,
     stock,
 });
+
+/** A hidden row: no spread, no stock, inactive. See `Entry.hidden`. */
+const hiddenBar = (skuSuffix: string, name: string, weightGrams: number): Entry => ({ ...bar(skuSuffix, name, weightGrams, 0, 0, 0), hidden: true });
+const hiddenCoin = (skuSuffix: string, name: string, weightGrams: number): Entry => ({ ...coin(skuSuffix, name, weightGrams, 0, 0, 0), hidden: true });
 
 // ============================================================================
 // GOLD - no 10oz bar (workbook lists it with a 0% placeholder premium, i.e.
@@ -119,6 +125,13 @@ const GOLD_ENTRIES: Entry[] = [
     coin("1/4OZ-US", "1/4oz US Eagle", GRAMS_PER_TROY_OUNCE / 4, 0.1675, 0.06, 40),
     coin("1/2OZ", "1/2oz Coin", GRAMS_PER_TROY_OUNCE / 2, 0.115, 0.06, 35),
     coin("1/2OZ-US", "1/2oz US Eagle", GRAMS_PER_TROY_OUNCE / 2, 0.125, 0.05, 32),
+    hiddenCoin("1OZ", "1oz Gold Coin", GRAMS_PER_TROY_OUNCE),
+    hiddenBar("10OZ", "10oz Gold Bar", GRAMS_PER_TROY_OUNCE * 10),
+    hiddenBar("100OZ", "100oz Gold Bar", GRAMS_PER_TROY_OUNCE * 100),
+    hiddenBar("5KG", "5kg Gold Bar", 5000),
+    hiddenBar("1/2OZ", "1/2oz Gold Bar", 15.5518),
+    hiddenCoin("QUARTER-SOVEREIGN", "Quarter Sovereign", 1.997),
+    hiddenCoin("QUINTUPLE-SOVEREIGN", "Quintuple Sovereign", 39.94),
 ];
 
 // ============================================================================
@@ -155,6 +168,9 @@ const SILVER_ENTRIES: Entry[] = [
     coin("1OZ-USEAGLE", "1oz US Eagle", GRAMS_PER_TROY_OUNCE, 0.40, 0.085, 30),
     coin("2OZ-QUEENSBEASTS", "2oz Queen's Beasts", GRAMS_PER_TROY_OUNCE * 2, 0.425, 0.085, 20),
     coin("1KG-COINS", "1kg Coins", 1000, 0.40, 0.06, 10),
+    hiddenBar("1000OZ", "1000oz Silver Bar", GRAMS_PER_TROY_OUNCE * 1000),
+    hiddenBar("10OZ", "10oz Silver Bar", GRAMS_PER_TROY_OUNCE * 10),
+    hiddenBar("50G", "50g Silver Bar", 50),
 ];
 
 // ============================================================================
@@ -172,6 +188,7 @@ const PLATINUM_ENTRIES: Entry[] = [
 
     coin("1OZ-BRITANNIA", "1oz Britannia", GRAMS_PER_TROY_OUNCE, 0.12, 0.035, 15),
     coin("1OZ-MAPLE", "1oz Maple", GRAMS_PER_TROY_OUNCE, 0.12, 0.035, 15),
+    hiddenCoin("1OZ", "1oz Platinum Coin", GRAMS_PER_TROY_OUNCE),
 ];
 
 const PALLADIUM_ENTRIES: Entry[] = [
@@ -185,6 +202,7 @@ const PALLADIUM_ENTRIES: Entry[] = [
 
     coin("1OZ-BRITANNIA", "1oz Britannia", GRAMS_PER_TROY_OUNCE, 0.15, 0.035, 15),
     coin("1OZ-MAPLE", "1oz Maple", GRAMS_PER_TROY_OUNCE, 0.15, 0.035, 15),
+    hiddenCoin("1OZ", "1oz Palladium Coin", GRAMS_PER_TROY_OUNCE),
 ];
 
 const CATALOGUE: Record<MetalType, Entry[]> = {
@@ -219,6 +237,7 @@ async function upsertEntry(metal: MetalType, entry: Entry) {
             category: entry.kind,
             stock: entry.stock,
             description: entry.name,
+            ...(entry.hidden ? { isActive: false } : {}),
         },
     });
 

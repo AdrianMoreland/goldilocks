@@ -232,37 +232,6 @@ describe('ReviewService', () => {
         });
     });
 
-    it('lists unmapped aliases, most used first', async () => {
-        const { service, prisma } = setup();
-        prisma.productAlias.count.mockResolvedValue(1);
-        prisma.productAlias.findMany.mockResolvedValue([
-            {
-                id: 3,
-                alias: '1oz bar|VALCAMBI',
-                uses: 40,
-                refinery: 'VALCAMBI',
-            },
-        ]);
-        const res = await service.aliases({ limit: '10', offset: '20' });
-        expect(prisma.productAlias.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: {
-                    salesProductId: null,
-                    productId: null,
-                    noProduct: false,
-                },
-                skip: 20,
-                take: 10,
-            }),
-        );
-        expect(res.rows[0]).toEqual({
-            id: 3,
-            alias: '1oz bar|VALCAMBI',
-            uses: 40,
-            refinery: 'VALCAMBI',
-        });
-    });
-
     it('settles pending links through the rules and audits counts only', async () => {
         const { service, rules, audit, prisma } = setup();
         rules.settle.mockResolvedValue({
@@ -458,6 +427,11 @@ describe('ReviewService', () => {
                     productId: null,
                     noProduct: false,
                     refinery: 'VALCAMBI SUISSE',
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
                 },
             });
             expect(audit.record).toHaveBeenCalledWith(
@@ -475,7 +449,16 @@ describe('ReviewService', () => {
             await service.mapAlias(3, { productId: 12 }, 'a@example.com');
             expect(prisma.productAlias.update).toHaveBeenCalledWith({
                 where: { id: 3 },
-                data: { productId: 12, salesProductId: null, noProduct: false },
+                data: {
+                    productId: 12,
+                    salesProductId: null,
+                    noProduct: false,
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
+                },
             });
             expect(audit.record).toHaveBeenCalledWith(
                 'a@example.com',
@@ -495,6 +478,11 @@ describe('ReviewService', () => {
                     noProduct: true,
                     salesProductId: null,
                     productId: null,
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
                 },
             });
             expect(audit.record).toHaveBeenCalledWith(

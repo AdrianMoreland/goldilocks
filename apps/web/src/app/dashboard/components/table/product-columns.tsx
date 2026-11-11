@@ -4,7 +4,7 @@ import * as React from "react"
 import {
     type ColumnDef, type Row, flexRender,
 } from "@tanstack/react-table"
-import { EllipsisVertical, Eye, EyeOff, Pencil, Trash2 } from "lucide-react"
+import { EllipsisVertical, EyeOff, Pencil, Trash2 } from "lucide-react"
 import type { Product } from "@goldilocks/shared-types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,13 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
 import {TableCellViewer} from "@/app/dashboard/components/table-cell-viewer.tsx";
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { useProductsApi } from "@/api/products.api"
-import { queryKeys } from "@/lib/query-keys"
 import { EditProductDialog } from "./edit-product-dialog"
 import { DeleteProductDialog } from "./delete-product-dialog"
+import { HideProductDialog } from "./hide-product-dialog"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import type { DisplayProduct, ProductGroup } from "./product-grouping"
 import { formatPercent, formatPrice } from "../../utils/formatters"
@@ -129,33 +126,22 @@ function SpreadBadge({ value, tone }: { value: number; tone: keyof typeof PRICE_
  */
 function RowActionsMenu({ product }: { product: DisplayProduct }) {
     const { isAdmin } = useAuth()
-    const api = useProductsApi()
-    const queryClient = useQueryClient()
     // Which real product a dialog is open for — on a merged coin row that's
     // one of its mints, picked from the submenu.
     const [editing, setEditing] = React.useState<Product | null>(null)
     const [deleting, setDeleting] = React.useState<Product | null>(null)
+    const [hiding, setHiding] = React.useState<Product | null>(null)
 
     if (!isAdmin) return null
-
-    const toggleActive = async (target: Product) => {
-        try {
-            await api.updateProduct(target.id, { isActive: !target.isActive })
-            await queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all })
-            toast.success(`${target.name} marked ${target.isActive ? "inactive" : "active"}`)
-        } catch {
-            // useApi already shows an error toast on failure
-        }
-    }
 
     const actionsFor = (target: Product) => (
         <>
             <DropdownMenuItem className="cursor-pointer" onClick={() => setEditing(target)}>
                 <Pencil /> Edit product
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={() => toggleActive(target)}>
-                {target.isActive ? <EyeOff /> : <Eye />}
-                {target.isActive ? "Mark inactive" : "Mark active"}
+            {/* Price lists only list active products, so a row here is always active: the only move is to hide it. */}
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setHiding(target)}>
+                <EyeOff /> Mark inactive
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" className="cursor-pointer" onClick={() => setDeleting(target)}>
@@ -202,6 +188,9 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
             </DropdownMenu>
             {editing && (
                 <EditProductDialog product={editing} open onOpenChange={(open) => !open && setEditing(null)} />
+            )}
+            {hiding && (
+                <HideProductDialog product={hiding} open onOpenChange={(open) => !open && setHiding(null)} />
             )}
             {deleting && (
                 <DeleteProductDialog product={deleting} open onOpenChange={(open) => !open && setDeleting(null)} />
