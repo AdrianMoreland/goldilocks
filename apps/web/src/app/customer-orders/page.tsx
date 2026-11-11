@@ -192,19 +192,19 @@ export default function CustomerOrdersPage() {
                 {features.redesign ? (
                     <>
                         <Dialog open={dialog === "add"} onOpenChange={(open) => !open && setDialog(null)}>
-                            <DialogContent className="sm:max-w-3xl">
+                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                                 <DialogHeader><DialogTitle>Add an item</DialogTitle></DialogHeader>
                                 <AddForm onAdded={() => { refresh(); setDialog(null) }} />
                             </DialogContent>
                         </Dialog>
                         <Dialog open={dialog === "paste"} onOpenChange={(open) => !open && setDialog(null)}>
-                            <DialogContent className="sm:max-w-3xl">
+                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                                 <DialogHeader><DialogTitle>Paste from sheet</DialogTitle></DialogHeader>
                                 <ImportBox onImported={refresh} />
                             </DialogContent>
                         </Dialog>
                         <Dialog open={dialog === "sheet"} onOpenChange={(open) => !open && setDialog(null)}>
-                            <DialogContent className="sm:max-w-3xl">
+                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                                 <DialogHeader><DialogTitle>Tradesheet check</DialogTitle></DialogHeader>
                                 <TradesheetLink orders={data ?? []} onLogged={refresh} />
                             </DialogContent>
@@ -396,7 +396,7 @@ function ImportBox({ onImported }: { onImported: () => void }) {
                     ))}
                 </select>
             </div>
-            <Textarea rows={5} className="font-mono text-xs" value={text} onChange={(e) => change(() => setText(e.target.value))} />
+            <Textarea rows={5} className="max-h-60 overflow-y-auto font-mono text-xs" value={text} onChange={(e) => change(() => setText(e.target.value))} />
             {result && (
                 <div className="text-sm">
                     {result.added} new, {result.updated} updated, {result.unchanged} unchanged
