@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { RotateCcw } from "lucide-react"
+import { Eye, RotateCcw } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +28,23 @@ export function DeletedProductsDialog({ open, onOpenChange }: DeletedProductsDia
         enabled: open,
     })
 
+    const inactiveQuery = useQuery({
+        queryKey: queryKeys.admin.inactiveProducts,
+        queryFn: api.getInactiveProducts,
+        enabled: open,
+    })
+
+    const showMutation = useMutation({
+        mutationFn: (id: number) => api.updateProduct(id, { isActive: true }),
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.admin.inactiveProducts }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all }),
+            ])
+            toast.success("Product shown again")
+        },
+    })
+
     const restoreMutation = useMutation({
         mutationFn: (product: DeletedProduct) => api.restoreProduct(product.id),
         onSuccess: async (_result, product) => {
@@ -48,7 +65,7 @@ export function DeletedProductsDialog({ open, onOpenChange }: DeletedProductsDia
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Deleted products</DialogTitle>
+                    <DialogTitle>Deleted and hidden products</DialogTitle>
                     <DialogDescription>Deleted products are hidden everywhere. Restore one to bring it back exactly as it was.</DialogDescription>
                 </DialogHeader>
 
@@ -93,6 +110,36 @@ export function DeletedProductsDialog({ open, onOpenChange }: DeletedProductsDia
                         </ul>
                     )}
                 </div>
+
+                {(inactiveQuery.data?.length ?? 0) > 0 && (
+                    <div className="space-y-2">
+                        <div className="text-sm font-medium">Hidden products</div>
+                        <p className="text-muted-foreground text-xs">
+                            Marked inactive, so they are left out of every price list. Some exist only so product names have a row to settle to.
+                        </p>
+                        <ul className="max-h-40 divide-y overflow-y-auto rounded-lg border">
+                            {(inactiveQuery.data ?? [])
+                                .filter((p) => !term || p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
+                                .map((product) => (
+                                    <li key={product.id} className="flex items-center gap-3 px-3 py-2">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-sm">{product.name}</div>
+                                            <div className="text-muted-foreground truncate text-xs">{product.sku}</div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="shrink-0 cursor-pointer"
+                                            disabled={showMutation.isPending && showMutation.variables === product.id}
+                                            onClick={() => showMutation.mutate(product.id)}
+                                        >
+                                            <Eye /> Show
+                                        </Button>
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     )

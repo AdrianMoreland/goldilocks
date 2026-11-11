@@ -2,8 +2,9 @@ import { useState } from "react"
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LINK_TYPES, type MapAliasRequest, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
+import { LINK_TYPES, type AliasesQuery, type MapAliasRequest, type SettleNamesResult, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
 import { useReviewApi } from "@/api/review.api"
+import { queryKeys } from "@/lib/query-keys"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -424,75 +425,175 @@ function ProductPicker({
     )
 }
 
+type NamesView = AliasesQuery["view"]
+
 function AliasesQueue() {
     const api = useReviewApi()
     const queryClient = useQueryClient()
+    const [view, setView] = useState<NamesView>("open")
     const [offset, setOffset] = useState(0)
     const [choice, setChoice] = useState<Record<number, AliasChoice>>({})
     const [creating, setCreating] = useState(false)
-    const aliases = useQuery({ queryKey: ["review", "aliases", offset], queryFn: () => api.aliases(PAGE, offset) })
-    const products = useQuery({ queryKey: ["review", "sales-products"], queryFn: () => api.salesProducts() })
-    const pricing = useQuery({ queryKey: ["review", "pricing-products"], queryFn: () => api.pricingProducts() })
+    const [rescan, setRescan] = useState<SettleNamesResult | null>(null)
+    const [acceptingAll, setAcceptingAll] = useState(false)
+    const aliases = useQuery({ queryKey: queryKeys.review.productNames(view, offset), queryFn: () => api.aliases(view, PAGE, offset) })
+    const products = useQuery({ queryKey: queryKeys.review.salesProducts, queryFn: () => api.salesProducts() })
+    const pricing = useQuery({ queryKey: queryKeys.review.pricingProducts, queryFn: () => api.pricingProducts() })
+    const counts = aliases.data?.counts
+
+    const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.review.all })
+    const changeView = (v: string) => {
+        setView(v as NamesView)
+        setOffset(0)
+    }
 
     const map = useMutation({
         mutationFn: (v: { id: number; body: MapAliasRequest }) => api.mapAlias(v.id, v.body),
         onSuccess: () => {
             toast.success("Product name tied")
-            void queryClient.invalidateQueries({ queryKey: ["review"] })
+            void refresh()
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const decide = useMutation({
+        mutationFn: (v: { id: number; yes: boolean }) => (v.yes ? api.acceptNames([v.id]) : api.rejectNames([v.id])),
+        onSuccess: (_r, v) => {
+            toast.success(v.yes ? "Accepted" : "Left for you to decide")
+            void refresh()
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const dryRun = useMutation({
+        mutationFn: () => api.rescanNames(true),
+        onSuccess: (r) => setRescan(r),
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const runRescan = useMutation({
+        mutationFn: () => api.rescanNames(false),
+        onSuccess: (r) => {
+            setRescan(null)
+            toast.success(`${r.certain} settled by rule, ${r.likely} to confirm, ${r.unclear} to decide`)
+            void refresh()
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const acceptAll = useMutation({
+        mutationFn: async () => {
+            const ids: number[] = []
+            for (let from = 0; ; from += 1000) {
+                const page = await api.aliases("confirm", 1000, from)
+                ids.push(...page.rows.map((r) => r.id))
+                if (ids.length >= page.total || page.rows.length === 0) break
+            }
+            let done = 0
+            for (let i = 0; i < ids.length; i += 5000) done += (await api.acceptNames(ids.slice(i, i + 5000))).done
+            return done
+        },
+        onSuccess: (done) => {
+            setAcceptingAll(false)
+            toast.success(`${done} accepted`)
+            void refresh()
         },
         onError: (e: Error) => toast.error(e.message),
     })
 
+    const waiting = (counts?.toConfirm ?? 0) + (counts?.toDecide ?? 0)
+
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-                <p className="text-muted-foreground max-w-2xl text-sm">
-                    Product names from invoices and sheets, with the refinery found, most used first. Tie each name to a pricing product (for example 1oz Gold
-                    Bar), to a specific product (for example 1oz Valcambi bar), or mark it not a product (a fee, shipment or storage).
+                <p className="text-muted-foreground text-sm tabular-nums">
+                    {counts ? `${counts.settledByRule.toLocaleString()} settled by rule · ${counts.toConfirm.toLocaleString()} to confirm · ${counts.toDecide.toLocaleString()} to decide` : "Loading..."}
                 </p>
-                <Button className="ml-auto" variant="outline" onClick={() => setCreating(true)}>
-                    New sales product
-                </Button>
+                <div className="ml-auto flex flex-wrap gap-2">
+                    <Button variant="outline" disabled={dryRun.isPending} onClick={() => dryRun.mutate()}>
+                        {dryRun.isPending ? "Counting..." : "Rescan names"}
+                    </Button>
+                    <Button variant="outline" disabled={!counts?.toConfirm} onClick={() => setAcceptingAll(true)}>
+                        Accept all suggestions
+                    </Button>
+                    <Button variant="outline" onClick={() => setCreating(true)}>
+                        New sales product
+                    </Button>
+                </div>
             </div>
             <FromBcPanel />
+            <CountTabs
+                aria-label="Product names"
+                value={view}
+                onValueChange={changeView}
+                items={[
+                    { value: "open", label: "All waiting", count: counts ? waiting : undefined },
+                    { value: "confirm", label: "To confirm", count: counts?.toConfirm },
+                    { value: "decide", label: "To decide", count: counts?.toDecide },
+                    { value: "settled", label: "Settled by rule", count: counts?.settledByRule },
+                ]}
+            />
             <Card>
                 <CardContent className="pt-6">
                     {!aliases.data?.rows.length ? (
-                        <Empty text={aliases.isLoading ? "Loading..." : "Nothing waiting."} />
+                        <Empty text={aliases.isLoading ? "Loading..." : "Nothing here."} />
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name in the data</TableHead>
                                     <TableHead className="text-right">Used</TableHead>
-                                    <TableHead>Product</TableHead>
+                                    <TableHead>{view === "settled" ? "Settled to" : "Suggestion or product"}</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {aliases.data.rows.map((a) => (
-                                    <TableRow key={a.id}>
-                                        <TableCell>
-                                            {a.alias}
-                                            {a.refinery && <span className="text-muted-foreground ml-2 text-xs">{a.refinery}</span>}
-                                        </TableCell>
-                                        <TableCell className="text-right tabular-nums">{a.uses.toLocaleString()}</TableCell>
-                                        <TableCell>
-                                            <ProductPicker
-                                                name={a.alias}
-                                                pricing={pricing.data ?? []}
-                                                specific={products.data ?? []}
-                                                value={choice[a.id]}
-                                                onChange={(c) => setChoice((prev) => ({ ...prev, [a.id]: c }))}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button size="sm" disabled={!choice[a.id] || map.isPending} onClick={() => map.mutate({ id: a.id, body: choice[a.id].body })}>
-                                                Tie
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {aliases.data.rows.map((a) => {
+                                    const confirming = a.decidedBy === null && a.confidence === "LIKELY" && a.suggestion !== null
+                                    return (
+                                        <TableRow key={a.id}>
+                                            <TableCell>
+                                                {a.alias}
+                                                {a.refinery && <span className="text-muted-foreground ml-2 text-xs">{a.refinery}</span>}
+                                                {a.catalogueGap && (
+                                                    <Badge variant="outline" className="ml-2">
+                                                        not in catalogue
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right tabular-nums">{a.uses.toLocaleString()}</TableCell>
+                                            <TableCell>
+                                                {confirming ? (
+                                                    <span className="text-sm">{a.question ?? `${a.alias}: match to ${a.suggestion?.name}?`}</span>
+                                                ) : (
+                                                    <div className="space-y-1">
+                                                        {a.settledTo && <div className="text-sm">{a.settledTo.name}</div>}
+                                                        {a.reason && <div className="text-muted-foreground text-xs">{a.reason}</div>}
+                                                        <ProductPicker
+                                                            name={a.alias}
+                                                            pricing={pricing.data ?? []}
+                                                            specific={products.data ?? []}
+                                                            value={choice[a.id]}
+                                                            onChange={(c) => setChoice((prev) => ({ ...prev, [a.id]: c }))}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {confirming ? (
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: a.id, yes: true })}>
+                                                            Yes
+                                                        </Button>
+                                                        <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate({ id: a.id, yes: false })}>
+                                                            No
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <Button size="sm" disabled={!choice[a.id] || map.isPending} onClick={() => map.mutate({ id: a.id, body: choice[a.id].body })}>
+                                                        {a.decidedBy === "RULE" ? "Change" : "Tie"}
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                         </Table>
                     )}
@@ -500,6 +601,42 @@ function AliasesQueue() {
             </Card>
             <Pager total={aliases.data?.total ?? 0} offset={offset} onOffset={setOffset} />
             <NewSalesProduct open={creating} onClose={() => setCreating(false)} />
+            <Dialog open={rescan !== null} onOpenChange={(o) => !o && setRescan(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Rescan product names?</DialogTitle>
+                        <DialogDescription>
+                            {rescan
+                                ? `${rescan.certain.toLocaleString()} would be settled by rule, ${rescan.likely.toLocaleString()} left to confirm and ${rescan.unclear.toLocaleString()} left to decide. ${rescan.unchanged.toLocaleString()} stay as they are. Names you decided yourself are never changed.`
+                                : ""}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRescan(null)}>
+                            Cancel
+                        </Button>
+                        <Button disabled={runRescan.isPending} onClick={() => runRescan.mutate()}>
+                            {runRescan.isPending ? "Scanning..." : "Rescan"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={acceptingAll} onOpenChange={(o) => !o && setAcceptingAll(false)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Accept {(counts?.toConfirm ?? 0).toLocaleString()} suggestions?</DialogTitle>
+                        <DialogDescription>Every name waiting for a Yes or No is tied to the product suggested for it, as your decision.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setAcceptingAll(false)}>
+                            Cancel
+                        </Button>
+                        <Button disabled={acceptAll.isPending} onClick={() => acceptAll.mutate()}>
+                            {acceptAll.isPending ? "Accepting..." : "Accept all"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

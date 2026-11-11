@@ -6,11 +6,13 @@ import {
     BcSalesProductsPreviewSchema,
     DuplicatesResponseSchema,
     LinkDecisionResultSchema,
+    NameSuggestionDecisionResultSchema,
     OverAllocatedResponseSchema,
     PricingProductOptionListSchema,
     ReviewLinksResponseSchema,
     ReviewSummarySchema,
     SalesProductListSchema,
+    SettleNamesResultSchema,
     SettleResultSchema,
     SalesProductSchema,
     UnresolvedLotsResponseSchema,
@@ -18,6 +20,7 @@ import {
     type CreateSalesProductRequest,
     type LinkDecisionRequest,
     type MapAliasRequest,
+    type AliasesQuery,
 } from '@goldilocks/shared-types';
 
 const page = (limit: number, offset: number, extra: Record<string, string | undefined> = {}) => {
@@ -37,7 +40,11 @@ export function useReviewApi() {
         overAllocated: (limit: number, offset: number) => client.get(`/review/over-allocated${page(limit, offset)}`, OverAllocatedResponseSchema),
         unresolvedLots: (limit: number, offset: number) => client.get(`/review/unresolved-lots${page(limit, offset)}`, UnresolvedLotsResponseSchema),
         duplicates: (limit: number, offset: number) => client.get(`/review/duplicates${page(limit, offset)}`, DuplicatesResponseSchema),
-        aliases: (limit: number, offset: number) => client.get(`/review/aliases${page(limit, offset)}`, AliasesResponseSchema),
+        aliases: (view: AliasesQuery['view'], limit: number, offset: number) => client.get(`/review/aliases${page(limit, offset, { view })}`, AliasesResponseSchema),
+        /** Rescan the product names with the rules. A dry run only counts. */
+        rescanNames: (dryRun: boolean) => client.post('/review/product-names/settle', { dryRun }, SettleNamesResultSchema),
+        acceptNames: (ids: number[]) => client.post('/review/product-names/accept', { ids }, NameSuggestionDecisionResultSchema),
+        rejectNames: (ids: number[]) => client.post('/review/product-names/reject', { ids }, NameSuggestionDecisionResultSchema),
         salesProducts: () => client.get('/review/sales-products', SalesProductListSchema),
         pricingProducts: () => client.get('/review/pricing-products', PricingProductOptionListSchema),
         createSalesProduct: (body: CreateSalesProductRequest) => client.post('/review/sales-products', body, SalesProductSchema),
