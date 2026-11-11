@@ -101,7 +101,7 @@ export const AliasTargetSchema = z.object({
 export type AliasTarget = z.infer<typeof AliasTargetSchema>;
 
 /** Where a product name is used. */
-export const ALIAS_USAGE_SOURCES = ['SALES', 'PURCHASES', 'ZOHO', 'CUSTOMER_SAFE'] as const;
+export const ALIAS_USAGE_SOURCES = ['SALES', 'PURCHASES', 'ZOHO', 'ZOHO_PO', 'CUSTOMER_SAFE'] as const;
 export const AliasUsageSourceSchema = z.enum(ALIAS_USAGE_SOURCES);
 export type AliasUsageSource = z.infer<typeof AliasUsageSourceSchema>;
 export const AliasUsageMetalSchema = z.enum(['GOLD', 'SILVER', 'PGM']);

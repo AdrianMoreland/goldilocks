@@ -12,6 +12,7 @@
  * Built on `normaliseProductText`, which is left exactly as the import script has it.
  */
 import { normaliseProductText } from './product-text';
+import { readForeignCoin } from './product-match-coins';
 import { listedRefinery, refineryMatch, refineryWords } from './refineries';
 
 export type MatchMetal = 'GOLD' | 'SILVER' | 'PLATINUM' | 'PALLADIUM';
@@ -21,6 +22,7 @@ export type MatchOutcome = 'PRICING' | 'SPECIFIC' | 'NOT_A_PRODUCT' | 'NONE';
 
 const METALS: readonly MatchMetal[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
 const GRAMS_PER_OZ = 31.1034768;
+const GRAMS_PER_TOLA = 11.6638;
 
 // --- the designs we sell (data; later loaded from the product_rules table) ----------------------
 
@@ -39,10 +41,21 @@ export interface CoinDesign {
   mints: readonly string[];
   /** Fixed fine weight in grams, for designs sold by name rather than by weight (sovereigns). */
   fineGrams?: number;
+  /** Another way a text names the design, for names that are not one word ("year of the horse"). */
+  match?: (tokens: ReadonlySet<string>) => boolean;
+  /** Extra words the design's name uses ("isle", "man"): taken out of the text with it. */
+  consume?: readonly string[];
+  /** Sold in several metals and one name: the Zoho "gold unless it says silver" convention is not applied; the metal must be shown. */
+  noSourceDefault?: boolean;
+  /** Has no pricing row of its own: without a specific product it only matches the generic coin row, LIKELY, and is flagged for the catalogue. */
+  needsProduct?: boolean;
 }
+
+const ZODIAC = ['rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake', 'horse', 'goat', 'sheep', 'monkey', 'rooster', 'dog', 'pig', 'mouse'];
 
 const FRACTIONS_GOLD: readonly string[] = ['1/10oz', '1/4oz', '1/2oz', '1oz'];
 const SILVER_COIN_WEIGHTS: readonly string[] = ['1oz', '2oz', '5oz', '10oz', '1kg'];
+const GOLD_SMALL: readonly string[] = [...FRACTIONS_GOLD, '1/20oz'];
 
 /** The coin designs the shop sells. Synonyms: brits, kruger, nugget (Kangaroo), cowboy (Irish Tree of Life). */
 export const COIN_DESIGNS: readonly CoinDesign[] = [
@@ -84,7 +97,7 @@ export const COIN_DESIGNS: readonly CoinDesign[] = [
     id: 'kangaroo',
     label: 'Kangaroo',
     words: ['kangaroo', 'nugget'],
-    metals: { GOLD: FRACTIONS_GOLD, SILVER: SILVER_COIN_WEIGHTS, PLATINUM: ['1oz'] },
+    metals: { GOLD: [...FRACTIONS_GOLD, '2oz'], SILVER: SILVER_COIN_WEIGHTS, PLATINUM: ['1oz'] },
     mints: ['PERTH MINT'],
   },
   {
@@ -108,12 +121,71 @@ export const COIN_DESIGNS: readonly CoinDesign[] = [
     allWords: ['queen', 'beast'],
     metals: { GOLD: ['1/4oz', '1oz', '2oz', '10oz'], SILVER: ['2oz', '10oz'] },
     mints: ['ROYAL MINT'],
+    noSourceDefault: true,
+  },
+  // Bullion designs sold in several metals: the metal must come from the text, the tab or the price, never a default.
+  {
+    id: 'panda',
+    label: 'Panda',
+    words: ['panda'],
+    metals: { GOLD: ['30g', '15g', '3g', ...GOLD_SMALL], SILVER: ['30g', '1oz'] },
+    mints: ['CHINA MINT'],
+    noSourceDefault: true,
+    needsProduct: true,
+  },
+  {
+    id: 'kookaburra',
+    label: 'Kookaburra',
+    words: ['kookaburra'],
+    metals: { GOLD: FRACTIONS_GOLD, SILVER: SILVER_COIN_WEIGHTS },
+    mints: ['PERTH MINT'],
+    noSourceDefault: true,
+    needsProduct: true,
+  },
+  {
+    id: 'koala',
+    label: 'Koala',
+    words: ['koala'],
+    metals: { GOLD: FRACTIONS_GOLD, SILVER: SILVER_COIN_WEIGHTS },
+    mints: ['PERTH MINT'],
+    noSourceDefault: true,
+    needsProduct: true,
+  },
+  {
+    id: 'lunar',
+    label: 'Lunar',
+    words: ['lunar'],
+    match: (t) => t.has('year') && ZODIAC.some((z) => t.has(z)),
+    consume: ['the', 'serie', 'series', ...ZODIAC],
+    metals: { GOLD: GOLD_SMALL, SILVER: SILVER_COIN_WEIGHTS },
+    mints: ['PERTH MINT'],
+    noSourceDefault: true,
+    needsProduct: true,
+  },
+  {
+    id: 'buffalo',
+    label: 'Buffalo',
+    words: ['buffalo'],
+    metals: { GOLD: ['1oz'], SILVER: ['1oz'] },
+    mints: [],
+    noSourceDefault: true,
+    needsProduct: true,
+  },
+  {
+    id: 'angel',
+    label: 'Angel',
+    words: ['angel'],
+    consume: ['isle', 'man'],
+    metals: { GOLD: GOLD_SMALL, SILVER: ['1oz'], PLATINUM: ['1oz'] },
+    mints: [],
+    noSourceDefault: true,
+    needsProduct: true,
   },
 ];
 
 /** Coins we know exist but do not hold a pricing row for: they fall back to the generic coin row, flagged for the catalogue. */
 const OBSCURE_COIN_WORDS = new Set([
-  'koala', 'buffalo', 'panda', 'lunar', 'libertad', 'angel', 'noble', 'ducat', 'gauden', 'kookaburra', 'dragon',
+  'libertad', 'noble', 'ducat', 'gauden', 'dragon',
   'myth', 'legend', 'sheep', 'tiger', 'rooster', 'ox', 'rat', 'monkey', 'pig', 'horse', 'goat', 'snake', 'rabbit',
   'wedge', 'isle', 'man', 'proof', 'victoria', 'elizabeth', 'edward', 'george',
 ]);
@@ -150,6 +222,11 @@ export interface MatchInput {
   metal?: MatchMetal | null;
   /** Where the name was seen, e.g. "purchase_orders,invoice_lines" or "tradesheet". */
   sources?: string | readonly string[] | null;
+  /**
+   * The metal the rows that carry this name point to (see `priceMetalEvidence`): used when the text names no metal
+   * and there is no tab metal. One row is a suggestion (LIKELY), several rows that agree are CERTAIN.
+   */
+  metalEvidence?: { metal: MatchMetal; from: 'tab' | 'price'; rows: number } | null;
   /** Price of one unit of the product, for the price check. */
   unitPrice?: number | null;
   /** The day of the price (informational: the caller already chose `spot` for it). */
@@ -188,8 +265,9 @@ const FILLER_WORDS = new Set([
 const PURITY_NUMBERS = /^(999(\.9)?|9999|995|916(\.7)?|9167|91\.67|99\.99|99\.9|585|750|375|925)$/;
 const NATURAL_LABELS = new Set([
   '1/10oz', '1/4oz', '1/2oz', '1oz', '2oz', '5oz', '10oz', '100oz', '1000oz',
-  '1g', '2g', '2.5g', '5g', '10g', '20g', '50g', '100g', '250g', '500g', '1kg', '5kg', '15kg',
+  '1/20oz', '1g', '2g', '2.5g', '3g', '5g', '10g', '15g', '20g', '30g', '50g', '100g', '250g', '500g', '1kg', '5kg', '15kg',
 ]);
+const MELT_RE = /\b(melt|scrap|non[\s-]*lbma)\b/;
 const MAYBE_NOT_A_PRODUCT_RE = /\b(account|balance|outstanding|notes?|comments?|contact|processing|invoice|inv)\b/;
 const NOT_A_PRODUCT_RE = /\b(storage|fees?|shipment|shipmint|shipping|delivery|insurance|deposit|postage|courier)\b/;
 
@@ -227,6 +305,12 @@ const OZ_SNAPS: ReadonlyArray<readonly [number, string]> = [
 function readWeights(norm: string): { weights: WeightRead[]; rest: string; bareOz: boolean } {
   const weights: WeightRead[] = [];
   let rest = norm;
+  rest = rest.replace(/(?<![\d./])(\d*\.?\d+)\s*tolas?\b/g, (_m, num: string) => {
+    const v = Number(num);
+    if (!Number.isFinite(v) || v <= 0) return ' ';
+    weights.push({ label: `${+v.toFixed(3)}tola`, grams: v * GRAMS_PER_TOLA, unit: 'g' });
+    return ' ';
+  });
   rest = rest.replace(/(?<![\d./])(\d+\/\d+|\d*\.?\d+)(oz|g|kg)\b/g, (_m, num: string, unit: string) => {
     let v: number;
     if (num.includes('/')) {
@@ -279,6 +363,14 @@ interface Parsed {
   obscureWord: string | null;
   refinery: string | null;
   leftover: string[];
+  /** The cleaned text (accents gone, lower case, refinery and quantity words out), for tests that read words. */
+  text: string;
+  /** The name has a quantity ("500 x 1oz ..."): the match is for the single item. */
+  quantity: boolean;
+  /** Melt or scrap: priced by the ounce on the Melt row. */
+  melt: boolean;
+  /** Not a product, and nothing in the text changes that (a base metal, a pool sale). */
+  certainNot: string | null;
 }
 
 const empty = (problem: string | null, over: Partial<Parsed> = {}): Parsed => ({
@@ -296,6 +388,10 @@ const empty = (problem: string | null, over: Partial<Parsed> = {}): Parsed => ({
   obscureWord: null,
   refinery: null,
   leftover: [],
+  text: '',
+  quantity: false,
+  melt: false,
+  certainNot: null,
   ...over,
 });
 
@@ -340,17 +436,38 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
     const re = new RegExp(`(?<![a-z0-9])${hit.words.toLowerCase().split(' ').join('[^a-z0-9]+')}(?![a-z0-9])`, 'g');
     raw = raw.replace(re, ' ');
   }
-  raw = raw.replace(/best value \(?mixed refiners\)?/g, ' ');
+  raw = raw.replace(/best value \(?mixed refiners?\)?/g, ' ');
+
+  // Typos: "10z" is 1oz, "one oz" is 1oz.
+  raw = raw.replace(/\b10z\b/g, '1oz').replace(/\bone\s*(oz|ounce)\b/g, '1oz');
+  if (/\bpool sale\b/.test(raw)) return empty(null, { certainNot: 'a pool sale, not a product' });
 
   if (/[,&+;]|\b(and|plus|or)\b/.test(raw)) return empty('several products in one name');
-  if (/\b\d+\s*x\b|\bx\s*\d+\b/.test(raw)) return empty('a quantity in the name');
+  // "500 x 1oz ..." and "1oz ... x 10": the name is the single item; the quantity belongs on the row.
+  let quantity = false;
+  const unquantified = raw
+    .replace(/\b(?:(?:monster|master)\s+)?(?:box|tube|case|roll|bag)?\s*(?:of\s+)?\d+\s*x\s*(?=[a-z\d])/g, ' ')
+    .replace(/\s+x\s*\d+\b/g, ' ');
+  if (unquantified !== raw) {
+    quantity = true;
+    raw = unquantified.trim();
+  }
+  // Carat: gold. 22 carat is a coin (916 gold); the purity words are not part of the product.
+  let carat = false;
+  let caratCoin = false;
+  raw = raw.replace(/\b(\d{1,2})\s*(?:carat|karat|ct|k)\b/g, (_m, n: string) => {
+    carat = true;
+    if (n === '22') caratCoin = true;
+    return ' ';
+  });
 
   raw = raw
     .replace(/([a-z])\/([a-z])/g, '$1 $2')
     .replace(/(\d)\s*(grams?|grammes?|gms?)\b/g, '$1g')
     .replace(/(\d)\s*(ounces?)\b/g, '$1oz')
     .replace(/(\d)\s*(kilos?|kilograms?)\b/g, '$1kg');
-  if (/\b(copper|brass|bronze|nickel)\b/.test(raw)) return empty('a base metal, not gold, silver, platinum or palladium');
+  if (/\b(copper|brass|bronze|nickel)\b/.test(raw)) return empty(null, { certainNot: 'a base metal, not gold, silver, platinum or palladium' });
+  const cleanText = raw;
   const norm = normaliseProductText(raw);
   const { weights, rest, bareOz } = readWeights(norm);
 
@@ -375,9 +492,12 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
   if (/\bsilver\b/.test(raw)) metals.add('SILVER');
   if (/\bplatinum\b/.test(raw)) metals.add('PLATINUM');
   if (/\bpalladium\b/.test(raw)) metals.add('PALLADIUM');
+  if (carat) metals.add('GOLD');
+  // A tola is a gold bar unit.
+  if (metals.size === 0 && weights.some((w) => w.label.endsWith('tola'))) metals.add('GOLD');
 
   const barWord = set.has('bar') || set.has('combi') || set.has('combibar');
-  const coinWord = /\bcoins?\b/.test(raw);
+  const coinWord = /\bcoins?\b/.test(raw) || caratCoin;
   const bonded = set.has('bonded');
 
   const consumed = new Set<string>(['bar', 'bonded', 'silver', 'platinum', 'palladium']);
@@ -394,7 +514,7 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
   for (const d of COIN_DESIGNS) {
     if (d.id.startsWith('sovereign')) continue;
     const named = d.allWords ? d.allWords.every((w) => set.has(w)) : false;
-    const any = d.words.some((w) => set.has(w));
+    const any = d.words.some((w) => set.has(w)) || (d.match?.(set) ?? false);
     if (!named && !any) continue;
     if (d.id === 'eagle' && set.has('double')) {
       obscureWord = 'double eagle';
@@ -403,7 +523,7 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
       continue;
     }
     hits.push(d);
-    for (const w of [...d.words, ...(d.allWords ?? []), 'of', 'irish']) consumed.add(w);
+    for (const w of [...d.words, ...(d.allWords ?? []), ...(d.consume ?? []), 'of', 'irish', ...(d.match ? ['year'] : [])]) consumed.add(w);
     if (d.id === 'maple') consumed.add('leaf');
   }
   if (hits.length > 1) return empty('several products in one name');
@@ -431,6 +551,11 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
     grams = null;
   }
 
+  // Melt or scrap, or a weight of purity gold that is no standard piece ("282.2g of 22k 916.7 purity"), with no design.
+  const purityWords = carat || /\b(purity|fineness)\b/.test(raw);
+  const odd = weight !== null && !NATURAL_LABELS.has(weight) && !weight.endsWith('tola');
+  const melt = !design && (MELT_RE.test(raw) || (purityWords && odd && !barWord));
+
   return {
     empty: false,
     problem: null,
@@ -439,13 +564,17 @@ export function parseProductName(text: string | null | undefined, refineryHint?:
     weight,
     grams,
     metals,
-    bar: barWord,
+    bar: barWord || weights.some((w) => w.label.endsWith('tola')),
     coin: coinWord,
     bonded,
     design,
     obscureWord,
     refinery,
     leftover,
+    text: cleanText,
+    quantity,
+    melt,
+    certainNot: null,
   };
 }
 
@@ -458,6 +587,8 @@ interface PricingRow {
   form: 'BAR' | 'COIN' | null;
   design: string | null;
   bonded: boolean;
+  /** The Melt row of the metal (priced per troy ounce). */
+  melt: boolean;
 }
 
 interface SpecificRow {
@@ -470,6 +601,9 @@ interface SpecificRow {
   qualifiers: string[];
   /** The pricing product it links to. */
   pricingId: number | null;
+  /** Its name and its generic name, cleaned, for an exact match; null when they say too little to settle a name alone. */
+  nameNorm: string | null;
+  genericNormClean: string | null;
 }
 
 interface Index {
@@ -503,9 +637,10 @@ function parseSku(p: MatchPricingProduct): PricingRow | null {
   let design: string | null = null;
   let form: 'BAR' | 'COIN' | null = p.category === 'BAR' || p.category === 'COIN' ? p.category : null;
   let bonded = false;
+  let melt = false;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i]!;
-    const w = /^(\d+(?:\.\d+)?|\d+\/\d+)(OZ|G|KG)$/.exec(part);
+    const w = /^(\d+(?:\.\d+)?|\d+\/\d+)(OZ|G|KG|TOLA)$/.exec(part);
     if (w) {
       weight = `${w[1]}${w[2]!.toLowerCase()}`;
       continue;
@@ -513,11 +648,12 @@ function parseSku(p: MatchPricingProduct): PricingRow | null {
     if (part === 'BAR') form = 'BAR';
     else if (part === 'COIN') form = 'COIN';
     else if (part === 'BONDED') bonded = true;
+    else if (part === 'MELT') melt = true;
     else if (part === 'FULL' || part === 'HALF' || part === 'DOUBLE' || part === 'QUARTER' || part === 'QUINTUPLE') {
       if (parts[i + 1] === 'SOVEREIGN') design = `sovereign:${part.toLowerCase()}`;
     } else if (SKU_DESIGN[part]) design = SKU_DESIGN[part]!;
   }
-  return { p, metal, weight, form, design, bonded };
+  return { p, metal, weight, form, design, bonded, melt };
 }
 
 const indexCache = new WeakMap<object, Index>();
@@ -541,7 +677,19 @@ function parseSpecific(s: MatchSpecificProduct, byId: Map<number, PricingRow>): 
     refinery: parsed.design && refinery && parsed.design.mints.includes(refinery) && form !== 'BAR' ? null : refinery,
     qualifiers,
     pricingId: s.pricingProductId ?? null,
+    nameNorm: informative(normaliseProductText(s.name)) ? normaliseProductText(s.name) : null,
+    genericNormClean: s.genericNorm && informative(normaliseProductText(s.genericNorm)) ? normaliseProductText(s.genericNorm) : null,
   };
+}
+
+const NON_INFORMATIVE = new Set(['bar', 'mixed', 'best', 'value', 'refiner', 'year', 'gold', 'silver', 'platinum', 'palladium', 'oz', 'g', 'coin', 'of', 'the', 'a']);
+
+/**
+ * Whether a cleaned name says more than a weight, "bar" and a metal. Only such names may settle a name on their own
+ * ("ten pence rm", "metalor 100g bar"); "50g bar" fits every refinery and "1kg silver" says nothing of the product.
+ */
+function informative(norm: string): boolean {
+  return norm.split(' ').some((t) => t && !NON_INFORMATIVE.has(t) && !/^(\d+(\.\d+)?|\d+\/\d+)(oz|g|kg|tola)?$/.test(t));
 }
 
 function indexOf(cat: MatchCatalogue): Index {
@@ -598,13 +746,29 @@ function readMetal(p: Parsed, input: MatchInput, grams: number | null, designMet
 
   const sources = toSources(input.sources);
   const hint = isMetal(input.metal) ? input.metal : null;
-  const zoho = isZohoSource(sources) ? ('GOLD' as const) : null;
+  // The Zoho convention ("silver items say so, the rest are gold") is not applied to designs sold in several metals.
+  const zoho = isZohoSource(sources) && !p.design?.noSourceDefault ? ('GOLD' as const) : null;
   const base = hint ?? zoho;
   const baseHow = hint ? 'tab' : 'zoho convention';
   const baseFrom: MetalFrom = hint ? 'tab' : 'source';
   // A silver tab (old sheets also hold platinum and palladium there) and the Zoho "gold unless it says Silver" convention
   // are only certain when the catalogue has no platinum or palladium version of the design and weight.
   const baseConf: MatchConfidence = (hint === 'SILVER' || (!hint && zoho)) && pgmVariant ? 'LIKELY' : 'CERTAIN';
+
+  // What the rows carrying this name show (single tab metal, or prices against spot): beats the Zoho convention.
+  const ev = input.metalEvidence;
+  if (ev && isMetal(ev.metal)) {
+    if (hint && hint === ev.metal) return { metal: hint, confidence: baseConf, how: 'tab, price agrees', from: 'tab' };
+    if (hint) return { metal: ev.metal, confidence: 'LIKELY', how: `rows priced as ${ev.metal.toLowerCase()}, not ${hint.toLowerCase()} (tab)`, from: 'price' };
+    if (ev.from === 'tab') return { metal: ev.metal, confidence: ev.metal === 'SILVER' && pgmVariant ? 'LIKELY' : 'CERTAIN', how: 'tab', from: 'tab' };
+    const agrees = zoho === ev.metal;
+    return {
+      metal: ev.metal,
+      confidence: ev.rows >= 2 || agrees ? 'CERTAIN' : 'LIKELY',
+      how: `price per oz of ${ev.rows} row${ev.rows === 1 ? '' : 's'} fits ${ev.metal.toLowerCase()}`,
+      from: 'price',
+    };
+  }
 
   let fits: MatchMetal[] = [];
   const price = input.unitPrice;
@@ -640,7 +804,16 @@ const none = (reason: string, over: Partial<ProductMatch> = {}): ProductMatch =>
 export function matchProductName(input: MatchInput, cat: MatchCatalogue): ProductMatch {
   const seen: { from?: MetalFrom } = {};
   const r = matchInner(input, cat, seen);
-  const m: ProductMatch = seen.from && r.metal ? { ...r, metalFrom: seen.from } : r;
+  let m: ProductMatch = seen.from && r.metal ? { ...r, metalFrom: seen.from } : r;
+  // A quantity in the name ("500 x 1oz ..."): the item is matched, the person confirms it; the quantity is on the row.
+  if (m.productId !== undefined && (m.outcome === 'PRICING' || m.outcome === 'SPECIFIC') && parseProductName(input.text, input.refinery ?? null).quantity) {
+    const idx = indexOf(cat);
+    const name =
+      m.outcome === 'SPECIFIC' && m.salesProductId !== undefined
+        ? idx.specifics.find((x) => x.s.id === m.salesProductId)?.s.name
+        : idx.byId.get(m.productId)?.p.name;
+    m = { ...m, confidence: 'LIKELY', question: `Match to ${name ?? 'the single item'}? (quantity is on the row)` };
+  }
   if (m.confidence === 'LIKELY' && !m.question && m.outcome !== 'NOT_A_PRODUCT' && m.productId !== undefined) {
     const idx = indexOf(cat);
     const name =
@@ -656,7 +829,7 @@ const NOT_A_PRODUCT_WORDS_RE = new RegExp(NOT_A_PRODUCT_RE.source, 'gi');
 
 function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: MetalFrom }): ProductMatch {
   const idx = indexOf(cat);
-  const p = parseProductName(input.text, input.refinery ?? null);
+  let p = parseProductName(input.text, input.refinery ?? null);
 
   if (p.empty) return none('no product name');
   if (p.notProduct) {
@@ -670,7 +843,32 @@ function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: Metal
   if (p.maybeNotProduct) {
     return { outcome: 'NOT_A_PRODUCT', confidence: 'LIKELY', reason: 'looks like a note, balance or account line', question: 'Mark as not a product?' };
   }
+  if (p.certainNot) return { outcome: 'NOT_A_PRODUCT', confidence: 'CERTAIN', reason: p.certainNot };
+
+  const exact = exactSpecific(input, p, idx);
+  if (exact) return exact;
   if (p.problem) return none(p.problem);
+
+  // Foreign gold coins: each is a specific product on the Melt row; gold is implied.
+  const foreign = readForeignCoin(p.text);
+  if (foreign && [...p.metals].every((m) => m === 'GOLD') && !p.melt) {
+    const hint = isMetal(input.metal) ? input.metal : null;
+    if (hint && hint !== 'GOLD') return none(`${foreign.coin.name} is a gold coin`, { metal: hint });
+    const spec = idx.specifics.find((s) => s.s.name.toLowerCase() === foreign.coin.name.toLowerCase());
+    if (!spec || spec.pricingId == null) return none(`no ${foreign.coin.name} product`, { catalogueGap: true, metal: 'GOLD' });
+    seen.from = p.metals.has('GOLD') ? 'text' : 'default';
+    return {
+      outcome: 'SPECIFIC',
+      productId: spec.pricingId,
+      salesProductId: spec.s.id,
+      confidence: foreign.sure ? 'CERTAIN' : 'LIKELY',
+      reason: `${foreign.coin.name}, gold coin sold by melt value`,
+      ...(foreign.sure ? {} : { question: `Match to ${foreign.coin.name}?` }),
+      metal: 'GOLD',
+    };
+  }
+
+  if (p.melt) return matchMelt(input, p, idx, seen);
 
   const design = p.design;
   const isSovereign = !!design && design.id.startsWith('sovereign');
@@ -681,7 +879,17 @@ function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: Metal
   if (!m.metal) return none(m.problem ?? 'no metal', { weight: p.weight ?? undefined });
   const metal = m.metal;
   seen.from = m.from;
-  if (p.weight && !NATURAL_LABELS.has(p.weight)) return none(`unusual weight ${p.weight}`, { metal, weight: p.weight });
+  // A silver "bar" of 900 to 1100 troy ounces is the 1000oz bar.
+  if (metal === 'SILVER' && p.weight && /^\d+(\.\d+)?oz$/.test(p.weight) && !p.design) {
+    const oz = parseFloat(p.weight);
+    if (oz >= 900 && oz <= 1100 && p.weight !== '1000oz') p = { ...p, weight: '1000oz', bar: true };
+  }
+  const tola = !!p.weight && p.weight.endsWith('tola');
+  if (tola) {
+    if (metal !== 'GOLD') return none(`no ${metalWord(metal)} ${p.weight!.replace('tola', ' tola')} bar row`, { metal, weight: p.weight! });
+    const row = findRow(idx, 'GOLD', p.weight, 'BAR', null);
+    if (!row) return none(`no ${p.weight!.replace('tola', ' tola')} bar row`, { catalogueGap: true, metal, weight: p.weight! });
+  } else if (p.weight && !NATURAL_LABELS.has(p.weight)) return none(`unusual weight ${p.weight}`, { metal, weight: p.weight });
   let conf: MatchConfidence = m.confidence;
   const parts: string[] = [];
   const metalPart = `${metalWord(metal)} (${m.how})`;
@@ -739,7 +947,7 @@ function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: Metal
 
   // ---- sovereigns: sold by name, gold only ----
   if (isSovereign && design) {
-    if (metal !== 'GOLD') return none(`${design.label} is only sold in gold`, { metal });
+    if (metal !== 'GOLD') return none('not in catalogue', { metal });
     const row = findRow(idx, 'GOLD', null, 'COIN', design.id);
     if (!row) return none(`no ${design.label} pricing row`, { catalogueGap: true, metal });
     const quals = p.leftover.filter((t) => !OBSCURE_COIN_WORDS.has(t) || t === 'proof');
@@ -803,7 +1011,12 @@ function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: Metal
       const quals = p.leftover;
       const explained = c;
       if (p.leftover.length > 0) c = lower(c, 'LIKELY');
-      return finish(idx, row, p, metal, 'COIN', refinery, c, reasonBase.concat(row.design ? [] : ['generic row']), c === 'LIKELY' ? `Match to ${row.p.name}?` : undefined, quals, design.id, explained);
+      const res = finish(idx, row, p, metal, 'COIN', refinery, c, reasonBase.concat(row.design ? [] : ['generic row']), c === 'LIKELY' ? `Match to ${row.p.name}?` : undefined, quals, design.id, explained);
+      // A design with no pricing row of its own and no specific product yet: the generic coin row for now, on the to-add list.
+      if (design.needsProduct && res.outcome !== 'SPECIFIC') {
+        return { ...res, confidence: lower(res.confidence, 'LIKELY'), catalogueGap: true, question: res.question ?? `Match to ${row.p.name}?` };
+      }
+      return res;
     }
 
     // No design named: a plain weight coin, or one we do not hold a row for.
@@ -827,6 +1040,55 @@ function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: Metal
   // ---- no form at all ----
   if (p.weight) return none(`${p.weight} ${metalWord(metal)}: bar or coin?`, { metal, weight: p.weight });
   return none('no weight, form or design', { metal });
+}
+
+/** A name that is exactly a specific product's name (or its generic name, with the same refinery): that product, unless the metal says otherwise. */
+function exactSpecific(input: MatchInput, p: Parsed, idx: Index): ProductMatch | null {
+  // Coin designs go through the design rules (years and mixed lots split one design into several products).
+  if (idx.specifics.length === 0 || p.quantity || p.design) return null;
+  const rawText = stripAccents(String(input.text ?? ''));
+  const bar = rawText.indexOf('|');
+  const base = normaliseProductText(bar >= 0 ? rawText.slice(0, bar) : rawText);
+  if (!base) return null;
+  const given = canonRefinery(input.refinery ?? (bar >= 0 ? rawText.slice(bar + 1) : null));
+  const cands = idx.specifics.filter(
+    (s) =>
+      s.pricingId != null &&
+      ((s.nameNorm === base && (!s.refinery || !given || s.refinery === given)) || (s.genericNormClean === base && (s.refinery ?? null) === (given ?? null))),
+  );
+  if (cands.length !== 1) return null;
+  const c = cands[0]!;
+  const row = idx.byId.get(c.pricingId!);
+  const sm = row?.metal ?? c.metal;
+  const hint = isMetal(input.metal) ? input.metal : null;
+  if (sm && p.metals.size > 0 && !p.metals.has(sm)) return null;
+  if (sm && hint && hint !== sm) return null;
+  if (sm && input.metalEvidence && input.metalEvidence.metal !== sm) return null;
+  return {
+    outcome: 'SPECIFIC',
+    productId: c.pricingId!,
+    salesProductId: c.s.id,
+    confidence: 'CERTAIN',
+    reason: `the name is ${c.s.name}`,
+    ...(sm ? { metal: sm } : {}),
+  };
+}
+
+/** Melt and scrap: the Melt row of the metal the text, the tab or the prices show. The Zoho convention alone is only LIKELY. */
+function matchMelt(input: MatchInput, p: Parsed, idx: Index, seen: { from?: MetalFrom }): ProductMatch {
+  const m = readMetal(p, input, p.grams, [], false);
+  if (!m.metal) return none(`melt or scrap: ${m.problem ?? 'no metal'}`);
+  seen.from = m.from;
+  const row = idx.rows.find((r) => r.melt && r.metal === m.metal);
+  if (!row) return none(`no ${metalWord(m.metal)} melt row`, { catalogueGap: true, metal: m.metal });
+  const weak = m.from === 'source' || m.from === 'default';
+  return {
+    outcome: 'PRICING',
+    productId: row.p.id,
+    confidence: weak ? lower(m.confidence, 'LIKELY') : m.confidence,
+    reason: `melt or scrap + ${metalWord(m.metal)} (${m.how})`,
+    metal: m.metal,
+  };
 }
 
 const BAR_REFINERIES = new Set([

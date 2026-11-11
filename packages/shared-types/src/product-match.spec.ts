@@ -150,7 +150,7 @@ describe('matchProductName', () => {
     expect(run('1/4 Krugerrand', { metal: 'GOLD' })).toMatchObject({ productId: 86, confidence: 'CERTAIN' });
     expect(run('Mixed Sovereign Gold Coins')).toMatchObject({ productId: 81, confidence: 'LIKELY' });
     expect(run('Silver - Market Bars - Total Ounces')).toMatchObject({ outcome: 'NONE' });
-    expect(run('Copper - 5KG Bar')).toMatchObject({ outcome: 'NONE' });
+    expect(run('Copper - 5KG Bar')).toMatchObject({ outcome: 'NOT_A_PRODUCT', confidence: 'CERTAIN' });
   });
 
   it('notes and balances are probably not products', () => {
