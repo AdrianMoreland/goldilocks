@@ -263,6 +263,11 @@ export interface CustomerOrderChanges {
 
 /** `statusOnly`: a matched item may only have its status moved forward (and `missing` set); text and dates are left alone. */
 export interface CustomerOrderPlanOptions {
+  /**
+   * 'statusOnly' (the workbook route): a matched item only moves its status forward, and a row whose client is
+   * spelled differently still matches an item with the same branch, reference, product and quantity, because the
+   * workbook names clients from the redaction map, which may hold a fuller spelling than the sheet.
+   */
   fields?: 'all' | 'statusOnly';
 }
 
@@ -305,16 +310,30 @@ export function planCustomerOrderImport(
   for (const e of existing) have.set(key(e), [...(have.get(key(e)) ?? []), e]);
   const toAdd: CustomerOrderImportRow[] = [];
   const toUpdate: { id: number; changes: CustomerOrderChanges }[] = [];
+  const used = new Set<number>();
   let unchanged = 0;
-  for (const row of incoming) {
-    const stored = have.get(key(row))?.shift();
-    if (!stored) {
-      toAdd.push(row);
-      continue;
-    }
+  const apply = (stored: ExistingCustomerOrder, row: CustomerOrderImportRow) => {
+    used.add(stored.id);
     const changes = customerOrderChanges(stored, row, options);
     if (Object.keys(changes).length > 0) toUpdate.push({ id: stored.id, changes });
     else unchanged++;
+  };
+  const leftover: CustomerOrderImportRow[] = [];
+  for (const row of incoming) {
+    const stored = have.get(key(row))?.shift();
+    if (stored) apply(stored, row);
+    else leftover.push(row);
+  }
+  // Second pass for the workbook route: same branch, reference, product and quantity under another spelling of the client.
+  const loose = (r: { locationCode: string; reference: string | null; product: string; quantity: number }) =>
+    [r.locationCode.toUpperCase(), normalizeReference(r.reference), r.product.trim().toLowerCase(), r.quantity].join('|');
+  for (const row of leftover) {
+    const stored =
+      options.fields === 'statusOnly' && normalizeReference(row.reference)
+        ? existing.find((e) => !used.has(e.id) && loose(e) === loose(row))
+        : undefined;
+    if (stored) apply(stored, row);
+    else toAdd.push(row);
   }
   return { toAdd, toUpdate, unchanged };
 }
