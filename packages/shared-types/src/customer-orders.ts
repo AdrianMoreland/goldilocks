@@ -261,7 +261,7 @@ export interface CustomerOrderChanges {
   refinery?: string;
 }
 
-/** The fields a pasted row would change on a stored item. Status only moves forward, text is never cleared. */
+/** The fields a pasted row would change on a stored item. Status only moves forward; text and the missing flag are never cleared. */
 export function customerOrderChanges(stored: ExistingCustomerOrder, row: CustomerOrderImportRow): CustomerOrderChanges {
   const changes: CustomerOrderChanges = {};
   if (STATUS_RANK[row.status] > STATUS_RANK[stored.status]) changes.status = row.status;
@@ -270,7 +270,8 @@ export function customerOrderChanges(stored: ExistingCustomerOrder, row: Custome
     if (next && next !== (stored[f] ?? '').trim()) changes[f] = next;
   }
   if (row.orderedOn && row.orderedOn !== stored.orderedOn) changes.orderedOn = row.orderedOn;
-  if (row.missing !== stored.missing) changes.missing = row.missing;
+  // The sheet can flag an item missing; clearing the flag is a decision made in the app.
+  if (row.missing && !stored.missing) changes.missing = true;
   return changes;
 }
 

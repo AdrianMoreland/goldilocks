@@ -126,10 +126,10 @@ describe('planCustomerOrderImport', () => {
       { id: 1, changes: { notes: 'new', supplierRef: 'PO2', refinery: 'Umicore' } },
     ]);
   });
-  it('updates the date when the sheet has one that differs, and missing when it differs', () => {
+  it('updates the date when the sheet has one that differs, and sets missing but never clears it', () => {
     expect(planCustomerOrderImport([stored({ orderedOn: '2026-09-01' })], [row({ orderedOn: '2026-09-28' })]).toUpdate[0]?.changes).toEqual({ orderedOn: '2026-09-28' });
     expect(planCustomerOrderImport([stored({ orderedOn: '2026-09-01' })], [row()]).unchanged).toBe(1);
     expect(planCustomerOrderImport([stored()], [row({ missing: true })]).toUpdate[0]?.changes).toEqual({ missing: true });
-    expect(planCustomerOrderImport([stored({ missing: true })], [row()]).toUpdate[0]?.changes).toEqual({ missing: false });
+    expect(planCustomerOrderImport([stored({ missing: true })], [row()]).unchanged).toBe(1);
   });
 });
