@@ -63,6 +63,8 @@ import {
     CreateSalesProductRequestSchema,
     BcSalesProductsApplyRequestSchema,
     MapAliasRequestSchema,
+    SettleNamesRequestSchema,
+    NameSuggestionDecisionRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -594,6 +596,16 @@ export class BcSalesProductsApplyRequestDto extends createDto(
 export class MapAliasRequestDto extends createDto(
     MapAliasRequestSchema,
     'MapAliasRequestDto',
+) {}
+
+export class SettleNamesRequestDto extends createDto(
+    SettleNamesRequestSchema,
+    'SettleNamesRequestDto',
+) {}
+
+export class NameSuggestionDecisionRequestDto extends createDto(
+    NameSuggestionDecisionRequestSchema,
+    'NameSuggestionDecisionRequestDto',
 ) {}
 
 export class RecordSearchRequestDto extends createDto(

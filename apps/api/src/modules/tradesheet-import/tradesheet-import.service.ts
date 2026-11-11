@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { aliasOk } from '@goldilocks/shared-types';
 import type {
     AllocationSummary,
     RowResolverData,
@@ -10,6 +11,7 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { ProductNamesService } from '../review/product-names.service';
 import {
     parseTab,
     reconcileTab,
@@ -55,6 +57,7 @@ export class TradesheetImportService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        private readonly names: ProductNamesService,
     ) {}
 
     /** What an import would do. Writes nothing. */
@@ -105,6 +108,7 @@ export class TradesheetImportService {
                     );
                 }
                 const allocation = await this.allocate(tx, built.recs);
+                await this.settleNames(tx, built.recs, actor, batch.id);
                 const t = built.plan.totals;
                 await this.audit.record(
                     actor,
@@ -116,6 +120,48 @@ export class TradesheetImportService {
             },
             // Backstop: the API is ~140 ms from the database, so even batched, a big file needs room.
             { timeout: 300_000, maxWait: 10_000 },
+        );
+    }
+
+    // --- product names -----------------------------------------------------------------
+
+    /**
+     * The product names this import added or changed that no saved decision or rule placed: they join the names
+     * queue (if not already there) and the rules settle or suggest them. Only those names are looked at, so a
+     * big import stays quick.
+     */
+    private async settleNames(
+        tx: Db,
+        recs: TabReconciliation[],
+        actor: string,
+        batchId: number,
+    ): Promise<void> {
+        const found = new Map<
+            string,
+            { alias: string; uses: number; metalHint: 'GOLD' | 'SILVER' | null }
+        >();
+        for (const rec of recs) {
+            for (const r of [...rec.sales, ...rec.lots]) {
+                if (r.status === 'MISSING' || r.status === 'UNCHANGED')
+                    continue;
+                if (r.how !== 'NONE' || !r.productKey) continue;
+                if (!aliasOk(r.parsed.product, r.productKey)) continue;
+                const seen = found.get(r.productKey);
+                if (seen) seen.uses++;
+                else
+                    found.set(r.productKey, {
+                        alias: r.productKey,
+                        uses: 1,
+                        metalHint: r.metal,
+                    });
+            }
+        }
+        await this.names.registerAndSettle(
+            [...found.values()],
+            'tradesheet',
+            actor,
+            tx,
+            `batch ${batchId} tradesheet names`,
         );
     }
 

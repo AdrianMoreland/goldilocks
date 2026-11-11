@@ -8,7 +8,6 @@ import {
     normaliseRefinery,
     ReviewLinksQuerySchema,
     ReviewPageQuerySchema,
-    type AliasesResponse,
     type CreateSalesProductRequest,
     type DuplicatesResponse,
     type LinkDecisionRequest,
@@ -444,29 +443,6 @@ export class ReviewService {
 
     // --- product aliases ---------------------------------------------------------------------------
 
-    async aliases(rawQuery: Record<string, unknown>): Promise<AliasesResponse> {
-        const { limit, offset } = this.pageQuery(rawQuery);
-        const where: Prisma.ProductAliasWhereInput = UNSETTLED_ALIAS;
-        const [total, rows] = await Promise.all([
-            this.prisma.productAlias.count({ where }),
-            this.prisma.productAlias.findMany({
-                where,
-                orderBy: [{ uses: 'desc' }, { alias: 'asc' }],
-                skip: offset,
-                take: limit,
-            }),
-        ]);
-        return {
-            total,
-            rows: rows.map((a) => ({
-                id: a.id,
-                alias: a.alias,
-                uses: a.uses,
-                refinery: a.refinery,
-            })),
-        };
-    }
-
     async salesProducts(): Promise<SalesProduct[]> {
         const rows = await this.prisma.salesProduct.findMany({
             orderBy: { name: 'asc' },
@@ -580,6 +556,11 @@ export class ReviewService {
                 salesProductId: product.id,
                 productId: null,
                 noProduct: false,
+                decidedBy: 'PERSON',
+                suggestedProductId: null,
+                suggestedSalesProductId: null,
+                suggestedNoProduct: false,
+                question: null,
                 refinery: alias.refinery ?? normaliseRefinery(product.refinery),
             };
             what = `sales product ${product.id}`;
@@ -595,10 +576,24 @@ export class ReviewService {
                 productId: product.id,
                 salesProductId: null,
                 noProduct: false,
+                decidedBy: 'PERSON',
+                suggestedProductId: null,
+                suggestedSalesProductId: null,
+                suggestedNoProduct: false,
+                question: null,
             };
             what = `pricing product ${product.id}`;
         } else {
-            data = { noProduct: true, salesProductId: null, productId: null };
+            data = {
+                noProduct: true,
+                salesProductId: null,
+                productId: null,
+                decidedBy: 'PERSON',
+                suggestedProductId: null,
+                suggestedSalesProductId: null,
+                suggestedNoProduct: false,
+                question: null,
+            };
             what = 'not a product';
         }
         await this.prisma.$transaction(async (tx) => {

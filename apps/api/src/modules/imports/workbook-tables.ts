@@ -1,6 +1,7 @@
 import {
     aliasKey,
     aliasOk,
+    deriveMetalHint,
     normaliseProductText,
     normaliseRefinery,
     type WorkbookLoadTable,
@@ -345,8 +346,14 @@ DIRECT_TABLES.product_aliases = {
     keyColumn: 'suggested_key',
     keyField: 'alias',
     keyOf: workbookAliasKey,
-    derive: (data, _row, key) => {
+    derive: (data, row, key) => {
         data['productKey'] = key;
+        // The metal the name was seen under, read the way the matching engine reads it.
+        data['metalHint'] = deriveMetalHint(
+            text(row['example_text']) ?? key,
+            text(row['sources']),
+            text(row['refinery']),
+        );
     },
     fks: [],
     tracked: false,
@@ -355,6 +362,29 @@ DIRECT_TABLES.product_aliases = {
         ['productKey', 'suggested_key', 'sReq'],
         ['refinery', 'refinery', 's'],
         ['uses', 'uses', 'iReq'],
+        ['sources', 'sources', 's'],
+    ],
+};
+
+/**
+ * Zoho items and what was sold of each. `_product_id` and `_sales_product_id` are not workbook columns: the importer
+ * fills them from the BC item a SKU names (see `WorkbookImportService.saveZohoProducts`).
+ */
+DIRECT_TABLES.zoho_products = {
+    delegate: 'zohoProduct',
+    keyColumn: 'id',
+    keyField: 'sourceKey',
+    fks: [],
+    fields: [
+        ['sku', 'sku', 's'],
+        ['itemName', 'item_name', 'sReq'],
+        ['productNorm', 'product_norm', 's'],
+        ['metal', 'metal', 's'],
+        ['qtySold', 'qty_sold', 'n'],
+        ['amount', 'amount', 'n'],
+        ['avgPrice', 'avg_price', 'n'],
+        ['productId', '_product_id', 'i'],
+        ['salesProductId', '_sales_product_id', 'i'],
     ],
 };
 

@@ -163,11 +163,15 @@ function setup(
         $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const names = {
+        registerAndSettle: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new TradesheetImportService(
         prisma as unknown as PrismaService,
         audit as unknown as AuditLogService,
+        names as never,
     );
-    return { service, prisma, tx, audit };
+    return { service, prisma, tx, audit, names };
 }
 
 describe('TradesheetImportService.preview', () => {
@@ -290,6 +294,23 @@ describe('TradesheetImportService.commit', () => {
             expect.stringContaining('2 added'),
             tx,
         );
+    });
+
+    it('hands only the names it could not place to the names queue, with the tab metal', async () => {
+        const { service, tx, names } = setup();
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await service.commit(req, 'admin@merrion.ie');
+        expect(tx.importBatch.create).toHaveBeenCalled();
+        expect(names.registerAndSettle).toHaveBeenCalledTimes(1);
+        const [list, source] = names.registerAndSettle.mock.calls[0] as [
+            { alias: string; uses: number; metalHint: string }[],
+            string,
+        ];
+        expect(source).toBe('tradesheet');
+        expect(list).toHaveLength(1);
+        expect(list[0]).toMatchObject({ uses: 1, metalHint: 'GOLD' });
+        expect(list[0].alias).toContain('zorblax');
     });
 
     it('creates the stock rows of all new gold lots in one insert', async () => {

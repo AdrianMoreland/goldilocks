@@ -91,6 +91,7 @@ function setup() {
         stocktakeLine: new FakeTable(),
         bcItem: new FakeTable(),
         productAlias: new FakeTable(),
+        zohoProduct: new FakeTable(),
         orderEvent: new FakeTable(),
         customerOrderItem: new FakeTable(),
     };
@@ -99,14 +100,16 @@ function setup() {
         $transaction: async (fn: (tx: unknown) => unknown) => fn(prisma),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const names = { settleAndRecord: jest.fn().mockResolvedValue(undefined) };
     const service = new WorkbookImportService(
         prisma as never,
         audit as never,
         { settle: jest.fn() } as never,
         new CustomerOrdersService(prisma as never, audit as never),
+        names as never,
     );
     const bc = new BcAwaitingImportService(prisma as never, service);
-    return { t, service, audit, bc };
+    return { t, service, audit, bc, names };
 }
 
 const tables = readImportWorkbook(fakeWorkbookSheets(3))
@@ -519,6 +522,122 @@ describe('WorkbookImportService', () => {
         expect(t.productAlias.rows[0]).toMatchObject({
             productKey: '1oz bar|ARGOR-HERAEUS',
             refinery: 'Argor Heraeus',
+        });
+    });
+
+    it('stores where a name was seen and the metal it came from, then lets the rules settle the names it carried', async () => {
+        const { service, t, names } = setup();
+        const rows: R[] = [
+            {
+                id: 'a1',
+                suggested_key: '1oz britannia',
+                example_text: 'Silver 1oz Britannia',
+                refinery: null,
+                uses: 4,
+                sources: 'invoice_lines,purchase_orders',
+            },
+            {
+                id: 'a2',
+                suggested_key: '1oz krugerrand',
+                example_text: '1oz Krugerrand',
+                refinery: null,
+                uses: 2,
+                sources: 'stock_coins',
+            },
+        ];
+        await service.commit(req('product_aliases', rows), 'a');
+        expect(t.productAlias.rows[0]).toMatchObject({
+            sources: 'invoice_lines,purchase_orders',
+            metalHint: 'SILVER',
+        });
+        expect(t.productAlias.rows[1]).toMatchObject({
+            sources: 'stock_coins',
+            metalHint: null,
+        });
+        expect(names.settleAndRecord).toHaveBeenCalledTimes(1);
+        expect(names.settleAndRecord.mock.calls[0][0]).toEqual({
+            aliases: ['silver 1oz britannia', '1oz krugerrand'],
+        });
+    });
+
+    it('does not settle names on a preview', async () => {
+        const { service, names } = setup();
+        await service.preview(
+            req('product_aliases', [
+                {
+                    id: 'a1',
+                    suggested_key: '1oz krugerrand',
+                    example_text: '1oz Krugerrand',
+                    refinery: null,
+                    uses: 1,
+                    sources: 's',
+                },
+            ]),
+        );
+        expect(names.settleAndRecord).not.toHaveBeenCalled();
+    });
+
+    describe('Zoho products', () => {
+        const zoho = (id: string, sku: string | null): R => ({
+            id,
+            sku,
+            item_name: `Item ${id}`,
+            product_norm: '1oz bar',
+            metal: 'GOLD',
+            qty_sold: 3,
+            amount: 9000.12345,
+            avg_price: 3000.04115,
+        });
+
+        it('loads Zoho products keyed by id and is quiet on a repeat', async () => {
+            const { service, t } = setup();
+            const rows = [zoho('z1', 'ABC'), zoho('z2', null)];
+            const r = await service.commit(req('zoho_products', rows), 'a');
+            expect(r).toMatchObject({ added: 2, changed: 0, unchanged: 0 });
+            expect(t.zohoProduct.rows[0]).toMatchObject({
+                sourceKey: 'z1',
+                sku: 'ABC',
+                itemName: 'Item z1',
+                productNorm: '1oz bar',
+                metal: 'GOLD',
+                qtySold: 3,
+                amount: 9000.1234,
+                productId: null,
+                salesProductId: null,
+            });
+            const again = await service.commit(req('zoho_products', rows), 'a');
+            expect(again).toMatchObject({ added: 0, changed: 0, unchanged: 2 });
+        });
+
+        it("gives a SKU that is a BC item number that item's products", async () => {
+            const { service, t } = setup();
+            t.bcItem.rows.push(
+                { itemNo: '1103', productId: 5, salesProductId: 9 },
+                { itemNo: '2705', productId: 6, salesProductId: null },
+            );
+            await service.commit(
+                req('zoho_products', [
+                    zoho('z1', '1103'),
+                    zoho('z2', '1103-HISTORIC'),
+                    zoho('z3', '2705.0'),
+                    zoho('z4', '9999'),
+                    zoho('z5', 'GOLD-BAR'),
+                ]),
+                'a',
+            );
+            const by = (k: string) =>
+                t.zohoProduct.rows.find((x) => x['sourceKey'] === k);
+            expect(by('z1')).toMatchObject({ productId: 5, salesProductId: 9 });
+            expect(by('z2')).toMatchObject({ productId: 5, salesProductId: 9 });
+            expect(by('z3')).toMatchObject({
+                productId: 6,
+                salesProductId: null,
+            });
+            expect(by('z4')).toMatchObject({
+                productId: null,
+                salesProductId: null,
+            });
+            expect(by('z5')).toMatchObject({ productId: null });
         });
     });
 
