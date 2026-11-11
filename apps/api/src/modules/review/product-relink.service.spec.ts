@@ -187,6 +187,16 @@ describe('ProductRelinkService', () => {
         expect(prisma.trade.rows[0]).toMatchObject({ productId: 42 });
     });
 
+    it('never fills a row with a product of another metal, even from a person decision', async () => {
+        const { svc, prisma } = setup({
+            trade: [trade(1, { productText: '1oz bar', metal: 'SILVER' })],
+            aliases: [decision({ productId: 42 })],
+        });
+        const res = await svc.relink({ dryRun: false, correct: false }, 'x');
+        expect(prisma.trade.rows[0]).toMatchObject({ productId: null });
+        expect(res.tables.trades).toMatchObject({ fill: 0, unresolved: 1 });
+    });
+
     it('leaves a name settled as not a product alone and reports it', async () => {
         const { svc, prisma } = setup({
             trade: [

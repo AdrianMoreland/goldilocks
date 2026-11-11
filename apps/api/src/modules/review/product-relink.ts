@@ -174,7 +174,28 @@ export function planRelink(
         const corrects = Object.keys(corr).length > 0;
         if (corrects) counts.correct++;
 
-        // Fill: only empty fields.
+        // Fill: only empty fields, and never with a product of another metal (a person's decision for a name
+        // applies to any metal when resolving, but an empty silver row must not get the gold product).
+        const fillMetal = metalInText(r.text) ?? r.metal;
+        const fillTargetMetal =
+            targetSp !== null
+                ? (lookups.salesMetal.get(targetSp) ??
+                  (targetPid !== null
+                      ? lookups.pricingMetal.get(targetPid)
+                      : null))
+                : targetPid !== null
+                  ? lookups.pricingMetal.get(targetPid)
+                  : null;
+        if (
+            !r.bc &&
+            fillMetal &&
+            fillTargetMetal &&
+            !metalFits(fillMetal, fillTargetMetal) &&
+            !corrects
+        ) {
+            if (primaryEmpty) counts.unresolved++;
+            continue;
+        }
         const fill: RowChange = {};
         if (spec.hasProductId && r.productId === null && targetPid !== null)
             fill.productId = [null, targetPid];
