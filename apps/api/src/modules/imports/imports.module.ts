@@ -5,10 +5,17 @@ import { WorkbookImportService } from './workbook-import.service';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { CustomerOrdersModule } from '../customer-orders/customer-orders.module';
 import { ReviewModule } from '../review/review.module';
 
 @Module({
-    imports: [AuthModule, PrismaModule, AuditLogModule, ReviewModule],
+    imports: [
+        AuthModule,
+        PrismaModule,
+        AuditLogModule,
+        ReviewModule,
+        CustomerOrdersModule,
+    ],
     controllers: [ImportsController, BcAwaitingController],
     providers: [WorkbookImportService, BcAwaitingImportService],
 })

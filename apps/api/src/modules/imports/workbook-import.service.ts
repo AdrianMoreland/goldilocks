@@ -8,7 +8,9 @@ import {
     ImportTableSchemas,
     type ImportBatchSummary,
     referenceMatchKey,
+    type CustomerOrderImportRow,
     type ImportTableName,
+    type StockMetal,
     type WorkbookChunkRequest,
     type WorkbookChunkResult,
     type WorkbookLoadTable,
@@ -17,6 +19,7 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { LinkRulesService } from '../review/link-rules.service';
+import { CustomerOrdersService } from '../customer-orders/customer-orders.service';
 import {
     DIRECT_TABLES,
     FK_LOOKUP,
@@ -68,6 +71,7 @@ export class WorkbookImportService {
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
         private readonly rules: LinkRulesService,
+        private readonly orders: CustomerOrdersService,
     ) {}
 
     /** What this chunk would do. Writes nothing (the batch id is 0 until a commit creates one). */
@@ -122,6 +126,8 @@ export class WorkbookImportService {
             counts = await this.annotateLots(ctx, rows);
         else if (dto.table === 'links')
             counts = await this.upsertLinks(ctx, rows);
+        else if (dto.table === 'customer_safe_items')
+            counts = await this.saveSafeItems(ctx, rows);
         else
             counts = await this.upsertDirect(
                 ctx,
@@ -496,6 +502,95 @@ export class WorkbookImportService {
                 data: { missingFromImport: true },
             })
         ).count;
+    }
+
+    // --- customer safe items: saved as customer orders ------------------------------------------
+
+    /**
+     * Customer safe rows become customer order items, matched and updated by the same rules as the Customer Orders
+     * paste import (planRows / writePlan), so the two routes never duplicate each other. The client code is resolved
+     * to the customer's real name from the customers table; a row with an unknown code, no product or branch, or a
+     * quantity that is not a whole number above zero is skipped and counted as unmatched. Nothing is flagged missing.
+     * Every chunk plans against what is stored, so a table must travel in one chunk: two identical rows split across
+     * chunks would pair with the item the first chunk added and the second would be lost.
+     */
+    private async saveSafeItems(ctx: Ctx, input: Row[]): Promise<Counts> {
+        const counts = emptyCounts();
+        const codes = [
+            ...new Set(
+                input
+                    .map((r) => str(r['client_code']))
+                    .filter((k): k is string => k !== null),
+            ),
+        ];
+        const names = new Map<string, string>();
+        for (let i = 0; i < codes.length; i += 5000) {
+            const found = await ctx.db.customer.findMany({
+                where: { redactionCode: { in: codes.slice(i, i + 5000) } },
+                select: { redactionCode: true, name: true },
+            });
+            for (const c of found) names.set(c.redactionCode, c.name);
+        }
+
+        const rows: CustomerOrderImportRow[] = [];
+        const metals = new Map<CustomerOrderImportRow, StockMetal>();
+        for (const r of input) {
+            const code = str(r['client_code']);
+            const client = code ? names.get(code)?.trim() : undefined;
+            if (!client) {
+                counts.unresolved['client_code'] =
+                    (counts.unresolved['client_code'] ?? 0) + 1;
+                counts.unmatched++;
+                continue;
+            }
+            const qty = r['qty'];
+            const product = str(r['product_text'])?.trim();
+            const branch = str(r['branch_code'])?.trim();
+            const status = r['status_norm'];
+            if (
+                typeof qty !== 'number' ||
+                !Number.isInteger(qty) ||
+                qty < 1 ||
+                !product ||
+                !branch ||
+                (status !== 'ALLOCATED' &&
+                    status !== 'COLLECTED' &&
+                    status !== 'ORDERED')
+            ) {
+                counts.unmatched++;
+                continue;
+            }
+            const text = (v: unknown) => str(v)?.trim() || null;
+            const row: CustomerOrderImportRow = {
+                locationCode: branch.toUpperCase(),
+                client,
+                reference: text(r['reference']),
+                supplierRef: null,
+                product,
+                quantity: qty,
+                refinery: text(r['refinery']),
+                serials: text(r['serials']),
+                status,
+                orderedOn: str(r['date']),
+                missing: false,
+                notes: text(r['notes']),
+            };
+            rows.push(row);
+            metals.set(row, metalOf(r['metal']));
+        }
+
+        const plan = await this.orders.planRows(ctx.db, rows);
+        counts.added = plan.toAdd.length;
+        counts.changed = plan.toUpdate.length;
+        counts.unchanged = plan.unchanged;
+        if (!ctx.dry)
+            await this.orders.writePlan(
+                ctx.db,
+                plan,
+                (row) => metals.get(row) ?? 'PGM',
+                ctx.actor,
+            );
+        return counts;
     }
 
     // --- trades and purchase lots: attach, never create ----------------------------------------

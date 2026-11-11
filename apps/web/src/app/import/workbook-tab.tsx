@@ -250,7 +250,7 @@ export function WorkbookTab({ map }: { map: RedactionMapRow[] | null }) {
                                                 {LABELS[r.name] ?? r.name}
                                                 {!r.imported && (
                                                     <span className="text-muted-foreground ml-2 text-xs">
-                                                        {r.name === "customer_safe_items" ? "via Customer Orders > Paste from sheet" : "not imported yet"}
+                                                        not imported yet
                                                     </span>
                                                 )}
                                             </TableCell>

@@ -13,5 +13,6 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     ],
     controllers: [CustomerOrdersController],
     providers: [CustomerOrdersService],
+    exports: [CustomerOrdersService],
 })
 export class CustomerOrdersModule {}
