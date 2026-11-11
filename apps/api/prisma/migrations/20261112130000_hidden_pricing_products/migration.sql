@@ -1,9 +1,9 @@
 -- Hidden catalogue rows (isActive = false) so generic coins, large bars and sovereign sizes have a pricing product
 -- to settle to without showing in any price list. Data only; ON CONFLICT leaves an existing row alone.
--- VAT is copied from an existing row of the same metal.
+-- VAT is copied from an existing row of the same metal, a non-bonded one first (bonded silver carries 0%).
 INSERT INTO "products" ("sku", "name", "metalType", "weight", "spreadBuy", "spreadSell", "vatRate", "stock", "isActive", "category", "updatedAt")
 SELECT v."sku", v."name", v."metal"::"MetalType", v."weight", 0, 0,
-       COALESCE((SELECT p."vatRate" FROM "products" p WHERE p."metalType" = v."metal"::"MetalType" AND p."deletedAt" IS NULL ORDER BY p."id" LIMIT 1),
+       COALESCE((SELECT p."vatRate" FROM "products" p WHERE p."metalType" = v."metal"::"MetalType" AND p."deletedAt" IS NULL ORDER BY (p."sku" LIKE '%BONDED%'), p."id" LIMIT 1),
                 CASE WHEN v."metal" = 'GOLD' THEN 0.00 ELSE 0.23 END),
        0, false, v."category"::"ProductCategory", CURRENT_TIMESTAMP
 FROM (VALUES
