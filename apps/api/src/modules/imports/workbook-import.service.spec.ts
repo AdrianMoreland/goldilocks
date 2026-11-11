@@ -9,6 +9,7 @@ import {
 } from '@goldilocks/shared-types';
 import { WorkbookImportService } from './workbook-import.service';
 import { BcAwaitingImportService } from './bc-awaiting-import.service';
+import { CustomerOrdersService } from '../customer-orders/customer-orders.service';
 
 type R = Record<string, unknown>;
 
@@ -54,7 +55,11 @@ class FakeTable {
     findUniqueOrThrow = async ({ where }: { where: R }) =>
         this.rows.find((r) => matches(r, where))!;
     update = async ({ where, data }: { where: R; data: R }) => {
-        Object.assign(this.rows.find((r) => matches(r, where))!, data);
+        // Like Prisma, an undefined value leaves the column alone.
+        const defined = Object.fromEntries(
+            Object.entries(data).filter(([, v]) => v !== undefined),
+        );
+        Object.assign(this.rows.find((r) => matches(r, where))!, defined);
     };
     updateMany = async ({ where, data }: { where: R; data: R }) => {
         const hit = this.rows.filter((r) => matches(r, where));
@@ -87,6 +92,7 @@ function setup() {
         bcItem: new FakeTable(),
         productAlias: new FakeTable(),
         orderEvent: new FakeTable(),
+        customerOrderItem: new FakeTable(),
     };
     const prisma = {
         ...t,
@@ -97,6 +103,7 @@ function setup() {
         prisma as never,
         audit as never,
         { settle: jest.fn() } as never,
+        new CustomerOrdersService(prisma as never, audit as never),
     );
     const bc = new BcAwaitingImportService(prisma as never, service);
     return { t, service, audit, bc };
@@ -600,5 +607,176 @@ describe('WorkbookImportService', () => {
                 t.bcSalesOrder.rows.filter((o) => o['missingFromImport']),
             ).toHaveLength(0);
         });
+    });
+});
+
+describe('WorkbookImportService customer safe items', () => {
+    const safe = (patch: R = {}): R => ({
+        id: 'S1',
+        metal: 'GOLD',
+        snapshot: 'jan',
+        system: 'BC',
+        branch_code: 'dub',
+        status_raw: 'Allocated',
+        status_norm: 'ALLOCATED',
+        branch: 'Dublin',
+        date: '2026-01-05',
+        client_code: 'C000001',
+        reference: 'ref 1',
+        reference_core: 'REF1',
+        qty: 2,
+        product_text: '1oz Gold Bar',
+        product_norm: '1oz gold bar',
+        refinery: '',
+        serials: 'A1',
+        notes: '',
+        source_row: 2,
+        ...patch,
+    });
+    const items = (t: ReturnType<typeof setup>['t']) =>
+        t.customerOrderItem.rows;
+
+    async function withCustomers() {
+        const ctx = setup();
+        await ctx.service.commit(req('customers', people()), 'admin');
+        return ctx;
+    }
+
+    it('saves a row under the real customer name and maps the fields', async () => {
+        const { service, t } = await withCustomers();
+        const res = await service.commit(
+            req('customer_safe_items', [safe()], { lastOfTable: true }),
+            'admin',
+        );
+        expect(res).toMatchObject({
+            added: 1,
+            changed: 0,
+            unchanged: 0,
+            unmatched: 0,
+            markedMissing: 0,
+        });
+        expect(items(t)[0]).toMatchObject({
+            locationCode: 'DUB',
+            client: 'Fake Person 1',
+            reference: 'ref 1',
+            supplierRef: null,
+            metal: 'GOLD',
+            product: '1oz Gold Bar',
+            quantity: 2,
+            refinery: null,
+            serials: 'A1',
+            notes: null,
+            status: 'ALLOCATED',
+            missing: false,
+            createdBy: 'admin',
+        });
+    });
+
+    it('skips unknown client codes, bad quantities and missing products, counting them unmatched', async () => {
+        const { service, t } = await withCustomers();
+        const res = await service.commit(
+            req('customer_safe_items', [
+                safe({ client_code: 'C009999' }),
+                safe({ id: 'S2', qty: 1.5 }),
+                safe({ id: 'S3', qty: null }),
+                safe({ id: 'S4', qty: 0 }),
+                safe({ id: 'S5', product_text: null }),
+                safe({ id: 'S6', status_norm: null }),
+                safe({ id: 'S7', client_code: null }),
+            ]),
+            'admin',
+        );
+        expect(res).toMatchObject({
+            added: 0,
+            unmatched: 7,
+            unresolved: { client_code: 2 },
+        });
+        expect(items(t)).toHaveLength(0);
+    });
+
+    it('maps COLLECTED and ORDERED and never stores a code as a client', async () => {
+        const { service, t } = await withCustomers();
+        await service.commit(
+            req('customer_safe_items', [
+                safe({ status_norm: 'COLLECTED' }),
+                safe({
+                    id: 'S2',
+                    status_norm: 'ORDERED',
+                    product_text: 'Other',
+                }),
+            ]),
+            'admin',
+        );
+        expect(items(t).map((i) => i.status)).toEqual(['COLLECTED', 'ORDERED']);
+        expect(items(t).some((i) => /^C\d{6}$/.test(String(i.client)))).toBe(
+            false,
+        );
+    });
+
+    it('adds one, updates one forward, leaves one unchanged, and a repeat adds nothing', async () => {
+        const { service, t } = await withCustomers();
+        await service.commit(
+            req('customer_safe_items', [
+                safe({ product_text: 'A', status_norm: 'ORDERED' }),
+                safe({ id: 'S2', product_text: 'B' }),
+            ]),
+            'admin',
+        );
+        const run = [
+            safe({ product_text: 'A', status_norm: 'COLLECTED' }), // moves forward
+            safe({ id: 'S2', product_text: 'B' }), // identical
+            safe({ id: 'S3', product_text: 'C' }), // new
+        ];
+        const second = await service.commit(
+            req('customer_safe_items', run),
+            'admin',
+        );
+        expect(second).toMatchObject({ added: 1, changed: 1, unchanged: 1 });
+        expect(items(t).find((i) => i.product === 'A')?.status).toBe(
+            'COLLECTED',
+        );
+        const third = await service.commit(
+            req('customer_safe_items', run),
+            'admin',
+        );
+        expect(third).toMatchObject({ added: 0, changed: 0, unchanged: 3 });
+        expect(items(t)).toHaveLength(3);
+    });
+
+    it('keeps two genuine identical rows in one chunk and adds nothing on a repeat', async () => {
+        const { service, t } = await withCustomers();
+        const twins = [safe(), safe({ id: 'S2' })];
+        await service.commit(req('customer_safe_items', twins), 'admin');
+        expect(items(t)).toHaveLength(2);
+        const again = await service.commit(
+            req('customer_safe_items', twins),
+            'admin',
+        );
+        expect(again).toMatchObject({ added: 0, unchanged: 2 });
+    });
+
+    it('never moves a status back or clears a stored value on an empty cell', async () => {
+        const { service, t } = await withCustomers();
+        await service.commit(
+            req('customer_safe_items', [safe({ status_norm: 'COLLECTED' })]),
+            'admin',
+        );
+        await service.commit(
+            req('customer_safe_items', [
+                safe({ status_norm: 'ORDERED', serials: '', notes: '' }),
+            ]),
+            'admin',
+        );
+        expect(items(t)[0]).toMatchObject({
+            status: 'COLLECTED',
+            serials: 'A1',
+        });
+    });
+
+    it('previews without writing', async () => {
+        const { service, t } = await withCustomers();
+        const res = await service.preview(req('customer_safe_items', [safe()]));
+        expect(res.added).toBe(1);
+        expect(items(t)).toHaveLength(0);
     });
 });
