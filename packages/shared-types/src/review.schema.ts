@@ -165,7 +165,17 @@ export const BcSalesProductsApplyResultSchema = z.object({
 });
 export type BcSalesProductsApplyResult = z.infer<typeof BcSalesProductsApplyResultSchema>;
 
-export const MapAliasRequestSchema = z.object({ salesProductId: z.number().int().positive() });
+/** A name is tied to exactly one of: a specific sales product, a pricing product, or marked not a product. */
+export const MapAliasRequestSchema = z
+  .object({
+    salesProductId: z.number().int().positive().optional(),
+    productId: z.number().int().positive().optional(),
+    noProduct: z.literal(true).optional(),
+  })
+  .refine(
+    (v) => [v.salesProductId, v.productId, v.noProduct].filter((x) => x !== undefined).length === 1,
+    { message: 'Choose exactly one of salesProductId, productId or noProduct.' },
+  );
 export type MapAliasRequest = z.infer<typeof MapAliasRequestSchema>;
 
 export const ReviewPageQuerySchema = ReviewLinksQuerySchema.omit({ type: true });
