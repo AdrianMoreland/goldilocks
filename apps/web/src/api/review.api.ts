@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { useApiClient } from '@/api/api-client';
 import {
     AliasesResponseSchema,
+    AliasUsageResponseSchema,
+    ApplyPerMetalResultSchema,
     BcSalesProductsApplyResultSchema,
     BcSalesProductsPreviewSchema,
     DuplicatesResponseSchema,
@@ -17,6 +19,7 @@ import {
     SettleResultSchema,
     SalesProductSchema,
     UnresolvedLotsResponseSchema,
+    type ApplyPerMetalRequest,
     type BcSalesProductsApplyRequest,
     type CreateSalesProductRequest,
     type LinkDecisionRequest,
@@ -43,6 +46,10 @@ export function useReviewApi() {
         unresolvedLots: (limit: number, offset: number) => client.get(`/review/unresolved-lots${page(limit, offset)}`, UnresolvedLotsResponseSchema),
         duplicates: (limit: number, offset: number) => client.get(`/review/duplicates${page(limit, offset)}`, DuplicatesResponseSchema),
         aliases: (view: AliasesQuery['view'], limit: number, offset: number) => client.get(`/review/aliases${page(limit, offset, { view })}`, AliasesResponseSchema),
+        /** Up to five example rows of where a name is used; loaded when a row is expanded. */
+        aliasUsage: (id: number) => client.get(`/review/aliases/${id}/usage`, AliasUsageResponseSchema),
+        /** Gives the unresolved sales and purchases of each chosen metal their product; the name stays undecided. */
+        applyPerMetal: (id: number, body: ApplyPerMetalRequest) => client.post(`/review/aliases/${id}/per-metal`, body, ApplyPerMetalResultSchema),
         /** Rescan the product names with the rules. A dry run only counts. */
         rescanNames: (dryRun: boolean) => client.post('/review/product-names/settle', { dryRun }, SettleNamesResultSchema),
         /** Each item carries the suggestion the person saw; the server skips a name whose suggestion has changed. */

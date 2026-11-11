@@ -100,6 +100,21 @@ export const AliasTargetSchema = z.object({
 });
 export type AliasTarget = z.infer<typeof AliasTargetSchema>;
 
+/** Where a product name is used. */
+export const ALIAS_USAGE_SOURCES = ['SALES', 'PURCHASES', 'ZOHO', 'CUSTOMER_SAFE'] as const;
+export const AliasUsageSourceSchema = z.enum(ALIAS_USAGE_SOURCES);
+export type AliasUsageSource = z.infer<typeof AliasUsageSourceSchema>;
+export const AliasUsageMetalSchema = z.enum(['GOLD', 'SILVER', 'PGM']);
+export type AliasUsageMetal = z.infer<typeof AliasUsageMetalSchema>;
+
+/** How many rows of one source (and tab metal, where the source has one) carry a name. */
+export const AliasSeenInSchema = z.object({
+  source: AliasUsageSourceSchema,
+  metal: AliasUsageMetalSchema.nullable(),
+  count: z.number().int(),
+});
+export type AliasSeenIn = z.infer<typeof AliasSeenInSchema>;
+
 export const AliasRowSchema = z.object({
   id: z.number().int(),
   alias: z.string(),
@@ -118,20 +133,29 @@ export const AliasRowSchema = z.object({
   suggestion: AliasTargetSchema.nullable(),
   /** What a settled name was settled to. */
   settledTo: AliasTargetSchema.nullable(),
+  /** Where the name is used, per source and tab metal. */
+  seenIn: z.array(AliasSeenInSchema),
+  /**
+   * Set when the sales and purchases carrying the name span more than one metal and some still have no product:
+   * one entry per metal seen, with the rows still unresolved. Null otherwise.
+   */
+  perMetal: z.array(z.object({ metal: AliasUsageMetalSchema, unresolved: z.number().int() })).nullable(),
 });
 export type AliasRow = z.infer<typeof AliasRowSchema>;
 
 /** Names in each state. "Settled" counts names settled by rule only; a person's own decisions are not queue items. */
 export const AliasCountsSchema = z.object({
   settledByRule: z.number().int(),
+  /** Names every sale and purchase row of which already has its product from its own sheet. */
+  settledPerRow: z.number().int(),
   toConfirm: z.number().int(),
   toDecide: z.number().int(),
 });
 export type AliasCounts = z.infer<typeof AliasCountsSchema>;
 
-export const ALIAS_VIEWS = ['open', 'confirm', 'decide', 'settled'] as const;
+export const ALIAS_VIEWS = ['open', 'confirm', 'decide', 'settled', 'per-row'] as const;
 export const AliasesQuerySchema = z.object({
-  /** open = to confirm and to decide; confirm = LIKELY suggestions; decide = UNCLEAR; settled = settled by rule. */
+  /** open = to confirm and to decide; confirm = LIKELY suggestions; decide = UNCLEAR; settled = settled by rule; per-row = every row has its product from its sheet. */
   view: z.enum(ALIAS_VIEWS).default('open'),
   limit: z.coerce.number().int().min(1).max(1000).default(50),
   offset: z.coerce.number().int().min(0).default(0),
@@ -144,6 +168,43 @@ export const AliasesResponseSchema = z.object({
   rows: z.array(AliasRowSchema),
 });
 export type AliasesResponse = z.infer<typeof AliasesResponseSchema>;
+
+/** One example row of where a name is used. Never carries a customer or vendor name or code. */
+export const AliasUsageExampleSchema = z.object({
+  source: AliasUsageSourceSchema,
+  metal: AliasUsageMetalSchema.nullable(),
+  /** The sheet tab, e.g. "IE - Gold"; null for a source without one. */
+  sheet: z.string().nullable(),
+  date: z.string().nullable(),
+  qty: z.number().nullable(),
+  /** Price per item. */
+  unitPrice: z.number().nullable(),
+  /** The product the row resolved to, if any. */
+  resolvedTo: z.string().nullable(),
+});
+export type AliasUsageExample = z.infer<typeof AliasUsageExampleSchema>;
+export const AliasUsageResponseSchema = z.object({ rows: z.array(AliasUsageExampleSchema) });
+export type AliasUsageResponse = z.infer<typeof AliasUsageResponseSchema>;
+
+/** A product for the unresolved rows of one metal: exactly one of a pricing product or a specific product. */
+export const PerMetalChoiceSchema = z
+  .object({
+    metal: AliasUsageMetalSchema,
+    productId: z.number().int().positive().optional(),
+    salesProductId: z.number().int().positive().optional(),
+  })
+  .refine((c) => [c.productId, c.salesProductId].filter((v) => v !== undefined).length === 1, {
+    message: 'Give exactly one of productId or salesProductId.',
+  });
+export type PerMetalChoice = z.infer<typeof PerMetalChoiceSchema>;
+
+export const ApplyPerMetalRequestSchema = z
+  .object({ choices: z.array(PerMetalChoiceSchema).min(1).max(3) })
+  .refine((v) => new Set(v.choices.map((c) => c.metal)).size === v.choices.length, { message: 'One choice per metal.' });
+export type ApplyPerMetalRequest = z.infer<typeof ApplyPerMetalRequestSchema>;
+
+export const ApplyPerMetalResultSchema = z.object({ trades: z.number().int(), lots: z.number().int() });
+export type ApplyPerMetalResult = z.infer<typeof ApplyPerMetalResultSchema>;
 
 /** Rescan: re-run the matching rules over every name a person has not decided. dryRun counts and writes nothing. */
 export const SettleNamesRequestSchema = z.object({ dryRun: z.boolean().default(false) });

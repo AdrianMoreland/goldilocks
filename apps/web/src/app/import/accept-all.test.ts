@@ -15,6 +15,8 @@ const row = (over: Partial<AliasRow>): AliasRow => ({
     decidedBy: null,
     suggestion: { kind: "PRICING", id: 10, name: "1oz Krugerrand" },
     settledTo: null,
+    seenIn: [],
+    perMetal: null,
     ...over,
 })
 

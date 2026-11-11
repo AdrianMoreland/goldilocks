@@ -2,7 +2,7 @@ import { useState } from "react"
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LINK_TYPES, type AliasRow, type AliasesQuery, type MapAliasRequest, type SettleNamesResult, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
+import { LINK_TYPES, type AliasRow, type AliasUsageMetal, type AliasesQuery, type MapAliasRequest, type SettleNamesResult, type PricingProductOption, type ReviewLinkRow, type SalesProduct } from "@goldilocks/shared-types"
 import { useReviewApi } from "@/api/review.api"
 import { queryKeys } from "@/lib/query-keys"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { metalLabel, seenInText } from "./name-usage"
 import { planAcceptAll, expectedOf, type AcceptAllPlan } from "./accept-all"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -371,14 +372,20 @@ function ProductPicker({
     specific,
     value,
     onChange,
+    metal,
 }: {
     name: string
     pricing: PricingProductOption[]
     specific: SalesProduct[]
     value: AliasChoice | undefined
     onChange: (c: AliasChoice) => void
+    /** Only products of this metal, and no "not a product" (a choice for one metal of a name). */
+    metal?: AliasUsageMetal
 }) {
     const [open, setOpen] = useState(false)
+    const fits = (m: string) => !metal || m === metal || (metal === "PGM" && (m === "PLATINUM" || m === "PALLADIUM"))
+    pricing = pricing.filter((p) => fits(p.metalType))
+    specific = specific.filter((p) => fits(p.metal))
     const pick = (c: AliasChoice) => {
         onChange(c)
         setOpen(false)
@@ -413,16 +420,112 @@ function ProductPicker({
                                 </CommandItem>
                             ))}
                         </CommandGroup>
-                        <CommandGroup heading="Other">
-                            <CommandItem value="not a product fee shipment storage" onSelect={() => pick({ label: "Not a product", body: { noProduct: true } })}>
-                                Not a product (fee, shipment, storage)
-                                {value?.body.noProduct && <CheckIcon className="ml-auto size-4" />}
-                            </CommandItem>
-                        </CommandGroup>
+                        {!metal && (
+                            <CommandGroup heading="Other">
+                                <CommandItem value="not a product fee shipment storage" onSelect={() => pick({ label: "Not a product", body: { noProduct: true } })}>
+                                    Not a product (fee, shipment, storage)
+                                    {value?.body.noProduct && <CheckIcon className="ml-auto size-4" />}
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
                     </CommandList>
                 </Command>
             </PopoverContent>
         </Popover>
+    )
+}
+
+const SOURCE_LABEL = { SALES: "Sale", PURCHASES: "Purchase", ZOHO: "Zoho invoice", CUSTOMER_SAFE: "Customer safe" } as const
+
+/** "Seen in" counts, and up to five example rows loaded only when opened. */
+function NameContext({ row }: { row: AliasRow }) {
+    const api = useReviewApi()
+    const [open, setOpen] = useState(false)
+    const usage = useQuery({ queryKey: queryKeys.review.aliasUsage(row.id), queryFn: () => api.aliasUsage(row.id), enabled: open })
+    const text = seenInText(row.seenIn)
+    if (!text) return null
+    return (
+        <div className="mt-1 space-y-1">
+            <p className="text-muted-foreground text-xs">Seen in: {text}</p>
+            <button type="button" className="text-xs underline underline-offset-2" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+                {open ? "Hide examples" : "Examples"}
+            </button>
+            {open &&
+                (usage.isLoading ? (
+                    <p className="text-muted-foreground text-xs">Loading...</p>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Source</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Qty</TableHead>
+                                <TableHead className="text-right">Price each</TableHead>
+                                <TableHead>Product</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {(usage.data?.rows ?? []).map((r, i) => (
+                                <TableRow key={i}>
+                                    <TableCell className="text-xs">
+                                        {SOURCE_LABEL[r.source]}
+                                        {r.sheet ? ` · ${r.sheet}` : r.metal ? ` · ${metalLabel(r.metal)}` : ""}
+                                    </TableCell>
+                                    <TableCell className="text-xs tabular-nums">{r.date ?? "-"}</TableCell>
+                                    <TableCell className="text-right text-xs tabular-nums">{r.qty ?? "-"}</TableCell>
+                                    <TableCell className="text-right text-xs tabular-nums">{r.unitPrice === null ? "-" : r.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                    <TableCell className="text-xs">{r.resolvedTo ?? "none yet"}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ))}
+        </div>
+    )
+}
+
+/** A name used for more than one metal with rows still unresolved: one product per metal, applied to those rows. */
+function PerMetalPicker({
+    row,
+    pricing,
+    specific,
+    onApply,
+    busy,
+}: {
+    row: AliasRow
+    pricing: PricingProductOption[]
+    specific: SalesProduct[]
+    onApply: (choices: { metal: AliasUsageMetal; body: MapAliasRequest }[]) => void
+    busy: boolean
+}) {
+    const [picked, setPicked] = useState<Partial<Record<AliasUsageMetal, AliasChoice>>>({})
+    const metals = row.perMetal ?? []
+    const choices = metals.flatMap((m) => (picked[m.metal] ? [{ metal: m.metal, body: picked[m.metal]!.body }] : []))
+    return (
+        <div className="space-y-1">
+            <p className="text-muted-foreground text-xs">Used for more than one metal. Choose a product for each; only rows without one change.</p>
+            {metals.map((m) => (
+                <div key={m.metal} className="flex items-center gap-2">
+                    <span className="w-14 text-sm capitalize">{metalLabel(m.metal)}</span>
+                    {m.unresolved > 0 ? (
+                        <ProductPicker
+                            name={`${row.alias} (${metalLabel(m.metal)})`}
+                            metal={m.metal}
+                            pricing={pricing}
+                            specific={specific}
+                            value={picked[m.metal]}
+                            onChange={(c) => setPicked((prev) => ({ ...prev, [m.metal]: c }))}
+                        />
+                    ) : (
+                        <span className="text-muted-foreground text-xs">all rows have a product</span>
+                    )}
+                    {m.unresolved > 0 && <span className="text-muted-foreground text-xs tabular-nums">{m.unresolved.toLocaleString()} rows</span>}
+                </div>
+            ))}
+            <Button size="sm" disabled={choices.length === 0 || busy} onClick={() => onApply(choices)}>
+                Apply to rows
+            </Button>
+        </div>
     )
 }
 
@@ -452,6 +555,17 @@ function AliasesQueue() {
         mutationFn: (v: { id: number; body: MapAliasRequest }) => api.mapAlias(v.id, v.body),
         onSuccess: () => {
             toast.success("Product name tied")
+            void refresh()
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const perMetal = useMutation({
+        mutationFn: (v: { id: number; choices: { metal: AliasUsageMetal; body: MapAliasRequest }[] }) =>
+            api.applyPerMetal(v.id, {
+                choices: v.choices.map((c) => ({ metal: c.metal, ...(c.body.productId !== undefined ? { productId: c.body.productId } : { salesProductId: c.body.salesProductId }) })),
+            }),
+        onSuccess: (r) => {
+            toast.success(`${(r.trades + r.lots).toLocaleString()} rows updated`)
             void refresh()
         },
         onError: (e: Error) => toast.error(e.message),
@@ -525,7 +639,7 @@ function AliasesQueue() {
         <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
                 <p className="text-muted-foreground text-sm tabular-nums">
-                    {counts ? `${counts.settledByRule.toLocaleString()} settled by rule · ${counts.toConfirm.toLocaleString()} to confirm · ${counts.toDecide.toLocaleString()} to decide` : "Loading..."}
+                    {counts ? `${counts.settledByRule.toLocaleString()} settled by rule · ${counts.settledPerRow.toLocaleString()} settled per row · ${counts.toConfirm.toLocaleString()} to confirm · ${counts.toDecide.toLocaleString()} to decide` : "Loading..."}
                 </p>
                 <div className="ml-auto flex flex-wrap gap-2">
                     <Button variant="outline" disabled={dryRun.isPending} onClick={() => dryRun.mutate()}>
@@ -548,6 +662,7 @@ function AliasesQueue() {
                     { value: "open", label: "All waiting", count: counts ? waiting : undefined },
                     { value: "confirm", label: "To confirm", count: counts?.toConfirm },
                     { value: "decide", label: "To decide", count: counts?.toDecide },
+                    { value: "per-row", label: "Settled per row", count: counts?.settledPerRow },
                     { value: "settled", label: "Settled by rule", count: counts?.settledByRule },
                 ]}
             />
@@ -561,7 +676,7 @@ function AliasesQueue() {
                                 <TableRow>
                                     <TableHead>Name in the data</TableHead>
                                     <TableHead className="text-right">Used</TableHead>
-                                    <TableHead>{view === "settled" ? "Settled to" : "Suggestion or product"}</TableHead>
+                                    <TableHead>{view === "settled" ? "Settled to" : view === "per-row" ? "Product" : "Suggestion or product"}</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
@@ -578,11 +693,22 @@ function AliasesQueue() {
                                                         not in catalogue
                                                     </Badge>
                                                 )}
+                                                {view !== "settled" && <NameContext row={a} />}
                                             </TableCell>
                                             <TableCell className="text-right tabular-nums">{a.uses.toLocaleString()}</TableCell>
                                             <TableCell>
-                                                {confirming ? (
+                                                {view === "per-row" ? (
+                                                    <span className="text-muted-foreground text-sm">Each row has its product from its sheet.</span>
+                                                ) : confirming ? (
                                                     <span className="text-sm">{a.question ?? `${a.alias}: match to ${a.suggestion?.name}?`}</span>
+                                                ) : a.perMetal ? (
+                                                    <PerMetalPicker
+                                                        row={a}
+                                                        pricing={pricing.data ?? []}
+                                                        specific={products.data ?? []}
+                                                        busy={perMetal.isPending}
+                                                        onApply={(choices) => perMetal.mutate({ id: a.id, choices })}
+                                                    />
                                                 ) : (
                                                     <div className="space-y-1">
                                                         {a.settledTo && <div className="text-sm">{a.settledTo.name}</div>}
@@ -598,7 +724,7 @@ function AliasesQueue() {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {confirming ? (
+                                                {view === "per-row" || a.perMetal ? null : confirming ? (
                                                     <div className="flex justify-end gap-2">
                                                         <Button size="sm" disabled={decide.isPending} onClick={() => a.suggestion && decide.mutate({ id: a.id, yes: true, suggestion: a.suggestion })}>
                                                             Yes

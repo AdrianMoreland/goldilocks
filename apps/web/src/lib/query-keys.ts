@@ -26,6 +26,7 @@ export const queryKeys = {
     review: {
         all: ['review'] as const,
         productNames: (view: string, offset: number) => ['review', 'product-names', view, offset] as const,
+        aliasUsage: (id: number) => ['review', 'alias-usage', id] as const,
         salesProducts: ['review', 'sales-products'] as const,
         pricingProducts: ['review', 'pricing-products'] as const,
     },
