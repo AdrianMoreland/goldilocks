@@ -92,6 +92,8 @@ export * from './unredact';
 export * from './product-text';
 export * from './product-rules';
 export * from './product-match';
+export * from './product-match-coins';
+export * from './metal-evidence';
 export * from './refineries';
 export * from './product-resolver';
 export * from './detect-file-type';

@@ -393,7 +393,7 @@ function ProductPicker({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} aria-label={`Product for ${name}`} className="h-8 w-full max-w-72 justify-between px-2 font-normal">
+                <Button variant="outline" role="combobox" aria-expanded={open} aria-label={`Product for ${name}`} className="h-8 w-full max-w-56 justify-between px-2 font-normal">
                     <span className={value ? "truncate" : "text-muted-foreground truncate"}>{value?.label ?? "Choose..."}</span>
                     <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
                 </Button>
@@ -435,7 +435,7 @@ function ProductPicker({
     )
 }
 
-const SOURCE_LABEL = { SALES: "Sale", PURCHASES: "Purchase", ZOHO: "Zoho invoice", CUSTOMER_SAFE: "Customer safe" } as const
+const SOURCE_LABEL = { SALES: "Sale", PURCHASES: "Purchase", ZOHO: "Zoho invoice", ZOHO_PO: "Zoho purchase order", CUSTOMER_SAFE: "Customer safe" } as const
 
 /** "Seen in" counts, and up to five example rows loaded only when opened. */
 function NameContext({ row }: { row: AliasRow }) {
@@ -671,13 +671,14 @@ function AliasesQueue() {
                     {!aliases.data?.rows.length ? (
                         <Empty text={aliases.isLoading ? "Loading..." : "Nothing here."} />
                     ) : (
-                        <Table>
+                        // Fixed columns, text wraps inside them: the Tie column stays inside the card at any width.
+                        <Table className="table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name in the data</TableHead>
-                                    <TableHead className="text-right">Used</TableHead>
+                                    <TableHead className="w-[34%]">Name in the data</TableHead>
+                                    <TableHead className="w-16 text-right">Used</TableHead>
                                     <TableHead>{view === "settled" ? "Settled to" : view === "per-row" ? "Product" : "Suggestion or product"}</TableHead>
-                                    <TableHead />
+                                    <TableHead className="w-28" />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -685,7 +686,7 @@ function AliasesQueue() {
                                     const confirming = a.decidedBy === null && a.confidence === "LIKELY" && a.suggestion !== null
                                     return (
                                         <TableRow key={a.id}>
-                                            <TableCell>
+                                            <TableCell className="break-words whitespace-normal">
                                                 {a.alias}
                                                 {a.refinery && <span className="text-muted-foreground ml-2 text-xs">{a.refinery}</span>}
                                                 {a.catalogueGap && (
@@ -696,7 +697,7 @@ function AliasesQueue() {
                                                 {view !== "settled" && <NameContext row={a} />}
                                             </TableCell>
                                             <TableCell className="text-right tabular-nums">{a.uses.toLocaleString()}</TableCell>
-                                            <TableCell>
+                                            <TableCell className="whitespace-normal">
                                                 {view === "per-row" ? (
                                                     <span className="text-muted-foreground text-sm">Each row has its product from its sheet.</span>
                                                 ) : confirming ? (
