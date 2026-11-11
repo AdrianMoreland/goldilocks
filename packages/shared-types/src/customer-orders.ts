@@ -261,10 +261,23 @@ export interface CustomerOrderChanges {
   refinery?: string;
 }
 
+/** `statusOnly`: a matched item may only have its status moved forward (and `missing` set); text and dates are left alone. */
+export interface CustomerOrderPlanOptions {
+  fields?: 'all' | 'statusOnly';
+}
+
 /** The fields a pasted row would change on a stored item. Status only moves forward; text and the missing flag are never cleared. */
-export function customerOrderChanges(stored: ExistingCustomerOrder, row: CustomerOrderImportRow): CustomerOrderChanges {
+export function customerOrderChanges(
+  stored: ExistingCustomerOrder,
+  row: CustomerOrderImportRow,
+  options: CustomerOrderPlanOptions = {},
+): CustomerOrderChanges {
   const changes: CustomerOrderChanges = {};
   if (STATUS_RANK[row.status] > STATUS_RANK[stored.status]) changes.status = row.status;
+  if (options.fields === 'statusOnly') {
+    if (row.missing && !stored.missing) changes.missing = true;
+    return changes;
+  }
   for (const f of ['serials', 'notes', 'supplierRef', 'refinery'] as const) {
     const next = row[f]?.trim();
     if (next && next !== (stored[f] ?? '').trim()) changes[f] = next;
@@ -284,6 +297,7 @@ export function customerOrderChanges(stored: ExistingCustomerOrder, row: Custome
 export function planCustomerOrderImport(
   existing: ExistingCustomerOrder[],
   incoming: CustomerOrderImportRow[],
+  options: CustomerOrderPlanOptions = {},
 ): { toAdd: CustomerOrderImportRow[]; toUpdate: { id: number; changes: CustomerOrderChanges }[]; unchanged: number } {
   const key = (r: { locationCode: string; client: string; reference: string | null; product: string; quantity: number }) =>
     [r.locationCode.toUpperCase(), normalizeClient(r.client), normalizeReference(r.reference), r.product.trim().toLowerCase(), r.quantity].join('|');
@@ -298,7 +312,7 @@ export function planCustomerOrderImport(
       toAdd.push(row);
       continue;
     }
-    const changes = customerOrderChanges(stored, row);
+    const changes = customerOrderChanges(stored, row, options);
     if (Object.keys(changes).length > 0) toUpdate.push({ id: stored.id, changes });
     else unchanged++;
   }
