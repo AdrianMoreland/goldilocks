@@ -141,6 +141,14 @@ export interface ProductDecision {
   salesProductId: SalesProductId | null;
   /** Settled as not a product (a fee, a deposit). */
   noProduct?: boolean;
+  /** Who settled it. A person's decision applies to every row with that name; a RULE decision only to rows of its metal. */
+  decidedBy?: 'RULE' | 'PERSON' | null;
+  /**
+   * The metal the name was seen under (its text, else its tab or source). Cleaned alias texts lose "gold", so the
+   * key cannot say which metal a rule decision was made for: a RULE decision applies only to a row of this metal,
+   * and not at all when no metal is known (the engine then runs for the row with its own metal).
+   */
+  metalHint?: string | null;
 }
 
 export interface CatalogueProductRef {
@@ -204,18 +212,21 @@ const WEIGHT_TOKEN = /^(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)$/;
 /**
  * A decision matches when every word of its name is among the words of the text; most words wins, then the longer
  * key, then the earlier one. The key may be "name|REFINERY" (or "name | refinery"): that decision only applies to
- * rows with the same refinery. A name needs two words or a weight, so one loose word cannot claim many rows.
+ * rows with the same refinery. A RULE decision of another metal than the row's is skipped (the engine runs with the
+ * row's own metal instead). A name needs two words or a weight, so one loose word cannot claim many rows.
  */
 function bestDecision(
   keyTokens: ReadonlySet<string>,
   refinery: string | null,
   decisions: readonly ProductDecision[],
   refineryAliases: readonly RefineryAliasEntry[] | undefined,
+  rowMetal: string,
 ): ProductDecision | null {
   let best: ProductDecision | null = null;
   let bestTokens = 0;
   for (const d of decisions) {
     if (d.productId === null && d.salesProductId === null && !d.noProduct) continue;
+    if (d.decidedBy === 'RULE' && !d.noProduct && d.metalHint !== rowMetal) continue;
     const bar = d.key.indexOf('|');
     const name = (bar < 0 ? d.key : d.key.slice(0, bar)).trim();
     const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
@@ -263,7 +274,7 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
 
   // 2. A saved name decision.
   if (key && aliasOk(text, key)) {
-    const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases);
+    const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases, metalInText(text) ?? input.metal);
     if (d?.noProduct) return { ...base, pricingProductId: null, salesProductId: null, method: 'NOT_PRODUCT' };
     if (d) {
       const r = d.salesProductId !== null ? viaSales('ALIAS', d.salesProductId) : null;

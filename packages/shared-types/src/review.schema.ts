@@ -162,7 +162,7 @@ export const SettleNamesResultSchema = z.object({
 });
 export type SettleNamesResult = z.infer<typeof SettleNamesResultSchema>;
 
-/** Accept or reject the engine's suggestions for these names. */
+/** Turn down the engine's suggestions for these names. */
 export const NameSuggestionDecisionRequestSchema = z.object({
   ids: z.array(z.number().int().positive()).min(1).max(5000),
 });
@@ -175,6 +175,34 @@ export const NameSuggestionDecisionResultSchema = z.object({
   skipped: z.number().int(),
 });
 export type NameSuggestionDecisionResult = z.infer<typeof NameSuggestionDecisionResultSchema>;
+
+/** The suggestion the person saw: exactly one of a pricing product, a specific product, or "not a product". */
+export const NameSuggestionTargetSchema = z
+  .object({
+    productId: z.number().int().positive().optional(),
+    salesProductId: z.number().int().positive().optional(),
+    noProduct: z.literal(true).optional(),
+  })
+  .refine((t) => [t.productId, t.salesProductId, t.noProduct].filter((v) => v !== undefined).length === 1, {
+    message: 'Give exactly one of productId, salesProductId, noProduct.',
+  });
+export type NameSuggestionTarget = z.infer<typeof NameSuggestionTargetSchema>;
+
+/**
+ * Accept suggestions. Each item says which suggestion the person saw (`expected`); the server accepts a name only
+ * if its stored suggestion still equals it, so a rescan between the screen and the click cannot change what is tied.
+ */
+export const NameSuggestionAcceptRequestSchema = z.object({
+  items: z.array(z.object({ id: z.number().int().positive(), expected: NameSuggestionTargetSchema })).min(1).max(5000),
+});
+export type NameSuggestionAcceptRequest = z.infer<typeof NameSuggestionAcceptRequestSchema>;
+
+export const NameSuggestionAcceptResultSchema = z.object({
+  accepted: z.number().int(),
+  /** Gone, already decided, or the suggestion changed since the person saw it. */
+  skipped: z.number().int(),
+});
+export type NameSuggestionAcceptResult = z.infer<typeof NameSuggestionAcceptResultSchema>;
 
 export const SalesProductSchema = z.object({
   id: z.number().int(),

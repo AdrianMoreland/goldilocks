@@ -13,7 +13,9 @@ const METAL_TOKEN: ReadonlyArray<readonly [RegExp, MatchMetal]> = [
 
 /**
  * The metal a name was seen under: what its own text says (as the matching engine reads it), else the one metal
- * named by its sources (a tab such as "tradesheet:silver"). Null when neither says, or they say two.
+ * named by its sources (a tab such as "tradesheet:silver"). Null when neither says, or they say two. Alias texts
+ * lose "gold" when they are cleaned, so this is the only place a name keeps its metal; a rule decision is only
+ * valid for rows of that metal (see `ProductDecision.metalHint`).
  */
 export function deriveMetalHint(
   text: string | null | undefined,
@@ -31,9 +33,9 @@ export function deriveMetalHint(
 
 /**
  * The BC item number inside a Zoho SKU: "1103", "1103-HISTORIC" and "2705.0" all give the number. Null when the SKU
- * is not (or does not start with) a plain item number.
+ * is not (or does not start with) a plain four-digit item number.
  */
 export function bcItemNoFromSku(sku: string | null | undefined): string | null {
-  const m = /^\s*(\d{3,6})(?:\.0+)?(?:\s*-\s*[A-Za-z][\w\s-]*)?\s*$/.exec(String(sku ?? ''));
+  const m = /^\s*(\d{4})(?:\.0+)?(?:\s*-\s*[A-Za-z][\w\s-]*)?\s*$/.exec(String(sku ?? ''));
   return m ? m[1]! : null;
 }

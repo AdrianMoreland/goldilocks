@@ -16,6 +16,7 @@ import { listedRefinery, refineryMatch, refineryWords } from './refineries';
 
 export type MatchMetal = 'GOLD' | 'SILVER' | 'PLATINUM' | 'PALLADIUM';
 export type MatchConfidence = 'CERTAIN' | 'LIKELY' | 'UNCLEAR';
+export type MetalFrom = 'text' | 'tab' | 'source' | 'price' | 'default';
 export type MatchOutcome = 'PRICING' | 'SPECIFIC' | 'NOT_A_PRODUCT' | 'NONE';
 
 const METALS: readonly MatchMetal[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
@@ -171,6 +172,8 @@ export interface ProductMatch {
   catalogueGap?: boolean;
   /** What was read from the text, for display and tests. */
   metal?: MatchMetal;
+  /** Where the metal came from: the text itself, the tab, the source (Zoho convention), the price, or the only metal sold. */
+  metalFrom?: MetalFrom;
   weight?: string;
 }
 
@@ -184,7 +187,7 @@ const FILLER_WORDS = new Set([
 ]);
 const PURITY_NUMBERS = /^(999(\.9)?|9999|995|916(\.7)?|9167|91\.67|99\.99|99\.9|585|750|375|925)$/;
 const NATURAL_LABELS = new Set([
-  '1/10oz', '1/4oz', '1/2oz', '1oz', '2oz', '5oz', '10oz', '100oz',
+  '1/10oz', '1/4oz', '1/2oz', '1oz', '2oz', '5oz', '10oz', '100oz', '1000oz',
   '1g', '2g', '2.5g', '5g', '10g', '20g', '50g', '100g', '250g', '500g', '1kg', '5kg', '15kg',
 ]);
 const MAYBE_NOT_A_PRODUCT_RE = /\b(account|balance|outstanding|notes?|comments?|contact|processing|invoice|inv)\b/;
@@ -575,37 +578,53 @@ interface MetalRead {
   metal: MatchMetal | null;
   confidence: MatchConfidence;
   how: string;
+  from?: MetalFrom;
   problem?: string;
 }
 
-function readMetal(p: Parsed, input: MatchInput, grams: number | null, designMetals: MatchMetal[]): MetalRead {
+/** Whether the catalogue holds a platinum or palladium row for this design and weight (so a silver or gold guess could be wrong). */
+function hasPgmVariant(idx: Index, design: CoinDesign | null, weight: string | null): boolean {
+  return idx.rows.some(
+    (r) =>
+      (r.metal === 'PLATINUM' || r.metal === 'PALLADIUM') &&
+      (design ? r.design === design.id : true) &&
+      (weight === null || r.weight === weight),
+  );
+}
+
+function readMetal(p: Parsed, input: MatchInput, grams: number | null, designMetals: MatchMetal[], pgmVariant: boolean): MetalRead {
   if (p.metals.size > 1) return { metal: null, confidence: 'UNCLEAR', how: '', problem: 'the name gives two metals' };
-  if (p.metals.size === 1) return { metal: [...p.metals][0]!, confidence: 'CERTAIN', how: 'text' };
+  if (p.metals.size === 1) return { metal: [...p.metals][0]!, confidence: 'CERTAIN', how: 'text', from: 'text' };
 
   const sources = toSources(input.sources);
   const hint = isMetal(input.metal) ? input.metal : null;
   const zoho = isZohoSource(sources) ? ('GOLD' as const) : null;
   const base = hint ?? zoho;
   const baseHow = hint ? 'tab' : 'zoho convention';
+  const baseFrom: MetalFrom = hint ? 'tab' : 'source';
+  // A silver tab (old sheets also hold platinum and palladium there) and the Zoho "gold unless it says Silver" convention
+  // are only certain when the catalogue has no platinum or palladium version of the design and weight.
+  const baseConf: MatchConfidence = (hint === 'SILVER' || (!hint && zoho)) && pgmVariant ? 'LIKELY' : 'CERTAIN';
 
   let fits: MatchMetal[] = [];
   const price = input.unitPrice;
   if (price && price > 0 && input.spot && grams && grams > 0) fits = fitMetals(price / (grams / GRAMS_PER_OZ), input.spot);
 
   if (fits.length === 1) {
-    if (base === fits[0]) return { metal: base, confidence: 'CERTAIN', how: `${baseHow}, price agrees` };
+    if (base === fits[0]) return { metal: base, confidence: 'CERTAIN', how: `${baseHow}, price agrees`, from: baseFrom };
     return {
       metal: fits[0]!,
+      from: 'price',
       confidence: 'LIKELY',
       how: base ? `price per oz fits ${fits[0]!.toLowerCase()}, not ${base.toLowerCase()} (${baseHow})` : 'price per oz',
     };
   }
   if (fits.length > 1) {
-    if (base && fits.includes(base)) return { metal: base, confidence: 'LIKELY', how: `${baseHow}, price fits ${fits.length} metals` };
+    if (base && fits.includes(base)) return { metal: base, confidence: 'LIKELY', how: `${baseHow}, price fits ${fits.length} metals`, from: baseFrom };
     return { metal: null, confidence: 'UNCLEAR', how: '', problem: 'the price fits more than one metal' };
   }
-  if (base) return { metal: base, confidence: 'CERTAIN', how: baseHow };
-  if (designMetals.length === 1) return { metal: designMetals[0]!, confidence: 'CERTAIN', how: 'only metal sold' };
+  if (base) return { metal: base, confidence: baseConf, how: baseHow, from: baseFrom };
+  if (designMetals.length === 1) return { metal: designMetals[0]!, confidence: 'CERTAIN', how: 'only metal sold', from: 'default' };
   return { metal: null, confidence: 'UNCLEAR', how: '', problem: 'no metal in the name or from the source' };
 }
 
@@ -617,12 +636,37 @@ const metalWord = (m: MatchMetal) => m.toLowerCase();
 
 const none = (reason: string, over: Partial<ProductMatch> = {}): ProductMatch => ({ outcome: 'NONE', confidence: 'UNCLEAR', reason, ...over });
 
+/** Matches one name. Every LIKELY answer carries the question to put to a person. */
 export function matchProductName(input: MatchInput, cat: MatchCatalogue): ProductMatch {
+  const seen: { from?: MetalFrom } = {};
+  const r = matchInner(input, cat, seen);
+  const m: ProductMatch = seen.from && r.metal ? { ...r, metalFrom: seen.from } : r;
+  if (m.confidence === 'LIKELY' && !m.question && m.outcome !== 'NOT_A_PRODUCT' && m.productId !== undefined) {
+    const idx = indexOf(cat);
+    const name =
+      m.outcome === 'SPECIFIC' && m.salesProductId !== undefined
+        ? idx.specifics.find((s) => s.s.id === m.salesProductId)?.s.name
+        : idx.byId.get(m.productId)?.p.name;
+    if (name) return { ...m, question: `Match to ${name}?` };
+  }
+  return m;
+}
+
+const NOT_A_PRODUCT_WORDS_RE = new RegExp(NOT_A_PRODUCT_RE.source, 'gi');
+
+function matchInner(input: MatchInput, cat: MatchCatalogue, seen: { from?: MetalFrom }): ProductMatch {
   const idx = indexOf(cat);
   const p = parseProductName(input.text, input.refinery ?? null);
 
   if (p.empty) return none('no product name');
-  if (p.notProduct) return { outcome: 'NOT_A_PRODUCT', confidence: 'CERTAIN', reason: 'a fee, shipment or deposit, not a product' };
+  if (p.notProduct) {
+    // Certain only when nothing else in the text looks like a product (a weight or a coin design).
+    const rest = parseProductName(String(input.text ?? '').replace(NOT_A_PRODUCT_WORDS_RE, ' '), input.refinery ?? null);
+    if (rest.weight !== null || rest.design !== null) {
+      return { outcome: 'NOT_A_PRODUCT', confidence: 'LIKELY', reason: 'has a fee or shipment word, but also a weight or design', question: 'Mark as not a product?' };
+    }
+    return { outcome: 'NOT_A_PRODUCT', confidence: 'CERTAIN', reason: 'a fee, shipment or deposit, not a product' };
+  }
   if (p.maybeNotProduct) {
     return { outcome: 'NOT_A_PRODUCT', confidence: 'LIKELY', reason: 'looks like a note, balance or account line', question: 'Mark as not a product?' };
   }
@@ -633,9 +677,10 @@ export function matchProductName(input: MatchInput, cat: MatchCatalogue): Produc
   const designMetals = design ? (Object.keys(design.metals) as MatchMetal[]) : [];
   const grams = p.grams ?? (design?.fineGrams ?? null);
 
-  const m = readMetal(p, input, grams, designMetals);
+  const m = readMetal(p, input, grams, designMetals, hasPgmVariant(idx, design, p.weight));
   if (!m.metal) return none(m.problem ?? 'no metal', { weight: p.weight ?? undefined });
   const metal = m.metal;
+  seen.from = m.from;
   if (p.weight && !NATURAL_LABELS.has(p.weight)) return none(`unusual weight ${p.weight}`, { metal, weight: p.weight });
   let conf: MatchConfidence = m.confidence;
   const parts: string[] = [];
@@ -786,7 +831,7 @@ export function matchProductName(input: MatchInput, cat: MatchCatalogue): Produc
 
 const BAR_REFINERIES = new Set([
   'PAMP SUISSE', 'VALCAMBI SUISSE', 'ARGOR-HERAEUS', 'HERAEUS', 'UMICORE', 'METALOR', 'CREDIT SUISSE', 'BAIRD & CO', 'C HAFNER',
-  'JOHNSON MATTHEY', 'NADIR', 'DEGUSSA', 'OPM METALS', 'ELEMENTAL', 'SEMPSA', 'ASSAY OFFICE', 'RAND REFINERY',
+  'JOHNSON MATTHEY', 'NADIR', 'DEGUSSA', 'OPM METALS', 'ELEMENTAL', 'SEMPSA', 'ASSAY OFFICE',
 ]);
 
 /** Finish a match on a pricing row: look for the one specific product the name points to, else answer with the pricing row. */

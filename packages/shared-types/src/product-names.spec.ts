@@ -10,6 +10,8 @@ describe('bcItemNoFromSku', () => {
   it('ignores a SKU that is not an item number', () => {
     expect(bcItemNoFromSku('GOLD-1OZ-BAR')).toBeNull();
     expect(bcItemNoFromSku('12')).toBeNull();
+    expect(bcItemNoFromSku('123')).toBeNull();
+    expect(bcItemNoFromSku('12345')).toBeNull();
     expect(bcItemNoFromSku('')).toBeNull();
     expect(bcItemNoFromSku(null)).toBeNull();
   });
@@ -17,7 +19,7 @@ describe('bcItemNoFromSku', () => {
 
 describe('deriveMetalHint', () => {
   it('takes the metal the text names', () => {
-    expect(deriveMetalHint('1oz silver britannia', 'invoice_lines')).toBe('SILVER');
+    expect(deriveMetalHint('1oz silver britannia', 'tradesheet:gold')).toBe('SILVER');
   });
   it('else the one metal the sources name', () => {
     expect(deriveMetalHint('1oz britannia', 'tradesheet:silver')).toBe('SILVER');

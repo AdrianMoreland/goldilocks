@@ -12,6 +12,9 @@ const cat: MatchCatalogue = {
     P(43, 'GOLD-50G-BAR', '50g Gold Bar', 'GOLD'),
     P(244, '1OZ-SILVER-BAR', '1oz Silver Bar', 'SILVER', 'BAR'),
     P(59, 'SILVER-1KG-BAR', '1kg Silver Bar', 'SILVER'),
+    P(300, 'SILVER-1000OZ-BAR', '1000oz Silver Bar', 'SILVER'),
+    P(301, 'SILVER-1OZ-BAR', '1oz Silver Bar (generic)', 'SILVER'),
+    P(302, 'PLATINUM-1OZ-BAR', '1oz Platinum Bar', 'PLATINUM'),
     P(74, 'GOLD-1OZ-BRITANNIA-COIN', '1oz Britannia', 'GOLD'),
     P(103, 'SILVER-1OZ-BRITANNIA-COIN', '1oz Britannia', 'SILVER'),
     P(132, 'PLATINUM-1OZ-BRITANNIA-COIN', '1oz Britannia', 'PLATINUM'),
@@ -44,8 +47,38 @@ describe('matchProductName', () => {
     expect(run('Silver - 1oz Britannia', { sources: 'zoho_products' })).toMatchObject({ productId: 103, confidence: 'CERTAIN' });
   });
 
-  it('Zoho names without a metal are gold', () => {
-    expect(run('1oz Britannia', { sources: 'invoice_lines' })).toMatchObject({ productId: 74, confidence: 'CERTAIN' });
+  it('Zoho names without a metal are gold, certain only when no platinum or palladium version exists', () => {
+    // Britannia exists in platinum: gold is only LIKELY.
+    expect(run('1oz Britannia', { sources: 'invoice_lines' })).toMatchObject({ productId: 74, confidence: 'LIKELY', question: 'Match to 1oz Britannia?', metalFrom: 'source' });
+    // A Krugerrand has no platinum row in this catalogue.
+    expect(run('1oz Krugerrand', { sources: 'invoice_lines' })).toMatchObject({ productId: 75, confidence: 'CERTAIN', metalFrom: 'source' });
+  });
+
+  it('a silver tab is only LIKELY where platinum or palladium exist; a gold tab stays CERTAIN', () => {
+    expect(run('1oz Britannia', { metal: 'SILVER' })).toMatchObject({ productId: 103, confidence: 'LIKELY', question: 'Match to 1oz Britannia?', metalFrom: 'tab' });
+    expect(run('1oz Britannia', { metal: 'GOLD' })).toMatchObject({ productId: 74, confidence: 'CERTAIN', metalFrom: 'tab' });
+    expect(run('1000oz bar', { metal: 'SILVER' })).toMatchObject({ productId: 300, confidence: 'CERTAIN' });
+    expect(run('1oz Silver Britannia', { metal: 'GOLD' })).toMatchObject({ productId: 103, confidence: 'CERTAIN', metalFrom: 'text' });
+  });
+
+  it('exposes where the metal came from', () => {
+    expect(run('1oz Britannia', { metal: 'GOLD' }).metalFrom).toBe('tab');
+    expect(run('Sovereign').metalFrom).toBe('default');
+  });
+
+  it('1000oz is a weight: "1000oz silver bar" is the 1000oz silver bar', () => {
+    expect(run('1000oz silver bar')).toMatchObject({ productId: 300, confidence: 'CERTAIN' });
+  });
+
+  it('a name with a Rand Refinery refinery is not taken for a bar', () => {
+    const r = run('1oz Rand Refinery', { metal: 'GOLD' });
+    expect(r.confidence).not.toBe('CERTAIN');
+  });
+
+  it('a fee word with a weight or design is only LIKELY not a product', () => {
+    expect(run('Shipping fee')).toMatchObject({ outcome: 'NOT_A_PRODUCT', confidence: 'CERTAIN' });
+    expect(run('1oz Britannia delivery', { metal: 'GOLD' })).toMatchObject({ outcome: 'NOT_A_PRODUCT', confidence: 'LIKELY', question: 'Mark as not a product?' });
+    expect(run('Krugerrand storage')).toMatchObject({ outcome: 'NOT_A_PRODUCT', confidence: 'LIKELY' });
   });
 
   it('a coin with no weight is only LIKELY, with a question', () => {
