@@ -564,7 +564,7 @@ Follow any bar by serial from the vendor it was bought from to the customer who 
 - [x] Slice 1: BC history import on the Import hub (Posted Sales Shipments + Lines, Posted Purchase Receipts, Item Ledger Entries; `.xlsx` or pasted from BC), items and events built from the item tracking entries, shipments linked to sales by External Document No. (tradesheet ref or Zoho invoice), customers learn their BC customer and vendor numbers, serial lookup - M *(live 2026-11-12. Daily update is one paste of Item Ledger Entries with Serial No., Source Type and Source No.; the shipments list adds the tradesheet link)*
 - [ ] Slice 2: fallback matching where BC has no reference: shipment → sale by customer + item + quantity + date; private-seller receipt → IE-GP row by seller + quantity + amount; company receipt → supplier invoice. Exact matches linked, the rest suggested in the Review tab - M
 - [ ] Slice 3: Zoho-era bars from invoice-line serials (purchase inferred through the sale's P line, marked inferred), stocktake bars as COUNTED events, Customer Orders serials as ALLOCATED events - M
-- [ ] Slice 4: serial page in `/dashboard` (search, timeline, where it is now) and a "shipped in BC, not collected in the tradesheet" list that raises sheet tasks - M
+- [ ] Slice 4: serial page in `/dashboard` (search, timeline, where it is now) and a "shipped in BC, not collected in the tradesheet" list that raises sheet tasks - M *(the shipped-not-collected list and its sheet tasks are built, on the Import hub's BC tab, 2026-11-12; the serial page in `/dashboard` is not)*
 - [ ] Later: read the same documents from the BC API instead of exports - M ← depends: 1.0 `[BC]`
 
 ---

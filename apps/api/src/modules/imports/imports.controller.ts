@@ -13,6 +13,8 @@ import type {
     BcAwaitingResult,
     BcHistoryResult,
     ItemTrace,
+    ShippedNotCollectedRow,
+    ShippedNotCollectedTasksResult,
     ImportBatchSummary,
     WorkbookChunkResult,
 } from '@goldilocks/shared-types';
@@ -20,6 +22,7 @@ import { WorkbookImportService } from './workbook-import.service';
 import { BcAwaitingImportService } from './bc-awaiting-import.service';
 import { BcHistoryImportService } from './bc-history-import.service';
 import { ItemTraceService } from './item-trace.service';
+import { ShippedNotCollectedService } from './shipped-not-collected.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -111,7 +114,31 @@ export class BcAwaitingController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class BcHistoryController {
-    constructor(private readonly bc: BcHistoryImportService) {}
+    constructor(
+        private readonly bc: BcHistoryImportService,
+        private readonly shipped: ShippedNotCollectedService,
+    ) {}
+
+    @Get('shipped-not-collected')
+    @ApiOperation({
+        summary:
+            'Sales a posted BC shipment links to that the tradesheet does not show as collected.',
+    })
+    shippedNotCollected(): Promise<ShippedNotCollectedRow[]> {
+        return this.shipped.list();
+    }
+
+    @Post('shipped-not-collected/tasks')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Create a "tick Collected" sheet task for each listed sale that has none open.',
+    })
+    shippedNotCollectedTasks(
+        @Req() req: RequestWithUser,
+    ): Promise<ShippedNotCollectedTasksResult> {
+        return this.shipped.createTasks(req.user.email);
+    }
 
     @Post('preview')
     @HttpCode(200)

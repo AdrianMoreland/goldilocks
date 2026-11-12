@@ -7,6 +7,7 @@ import {
 } from './imports.controller';
 import { BcHistoryImportService } from './bc-history-import.service';
 import { ItemTraceService } from './item-trace.service';
+import { ShippedNotCollectedService } from './shipped-not-collected.service';
 import { BcAwaitingImportService } from './bc-awaiting-import.service';
 import { WorkbookImportService } from './workbook-import.service';
 import { AuthModule } from '../auth/auth.module';
@@ -34,6 +35,7 @@ import { ReviewModule } from '../review/review.module';
         BcAwaitingImportService,
         BcHistoryImportService,
         ItemTraceService,
+        ShippedNotCollectedService,
     ],
 })
 export class ImportsModule {}

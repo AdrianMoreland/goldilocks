@@ -25,6 +25,7 @@ export const queryKeys = {
     },
     items: {
         trace: (serial: string) => ['items', 'trace', serial] as const,
+        shippedNotCollected: ['items', 'shipped-not-collected'] as const,
     },
     review: {
         all: ['review'] as const,

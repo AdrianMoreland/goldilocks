@@ -169,6 +169,7 @@ export function BcHistoryTab({ map }: { map: RedactionMapRow[] | null }) {
             </Card>
 
             {shown && <ResultCard result={shown} saved={!!saved} />}
+            <ShippedNotCollected />
             <SerialTrace />
         </div>
     )
@@ -229,6 +230,79 @@ function ResultCard({ result, saved }: { result: BcHistoryResult; saved: boolean
                         </div>
                     ))}
                 </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+/**
+ * Sales a posted BC shipment links to (so the customer collected them) that the tradesheet still shows as not
+ * collected. One click raises a "tick Collected" sheet task per sale; the next tradesheet import closes them.
+ */
+function ShippedNotCollected() {
+    const api = useImportsApi()
+    const queryClient = useQueryClient()
+    const list = useQuery({ queryKey: queryKeys.items.shippedNotCollected, queryFn: () => api.shippedNotCollected() })
+    const create = useMutation({
+        mutationFn: () => api.createCollectedTasks(),
+        onSuccess: (r) => {
+            toast.success(r.created ? `${r.created} sheet task${r.created === 1 ? "" : "s"} created` : "Every sale already has an open task")
+            void queryClient.invalidateQueries({ queryKey: queryKeys.items.shippedNotCollected })
+            void queryClient.invalidateQueries({ queryKey: ["orders"] })
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
+    const rows = list.data ?? []
+    const missing = rows.filter((r) => !r.taskOpen).length
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Shipped in BC, not collected in the tradesheet</CardTitle>
+                <CardDescription>
+                    BC posted the shipment, so the customer collected these, but the tradesheet's Collected cell is still empty. Tick Collected in the sheet;
+                    the next tradesheet import removes them from this list and closes their tasks.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+                {list.isLoading && <p className="text-muted-foreground">Loading...</p>}
+                {list.isError && <p>Could not load the list.</p>}
+                {list.data && rows.length === 0 && <p className="text-muted-foreground">Nothing to fix: every shipped sale is collected in the tradesheet.</p>}
+                {rows.length > 0 && (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full tabular-nums">
+                                <thead className="text-muted-foreground text-left">
+                                    <tr>
+                                        <th className="py-1 pr-3 font-medium">Reference</th>
+                                        <th className="py-1 pr-3 font-medium">Customer</th>
+                                        <th className="py-1 pr-3 font-medium">Product</th>
+                                        <th className="py-1 pr-3 font-medium">Shipped</th>
+                                        <th className="py-1 font-medium">Task</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rows.map((r) => (
+                                        <tr key={r.tradeId} className="border-t">
+                                            <td className="py-1 pr-3 font-medium">{r.reference}</td>
+                                            <td className="py-1 pr-3">{r.customerCode ?? "-"}</td>
+                                            <td className="py-1 pr-3">
+                                                {r.qty !== null ? `${r.qty} x ` : ""}
+                                                {r.product}
+                                            </td>
+                                            <td className="py-1 pr-3 whitespace-nowrap">
+                                                {r.shippedOn ?? "?"} · {r.shipmentNo}
+                                            </td>
+                                            <td className="text-muted-foreground py-1">{r.taskOpen ? "open" : "none"}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Button onClick={() => create.mutate()} disabled={missing === 0 || create.isPending}>
+                            {create.isPending ? "Creating..." : missing ? `Create ${missing} "tick Collected" sheet task${missing === 1 ? "" : "s"}` : "All have a task"}
+                        </Button>
+                    </>
+                )}
             </CardContent>
         </Card>
     )

@@ -387,3 +387,33 @@ export type ItemTrace = z.infer<typeof ItemTraceSchema>;
 
 export const ItemTraceQuerySchema = z.object({ serial: z.string().trim().min(3).max(60) });
 export type ItemTraceQuery = z.infer<typeof ItemTraceQuerySchema>;
+
+// --- sales BC shipped that the tradesheet does not show as collected -----------------------------
+
+export const ShippedNotCollectedRowSchema = z.object({
+  tradeId: z.number().int(),
+  reference: z.string(),
+  /** Redaction code of the customer, when the sale is linked to one. */
+  customerCode: z.string().nullable(),
+  product: z.string(),
+  qty: z.number().nullable(),
+  saleDate: isoDate.nullable(),
+  shipmentNo: z.string(),
+  /** The day BC posted the shipment, which is when the customer collected. */
+  shippedOn: isoDate.nullable(),
+  /** A "tick Collected" sheet task is already open for this sale. */
+  taskOpen: z.boolean(),
+});
+export type ShippedNotCollectedRow = z.infer<typeof ShippedNotCollectedRowSchema>;
+export const ShippedNotCollectedListSchema = z.array(ShippedNotCollectedRowSchema);
+
+export const ShippedNotCollectedTasksResultSchema = z.object({
+  /** Sheet tasks created now. */
+  created: z.number().int(),
+  /** Sales that already had an open task. */
+  alreadyOpen: z.number().int(),
+});
+export type ShippedNotCollectedTasksResult = z.infer<typeof ShippedNotCollectedTasksResultSchema>;
+
+/** The sheet task that asks staff to tick Collected for a sale BC shipped. Closed by the import that shows it done. */
+export const COLLECTED_TASK = { sheet: 'Tradesheet', what: 'Tick Collected (C or the date)', value: 'C', check: 'TRADE_COLLECTED' } as const;
