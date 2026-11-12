@@ -8,9 +8,10 @@ type Row = Record<string, unknown>;
 function table(rows: Row[] = []) {
     let next = rows.length + 1;
     const data = rows.map((r, i) => ({ id: i + 1, ...r }));
-    const matches = (row: Row, where: Row = {}) =>
+    const matches = (row: Row, where: Row = {}): boolean =>
         Object.entries(where).every(([k, cond]) => {
             if (k === 'NOT') return true;
+            if (k === 'OR') return (cond as Row[]).some((c) => matches(row, c));
             if (cond && typeof cond === 'object' && 'in' in cond)
                 return (cond as { in: unknown[] }).in.includes(row[k]);
             if (cond && typeof cond === 'object' && 'not' in cond)
@@ -77,8 +78,8 @@ function db() {
             {
                 entryNo: '99',
                 itemNo: '1101',
-                serialNo: 'X1',
-                serialNorm: 'X1',
+                serialNo: 'X123',
+                serialNorm: 'X123',
                 missingFromImport: false,
             },
         ]),
@@ -145,6 +146,9 @@ const request: BcHistoryRequest = {
             salesAmount: 0,
             costAmount: 87534.52,
             open: true,
+            serialNo: null,
+            sourceType: null,
+            sourceNo: null,
         },
         {
             entryNo: 11,
@@ -159,6 +163,9 @@ const request: BcHistoryRequest = {
             salesAmount: 3905,
             costAmount: -3529,
             open: false,
+            serialNo: null,
+            sourceType: null,
+            sourceNo: null,
         },
     ],
 };
@@ -249,5 +256,90 @@ describe('BcHistoryImportService', () => {
         expect(again.itemsAdded).toBe(0);
         expect(again.customersLinked).toBe(0);
         expect(tables.itemEvent.data).toHaveLength(2);
+    });
+
+    it('traces a bar from a pasted ledger alone, with no header lists and no tracking entries', async () => {
+        const tables = db();
+        tables.bcTrackingEntry.data.length = 0;
+        tables.customer.data[0]['bcCustomerNo'] = 'PRV02393';
+        const ledgerOnly: BcHistoryRequest = {
+            fileNames: ['paste'],
+            shipments: [],
+            shipmentLines: [],
+            receipts: [],
+            ledger: [
+                {
+                    entryNo: 2202,
+                    postingDate: '2026-10-29',
+                    entryType: 'Purchase',
+                    documentType: 'Purchase Receipt',
+                    documentNo: 'GRN-100108',
+                    itemNo: '1101',
+                    locationCode: 'DU',
+                    quantity: 1,
+                    remainingQuantity: 0,
+                    salesAmount: 0,
+                    costAmount: 3469,
+                    open: false,
+                    serialNo: '1334834',
+                    sourceType: 'Vendor',
+                    sourceNo: 'PRV00001',
+                },
+                {
+                    entryNo: 2227,
+                    postingDate: '2026-10-29',
+                    entryType: 'Sale',
+                    documentType: 'Sales Shipment',
+                    documentNo: 'SHP-100149',
+                    itemNo: '1101',
+                    locationCode: 'DU',
+                    quantity: -1,
+                    remainingQuantity: 0,
+                    salesAmount: 3905,
+                    costAmount: -3529,
+                    open: false,
+                    serialNo: '1334834',
+                    sourceType: 'Customer',
+                    sourceNo: 'PRV02393',
+                },
+                {
+                    entryNo: 1355,
+                    postingDate: '2026-09-07',
+                    entryType: 'Sale',
+                    documentType: 'Sales Shipment',
+                    documentNo: 'SHP-100030',
+                    itemNo: '3106',
+                    locationCode: 'CO',
+                    quantity: -1,
+                    remainingQuantity: 0,
+                    salesAmount: 912.44,
+                    costAmount: -920.15,
+                    open: false,
+                    serialNo: null,
+                    sourceType: 'Customer',
+                    sourceNo: 'COI001',
+                },
+            ],
+        };
+        const result = await service(tables).commit(
+            ledgerOnly,
+            'owner@example.com',
+        );
+        expect(result).toMatchObject({ itemsAdded: 1, eventsAdded: 2 });
+        expect(tables.bcLedgerEntry.data[0]).toMatchObject({
+            serialKey: '1334834',
+            sourceNo: 'PRV00001',
+        });
+        expect(
+            tables.itemEvent.data.map((e) => [
+                e['kind'],
+                e['partyNo'],
+                e['customerId'],
+            ]),
+        ).toEqual([
+            ['RECEIVED', 'PRV00001', null],
+            ['COLLECTED', 'PRV02393', 1],
+        ]);
+        expect(tables.item.data[0]).toMatchObject({ status: 'COLLECTED' });
     });
 });
