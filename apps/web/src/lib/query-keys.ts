@@ -23,6 +23,9 @@ export const queryKeys = {
         register: (id: number) => ['stocktake', 'register', id] as const,
         bcItems: ['stocktake', 'bc-items'] as const,
     },
+    items: {
+        trace: (serial: string) => ['items', 'trace', serial] as const,
+    },
     review: {
         all: ['review'] as const,
         productNames: (view: string, offset: number) => ['review', 'product-names', view, offset] as const,

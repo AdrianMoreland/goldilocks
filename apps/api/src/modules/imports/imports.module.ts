@@ -1,5 +1,12 @@
 import { Module } from '@nestjs/common';
-import { BcAwaitingController, ImportsController } from './imports.controller';
+import {
+    BcAwaitingController,
+    BcHistoryController,
+    ImportsController,
+    ItemTraceController,
+} from './imports.controller';
+import { BcHistoryImportService } from './bc-history-import.service';
+import { ItemTraceService } from './item-trace.service';
 import { BcAwaitingImportService } from './bc-awaiting-import.service';
 import { WorkbookImportService } from './workbook-import.service';
 import { AuthModule } from '../auth/auth.module';
@@ -16,7 +23,17 @@ import { ReviewModule } from '../review/review.module';
         ReviewModule,
         CustomerOrdersModule,
     ],
-    controllers: [ImportsController, BcAwaitingController],
-    providers: [WorkbookImportService, BcAwaitingImportService],
+    controllers: [
+        ImportsController,
+        BcAwaitingController,
+        BcHistoryController,
+        ItemTraceController,
+    ],
+    providers: [
+        WorkbookImportService,
+        BcAwaitingImportService,
+        BcHistoryImportService,
+        ItemTraceService,
+    ],
 })
 export class ImportsModule {}
