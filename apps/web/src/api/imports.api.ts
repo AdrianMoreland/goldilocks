@@ -3,6 +3,8 @@ import {
     BcAwaitingResultSchema,
     BcHistoryResultSchema,
     ItemTraceSchema,
+    ShippedNotCollectedListSchema,
+    ShippedNotCollectedTasksResultSchema,
     ImportBatchListSchema,
     WorkbookChunkResultSchema,
     type BcAwaitingRequest,
@@ -21,6 +23,8 @@ export function useImportsApi() {
         commitBc: (body: BcAwaitingRequest) => client.post('/imports/bc-awaiting/commit', body, BcAwaitingResultSchema),
         previewBcHistory: (body: BcHistoryRequest) => client.post('/imports/bc-history/preview', body, BcHistoryResultSchema),
         commitBcHistory: (body: BcHistoryRequest) => client.post('/imports/bc-history/commit', body, BcHistoryResultSchema),
+        shippedNotCollected: () => client.get('/imports/bc-history/shipped-not-collected', ShippedNotCollectedListSchema),
+        createCollectedTasks: () => client.post('/imports/bc-history/shipped-not-collected/tasks', {}, ShippedNotCollectedTasksResultSchema),
         traceItem: (serial: string) => client.get(`/items/trace?serial=${encodeURIComponent(serial)}`, ItemTraceSchema),
     };
 }
