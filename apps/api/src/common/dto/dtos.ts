@@ -58,6 +58,8 @@ import {
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
     BcAwaitingRequestSchema,
+    BcHistoryRequestSchema,
+    ItemTraceQuerySchema,
     RecordSearchRequestSchema,
     LinkDecisionRequestSchema,
     CreateSalesProductRequestSchema,
@@ -579,6 +581,16 @@ export class SaveHandoverRequestDto extends createDto(
 export class BcAwaitingRequestDto extends createDto(
     BcAwaitingRequestSchema,
     'BcAwaitingRequestDto',
+) {}
+
+export class BcHistoryRequestDto extends createDto(
+    BcHistoryRequestSchema,
+    'BcHistoryRequestDto',
+) {}
+
+export class ItemTraceQueryDto extends createDto(
+    ItemTraceQuerySchema,
+    'ItemTraceQueryDto',
 ) {}
 
 export class LinkDecisionRequestDto extends createDto(

@@ -104,3 +104,4 @@ export * from './review.schema';
 export * from './customer-records.schema';
 export * from './inventory.schema';
 export * from './product-names';
+export * from './bc-history';

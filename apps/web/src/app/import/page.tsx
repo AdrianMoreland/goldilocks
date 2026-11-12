@@ -4,12 +4,13 @@ import { BaseLayout } from "@/components/layouts/base-layout"
 import { CountTabs } from "@/components/ui/count-tabs"
 import TradesheetsPage from "@/app/tradesheets/page"
 import { BatchHistory } from "./batch-history"
+import { BcHistoryTab } from "./bc-history-tab"
 import { BcReportTab } from "./bc-report-tab"
 import { MapStep } from "./map-step"
 import { ReviewTab } from "./review-tab"
 import { WorkbookTab } from "./workbook-tab"
 
-type Tab = "tradesheet" | "workbook" | "bc" | "review"
+type Tab = "tradesheet" | "workbook" | "bc" | "bcHistory" | "review"
 
 /**
  * Where files go in. The monthly tradesheet is the existing import. The assembled workbook and the Business Central
@@ -29,6 +30,7 @@ export default function ImportHubPage() {
                         { value: "tradesheet", label: "Tradesheet" },
                         { value: "workbook", label: "Assembled workbook" },
                         { value: "bc", label: "BC awaiting collection" },
+                        { value: "bcHistory", label: "BC history and serials" },
                         { value: "review", label: "Review" },
                     ]}
                 />
@@ -38,11 +40,12 @@ export default function ImportHubPage() {
                         <ReviewTab />
                     </div>
                 )}
-                {(tab === "workbook" || tab === "bc") && (
+                {(tab === "workbook" || tab === "bc" || tab === "bcHistory") && (
                     <div className="mx-auto w-full max-w-6xl space-y-4">
                         <MapStep map={map} onChange={setMap} />
                         {tab === "workbook" && <WorkbookTab map={map} />}
                         {tab === "bc" && <BcReportTab map={map} />}
+                        {tab === "bcHistory" && <BcHistoryTab map={map} />}
                         <BatchHistory />
                     </div>
                 )}

@@ -66,6 +66,7 @@ model Product {
   aliases          ProductAlias[]
   suggestedAliases ProductAlias[] @relation("AliasSuggestedProduct")
   zohoProducts     ZohoProduct[]
+  items            Item[]
 
   @@index([metalType])
   @@index([metalType, stock])
@@ -780,6 +781,9 @@ model Trade {
   events OrderEvent[]
   tasks  SheetTask[]
 
+  bcShipments BcShipment[]
+  itemEvents  ItemEvent[]
+
   @@unique([referenceKey, occurrence])
   @@index([customerId])
   @@index([supplierInvoiceId])
@@ -1099,6 +1103,10 @@ model Customer {
   /// Real name, restored in the owner's browser before upload. Never logged, in a URL, or sent to an AI model.
   name              String
   zohoNumber        String?
+  /// Business Central customer no. (PRV…), learnt from posted shipments. Never overwritten once set.
+  bcCustomerNo      String?
+  /// Business Central vendor no. when this person sold to us in BC (a separate card from the customer one).
+  bcVendorNo        String?
   status            String?
   currency          String?
   sources           String?
@@ -1107,15 +1115,20 @@ model Customer {
   createdAt         DateTime @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @db.Timestamptz(6)
 
-  trades   Trade[]
-  lots     PurchaseLot[]
-  invoices ZohoInvoice[]
-  lines    ZohoInvoiceLine[]
-  payments ZohoPayment[]
-  bcOrders BcSalesOrder[]
-  quotes   Quote[]
+  trades      Trade[]
+  lots        PurchaseLot[]
+  invoices    ZohoInvoice[]
+  lines       ZohoInvoiceLine[]
+  payments    ZohoPayment[]
+  bcOrders    BcSalesOrder[]
+  quotes      Quote[]
+  bcShipments BcShipment[]
+  bcReceipts  BcReceipt[]
+  itemEvents  ItemEvent[]
 
   @@index([name])
+  @@index([bcCustomerNo])
+  @@index([bcVendorNo])
   @@map("customers")
 }
 
@@ -1245,8 +1258,9 @@ model ZohoInvoice {
   createdAt         DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
 
-  lines    ZohoInvoiceLine[]
-  payments ZohoPayment[]
+  lines       ZohoInvoiceLine[]
+  payments    ZohoPayment[]
+  bcShipments BcShipment[]
 
   @@index([customerId, date])
   @@map("zoho_invoices")
@@ -1440,4 +1454,180 @@ model EntityLink {
   @@index([fromTable, fromKey])
   @@index([toTable, toKey])
   @@map("entity_links")
+}
+
+// --- Business Central history and serial trace (roadmap 1.21) -----------------------------------------------------
+// Snapshots of posted BC documents, upserted by their BC number; BC stays the system of record. Each bar (one serial)
+// is an Item, and every BC ledger entry that moved it is an append-only ItemEvent, so a serial can be followed from
+// the vendor it was bought from to the customer who collected it. Coins are not tracked one by one.
+
+/// A posted sales shipment. Posted when the customer collects, so it is the collection record.
+model BcShipment {
+  id                Int          @id @default(autoincrement())
+  no                String       @unique
+  customerNo        String?
+  customerId        Int?
+  customer          Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  documentDate      DateTime?    @db.Date
+  postingDate       DateTime?    @db.Date
+  /// Free text staff type in BC: a tradesheet reference, a Zoho invoice no., a supplier reference, or nothing.
+  externalDocNo     String?
+  locationCode      String?
+  /// The sale the external document no. names, when it is a tradesheet reference.
+  tradeId           Int?
+  trade             Trade?       @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  zohoInvoiceId     Int?
+  zohoInvoice       ZohoInvoice? @relation(fields: [zohoInvoiceId], references: [id], onDelete: SetNull)
+  missingFromImport Boolean      @default(false)
+  importBatchId     Int
+  createdAt         DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(6)
+
+  @@index([customerId])
+  @@index([tradeId])
+  @@index([customerNo])
+  @@map("bc_shipments")
+}
+
+model BcShipmentLine {
+  id                Int      @id @default(autoincrement())
+  /// "<document no.>|<line position>": the export has no line number of its own.
+  sourceKey         String   @unique
+  documentNo        String
+  lineNo            Int
+  customerNo        String?
+  itemNo            String?
+  description       String?
+  locationCode      String?
+  quantity          Decimal? @db.Decimal(14, 4)
+  missingFromImport Boolean  @default(false)
+  importBatchId     Int
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([documentNo])
+  @@index([itemNo])
+  @@map("bc_shipment_lines")
+}
+
+/// A posted purchase receipt (GRN). Private sellers (PRV vendor no.) resolve to a customer; companies are suppliers.
+model BcReceipt {
+  id                Int       @id @default(autoincrement())
+  no                String    @unique
+  vendorNo          String?
+  /// The private seller, when the vendor is a person in the customers table.
+  sellerId          Int?
+  seller            Customer? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  documentDate      DateTime? @db.Date
+  locationCode      String?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([vendorNo])
+  @@index([sellerId])
+  @@map("bc_receipts")
+}
+
+/// One BC item ledger entry: every stock movement (receipt, shipment, adjustment, transfer, return).
+model BcLedgerEntry {
+  id                Int       @id @default(autoincrement())
+  entryNo           Int       @unique
+  postingDate       DateTime? @db.Date
+  entryType         String
+  documentType      String?
+  documentNo        String
+  itemNo            String
+  locationCode      String?
+  quantity          Decimal   @db.Decimal(14, 4)
+  remainingQuantity Decimal?  @db.Decimal(14, 4)
+  salesAmount       Decimal?  @db.Decimal(14, 4)
+  costAmount        Decimal?  @db.Decimal(14, 4)
+  open              Boolean?
+  missingFromImport Boolean   @default(false)
+  importBatchId     Int
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([documentNo])
+  @@index([itemNo, locationCode])
+  @@map("bc_ledger_entries")
+}
+
+enum ItemStatus {
+  IN_STOCK
+  COLLECTED
+  GONE
+  UNKNOWN
+}
+
+enum ItemEventKind {
+  RECEIVED
+  OPENING_BALANCE
+  ADJUSTED_IN
+  ADJUSTED_OUT
+  TRANSFERRED
+  COLLECTED
+  RETURNED_BY_CUSTOMER
+  RETURNED_TO_VENDOR
+}
+
+enum ItemEventSource {
+  BC
+  ZOHO
+  TRADESHEET
+  STOCKTAKE
+  STAFF
+}
+
+/// One physical bar, by serial. A bar bought back is the same row with new events. Status and location are the
+/// latest event's; they are kept here only so lists do not have to read every event.
+model Item {
+  id           Int        @id @default(autoincrement())
+  serial       String
+  /// Upper case, letters and digits only. Two refineries can share a serial; a clash goes to review, not a new row.
+  serialKey    String     @unique
+  bcItemNo     String?
+  productId    Int?
+  product      Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  status       ItemStatus @default(UNKNOWN)
+  locationCode String?
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+
+  events ItemEvent[]
+
+  @@index([bcItemNo])
+  @@index([status])
+  @@map("items")
+}
+
+/// Append-only: one fact about one bar and where it came from. Never edited by hand.
+model ItemEvent {
+  id           Int             @id @default(autoincrement())
+  itemId       Int
+  item         Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  kind         ItemEventKind
+  date         DateTime?       @db.Date
+  source       ItemEventSource
+  /// The document: GRN-…, SHP-…, INV-…, a stocktake. sourceKey makes a re-import change nothing ("BC|<entry no.>|<serial>").
+  sourceRef    String?
+  sourceKey    String          @unique
+  locationCode String?
+  /// BC customer or vendor no. on the document.
+  partyNo      String?
+  customerId   Int?
+  customer     Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tradeId      Int?
+  trade        Trade?          @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  quantity     Decimal         @db.Decimal(14, 4)
+  /// Sales or cost amount of the ledger entry (the whole entry, not per bar when the entry moved several).
+  amount       Decimal?        @db.Decimal(14, 4)
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
+
+  @@index([itemId, date])
+  @@index([customerId])
+  @@index([tradeId])
+  @@map("item_events")
 }

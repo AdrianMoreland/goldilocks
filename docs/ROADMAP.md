@@ -557,6 +557,16 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 - [x] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
 
+## 1.21 Serial trace: vendor to collection 🟠 ← depends: 1.19; feeds 1.11, 1.12
+
+Follow any bar by serial from the vendor it was bought from to the customer who collected it. Business Central stays the system of record: Goldilocks mirrors its posted documents. Each bar is an `Item`; every movement is an append-only `ItemEvent` that names its source (BC, Zoho, tradesheet, stocktake, staff). Decisions: a posted BC sales shipment is the collection (serials can be added in BC after the customer leaves); coins are not tracked one by one; a bar bought back is the same item; Zoho-era bars are linked back to purchases for the last 6 months only.
+
+- [ ] Slice 1: BC history import on the Import hub (Posted Sales Shipments + Lines, Posted Purchase Receipts, Item Ledger Entries; `.xlsx` or pasted from BC), items and events built from the item tracking entries, shipments linked to sales by External Document No. (tradesheet ref or Zoho invoice), customers learn their BC customer and vendor numbers, serial lookup - M *(built 2026-11-12; migration `20261114100000_bc_history_and_items` not yet applied)*
+- [ ] Slice 2: fallback matching where BC has no reference: shipment → sale by customer + item + quantity + date; private-seller receipt → IE-GP row by seller + quantity + amount; company receipt → supplier invoice. Exact matches linked, the rest suggested in the Review tab - M
+- [ ] Slice 3: Zoho-era bars from invoice-line serials (purchase inferred through the sale's P line, marked inferred), stocktake bars as COUNTED events, Customer Orders serials as ALLOCATED events - M
+- [ ] Slice 4: serial page in `/dashboard` (search, timeline, where it is now) and a "shipped in BC, not collected in the tradesheet" list that raises sheet tasks - M
+- [ ] Later: read the same documents from the BC API instead of exports - M ← depends: 1.0 `[BC]`
+
 ---
 
 # PHASE 2 - Customer site, eshop and scale-up
