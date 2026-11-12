@@ -248,7 +248,11 @@ export function WorkbookTab({ map }: { map: RedactionMapRow[] | null }) {
                                         <TableRow key={r.name} className={r.inFile === 0 ? "text-muted-foreground" : undefined}>
                                             <TableCell>
                                                 {LABELS[r.name] ?? r.name}
-                                                {!r.imported && <span className="text-muted-foreground ml-2 text-xs">not imported yet</span>}
+                                                {!r.imported && (
+                                                    <span className="text-muted-foreground ml-2 text-xs">
+                                                        not imported yet
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right tabular-nums">{r.inFile.toLocaleString()}</TableCell>
                                             {(["added", "changed", "unchanged", "unmatched"] as const).map((k) => (

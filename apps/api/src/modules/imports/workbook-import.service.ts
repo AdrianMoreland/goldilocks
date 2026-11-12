@@ -8,7 +8,9 @@ import {
     ImportTableSchemas,
     type ImportBatchSummary,
     referenceMatchKey,
-    type ImportTableName,
+    type CustomerOrderImportRow,
+    bcItemNoFromSku,
+    type StockMetal,
     type WorkbookChunkRequest,
     type WorkbookChunkResult,
     type WorkbookLoadTable,
@@ -17,9 +19,12 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { LinkRulesService } from '../review/link-rules.service';
+import { ProductNamesService } from '../review/product-names.service';
+import { CustomerOrdersService } from '../customer-orders/customer-orders.service';
 import {
     DIRECT_TABLES,
     FK_LOOKUP,
+    workbookAliasKey,
     changedFields,
     mapFields,
     type DirectTableSpec,
@@ -68,6 +73,8 @@ export class WorkbookImportService {
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
         private readonly rules: LinkRulesService,
+        private readonly orders: CustomerOrdersService,
+        private readonly names: ProductNamesService,
     ) {}
 
     /** What this chunk would do. Writes nothing (the batch id is 0 until a commit creates one). */
@@ -122,6 +129,12 @@ export class WorkbookImportService {
             counts = await this.annotateLots(ctx, rows);
         else if (dto.table === 'links')
             counts = await this.upsertLinks(ctx, rows);
+        else if (dto.table === 'customer_safe_items')
+            counts = await this.saveSafeItems(ctx, rows);
+        else if (dto.table === 'zoho_products')
+            counts = await this.saveZohoProducts(ctx, rows);
+        else if (dto.table === 'product_aliases')
+            counts = await this.saveAliases(ctx, rows);
         else
             counts = await this.upsertDirect(
                 ctx,
@@ -139,7 +152,7 @@ export class WorkbookImportService {
 
     /** Checks every row against the table's schema. Errors name the row and column, never the value. */
     private validate(table: WorkbookLoadTable, input: Row[]): Row[] {
-        const schema = ImportTableSchemas[table as ImportTableName];
+        const schema = ImportTableSchemas[table];
         const people = table === 'customers' || table === 'vendors';
         const problems: string[] = [];
         const out = input.map((raw, i) => {
@@ -292,6 +305,70 @@ export class WorkbookImportService {
         return maps;
     }
 
+    // --- product names ------------------------------------------------------------------------
+
+    /** Aliases are plain upserts; once the chunk is in, the rules settle the names it carried (a person's decisions stay). */
+    private async saveAliases(ctx: Ctx, rows: Row[]): Promise<Counts> {
+        const counts = await this.upsertDirect(
+            ctx,
+            DIRECT_TABLES.product_aliases!,
+            rows,
+        );
+        if (!ctx.dry) {
+            const keys = [
+                ...new Set(
+                    rows
+                        .map((r) => workbookAliasKey(r))
+                        .filter((k): k is string => k !== null),
+                ),
+            ];
+            for (let i = 0; i < keys.length; i += 5000)
+                await this.names.settleAndRecord(
+                    { aliases: keys.slice(i, i + 5000) },
+                    ctx.actor,
+                    ctx.db,
+                    `batch ${ctx.batchId} product_aliases`,
+                );
+        }
+        return counts;
+    }
+
+    /** Zoho products: a SKU that is a BC item number (1103, 1103-HISTORIC, 2705.0) takes that BC item's products. */
+    private async saveZohoProducts(ctx: Ctx, rows: Row[]): Promise<Counts> {
+        const numbers = [
+            ...new Set(
+                rows
+                    .map((r) => bcItemNoFromSku(str(r['sku'])))
+                    .filter((n): n is string => n !== null),
+            ),
+        ];
+        const items = new Map<
+            string,
+            { productId: number | null; salesProductId: number | null }
+        >();
+        for (let i = 0; i < numbers.length; i += 5000) {
+            const found = await ctx.db.bcItem.findMany({
+                where: { itemNo: { in: numbers.slice(i, i + 5000) } },
+                select: {
+                    itemNo: true,
+                    productId: true,
+                    salesProductId: true,
+                },
+            });
+            for (const f of found) items.set(f.itemNo, f);
+        }
+        const linked = rows.map((r) => {
+            const no = bcItemNoFromSku(str(r['sku']));
+            const item = no ? items.get(no) : undefined;
+            return {
+                ...r,
+                _product_id: item?.productId ?? null,
+                _sales_product_id: item?.salesProductId ?? null,
+            };
+        });
+        return this.upsertDirect(ctx, DIRECT_TABLES.zoho_products!, linked);
+    }
+
     // --- plain upserts by key ----------------------------------------------------------------
 
     private async upsertDirect(
@@ -305,10 +382,13 @@ export class WorkbookImportService {
         // Last row wins when a key repeats inside one chunk.
         const byKey = new Map<string, Record<string, unknown>>();
         for (const row of input) {
-            const key = str(row[spec.keyColumn]);
-            if (!key) continue;
+            const key = spec.keyOf ? spec.keyOf(row) : str(row[spec.keyColumn]);
+            if (!key) {
+                if (spec.keyOf) counts.unmatched++;
+                continue;
+            }
             const data = mapFields(row, spec.fields);
-            spec.derive?.(data);
+            spec.derive?.(data, row, key);
             let skip = false;
             for (const fk of spec.fks) {
                 const parentKey = str(row[fk.column]);
@@ -334,7 +414,9 @@ export class WorkbookImportService {
         if (spec.stocktakeSnapshotColumn) {
             const snapshots = new Map<string, string>();
             for (const row of input) {
-                const k = str(row[spec.keyColumn]);
+                const k = spec.keyOf
+                    ? spec.keyOf(row)
+                    : str(row[spec.keyColumn]);
                 if (k)
                     snapshots.set(
                         k,
@@ -372,6 +454,20 @@ export class WorkbookImportService {
                     ...(tracked ? { importBatchId: ctx.batchId } : {}),
                 });
                 continue;
+            }
+            if (spec.newerWins) {
+                const stored = old[spec.newerWins];
+                const incoming = data[spec.newerWins];
+                // A dated row is never replaced by an older one, nor by one that carries no date at all.
+                if (
+                    stored instanceof Date &&
+                    (!(incoming instanceof Date) ||
+                        stored.getTime() > incoming.getTime())
+                ) {
+                    counts.unchanged++;
+                    toTouch.push(key);
+                    continue;
+                }
             }
             // Fields in createOnly are set when a row is created and left to people afterwards.
             const writable = { ...data };
@@ -491,6 +587,98 @@ export class WorkbookImportService {
                 data: { missingFromImport: true },
             })
         ).count;
+    }
+
+    // --- customer safe items: saved as customer orders ------------------------------------------
+
+    /**
+     * Customer safe rows become customer order items, matched and updated by the same rules as the Customer Orders
+     * paste import (planRows / writePlan), so the two routes never duplicate each other. A matched item only moves its status forward
+     * (and gets `missing` set): the paste stays the source for serials, notes, supplier reference, refinery and date. The client code is resolved
+     * to the customer's real name from the customers table; a row with an unknown code, no product or branch, or a
+     * quantity that is not a whole number above zero is skipped and counted as unmatched. Nothing is flagged missing.
+     * Every chunk plans against what is stored, so a table must travel in one chunk: two identical rows split across
+     * chunks would pair with the item the first chunk added and the second would be lost.
+     */
+    private async saveSafeItems(ctx: Ctx, input: Row[]): Promise<Counts> {
+        const counts = emptyCounts();
+        const codes = [
+            ...new Set(
+                input
+                    .map((r) => str(r['client_code']))
+                    .filter((k): k is string => k !== null),
+            ),
+        ];
+        const names = new Map<string, string>();
+        for (let i = 0; i < codes.length; i += 5000) {
+            const found = await ctx.db.customer.findMany({
+                where: { redactionCode: { in: codes.slice(i, i + 5000) } },
+                select: { redactionCode: true, name: true },
+            });
+            for (const c of found) names.set(c.redactionCode, c.name);
+        }
+
+        const rows: CustomerOrderImportRow[] = [];
+        const metals = new Map<CustomerOrderImportRow, StockMetal>();
+        for (const r of input) {
+            const code = str(r['client_code']);
+            const client = code ? names.get(code)?.trim() : undefined;
+            if (!client) {
+                counts.unresolved['client_code'] =
+                    (counts.unresolved['client_code'] ?? 0) + 1;
+                counts.unmatched++;
+                continue;
+            }
+            const qty = r['qty'];
+            const product = str(r['product_text'])?.trim();
+            const branch = str(r['branch_code'])?.trim();
+            const status = r['status_norm'];
+            if (
+                typeof qty !== 'number' ||
+                !Number.isInteger(qty) ||
+                qty < 1 ||
+                !product ||
+                !branch ||
+                (status !== 'ALLOCATED' &&
+                    status !== 'COLLECTED' &&
+                    status !== 'ORDERED')
+            ) {
+                counts.unmatched++;
+                continue;
+            }
+            const text = (v: unknown) => str(v)?.trim() || null;
+            const row: CustomerOrderImportRow = {
+                locationCode: branch.toUpperCase(),
+                client,
+                reference: text(r['reference']),
+                supplierRef: null,
+                product,
+                quantity: qty,
+                refinery: text(r['refinery']),
+                serials: text(r['serials']),
+                status,
+                orderedOn: str(r['date']),
+                missing: false,
+                notes: text(r['notes']),
+            };
+            rows.push(row);
+            metals.set(row, metalOf(r['metal']));
+        }
+
+        const plan = await this.orders.planRows(ctx.db, rows, {
+            fields: 'statusOnly',
+        });
+        counts.added = plan.toAdd.length;
+        counts.changed = plan.toUpdate.length;
+        counts.unchanged = plan.unchanged;
+        if (!ctx.dry)
+            await this.orders.writePlan(
+                ctx.db,
+                plan,
+                (row) => metals.get(row) ?? 'PGM',
+                ctx.actor,
+            );
+        return counts;
     }
 
     // --- trades and purchase lots: attach, never create ----------------------------------------

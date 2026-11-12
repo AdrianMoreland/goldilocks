@@ -88,83 +88,87 @@ describe('parseCustomerOrdersPaste', () => {
 
 describe('planCustomerOrderImport', () => {
   const base = { locationCode: 'DU', client: 'A', reference: 'DU-G1', product: '1oz X', quantity: 2 };
+  const stored = (over = {}) => ({ ...base, id: 1, status: 'BAGGED' as const, serials: null, notes: null, orderedOn: null, missing: false, supplierRef: null, refinery: null, ...over });
   const row = (over = {}) => ({ ...base, supplierRef: null, refinery: null, serials: null, status: 'BAGGED' as const, orderedOn: null, missing: false, notes: null, ...over });
-  it('is repeat-safe up to the number already stored', () => {
-    expect(planCustomerOrderImport([base], [row(), row()])).toMatchObject({ skipped: 1 });
-    expect(planCustomerOrderImport([base], [row(), row()]).toAdd).toHaveLength(1);
+  it('is repeat-safe up to the number already stored, and counts matches as unchanged', () => {
+    const plan = planCustomerOrderImport([stored()], [row(), row()]);
+    expect(plan).toMatchObject({ unchanged: 1, toUpdate: [] });
+    expect(plan.toAdd).toHaveLength(1);
     expect(planCustomerOrderImport([], [row(), row()]).toAdd).toHaveLength(2);
   });
-  it('treats a different quantity or reference as a different order', () => {
-    expect(planCustomerOrderImport([base], [row({ quantity: 3 }), row({ reference: 'DU-G2' })]).toAdd).toHaveLength(2);
-  });
-});
-
-describe('expectedCustomerStock', () => {
-  it('counts only items physically here and groups by branch and product', () => {
-    expect(isPhysicallyHere('ORDERED')).toBe(false);
-    const out = expectedCustomerStock([
-      { locationCode: 'du', product: '1oz Krugerrand', quantity: 5, status: 'BAGGED' },
-      { locationCode: 'DU', product: '1OZ KRUGERRAND', quantity: 4, status: 'DELIVERED' },
-      { locationCode: 'DU', product: '1oz Krugerrand', quantity: 9, status: 'ORDERED' },
-      { locationCode: 'DU', product: '1oz Krugerrand', quantity: 2, status: 'COLLECTED' },
+  it('pairs duplicates with separate stored items', () => {
+    const plan = planCustomerOrderImport([stored({ id: 1 }), stored({ id: 2 })], [row({ notes: 'x' }), row({ notes: 'y' })]);
+    expect(plan.toUpdate).toEqual([
+      { id: 1, changes: { notes: 'x' } },
+      { id: 2, changes: { notes: 'y' } },
     ]);
-    expect(out).toEqual([{ locationCode: 'DU', product: '1oz Krugerrand', quantity: 9 }]);
+    expect(plan.toAdd).toHaveLength(0);
   });
-});
+  it('treats a different quantity or reference as a different order', () => {
+    expect(planCustomerOrderImport([stored()], [row({ quantity: 3 }), row({ reference: 'DU-G2' })]).toAdd).toHaveLength(2);
+  });
+  it('moves status forward only', () => {
+    expect(planCustomerOrderImport([stored({ status: 'ALLOCATED' })], [row({ status: 'COLLECTED' })]).toUpdate).toEqual([{ id: 1, changes: { status: 'COLLECTED' } }]);
+    expect(planCustomerOrderImport([stored({ status: 'ORDERED' })], [row({ status: 'DELIVERED' })]).toUpdate[0]?.changes.status).toBe('DELIVERED');
+    const back = planCustomerOrderImport([stored({ status: 'COLLECTED' })], [row({ status: 'ORDERED' })]);
+    expect(back.toUpdate).toEqual([]);
+    expect(back.unchanged).toBe(1);
+  });
+  it('treats BAGGED and ALLOCATED as the same status', () => {
+    expect(planCustomerOrderImport([stored({ status: 'BAGGED' })], [row({ status: 'ALLOCATED' })])).toMatchObject({ toUpdate: [], unchanged: 1 });
+    expect(planCustomerOrderImport([stored({ status: 'ALLOCATED' })], [row({ status: 'BAGGED' })])).toMatchObject({ toUpdate: [], unchanged: 1 });
+  });
+  it('takes new serials, notes, refs and refinery, but an empty cell never clears a stored value', () => {
+    const s = stored({ serials: 'S1', notes: 'old', supplierRef: 'PO1', refinery: 'Perth' });
+    expect(planCustomerOrderImport([s], [row()])).toMatchObject({ toUpdate: [], unchanged: 1 });
+    expect(planCustomerOrderImport([s], [row({ serials: '  ', notes: '' })]).unchanged).toBe(1);
+    expect(planCustomerOrderImport([s], [row({ serials: ' S1 ', notes: 'new', supplierRef: 'PO2', refinery: 'Umicore' })]).toUpdate).toEqual([
+      { id: 1, changes: { notes: 'new', supplierRef: 'PO2', refinery: 'Umicore' } },
+    ]);
+  });
+  it('updates the date when the sheet has one that differs, and sets missing but never clears it', () => {
+    expect(planCustomerOrderImport([stored({ orderedOn: '2026-09-01' })], [row({ orderedOn: '2026-09-28' })]).toUpdate[0]?.changes).toEqual({ orderedOn: '2026-09-28' });
+    expect(planCustomerOrderImport([stored({ orderedOn: '2026-09-01' })], [row()]).unchanged).toBe(1);
+    expect(planCustomerOrderImport([stored()], [row({ missing: true })]).toUpdate[0]?.changes).toEqual({ missing: true });
+    expect(planCustomerOrderImport([stored({ missing: true })], [row()]).unchanged).toBe(1);
+  });
 
-const TRADE = [
-  'Branch:\tInitials:\tClient:\tQTY:\tProduct:\tDate:\tReference:\tCollected:',
-  "DU\tGOD\tTom O'Neill\t20\t1oz Krugerrand\t46296\tDU-G20261002\t46300",
-  'DU\tDH\tArchicon Limited\t26\t1oz Maple\t46296\tDU-G20261003\t',
-  'DU\tDH\tArchicon Limited\t25\t1oz Eagle\t46296\tDU-G20261004\t',
-  'DU\tDH\tArchicon Limited\t5\t1oz Eagle\t46296\tDU-G20261004\t',
-  'DU\tX\t\t\t\t\t\t',
-].join('\n');
-
-describe('tradesheet paste and linking', () => {
-  it('reads headers with trailing colons and keeps the Collected claim as written', () => {
-    const { lines } = parseTradesheetPaste(TRADE);
-    expect(lines).toHaveLength(4);
-    expect(lines[0]).toMatchObject({
-      reference: 'DU-G20261002',
-      client: "Tom O'Neill",
-      quantity: 20,
-      product: '1oz Krugerrand',
-      collected: '46300',
-      date: '2026-10-01',
+  describe('statusOnly', () => {
+    it('ignores text and date differences', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ orderedOn: '2026-09-01' })],
+        [row({ notes: 'n', serials: 'S9', supplierRef: 'PO', refinery: 'Umicore', orderedOn: '2026-09-28' })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan).toMatchObject({ toUpdate: [], unchanged: 1 });
     });
-    expect(lines[1]?.collected).toBeNull();
-  });
-
-  it('rejects a paste without Client and Reference', () => {
-    expect(parseTradesheetPaste('QTY:\n1').issues[0]?.message).toMatch(/Needs a Client/);
-  });
-
-  it('links on reference and name, flags a quantity mismatch, and notes when the sheet says collected', () => {
-    const { lines } = parseTradesheetPaste(TRADE);
-    const [a, b] = linkOrdersToTradesheet(
-      [
-        { id: 1, reference: 'du-g20261002', client: "TOM O'NEILL", quantity: 20 },
-        { id: 2, reference: 'DU-G20261003', client: 'Archicon Limited', quantity: 20 },
-      ],
-      lines,
-    );
-    expect(a).toMatchObject({ status: 'EXACT', sheetSaysCollected: true, notes: [] });
-    expect(b).toMatchObject({ status: 'EXACT', sheetSaysCollected: false });
-    expect(b?.notes[0]).toMatch(/Quantity differs/);
-  });
-
-  it('sends a misspelt client to review, treats a repeated reference as ambiguous, and never links without a reference', () => {
-    const { lines } = parseTradesheetPaste(TRADE);
-    const out = linkOrdersToTradesheet(
-      [
-        { id: 1, reference: 'DU-G20261002', client: 'Tom Oneil', quantity: 20 },
-        { id: 2, reference: 'DU-G20261004', client: 'Somebody Else', quantity: 25 },
-        { id: 3, reference: null, client: 'Archicon Limited', quantity: 26 },
-      ],
-      lines,
-    );
-    expect(out.map((l) => l.status)).toEqual(['REVIEW', 'AMBIGUOUS', 'NONE']);
-    expect(out[1]?.candidates).toHaveLength(2);
+    it('moves status forward and sets missing only', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ status: 'ALLOCATED' })],
+        [row({ status: 'COLLECTED', notes: 'n', missing: true })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan.toUpdate).toEqual([{ id: 1, changes: { status: 'COLLECTED', missing: true } }]);
+    });
+    it('still adds new items in full', () => {
+      expect(planCustomerOrderImport([], [row({ notes: 'n' })], { fields: 'statusOnly' }).toAdd[0]?.notes).toBe('n');
+    });
+    it('matches a differently spelled client by branch, reference, product and quantity', () => {
+      const plan = planCustomerOrderImport([stored({ client: 'J Smith' })], [row({ client: 'John A Smith', status: 'COLLECTED' })], { fields: 'statusOnly' });
+      expect(plan).toMatchObject({ toAdd: [], toUpdate: [{ id: 1, changes: { status: 'COLLECTED' } }] });
+    });
+    it('prefers an exact client match and never reuses an item', () => {
+      const plan = planCustomerOrderImport(
+        [stored({ id: 1, client: 'J Smith' }), stored({ id: 2, client: 'John A Smith' })],
+        [row({ client: 'John A Smith' }), row({ client: 'Someone Else' }), row({ client: 'Third' })],
+        { fields: 'statusOnly' },
+      );
+      expect(plan.unchanged).toBe(2);
+      expect(plan.toAdd).toHaveLength(1);
+    });
+    it('does not match loosely without a reference, nor on the paste route', () => {
+      expect(planCustomerOrderImport([stored({ client: 'B', reference: null })], [row({ reference: null })], { fields: 'statusOnly' }).toAdd).toHaveLength(1);
+      expect(planCustomerOrderImport([stored({ client: 'B' })], [row()]).toAdd).toHaveLength(1);
+    });
   });
 });

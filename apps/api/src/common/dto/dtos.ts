@@ -26,6 +26,13 @@ import {
     RoadmapPullResultSchema,
     RoadmapPushRequestSchema,
     RoadmapPushResultSchema,
+    RoadmapQueueAppendedSchema,
+    RoadmapQueueFiledRequestSchema,
+    RoadmapQueueFiledResultSchema,
+    RoadmapQueueListSchema,
+    RoadmapQueueRequestSchema,
+    RoadmapScopeRefreshSchema,
+    RoadmapScopeSchema,
     RoadmapSyncStatusSchema,
     UpdateMarketModeRequestSchema,
     CreateBranchRequestSchema,
@@ -51,10 +58,18 @@ import {
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
     BcAwaitingRequestSchema,
+    BcHistoryRequestSchema,
+    ItemTraceQuerySchema,
     RecordSearchRequestSchema,
     LinkDecisionRequestSchema,
     CreateSalesProductRequestSchema,
+    BcSalesProductsApplyRequestSchema,
     MapAliasRequestSchema,
+    SettleNamesRequestSchema,
+    ApplyPerMetalRequestSchema,
+    RelinkRequestSchema,
+    NameSuggestionAcceptRequestSchema,
+    NameSuggestionDecisionRequestSchema,
     FetchAttemptSchema,
     ClientErrorReportBatchSchema,
     FetchMetricsSchema,
@@ -568,6 +583,16 @@ export class BcAwaitingRequestDto extends createDto(
     'BcAwaitingRequestDto',
 ) {}
 
+export class BcHistoryRequestDto extends createDto(
+    BcHistoryRequestSchema,
+    'BcHistoryRequestDto',
+) {}
+
+export class ItemTraceQueryDto extends createDto(
+    ItemTraceQuerySchema,
+    'ItemTraceQueryDto',
+) {}
+
 export class LinkDecisionRequestDto extends createDto(
     LinkDecisionRequestSchema,
     'LinkDecisionRequestDto',
@@ -578,12 +603,77 @@ export class CreateSalesProductRequestDto extends createDto(
     'CreateSalesProductRequestDto',
 ) {}
 
+export class BcSalesProductsApplyRequestDto extends createDto(
+    BcSalesProductsApplyRequestSchema,
+    'BcSalesProductsApplyRequestDto',
+) {}
+
 export class MapAliasRequestDto extends createDto(
     MapAliasRequestSchema,
     'MapAliasRequestDto',
 ) {}
 
+export class ApplyPerMetalRequestDto extends createDto(
+    ApplyPerMetalRequestSchema,
+    'ApplyPerMetalRequestDto',
+) {}
+
+export class RelinkRequestDto extends createDto(
+    RelinkRequestSchema,
+    'RelinkRequestDto',
+) {}
+
+export class SettleNamesRequestDto extends createDto(
+    SettleNamesRequestSchema,
+    'SettleNamesRequestDto',
+) {}
+
+export class NameSuggestionAcceptRequestDto extends createDto(
+    NameSuggestionAcceptRequestSchema,
+    'NameSuggestionAcceptRequestDto',
+) {}
+
+export class NameSuggestionDecisionRequestDto extends createDto(
+    NameSuggestionDecisionRequestSchema,
+    'NameSuggestionDecisionRequestDto',
+) {}
+
 export class RecordSearchRequestDto extends createDto(
     RecordSearchRequestSchema,
     'RecordSearchRequestDto',
+) {}
+
+export class RoadmapScopeDto extends createDto(
+    RoadmapScopeSchema,
+    'RoadmapScopeDto',
+) {}
+
+export class RoadmapScopeRefreshDto extends createDto(
+    RoadmapScopeRefreshSchema,
+    'RoadmapScopeRefreshDto',
+) {}
+
+export class RoadmapQueueRequestDto extends createDto(
+    RoadmapQueueRequestSchema,
+    'RoadmapQueueRequestDto',
+) {}
+
+export class RoadmapQueueListDto extends createDto(
+    RoadmapQueueListSchema,
+    'RoadmapQueueListDto',
+) {}
+
+export class RoadmapQueueAppendedDto extends createDto(
+    RoadmapQueueAppendedSchema,
+    'RoadmapQueueAppendedDto',
+) {}
+
+export class RoadmapQueueFiledRequestDto extends createDto(
+    RoadmapQueueFiledRequestSchema,
+    'RoadmapQueueFiledRequestDto',
+) {}
+
+export class RoadmapQueueFiledResultDto extends createDto(
+    RoadmapQueueFiledResultSchema,
+    'RoadmapQueueFiledResultDto',
 ) {}

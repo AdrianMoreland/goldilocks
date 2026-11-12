@@ -22,6 +22,33 @@ const lot = (over: Partial<LotEnd> = {}): LotEnd => ({
 });
 
 describe('sameProduct', () => {
+    it('treats a coin with and without its country word as one product', () => {
+        const a = { productKey: '1/4oz eagle', text: '1/4oz Eagle' };
+        const b = {
+            productKey: '1/4oz american eagle',
+            text: '1/4oz American Eagle',
+        };
+        expect(sameProduct(a, b)).toBe(true);
+        expect(
+            sameProduct(a, {
+                productKey: '1/4oz us eagle',
+                text: '1/4oz US Eagle',
+            }),
+        ).toBe(true);
+        expect(
+            sameProduct(
+                { productKey: null, text: '1oz Nugget' },
+                { productKey: null, text: '1oz Australian Kangaroo' },
+            ),
+        ).toBe(true);
+        expect(
+            sameProduct(a, {
+                productKey: '1/10oz american eagle',
+                text: '1/10oz American Eagle',
+            }),
+        ).toBe(false);
+    });
+
     it('trusts equal catalogue keys and rejects different ones', () => {
         expect(
             sameProduct(
@@ -35,6 +62,34 @@ describe('sameProduct', () => {
                 { productKey: 'b', text: '1oz Krugerrand' },
             ),
         ).toBe(false);
+    });
+
+    it('compares catalogue products when both rows have one', () => {
+        // One generic catalogue coin covers several designs: the names still decide.
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 3, text: '1/10oz Krugerrand' },
+                { productKey: 'b', productId: 3, text: '1/10oz Britannia' },
+            ),
+        ).toBe(false);
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+            ),
+        ).toBe(true);
+        expect(
+            sameProduct(
+                { productKey: 'a', productId: 7, text: '1oz Eagle' },
+                { productKey: 'a', productId: 8, text: '1oz Eagle' },
+            ),
+        ).toBe(false);
+        expect(
+            sameProduct(
+                { productKey: null, productId: null, text: '1oz brits' },
+                { productKey: null, productId: 8, text: '1oz Britannia' },
+            ),
+        ).toBe(true);
     });
 
     it('compares names when a key is missing, knowing brits is Britannia', () => {

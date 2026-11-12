@@ -7,6 +7,10 @@ import { RoadmapController } from './roadmap.controller';
 import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
 import { RoadmapPushService } from './roadmap-push.service';
+import { RoadmapQueueService } from './roadmap-queue.service';
+import { RoadmapQueueTokenController } from './roadmap-queue-token.controller';
+import { ROADMAP_WRITER } from './roadmap-writer';
+import { RoadmapScopeService } from './roadmap-scope.service';
 import { RoadmapCron } from './roadmap.cron';
 import { RoadmapWebhookController } from './roadmap-webhook.controller';
 import { RoadmapService } from './roadmap.service';
@@ -19,12 +23,19 @@ import { RoadmapSyncService } from './roadmap-sync.service';
         AuditLogModule,
         GithubModule,
     ],
-    controllers: [RoadmapController, RoadmapWebhookController],
+    controllers: [
+        RoadmapController,
+        RoadmapWebhookController,
+        RoadmapQueueTokenController,
+    ],
     providers: [
         RoadmapService,
         RoadmapSyncService,
         RoadmapPullService,
         RoadmapPushService,
+        RoadmapScopeService,
+        RoadmapQueueService,
+        { provide: ROADMAP_WRITER, useExisting: RoadmapQueueService },
         RoadmapInboxService,
         RoadmapCron,
     ],

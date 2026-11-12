@@ -4,7 +4,7 @@ import { IMPORT_SCHEMA_VERSION } from './import-workbook.schema';
 /**
  * Tables the workbook import writes, in the order a batch must send them: parents first, so a row can find the
  * customer, invoice or supplier invoice it points at. The browser sends one table per request, at most
- * WORKBOOK_CHUNK_MAX_ROWS rows each.
+ * WORKBOOK_CHUNK_MAX_ROWS rows each. `customer_safe_items` must stay after `customers`: it resolves client codes to names.
  */
 export const WORKBOOK_LOAD_ORDER = [
   'customers',
@@ -18,8 +18,10 @@ export const WORKBOOK_LOAD_ORDER = [
   'payments',
   'purchase_orders',
   'bc_sales_orders',
+  'customer_safe_items',
   'bc_tracking_entries',
   'bc_items',
+  'zoho_products',
   'stock_bars',
   'stock_coins',
   'bc_journal_lines',

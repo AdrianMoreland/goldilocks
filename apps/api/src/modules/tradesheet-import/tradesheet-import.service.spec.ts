@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import type { TradesheetImportRequest } from '@goldilocks/shared-types';
 import { TradesheetImportService } from './tradesheet-import.service';
@@ -97,16 +98,22 @@ function setup(
     } = {},
 ) {
     const tx = {
+        product: {
+            findMany: jest.fn().mockResolvedValue([
+                { id: 7, sku: 'GOLD-1OZ-KRUGERRAND-COIN', metalType: 'GOLD' },
+                { id: 8, sku: 'GOLD-250G-BAR', metalType: 'GOLD' },
+            ]),
+        },
         productAlias: {
             findMany: jest.fn().mockResolvedValue([
                 {
                     alias: '1oz krugerrand',
-                    productKey: '1oz_krugerrand',
                     productId: 7,
+                    salesProductId: null,
                 },
-                { alias: '250g bar', productKey: '250g_bar', productId: null },
             ]),
         },
+        salesProduct: { findMany: jest.fn().mockResolvedValue([]) },
         branch: {
             findMany: jest.fn().mockResolvedValue([{ id: 3, name: 'DU' }]),
         },
@@ -150,17 +157,23 @@ function setup(
             updateMany: jest.fn(),
         },
         importBatch: { create: jest.fn().mockResolvedValue({ id: 11 }) },
+        $executeRaw: jest.fn().mockResolvedValue(0),
     };
     const prisma = {
         ...tx,
         $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const names = {
+        registerNames: jest.fn().mockResolvedValue(undefined),
+        settleAndRecord: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new TradesheetImportService(
         prisma as unknown as PrismaService,
         audit as unknown as AuditLogService,
+        names as never,
     );
-    return { service, prisma, tx, audit };
+    return { service, prisma, tx, audit, names };
 }
 
 describe('TradesheetImportService.preview', () => {
@@ -168,9 +181,57 @@ describe('TradesheetImportService.preview', () => {
         const { service, prisma, tx } = setup();
         const plan = await service.preview(request());
         expect(plan.totals).toMatchObject({ added: 2, changed: 0, missing: 0 });
+        expect(plan.warnings).toEqual([]);
+        expect(plan.tabs[0].productMatches).toEqual({
+            saved: 1,
+            rule: 0,
+            none: 0,
+            notProduct: 0,
+        });
+        expect(plan.tabs[1].productMatches).toEqual({
+            saved: 0,
+            rule: 1,
+            none: 0,
+            notProduct: 0,
+        });
         expect(prisma.$transaction).not.toHaveBeenCalled();
         expect(tx.trade.createMany).not.toHaveBeenCalled();
         expect(tx.importBatch.create).not.toHaveBeenCalled();
+    });
+});
+
+describe('TradesheetImportService.preview: saved decisions', () => {
+    it('warns when there are none yet', async () => {
+        const { service, tx } = setup();
+        tx.productAlias.findMany.mockResolvedValue([]);
+        const plan = await service.preview(request());
+        expect(plan.warnings).toEqual([
+            'No saved product-name decisions yet: products are matched by built-in rules only.',
+        ]);
+    });
+});
+
+describe('TradesheetImportService.preview: names settled as not a product', () => {
+    it('counts them as saved and does not list them as unrecognised', async () => {
+        const { service, tx } = setup();
+        tx.productAlias.findMany.mockResolvedValue([
+            {
+                alias: 'mystery fee',
+                productId: null,
+                salesProductId: null,
+                noProduct: true,
+            },
+        ]);
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Mystery Fee';
+        const plan = await service.preview(req);
+        expect(plan.tabs[0].productMatches).toEqual({
+            saved: 0,
+            rule: 0,
+            none: 0,
+            notProduct: 1,
+        });
+        expect(plan.tabs[0].unmatchedProducts).toEqual([]);
     });
 });
 
@@ -200,7 +261,7 @@ describe('TradesheetImportService.commit', () => {
             metal: 'GOLD',
             state: 'HEDGED',
             qty: 20,
-            productKey: '1oz_krugerrand',
+            productKey: '1oz krugerrand',
             productId: 7,
             branchId: 3,
             sourceMonth: '2026-10',
@@ -218,7 +279,8 @@ describe('TradesheetImportService.commit', () => {
             referenceKey: 'DUGP20261002',
             qty: 3,
             commentSoldQty: 1,
-            productKey: '250g_bar',
+            productKey: '250g bar',
+            productId: 8,
         });
 
         expect(tx.stockUnit.createMany).toHaveBeenCalledWith({
@@ -234,6 +296,182 @@ describe('TradesheetImportService.commit', () => {
             expect.stringContaining('2 added'),
             tx,
         );
+    });
+
+    it('registers only the names it could not place, with the tab metal, inside the transaction', async () => {
+        const { service, tx, names } = setup();
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await service.commit(req, 'admin@merrion.ie');
+        expect(tx.importBatch.create).toHaveBeenCalled();
+        expect(names.registerNames).toHaveBeenCalledTimes(1);
+        const [list, source, db] = names.registerNames.mock.calls[0] as [
+            { alias: string; uses: number; metalHint: string }[],
+            string,
+            unknown,
+        ];
+        expect(source).toBe('tradesheet');
+        expect(db).toBe(tx);
+        expect(list).toHaveLength(1);
+        expect(list[0]).toMatchObject({ uses: 1, metalHint: 'GOLD' });
+        expect(list[0].alias).toContain('zorblax');
+    });
+
+    it('settles the new names after the transaction has committed, outside it', async () => {
+        const { service, prisma, names } = setup();
+        const order: string[] = [];
+        prisma.$transaction.mockImplementation(
+            async (fn: (t: never) => unknown) => {
+                const r = await fn(prisma as never);
+                order.push('commit');
+                return r;
+            },
+        );
+        names.settleAndRecord.mockImplementation(async () => {
+            order.push('settle');
+        });
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await service.commit(req, 'admin@merrion.ie');
+        expect(order).toEqual(['commit', 'settle']);
+        expect(names.settleAndRecord).toHaveBeenCalledWith(
+            { aliases: [expect.stringContaining('zorblax')] },
+            'admin@merrion.ie',
+            prisma,
+            expect.stringContaining('tradesheet names'),
+        );
+    });
+
+    it('never fails the import when settling the names fails', async () => {
+        const { service, names } = setup();
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(
+            () => undefined,
+        );
+        names.settleAndRecord.mockRejectedValue(new Error('db gone'));
+        const req = request();
+        req.tabs[0].rows[0].cells[3] = 'Zorblax 17 widgets';
+        await expect(
+            service.commit(req, 'admin@merrion.ie'),
+        ).resolves.toMatchObject({
+            batchId: 11,
+        });
+    });
+
+    it('creates the stock rows of all new gold lots in one insert', async () => {
+        const { service, tx } = setup();
+        tx.purchaseLot.createManyAndReturn.mockResolvedValue([
+            { id: 50, referenceKey: 'DUGP20261002', occurrence: 1 },
+            { id: 51, referenceKey: 'DUGP20261003', occurrence: 1 },
+        ]);
+        const base = request();
+        const lotTab = base.tabs[1];
+        const second = {
+            ...lotTab.rows[0],
+            row: 3,
+            cells: lotTab.rows[0].cells.map((c, i) =>
+                i === 2 ? 2 : i === 9 ? 'DU-GP20261003' : c,
+            ),
+        };
+        await service.commit(
+            request({
+                tabs: [
+                    base.tabs[0],
+                    { ...lotTab, rows: [lotTab.rows[0], second] },
+                ],
+            }),
+            'admin@merrion.ie',
+        );
+        expect(tx.stockUnit.count).not.toHaveBeenCalled();
+        expect(tx.stockUnit.createMany).toHaveBeenCalledTimes(1);
+        expect(tx.stockUnit.createMany).toHaveBeenCalledWith({
+            data: [
+                { lotId: 50, seq: 1 },
+                { lotId: 50, seq: 2 },
+                { lotId: 50, seq: 3 },
+                { lotId: 51, seq: 1 },
+                { lotId: 51, seq: 2 },
+            ],
+        });
+    });
+
+    it('refreshes the product of an unchanged row without touching anything else', async () => {
+        const first = setup();
+        await first.service.commit(request(), 'admin@merrion.ie');
+        const created = (
+            first.tx.trade.createMany.mock.calls[0]![0] as {
+                data: Array<Record<string, unknown>>;
+            }
+        ).data[0];
+        const stored = {
+            id: 40,
+            referenceKey: 'DUG20261002',
+            occurrence: 1,
+            fingerprint: created.fingerprint,
+            missingFromImport: false,
+            sourceMonth: '2026-10',
+            sourceTab: 'IE - Gold',
+            client: 'Tom',
+            qty: 20,
+            productText: '1oz Krugerrand',
+            cptyRaw: 'HEDGED',
+            state: 'HEDGED',
+            collected: false,
+            cost: null,
+            receipt: null,
+            notes: null,
+            lotKey: null,
+            productKey: null,
+            productId: null,
+            issues: [],
+        };
+        const { service, tx } = setup({ trades: [stored] });
+        await service.commit(request(), 'admin@merrion.ie');
+        expect(tx.trade.update).toHaveBeenCalledTimes(1);
+        expect(tx.trade.update).toHaveBeenCalledWith({
+            where: { id: 40 },
+            data: { productKey: '1oz krugerrand', productId: 7, issues: [] },
+        });
+    });
+
+    it('refreshes the issues of an unchanged row when only they differ', async () => {
+        const first = setup();
+        await first.service.commit(request(), 'admin@merrion.ie');
+        const created = (
+            first.tx.trade.createMany.mock.calls[0]![0] as {
+                data: Array<Record<string, unknown>>;
+            }
+        ).data[0];
+        const { service, tx } = setup({
+            trades: [
+                {
+                    id: 40,
+                    referenceKey: 'DUG20261002',
+                    occurrence: 1,
+                    fingerprint: created.fingerprint,
+                    missingFromImport: false,
+                    sourceMonth: '2026-10',
+                    sourceTab: 'IE - Gold',
+                    client: 'Tom',
+                    qty: 20,
+                    productText: '1oz Krugerrand',
+                    cptyRaw: 'HEDGED',
+                    state: 'HEDGED',
+                    collected: false,
+                    cost: null,
+                    receipt: null,
+                    notes: null,
+                    lotKey: null,
+                    productKey: '1oz krugerrand',
+                    productId: 7,
+                    issues: ['Product "x" is not recognised.'],
+                },
+            ],
+        });
+        await service.commit(request(), 'admin@merrion.ie');
+        expect(tx.trade.update).toHaveBeenCalledWith({
+            where: { id: 40 },
+            data: { productKey: '1oz krugerrand', productId: 7, issues: [] },
+        });
     });
 
     it('does not make stock rows for silver lots', async () => {
@@ -444,21 +682,18 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             'admin@merrion.ie',
         );
 
-        expect(tx.trade.updateMany).toHaveBeenCalledWith({
-            where: { id: { in: [70] } },
-            data: { lotId: 50 },
-        });
-        expect(tx.purchaseLot.update).toHaveBeenCalledWith({
-            where: { id: 50 },
-            data: { allocatedQty: 2 },
-        });
+        // Set-based writes: [unlink, link, lot totals, unit ranges], each with parallel value arrays.
+        const raw = tx.$executeRaw.mock.calls.map((c) => c.slice(1));
+        expect(raw).toEqual([
+            [[50], ['DUGP20261002']],
+            [[70], [50]],
+            [[50], [2]],
+            [[50], [1], [2], [70]],
+        ]);
+        expect(tx.stockUnit.updateMany).toHaveBeenCalledTimes(1);
         expect(tx.stockUnit.updateMany).toHaveBeenCalledWith({
-            where: { lotId: 50 },
+            where: { lotId: { in: [50] } },
             data: { tradeId: null },
-        });
-        expect(tx.stockUnit.updateMany).toHaveBeenCalledWith({
-            where: { lotId: 50, seq: { gte: 1, lte: 2 } },
-            data: { tradeId: 70 },
         });
         expect(result.allocation).toEqual({
             lotsChecked: 1,
@@ -482,7 +717,7 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             where: { id: { in: [70] } },
             data: { lotId: null },
         });
-        expect(tx.purchaseLot.update).not.toHaveBeenCalled();
+        expect(tx.$executeRaw).not.toHaveBeenCalled();
         expect(result.allocation).toMatchObject({
             lotNotImported: 1,
             salesLinked: 0,
@@ -515,7 +750,10 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
             'admin@merrion.ie',
         );
         expect(tx.stockUnit.updateMany).not.toHaveBeenCalled();
-        expect(tx.purchaseLot.update).toHaveBeenCalled();
+        // Lot totals are still written; no unit-range update is.
+        const sqls = tx.$executeRaw.mock.calls.map((c) => c[0].join('?'));
+        expect(sqls.some((q) => q.includes('purchase_lots'))).toBe(true);
+        expect(sqls.some((q) => q.includes('stock_units'))).toBe(false);
     });
 
     it('checks nothing when no sale or lot named a purchase line', async () => {
@@ -523,5 +761,6 @@ describe('TradesheetImportService.commit: matching sales to lots', () => {
         const result = await service.commit(request(), 'admin@merrion.ie');
         expect(result.allocation.lotsChecked).toBe(0);
         expect(tx.trade.updateMany).not.toHaveBeenCalled();
+        expect(tx.$executeRaw).not.toHaveBeenCalled();
     });
 });

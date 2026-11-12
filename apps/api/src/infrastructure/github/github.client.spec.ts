@@ -215,3 +215,39 @@ describe('GithubClient writes', () => {
         });
     });
 });
+
+describe('GithubClient readFile', () => {
+    const realFetch = global.fetch;
+    afterEach(() => {
+        global.fetch = realFetch;
+    });
+
+    it('reads from another repository when one is named, with the same token', async () => {
+        const calls = mockFetch({
+            'GET /repos/o/private/contents/docs/NOW.md?ref=main': new Response(
+                '# Now',
+            ),
+            'GET /repos/o/private/commits/main': new Response('sha1\n'),
+        });
+        const file = await client().readFile(
+            'docs/NOW.md',
+            'main',
+            'o/private',
+        );
+        expect(file).toEqual({ content: '# Now', commit: 'sha1' });
+        expect(calls.map((c) => c.url)).toEqual(
+            expect.arrayContaining([
+                '/repos/o/private/contents/docs/NOW.md?ref=main',
+                '/repos/o/private/commits/main',
+            ]),
+        );
+    });
+
+    it('refuses a repository name that is not owner/name', async () => {
+        const calls = mockFetch({});
+        await expect(
+            client().readFile('a.md', 'main', '../orgs/x?y'),
+        ).rejects.toBeInstanceOf(GithubError);
+        expect(calls).toHaveLength(0);
+    });
+});

@@ -116,7 +116,7 @@ describe('CustomerOrdersService.importSheet', () => {
             { metal: 'GOLD', text: SHEET },
             'a',
         );
-        expect(result).toMatchObject({ added: 1, skipped: 0 });
+        expect(result).toMatchObject({ added: 1, updated: 0, unchanged: 0 });
         expect(result.issues).toHaveLength(1);
         const data = (
             tx.customerOrderItem.createMany.mock.calls[0][0] as {
@@ -127,23 +127,87 @@ describe('CustomerOrdersService.importSheet', () => {
         expect(prisma.customerOrderItem.findMany).toHaveBeenCalled();
     });
 
-    it('skips a row that is already stored, so a repeat paste adds nothing', async () => {
+    const stored = (over: Record<string, unknown> = {}) => ({
+        id: 7,
+        locationCode: 'DU',
+        client: 'david caulfield',
+        reference: 'du-g202608147',
+        product: '1oz krugerrand',
+        quantity: 4,
+        status: 'BAGGED',
+        serials: null,
+        notes: null,
+        orderedOn: null,
+        missing: false,
+        supplierRef: null,
+        refinery: null,
+        ...over,
+    });
+    const COLLECTED_SHEET =
+        'STATUS\tBRANCH\tClient\tReference\tQTY\tProduct\tSERIALS\nCollected\tDU\tDavid Caulfield\tDU-G202608147\t4\t1oz Krugerrand\tS1';
+
+    it('counts a row that is already stored with nothing new as unchanged and writes nothing', async () => {
         const { service, prisma } = setup();
+        prisma.customerOrderItem.findMany.mockResolvedValue([stored()]);
+        const result = await service.importSheet(
+            { metal: 'GOLD', text: SHEET },
+            'a',
+        );
+        expect(result).toMatchObject({ added: 0, updated: 0, unchanged: 1 });
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('updates a stored row whose status and serials moved on, in one transaction, auditing counts only', async () => {
+        const { service, prisma, tx, audit } = setup();
+        prisma.customerOrderItem.findMany.mockResolvedValue([stored()]);
+        const result = await service.importSheet(
+            { metal: 'GOLD', text: COLLECTED_SHEET },
+            'a',
+        );
+        expect(result).toMatchObject({ added: 0, updated: 1, unchanged: 0 });
+        expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+            timeout: 120_000,
+            maxWait: 10_000,
+        });
+        expect(tx.customerOrderItem.update).toHaveBeenCalledWith({
+            where: { id: 7 },
+            data: expect.objectContaining({
+                status: 'COLLECTED',
+                serials: 'S1',
+            }),
+        });
+        expect(audit.record).toHaveBeenCalledWith(
+            'a',
+            'customer-orders-import',
+            '0 added, 1 updated, 0 unchanged, 0 rejected',
+            tx,
+        );
+    });
+
+    it('never moves a stored status backwards', async () => {
+        const { service, prisma, tx } = setup();
         prisma.customerOrderItem.findMany.mockResolvedValue([
-            {
-                locationCode: 'DU',
-                client: 'david caulfield',
-                reference: 'du-g202608147',
-                product: '1oz krugerrand',
-                quantity: 4,
-            },
+            stored({ status: 'COLLECTED' }),
         ]);
         const result = await service.importSheet(
             { metal: 'GOLD', text: SHEET },
             'a',
         );
-        expect(result).toMatchObject({ added: 0, skipped: 1 });
+        expect(result).toMatchObject({ updated: 0, unchanged: 1 });
+        expect(tx.customerOrderItem.update).not.toHaveBeenCalled();
+    });
+
+    it('previews the counts without writing', async () => {
+        const { service, prisma, audit } = setup();
+        prisma.customerOrderItem.findMany.mockResolvedValue([stored()]);
+        const result = await service.previewImport({
+            metal: 'GOLD',
+            text:
+                COLLECTED_SHEET + '\nCollected\tDU\tNew Person\tDU-G1\t2\tx\t',
+        });
+        expect(result).toMatchObject({ added: 1, updated: 1, unchanged: 0 });
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(audit.record).not.toHaveBeenCalled();
     });
 });
 

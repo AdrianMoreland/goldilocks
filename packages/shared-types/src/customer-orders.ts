@@ -224,29 +224,118 @@ export function parseCustomerOrdersPaste(
   return { rows, issues };
 }
 
+/** Order of a status in an item's life. BAGGED is the old name of ALLOCATED, so they rank the same. */
+const STATUS_RANK: Record<CustomerOrderStatus, number> = {
+  ORDERED: 0,
+  IN_TRANSIT: 1,
+  DELIVERED: 2,
+  BAGGED: 3,
+  ALLOCATED: 3,
+  COLLECTED: 4,
+};
+
+/** What a stored item holds that a repeat paste may change. */
+export interface ExistingCustomerOrder {
+  id: number;
+  locationCode: string;
+  client: string;
+  reference: string | null;
+  product: string;
+  quantity: number;
+  status: CustomerOrderStatus;
+  serials: string | null;
+  notes: string | null;
+  orderedOn: string | null;
+  missing: boolean;
+  supplierRef: string | null;
+  refinery: string | null;
+}
+
+export interface CustomerOrderChanges {
+  status?: CustomerOrderStatus;
+  serials?: string;
+  notes?: string;
+  orderedOn?: string;
+  missing?: boolean;
+  supplierRef?: string;
+  refinery?: string;
+}
+
+/** `statusOnly`: a matched item may only have its status moved forward (and `missing` set); text and dates are left alone. */
+export interface CustomerOrderPlanOptions {
+  /**
+   * 'statusOnly' (the workbook route): a matched item only moves its status forward, and a row whose client is
+   * spelled differently still matches an item with the same branch, reference, product and quantity, because the
+   * workbook names clients from the redaction map, which may hold a fuller spelling than the sheet.
+   */
+  fields?: 'all' | 'statusOnly';
+}
+
+/** The fields a pasted row would change on a stored item. Status only moves forward; text and the missing flag are never cleared. */
+export function customerOrderChanges(
+  stored: ExistingCustomerOrder,
+  row: CustomerOrderImportRow,
+  options: CustomerOrderPlanOptions = {},
+): CustomerOrderChanges {
+  const changes: CustomerOrderChanges = {};
+  if (STATUS_RANK[row.status] > STATUS_RANK[stored.status]) changes.status = row.status;
+  if (options.fields === 'statusOnly') {
+    if (row.missing && !stored.missing) changes.missing = true;
+    return changes;
+  }
+  for (const f of ['serials', 'notes', 'supplierRef', 'refinery'] as const) {
+    const next = row[f]?.trim();
+    if (next && next !== (stored[f] ?? '').trim()) changes[f] = next;
+  }
+  if (row.orderedOn && row.orderedOn !== stored.orderedOn) changes.orderedOn = row.orderedOn;
+  // The sheet can flag an item missing; clearing the flag is a decision made in the app.
+  if (row.missing && !stored.missing) changes.missing = true;
+  return changes;
+}
+
 /**
- * Which pasted rows are new. A row is the same as one already stored when branch, client, product, quantity and
- * reference all match; duplicates are skipped only up to the number already there, so two genuine identical
- * orders in one paste are both kept the first time and neither added again on a repeat.
+ * Which pasted rows are new and which change a stored item. A row is the same as one already stored when branch,
+ * client, product, quantity and reference all match; matches are paired up only as many times as the item is
+ * stored, so two genuine identical orders in one paste are both kept the first time and neither added again on
+ * a repeat. A matched row updates the stored item (see customerOrderChanges) or counts as unchanged.
  */
 export function planCustomerOrderImport(
-  existing: { locationCode: string; client: string; reference: string | null; product: string; quantity: number }[],
+  existing: ExistingCustomerOrder[],
   incoming: CustomerOrderImportRow[],
-): { toAdd: CustomerOrderImportRow[]; skipped: number } {
+  options: CustomerOrderPlanOptions = {},
+): { toAdd: CustomerOrderImportRow[]; toUpdate: { id: number; changes: CustomerOrderChanges }[]; unchanged: number } {
   const key = (r: { locationCode: string; client: string; reference: string | null; product: string; quantity: number }) =>
     [r.locationCode.toUpperCase(), normalizeClient(r.client), normalizeReference(r.reference), r.product.trim().toLowerCase(), r.quantity].join('|');
-  const have = new Map<string, number>();
-  for (const e of existing) have.set(key(e), (have.get(key(e)) ?? 0) + 1);
+  const have = new Map<string, ExistingCustomerOrder[]>();
+  for (const e of existing) have.set(key(e), [...(have.get(key(e)) ?? []), e]);
   const toAdd: CustomerOrderImportRow[] = [];
-  let skipped = 0;
+  const toUpdate: { id: number; changes: CustomerOrderChanges }[] = [];
+  const used = new Set<number>();
+  let unchanged = 0;
+  const apply = (stored: ExistingCustomerOrder, row: CustomerOrderImportRow) => {
+    used.add(stored.id);
+    const changes = customerOrderChanges(stored, row, options);
+    if (Object.keys(changes).length > 0) toUpdate.push({ id: stored.id, changes });
+    else unchanged++;
+  };
+  const leftover: CustomerOrderImportRow[] = [];
   for (const row of incoming) {
-    const left = have.get(key(row)) ?? 0;
-    if (left > 0) {
-      have.set(key(row), left - 1);
-      skipped++;
-    } else toAdd.push(row);
+    const stored = have.get(key(row))?.shift();
+    if (stored) apply(stored, row);
+    else leftover.push(row);
   }
-  return { toAdd, skipped };
+  // Second pass for the workbook route: same branch, reference, product and quantity under another spelling of the client.
+  const loose = (r: { locationCode: string; reference: string | null; product: string; quantity: number }) =>
+    [r.locationCode.toUpperCase(), normalizeReference(r.reference), r.product.trim().toLowerCase(), r.quantity].join('|');
+  for (const row of leftover) {
+    const stored =
+      options.fields === 'statusOnly' && normalizeReference(row.reference)
+        ? existing.find((e) => !used.has(e.id) && loose(e) === loose(row))
+        : undefined;
+    if (stored) apply(stored, row);
+    else toAdd.push(row);
+  }
+  return { toAdd, toUpdate, unchanged };
 }
 
 // --- tying orders to the stocktake --------------------------------------------------

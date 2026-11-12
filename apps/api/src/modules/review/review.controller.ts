@@ -13,8 +13,16 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
     AliasesResponse,
+    AliasUsageResponse,
+    ApplyPerMetalResult,
+    BcSalesProductsApplyResult,
+    BcSalesProductsPreview,
     DuplicatesResponse,
     LinkDecisionResult,
+    NameSuggestionAcceptResult,
+    NameSuggestionDecisionResult,
+    RelinkResult,
+    SettleNamesResult,
     OverAllocatedResponse,
     PricingProductOption,
     ReviewLinksResponse,
@@ -24,14 +32,23 @@ import type {
     UnresolvedLotsResponse,
 } from '@goldilocks/shared-types';
 import { ReviewService } from './review.service';
+import { BcSalesProductsService } from './bc-sales-products.service';
+import { ProductNamesService } from './product-names.service';
+import { ProductRelinkService } from './product-relink.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
+    ApplyPerMetalRequestDto,
+    BcSalesProductsApplyRequestDto,
     CreateSalesProductRequestDto,
     LinkDecisionRequestDto,
     MapAliasRequestDto,
+    NameSuggestionAcceptRequestDto,
+    NameSuggestionDecisionRequestDto,
+    RelinkRequestDto,
+    SettleNamesRequestDto,
 } from '../../common/dto/dtos';
 
 /** What the import could not settle by itself. Admin only; decisions are recorded, never applied to trades. */
@@ -41,7 +58,12 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class ReviewController {
-    constructor(private readonly review: ReviewService) {}
+    constructor(
+        private readonly review: ReviewService,
+        private readonly bcProducts: BcSalesProductsService,
+        private readonly names: ProductNamesService,
+        private readonly relinkRows: ProductRelinkService,
+    ) {}
 
     @Get('summary')
     @ApiOperation({ summary: 'How many items wait in each review queue.' })
@@ -106,10 +128,86 @@ export class ReviewController {
     @Get('aliases')
     @ApiOperation({
         summary:
-            'Product texts not yet tied to a sales product, most used first.',
+            'Product names to confirm, to decide, or settled by rule, most used first.',
     })
     aliases(@Query() query: Record<string, string>): Promise<AliasesResponse> {
-        return this.review.aliases(query);
+        return this.names.list(query);
+    }
+
+    @Get('aliases/:id/usage')
+    @ApiOperation({
+        summary:
+            'Up to five example rows of where a product name is used (no customer or vendor names).',
+    })
+    aliasUsage(
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<AliasUsageResponse> {
+        return this.names.usage(id);
+    }
+
+    @Post('aliases/:id/per-metal')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Give the unresolved sales and purchases of a name, per metal, their product. The name stays undecided.',
+    })
+    applyPerMetal(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: ApplyPerMetalRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<ApplyPerMetalResult> {
+        return this.names.applyPerMetal(id, body, req.user.email);
+    }
+
+    @Post('product-names/settle')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Rescan product names with the rules (dryRun only counts). Names a person decided are never touched.',
+    })
+    settleNames(
+        @Body() body: SettleNamesRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<SettleNamesResult> {
+        return this.names.rescan(body.dryRun, req.user.email);
+    }
+
+    @Post('product-names/relink')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            "Give existing rows their product from the settled names (dryRun only counts). Fills empty fields; correct also follows a person's decisions. Never clears a product.",
+    })
+    relink(
+        @Body() body: RelinkRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<RelinkResult> {
+        return this.relinkRows.relink(body, req.user.email);
+    }
+
+    @Post('product-names/accept')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Accept the suggestions for these product names, each only if it is still the one the person saw.',
+    })
+    acceptNames(
+        @Body() body: NameSuggestionAcceptRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<NameSuggestionAcceptResult> {
+        return this.names.accept(body.items, req.user.email);
+    }
+
+    @Post('product-names/reject')
+    @HttpCode(200)
+    @ApiOperation({
+        summary: 'Turn down the suggestions for these product names.',
+    })
+    rejectNames(
+        @Body() body: NameSuggestionDecisionRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<NameSuggestionDecisionResult> {
+        return this.names.reject(body.ids, req.user.email);
     }
 
     @Get('sales-products')
@@ -134,6 +232,26 @@ export class ReviewController {
         @Req() req: RequestWithUser,
     ): Promise<SalesProduct> {
         return this.review.createSalesProduct(body, req.user.email);
+    }
+
+    @Get('sales-products/from-bc')
+    @ApiOperation({
+        summary: 'Preview the specific products the BC items would become.',
+    })
+    bcSalesProductsPreview(): Promise<BcSalesProductsPreview> {
+        return this.bcProducts.preview();
+    }
+
+    @Post('sales-products/from-bc')
+    @HttpCode(200)
+    @ApiOperation({
+        summary: 'Create specific products from the BC items that are ready.',
+    })
+    bcSalesProductsApply(
+        @Body() body: BcSalesProductsApplyRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<BcSalesProductsApplyResult> {
+        return this.bcProducts.apply(body, req.user.email);
     }
 
     @Post('aliases/:id/map')

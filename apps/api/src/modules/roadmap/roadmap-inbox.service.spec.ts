@@ -21,6 +21,7 @@ const issue = (n: number, extra: Partial<GithubIssue> = {}): GithubIssue => ({
 const row = (id: number, status = 'new') => ({
     id,
     issueNumber: id + 100,
+    source: 'github',
     title: `Idea ${id}`,
     body: '',
     kind: null,

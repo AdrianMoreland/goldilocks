@@ -16,6 +16,7 @@ export type Verdict =
 export interface SaleEnd {
     qty: number | null;
     productKey: string | null;
+    productId?: number | null;
     productText: string;
 }
 
@@ -34,7 +35,28 @@ const SYNONYMS: Record<string, string> = {
     maples: 'maple',
     eagles: 'eagle',
     philharmonics: 'philharmonic',
+    nugget: 'kangaroo',
+    nuggets: 'kangaroo',
+    kruger: 'krugerrand',
+    maplegram: 'maple',
 };
+
+/** Words that only say where a coin comes from: "1/4oz Eagle" and "1/4oz American Eagle" are one product. */
+const COUNTRY_WORDS = new Set([
+    'south',
+    'african',
+    'canadian',
+    'american',
+    'austrian',
+    'australian',
+    'irish',
+    'us',
+    'usa',
+    'british',
+    'uk',
+    'leaf',
+    'vienna',
+]);
 
 /** Words that make a product a coin or a named piece rather than a plain bar of a weight. */
 const COIN_WORDS = new Set([
@@ -73,7 +95,10 @@ function canon(token: string): string {
 /** Words that say what a product is, so "1oz brits" and "1oz Britannia" can be compared. */
 export function productTokens(text: string): Set<string> {
     return new Set(
-        normaliseProductText(text).split(' ').filter(Boolean).map(canon),
+        normaliseProductText(text)
+            .split(' ')
+            .filter((t) => t && !COUNTRY_WORDS.has(t))
+            .map(canon),
     );
 }
 
@@ -88,9 +113,17 @@ const subset = (small: Set<string>, big: Set<string>) =>
  * is the same as a named bar of that weight ("1oz PAMP Lady Fortuna") unless the named one is a coin.
  */
 export function sameProduct(
-    a: { productKey: string | null; text: string },
-    b: { productKey: string | null; text: string },
+    a: { productKey: string | null; productId?: number | null; text: string },
+    b: { productKey: string | null; productId?: number | null; text: string },
 ): boolean {
+    // Two different catalogue products are never the same. The same catalogue product is not enough on its own:
+    // generic rows ("1/10oz Coin") cover several designs, so the names below still have to agree.
+    if (
+        a.productId != null &&
+        b.productId != null &&
+        a.productId !== b.productId
+    )
+        return false;
     if (a.productKey && b.productKey && a.productKey === b.productKey)
         return true;
     const ta = productTokens(a.text);
@@ -125,8 +158,16 @@ export function judgeSaleLot(
         };
     if (
         !sameProduct(
-            { productKey: sale.productKey, text: sale.productText },
-            { productKey: lot.productKey, text: lot.productText },
+            {
+                productKey: sale.productKey,
+                productId: sale.productId,
+                text: sale.productText,
+            },
+            {
+                productKey: lot.productKey,
+                productId: lot.productId,
+                text: lot.productText,
+            },
         )
     ) {
         return {
@@ -165,7 +206,11 @@ export function judgeLineTrade(
     if (
         !sameProduct(
             { productKey: null, text: line.itemName },
-            { productKey: trade.productKey, text: trade.productText },
+            {
+                productKey: trade.productKey,
+                productId: trade.productId,
+                text: trade.productText,
+            },
         )
     ) {
         return {

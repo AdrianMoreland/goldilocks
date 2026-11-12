@@ -12,6 +12,7 @@ import type {
 const API = 'https://api.github.com';
 const TIMEOUT_MS = 10_000;
 const DEFAULT_REPO = 'AdrianMoreland/goldilocks';
+const REPO_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
 export class GithubError extends Error {
     constructor(
@@ -126,15 +127,26 @@ export class GithubClient implements GithubPort {
         });
     }
 
-    async readFile(path: string, branch: string): Promise<GithubFile> {
+    async readFile(
+        path: string,
+        branch: string,
+        repo?: string,
+    ): Promise<GithubFile> {
         const ref = encodeURIComponent(branch);
+        const target = repo ?? this.repo;
+        if (!REPO_PATTERN.test(target)) {
+            throw new GithubError(
+                'The repository must look like owner/name',
+                null,
+            );
+        }
         const [file, sha] = await Promise.all([
             this.request(
-                `/repos/${this.repo}/contents/${path}?ref=${ref}`,
+                `/repos/${target}/contents/${path}?ref=${ref}`,
                 'application/vnd.github.raw+json',
             ),
             this.request(
-                `/repos/${this.repo}/commits/${ref}`,
+                `/repos/${target}/commits/${ref}`,
                 'application/vnd.github.sha',
             ),
         ]);

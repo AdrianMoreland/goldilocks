@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { aliasOk } from '@goldilocks/shared-types';
 import type {
     AllocationSummary,
+    RowResolverData,
     TradesheetImportPlan,
     TradesheetImportRequest,
     TradesheetImportResult,
@@ -9,11 +11,12 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { Decimal } from '../../../prisma/generated/internal/prismaNamespace';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { ProductNamesService } from '../review/product-names.service';
 import {
     parseTab,
     reconcileTab,
+    needsProductRefresh,
     summarise,
-    type AliasIndex,
     type ExistingLot,
     type ExistingTrade,
     type PlannedLot,
@@ -51,9 +54,12 @@ interface Built {
  */
 @Injectable()
 export class TradesheetImportService {
+    private readonly logger = new Logger(TradesheetImportService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        private readonly names: ProductNamesService,
     ) {}
 
     /** What an import would do. Writes nothing. */
@@ -65,7 +71,8 @@ export class TradesheetImportService {
         dto: TradesheetImportRequest,
         actor: string,
     ): Promise<TradesheetImportResult> {
-        return this.prisma.$transaction(
+        let newNames: string[] = [];
+        const result = await this.prisma.$transaction(
             async (tx) => {
                 // Planned again inside the transaction, so what is written is what is on the table now.
                 const built = await this.build(dto, tx);
@@ -104,17 +111,78 @@ export class TradesheetImportService {
                     );
                 }
                 const allocation = await this.allocate(tx, built.recs);
+                newNames = await this.registerNames(tx, built.recs);
                 const t = built.plan.totals;
                 await this.audit.record(
                     actor,
                     'tradesheet-import',
-                    `${dto.fileName} (${dto.sheetMonth}): ${t.added} added, ${t.changed + t.restored} updated, ${t.missing} missing, ${t.flagged} flagged; ${allocation.salesLinked} sales linked, ${allocation.lotNotImported} to a lot not imported`,
+                    `${dto.fileName} (${dto.sheetMonth}): ${t.added} added, ${t.changed + t.restored} updated, ${t.refreshed} products filled, ${t.missing} missing, ${t.flagged} flagged; ${allocation.salesLinked} sales linked, ${allocation.lotNotImported} to a lot not imported`,
                     tx,
                 );
                 return { batchId: batch.id, plan: built.plan, allocation };
             },
-            { timeout: 120_000, maxWait: 10_000 },
+            // Backstop: the API is ~140 ms from the database, so even batched, a big file needs room.
+            { timeout: 300_000, maxWait: 10_000 },
         );
+        // The names were saved with the import; matching them is best effort and never fails it.
+        await this.settleNames(newNames, actor, result.batchId);
+        return result;
+    }
+
+    // --- product names -----------------------------------------------------------------
+
+    /**
+     * The product names this import added or changed that no saved decision or rule placed: they join the names
+     * queue (if not already there), inside the import's transaction. Returns their texts for `settleNames`.
+     */
+    private async registerNames(
+        tx: Db,
+        recs: TabReconciliation[],
+    ): Promise<string[]> {
+        const found = new Map<
+            string,
+            { alias: string; uses: number; metalHint: 'GOLD' | 'SILVER' | null }
+        >();
+        for (const rec of recs) {
+            for (const r of [...rec.sales, ...rec.lots]) {
+                if (r.status === 'MISSING' || r.status === 'UNCHANGED')
+                    continue;
+                if (r.how !== 'NONE' || !r.productKey) continue;
+                if (!aliasOk(r.parsed.product, r.productKey)) continue;
+                const seen = found.get(r.productKey);
+                if (seen) seen.uses++;
+                else
+                    found.set(r.productKey, {
+                        alias: r.productKey,
+                        uses: 1,
+                        metalHint: r.metal,
+                    });
+            }
+        }
+        const names = [...found.values()];
+        await this.names.registerNames(names, 'tradesheet', tx);
+        return names.map((n) => n.alias);
+    }
+
+    /** After the import has committed: the rules settle or suggest the new names. Best effort: log and carry on. */
+    private async settleNames(
+        aliases: string[],
+        actor: string,
+        batchId: number,
+    ): Promise<void> {
+        if (aliases.length === 0) return;
+        try {
+            await this.names.settleAndRecord(
+                { aliases },
+                actor,
+                this.prisma,
+                `batch ${batchId} tradesheet names`,
+            );
+        } catch (e) {
+            this.logger.error(
+                `Settling the product names of import batch ${batchId} failed; the names stay in the queue for a rescan: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
     }
 
     // --- matching sales to lots --------------------------------------------------------
@@ -173,56 +241,77 @@ export class TradesheetImportService {
                 lotByKey.set(lot.referenceKey, lot);
         }
 
+        // Collected per lot, then written in a few set-based queries: each query is a round trip to the database.
+        const unlink: Array<{ lotId: number; key: string }> = [];
+        const link: Array<{ tradeId: number; lotId: number }> = [];
+        const orphanIds: number[] = [];
+        const totals: Array<{ lotId: number; allocatedQty: number }> = [];
+        const goldLotIds: number[] = [];
+        const ranges: Array<{
+            lotId: number;
+            fromSeq: number;
+            toSeq: number;
+            tradeId: number;
+        }> = [];
+
         for (const key of lotKeys) {
             const lot = lotByKey.get(key);
             const cited = sales.filter((s) => s.lotKey === key);
 
-            // A sale that used to point at this lot but now names another one stops pointing here.
-            if (lot) {
-                await tx.trade.updateMany({
-                    where: {
-                        lotId: lot.id,
-                        OR: [{ lotKey: null }, { lotKey: { not: key } }],
-                    },
-                    data: { lotId: null },
-                });
-            }
-            if (cited.length > 0) {
-                await tx.trade.updateMany({
-                    where: { id: { in: cited.map((s) => s.id) } },
-                    data: { lotId: lot?.id ?? null },
-                });
-            }
             if (!lot) {
+                for (const s of cited) orphanIds.push(s.id);
                 summary.lotNotImported += cited.length;
                 continue;
             }
+            unlink.push({ lotId: lot.id, key });
+            for (const s of cited) link.push({ tradeId: s.id, lotId: lot.id });
 
             const plan = planLotAllocation(lot.qty, cited);
-            await tx.purchaseLot.update({
-                where: { id: lot.id },
-                data: { allocatedQty: plan.allocatedQty },
-            });
+            totals.push({ lotId: lot.id, allocatedQty: plan.allocatedQty });
             // Silver has no per-item rows yet; its quantity is tracked on the lot alone.
             if (lot.metal === 'GOLD') {
-                await tx.stockUnit.updateMany({
-                    where: { lotId: lot.id },
-                    data: { tradeId: null },
-                });
-                for (const r of plan.ranges) {
-                    await tx.stockUnit.updateMany({
-                        where: {
-                            lotId: lot.id,
-                            seq: { gte: r.fromSeq, lte: r.toSeq },
-                        },
-                        data: { tradeId: r.tradeId },
-                    });
-                }
+                goldLotIds.push(lot.id);
+                for (const r of plan.ranges)
+                    ranges.push({ lotId: lot.id, ...r });
             }
             summary.lotsChecked++;
             summary.salesLinked += cited.length;
             if (plan.overBy > 0) summary.overAllocated++;
             if (soldMismatch(lot, plan.allocatedQty)) summary.soldMismatches++;
+        }
+
+        // A sale that used to point at a lot but now names another one stops pointing there.
+        if (unlink.length > 0) {
+            await tx.$executeRaw`UPDATE trades SET "lotId" = NULL
+                FROM unnest(${unlink.map((u) => u.lotId)}::int[], ${unlink.map((u) => u.key)}::text[]) AS v(lot_id, key)
+                WHERE trades."lotId" = v.lot_id AND (trades."lotKey" IS NULL OR trades."lotKey" <> v.key)`;
+        }
+        if (orphanIds.length > 0) {
+            await tx.trade.updateMany({
+                where: { id: { in: orphanIds } },
+                data: { lotId: null },
+            });
+        }
+        if (link.length > 0) {
+            await tx.$executeRaw`UPDATE trades SET "lotId" = v.lot_id
+                FROM unnest(${link.map((l) => l.tradeId)}::int[], ${link.map((l) => l.lotId)}::int[]) AS v(trade_id, lot_id)
+                WHERE trades.id = v.trade_id`;
+        }
+        if (totals.length > 0) {
+            await tx.$executeRaw`UPDATE purchase_lots SET "allocatedQty" = v.qty
+                FROM unnest(${totals.map((t) => t.lotId)}::int[], ${totals.map((t) => t.allocatedQty)}::int[]) AS v(lot_id, qty)
+                WHERE purchase_lots.id = v.lot_id`;
+        }
+        if (goldLotIds.length > 0) {
+            await tx.stockUnit.updateMany({
+                where: { lotId: { in: goldLotIds } },
+                data: { tradeId: null },
+            });
+        }
+        if (ranges.length > 0) {
+            await tx.$executeRaw`UPDATE stock_units SET "tradeId" = v.trade_id
+                FROM unnest(${ranges.map((r) => r.lotId)}::int[], ${ranges.map((r) => r.fromSeq)}::int[], ${ranges.map((r) => r.toSeq)}::int[], ${ranges.map((r) => r.tradeId)}::int[]) AS v(lot_id, from_seq, to_seq, trade_id)
+                WHERE stock_units."lotId" = v.lot_id AND stock_units.seq BETWEEN v.from_seq AND v.to_seq`;
         }
         return summary;
     }
@@ -230,7 +319,7 @@ export class TradesheetImportService {
     // --- planning ---------------------------------------------------------------------
 
     private async build(dto: TradesheetImportRequest, db: Db): Promise<Built> {
-        const aliases = await this.loadAliases(db);
+        const products = await this.loadProducts(db);
         // A branch is named by the two-letter code the sheets use (DU, CO, BL, BC), so its name is its code.
         const branches = await db.branch.findMany({
             select: { id: true, name: true },
@@ -240,7 +329,7 @@ export class TradesheetImportService {
 
         const recs: TabReconciliation[] = [];
         for (const tab of dto.tabs) {
-            const parsed = parseTab(tab, aliases, dto.source);
+            const parsed = parseTab(tab, products, dto.source);
             const read = parsed.kind !== null && parsed.problems.length === 0;
             const trades =
                 read && parsed.sales.length + parsed.lots.length > 0
@@ -253,23 +342,63 @@ export class TradesheetImportService {
             recs.push(reconcileTab(parsed, dto.sheetMonth, trades, lots));
         }
         return {
-            plan: summarise(dto.fileName, dto.sheetMonth, recs),
+            plan: summarise(
+                dto.fileName,
+                dto.sheetMonth,
+                recs,
+                products.decisions && products.decisions.length > 0
+                    ? []
+                    : [
+                          'No saved product-name decisions yet: products are matched by built-in rules only.',
+                      ],
+            ),
             recs,
             branchIds,
         };
     }
 
-    private async loadAliases(db: Db): Promise<AliasIndex> {
-        const rows = await db.productAlias.findMany({
-            select: { alias: true, productKey: true, productId: true },
-        });
-        const index: AliasIndex = { keys: {}, productIds: {} };
-        for (const r of rows) {
-            index.keys[r.alias] = r.productKey;
-            if (r.productId !== null)
-                index.productIds[r.productKey] = r.productId;
-        }
-        return index;
+    private async loadProducts(db: Db): Promise<RowResolverData> {
+        const [catalogue, aliases, sales] = await Promise.all([
+            db.product.findMany({
+                where: { deletedAt: null },
+                orderBy: { id: 'asc' },
+                select: { id: true, sku: true, metalType: true },
+            }),
+            db.productAlias.findMany({
+                orderBy: { id: 'asc' },
+                select: {
+                    alias: true,
+                    productId: true,
+                    salesProductId: true,
+                    noProduct: true,
+                    decidedBy: true,
+                    metalHint: true,
+                },
+            }),
+            db.salesProduct.findMany({
+                orderBy: { id: 'asc' },
+                select: {
+                    id: true,
+                    metal: true,
+                    name: true,
+                    genericNorm: true,
+                    refinery: true,
+                    pricingProductId: true,
+                },
+            }),
+        ]);
+        return {
+            catalogue,
+            salesProducts: sales,
+            decisions: aliases.map((a) => ({
+                key: a.alias,
+                productId: a.productId,
+                salesProductId: a.salesProductId,
+                noProduct: a.noProduct,
+                decidedBy: a.decidedBy,
+                metalHint: a.metalHint,
+            })),
+        };
     }
 
     private async existingTrades(
@@ -307,6 +436,9 @@ export class TradesheetImportService {
             receipt: num(r.receipt),
             notes: r.notes,
             lotKey: r.lotKey,
+            productKey: r.productKey,
+            productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -341,6 +473,9 @@ export class TradesheetImportService {
             pricePaid: num(r.pricePaid),
             hedgedAt: num(r.hedgedAt),
             commentsRaw: r.commentsRaw,
+            productKey: r.productKey,
+            productId: r.productId,
+            issues: r.issues,
         }));
     }
 
@@ -444,6 +579,19 @@ export class TradesheetImportService {
                 });
             }
         }
+        // An unchanged row keeps its data but picks up a better product match.
+        for (const s of rec.sales) {
+            if (needsProductRefresh(s) && s.existing) {
+                await tx.trade.update({
+                    where: { id: s.existing.id },
+                    data: {
+                        productKey: s.productKey,
+                        productId: s.productId,
+                        issues: s.issues,
+                    },
+                });
+            }
+        }
         if (rec.missingTradeIds.length > 0) {
             await tx.trade.updateMany({
                 where: { id: { in: rec.missingTradeIds } },
@@ -519,11 +667,16 @@ export class TradesheetImportService {
             const idBySlot = new Map(
                 created.map((c) => [`${c.referenceKey}#${c.occurrence}`, c.id]),
             );
+            // A new lot has no units yet, so all of them go in one insert without counting first.
+            const units: Array<{ lotId: number; seq: number }> = [];
             for (const l of added) {
                 const id = idBySlot.get(`${l.referenceKey}#${l.occurrence}`);
-                if (id !== undefined)
-                    await this.syncUnits(tx, id, l.qty, l.metal);
+                if (id === undefined || l.metal !== 'GOLD') continue;
+                for (let seq = 1; seq <= (l.qty ?? 0); seq++)
+                    units.push({ lotId: id, seq });
             }
+            if (units.length > 0)
+                await tx.stockUnit.createMany({ data: units });
         }
         for (const l of rec.lots) {
             if (
@@ -541,6 +694,18 @@ export class TradesheetImportService {
                     ),
                 });
                 await this.syncUnits(tx, l.existing.id, l.qty, l.metal);
+            }
+        }
+        for (const l of rec.lots) {
+            if (needsProductRefresh(l) && l.existing) {
+                await tx.purchaseLot.update({
+                    where: { id: l.existing.id },
+                    data: {
+                        productKey: l.productKey,
+                        productId: l.productId,
+                        issues: l.issues,
+                    },
+                });
             }
         }
         if (rec.missingLotIds.length > 0) {

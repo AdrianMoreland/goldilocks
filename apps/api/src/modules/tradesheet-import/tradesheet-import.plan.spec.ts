@@ -1,20 +1,21 @@
-import type { TradesheetTab } from '@goldilocks/shared-types';
+import type { RowResolverData, TradesheetTab } from '@goldilocks/shared-types';
 import {
     parseTab,
+    needsProductRefresh,
     reconcileTab,
     summarise,
-    type AliasIndex,
     type ExistingLot,
     type ExistingTrade,
 } from './tradesheet-import.plan';
 
-const aliases: AliasIndex = {
-    keys: {
-        '1oz krugerrand': '1oz_krugerrand',
-        '1oz maple': '1oz_maple',
-        '250g bar': '250g_bar',
-    },
-    productIds: { '1oz_krugerrand': 7 },
+const aliases: RowResolverData = {
+    catalogue: [
+        { id: 7, sku: 'GOLD-1OZ-KRUGERRAND-COIN', metalType: 'GOLD' },
+        { id: 8, sku: 'GOLD-250G-BAR', metalType: 'GOLD' },
+        { id: 9, sku: 'GOLD-FULL-SOVEREIGN-COIN', metalType: 'GOLD' },
+        { id: 10, sku: 'PLATINUM-100G-BAR', metalType: 'PLATINUM' },
+    ],
+    decisions: [],
 };
 
 const SALE_HEADERS = [
@@ -108,6 +109,9 @@ const existingTrade = (over: Partial<ExistingTrade> = {}): ExistingTrade => ({
     receipt: null,
     notes: null,
     lotKey: null,
+    productKey: '1oz krugerrand',
+    productId: 7,
+    issues: [],
     ...over,
 });
 
@@ -129,8 +133,8 @@ describe('parseTab', () => {
                 s.productKey,
             ]),
         ).toEqual([
-            ['DUG20261002', 1, '1oz_krugerrand'],
-            ['DUG20261003', 1, '1oz_krugerrand'],
+            ['DUG20261002', 1, '1oz krugerrand'],
+            ['DUG20261003', 1, '1oz krugerrand'],
         ]);
         expect(parsed.sales[0].productId).toBe(7);
     });
@@ -176,7 +180,104 @@ describe('parseTab', () => {
         ).toBe(true);
     });
 
-    it('flags an unknown product and a fractional quantity, and drops the quantity', () => {
+    it('gives a plain sovereign the full sovereign product', () => {
+        const parsed = parseTab(
+            salesTab([
+                sale(2, 'DU-G20261002', 'Quote Only', { 4: 'Sovereign' }),
+            ]),
+            aliases,
+        );
+        expect(parsed.sales[0]).toMatchObject({
+            productKey: 'sovereign',
+            productId: 9,
+            how: 'RULE',
+        });
+    });
+
+    it('uses a saved decision before the rules', () => {
+        const parsed = parseTab(
+            salesTab([
+                sale(2, 'DU-G20261002', 'Quote Only', {
+                    4: 'Elizabeth Sovereign',
+                }),
+            ]),
+            {
+                ...aliases,
+                decisions: [
+                    {
+                        key: 'elizabeth sovereign',
+                        productId: 8,
+                        salesProductId: null,
+                    },
+                ],
+            },
+        );
+        expect(parsed.sales[0]).toMatchObject({ productId: 8, how: 'ALIAS' });
+    });
+
+    describe('metal in the product text', () => {
+        const catalogue: RowResolverData['catalogue'] = [
+            ...aliases.catalogue,
+            { id: 11, sku: 'SILVER-1OZ-BRITANNIA-COIN', metalType: 'SILVER' },
+            { id: 12, sku: 'GOLD-1OZ-BAR', metalType: 'GOLD' },
+        ];
+        const run = (
+            tabName: string,
+            product: string,
+            data: RowResolverData = { ...aliases, catalogue },
+        ) =>
+            parseTab(
+                {
+                    ...salesTab([
+                        sale(2, 'DU-G20261002', 'Quote Only', { 4: product }),
+                    ]),
+                    name: tabName,
+                },
+                data,
+            ).sales[0];
+
+        it.each([
+            ['IE - Gold', 'Silver 1oz Britannia', 11, 'silver', 'gold'],
+            ['IE - Silver', '1oz Gold Bar', 12, 'gold', 'silver'],
+            ['IE - Silver', 'Platinum - 100g bar', 10, 'platinum', 'silver'],
+        ])('flags %s: %s', (tab, text, id, says, tabIs) => {
+            const r = run(tab, text);
+            expect(r.productId).toBe(id);
+            expect(r.issues).toEqual([
+                `Product says ${says} but the tab is ${tabIs}.`,
+            ]);
+        });
+
+        it('stays quiet when the product matches the tab', () => {
+            expect(run('IE - Gold', '1oz Krugerrand').issues).toEqual([]);
+        });
+
+        it('checks the metal of a product that came from a saved decision', () => {
+            const r = run('IE - Gold', 'Britannia mix', {
+                catalogue,
+                decisions: [
+                    {
+                        key: 'britannia mix',
+                        productId: 11,
+                        salesProductId: null,
+                    },
+                ],
+            });
+            expect(r.issues).toEqual([
+                'Product says silver but the tab is gold.',
+            ]);
+        });
+
+        it('uses the text metal when nothing resolved', () => {
+            const r = run('IE - Gold', '1oz Platinum');
+            expect(r.productId).toBeNull();
+            expect(r.issues).toEqual([
+                'Product says platinum but the tab is gold.',
+            ]);
+        });
+    });
+
+    it('flags a fractional quantity and drops the quantity', () => {
         const parsed = parseTab(
             salesTab([
                 sale(2, 'DU-G20261002', 'Quote Only', {
@@ -187,14 +288,10 @@ describe('parseTab', () => {
             aliases,
         );
         const s = parsed.sales[0];
-        expect(s.productKey).toBeNull();
+        expect(s.productKey).toBe('mystery');
+        expect(s.productId).toBeNull();
         expect(s.qty).toBeNull();
-        expect(s.issues).toEqual(
-            expect.arrayContaining([
-                'Product "Mystery coin" is not recognised.',
-                'Quantity 2.5 is not a whole number.',
-            ]),
-        );
+        expect(s.issues).toEqual(['Quantity 2.5 is not a whole number.']);
     });
 
     it('reads colours: a green Collected cell and a blue empty CPTY', () => {
@@ -368,7 +465,8 @@ describe('purchase lots', () => {
         expect(parsed.lots[0]).toMatchObject({
             referenceKey: 'DUGP20261002',
             qty: 4,
-            productKey: '250g_bar',
+            productKey: '250g bar',
+            productId: 8,
         });
         expect(parsed.lots[0].parsed.sold).toMatchObject({
             soldCount: 3,
@@ -395,6 +493,9 @@ describe('purchase lots', () => {
             pricePaid: 114404,
             hedgedAt: 3695.7,
             commentsRaw: '3 sold',
+            productKey: '250g bar',
+            productId: 8,
+            issues: [],
         };
         const rec = reconcileTab(parsed, '2026-10', [], [stored]);
         expect(rec.lots[0]).toMatchObject({
@@ -430,7 +531,7 @@ describe('summarise', () => {
             ],
             [],
         );
-        const plan = summarise('october.xlsx', '2026-10', [rec]);
+        const plan = summarise('october.xlsx', '2026-10', [rec], ['warn']);
 
         expect(plan.totals).toEqual({
             added: 2,
@@ -438,7 +539,8 @@ describe('summarise', () => {
             restored: 0,
             unchanged: 1,
             missing: 1,
-            flagged: 1,
+            flagged: 0,
+            refreshed: 0,
         });
         const tab = plan.tabs[0];
         expect(tab.rows.map((r) => r.reference)).toEqual([
@@ -449,5 +551,50 @@ describe('summarise', () => {
         expect(tab.unmatchedProducts).toEqual([
             { text: 'Mystery coin', rows: 1 },
         ]);
+        expect(tab.rows[0].issues).toEqual([]);
+        expect(tab.productMatches).toEqual({
+            saved: 0,
+            rule: 2,
+            none: 1,
+            notProduct: 0,
+        });
+        expect(plan.warnings).toEqual(['warn']);
+    });
+});
+
+describe('product refresh on unchanged rows', () => {
+    const planFor = (existing: Partial<ExistingTrade>) => {
+        const parsed = parseTab(
+            salesTab([sale(2, 'DU-G20261002', 'HEDGED')]),
+            aliases,
+        );
+        const fp = parsed.sales[0].parsed.fingerprint;
+        const rec = reconcileTab(
+            parsed,
+            '2026-10',
+            [existingTrade({ fingerprint: fp, ...existing })],
+            [],
+        );
+        return { rec, plan: summarise('october.xlsx', '2026-10', [rec], []) };
+    };
+
+    it('counts an unchanged row whose stored product is empty but now resolves', () => {
+        const { rec, plan } = planFor({ productKey: null, productId: null });
+        expect(rec.sales[0].status).toBe('UNCHANGED');
+        expect(rec.sales[0].productId).not.toBeNull();
+        expect(needsProductRefresh(rec.sales[0])).toBe(true);
+        expect(plan.totals.refreshed).toBe(1);
+        expect(plan.totals.unchanged).toBe(1);
+    });
+
+    it('counts nothing when the product and issues already match', () => {
+        const first = planFor({});
+        const { rec, plan } = planFor({
+            productKey: first.rec.sales[0].productKey,
+            productId: first.rec.sales[0].productId,
+            issues: first.rec.sales[0].issues,
+        });
+        expect(needsProductRefresh(rec.sales[0])).toBe(false);
+        expect(plan.totals.refreshed).toBe(0);
     });
 });

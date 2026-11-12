@@ -4,23 +4,30 @@ import {
     Get,
     HttpCode,
     Post,
+    Query,
     Req,
     UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
     BcAwaitingResult,
+    BcHistoryResult,
+    ItemTrace,
     ImportBatchSummary,
     WorkbookChunkResult,
 } from '@goldilocks/shared-types';
 import { WorkbookImportService } from './workbook-import.service';
 import { BcAwaitingImportService } from './bc-awaiting-import.service';
+import { BcHistoryImportService } from './bc-history-import.service';
+import { ItemTraceService } from './item-trace.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
     BcAwaitingRequestDto,
+    BcHistoryRequestDto,
+    ItemTraceQueryDto,
     WorkbookChunkRequestDto,
 } from '../../common/dto/dtos';
 
@@ -94,5 +101,54 @@ export class BcAwaitingController {
         @Req() req: RequestWithUser,
     ): Promise<BcAwaitingResult> {
         return this.bc.commit(body, req.user.email);
+    }
+}
+
+/** Business Central history: posted shipments, receipts and item ledger entries, and the serial trace built from them. Admin only. */
+@ApiTags('imports')
+@ApiBearerAuth()
+@Controller('imports/bc-history')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
+export class BcHistoryController {
+    constructor(private readonly bc: BcHistoryImportService) {}
+
+    @Post('preview')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'What these BC lists would add or change, and how many bars and events they give. Writes nothing.',
+    })
+    preview(@Body() body: BcHistoryRequestDto): Promise<BcHistoryResult> {
+        return this.bc.preview(body);
+    }
+
+    @Post('commit')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            'Import the lists. Rows are upserted by their BC number, so sending them twice changes nothing.',
+    })
+    commit(
+        @Body() body: BcHistoryRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<BcHistoryResult> {
+        return this.bc.commit(body, req.user.email);
+    }
+}
+
+/** One bar's history by serial, from the vendor it was bought from to the customer who collected it. */
+@ApiTags('items')
+@ApiBearerAuth()
+@Controller('items')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'manager')
+export class ItemTraceController {
+    constructor(private readonly trace: ItemTraceService) {}
+
+    @Get('trace')
+    @ApiOperation({ summary: 'A bar and its events, oldest first.' })
+    get(@Query() { serial }: ItemTraceQueryDto): Promise<ItemTrace> {
+        return this.trace.trace(serial);
     }
 }

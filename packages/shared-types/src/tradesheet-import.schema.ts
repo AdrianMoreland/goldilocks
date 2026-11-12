@@ -50,6 +50,8 @@ export const PlanCountsSchema = z.object({
   unchanged: z.number(),
   missing: z.number(),
   flagged: z.number(),
+  /** Unchanged rows whose product or issues the commit will rewrite. */
+  refreshed: z.number().default(0),
 });
 export type PlanCounts = z.infer<typeof PlanCountsSchema>;
 
@@ -76,8 +78,10 @@ export const TabPlanSchema = z.object({
   counts: PlanCountsSchema,
   /** Rows worth showing: everything except clean unchanged rows. */
   rows: z.array(PlanRowSchema),
-  /** Product texts that matched no catalogue key, with how many rows use each. */
+  /** Product texts that matched no pricing product, with how many rows use each. */
   unmatchedProducts: z.array(z.object({ text: z.string(), rows: z.number() })),
+  /** Rows with a product text, by how the product was found: a saved name decision, a built-in rule, or neither. */
+  productMatches: z.object({ saved: z.number(), rule: z.number(), none: z.number(), notProduct: z.number() }),
 });
 export type TabPlan = z.infer<typeof TabPlanSchema>;
 
@@ -86,6 +90,8 @@ export const TradesheetImportPlanSchema = z.object({
   sheetMonth: z.string(),
   tabs: z.array(TabPlanSchema),
   totals: PlanCountsSchema,
+  /** Things to know about the whole file, e.g. that no saved product-name decisions exist yet. */
+  warnings: z.array(z.string()),
 });
 export type TradesheetImportPlan = z.infer<typeof TradesheetImportPlanSchema>;
 

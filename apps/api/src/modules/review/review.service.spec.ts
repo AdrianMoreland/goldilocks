@@ -232,33 +232,6 @@ describe('ReviewService', () => {
         });
     });
 
-    it('lists unmapped aliases, most used first', async () => {
-        const { service, prisma } = setup();
-        prisma.productAlias.count.mockResolvedValue(1);
-        prisma.productAlias.findMany.mockResolvedValue([
-            {
-                id: 3,
-                alias: '1oz bar|VALCAMBI',
-                uses: 40,
-                refinery: 'VALCAMBI',
-            },
-        ]);
-        const res = await service.aliases({ limit: '10', offset: '20' });
-        expect(prisma.productAlias.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { salesProductId: null },
-                skip: 20,
-                take: 10,
-            }),
-        );
-        expect(res.rows[0]).toEqual({
-            id: 3,
-            alias: '1oz bar|VALCAMBI',
-            uses: 40,
-            refinery: 'VALCAMBI',
-        });
-    });
-
     it('settles pending links through the rules and audits counts only', async () => {
         const { service, rules, audit, prisma } = setup();
         rules.settle.mockResolvedValue({
@@ -401,6 +374,13 @@ describe('ReviewService', () => {
                 pricingProduct: { name: '1oz Gold Bar' },
             });
             const res = await service.createSalesProduct(body, 'a@example.com');
+            expect(prisma.salesProduct.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        refinery: 'VALCAMBI SUISSE',
+                    }),
+                }),
+            );
             expect(res).toMatchObject({
                 id: 1,
                 name: '1oz Valcambi bar',
@@ -442,7 +422,17 @@ describe('ReviewService', () => {
             await service.mapAlias(3, { salesProductId: 8 }, 'a@example.com');
             expect(prisma.productAlias.update).toHaveBeenCalledWith({
                 where: { id: 3 },
-                data: { salesProductId: 8, refinery: 'VALCAMBI' },
+                data: {
+                    salesProductId: 8,
+                    productId: null,
+                    noProduct: false,
+                    refinery: 'VALCAMBI SUISSE',
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
+                },
             });
             expect(audit.record).toHaveBeenCalledWith(
                 'a@example.com',
@@ -450,6 +440,73 @@ describe('ReviewService', () => {
                 'alias 3 mapped to sales product 8',
                 prisma,
             );
+        });
+
+        it('ties the alias to a pricing product and clears the others', async () => {
+            const { service, prisma, audit } = setup();
+            prisma.productAlias.findUnique.mockResolvedValue({ id: 3 });
+            prisma.product.findUnique.mockResolvedValue({ id: 12 });
+            await service.mapAlias(3, { productId: 12 }, 'a@example.com');
+            expect(prisma.productAlias.update).toHaveBeenCalledWith({
+                where: { id: 3 },
+                data: {
+                    productId: 12,
+                    salesProductId: null,
+                    noProduct: false,
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
+                },
+            });
+            expect(audit.record).toHaveBeenCalledWith(
+                'a@example.com',
+                'alias-map',
+                'alias 3 mapped to pricing product 12',
+                prisma,
+            );
+        });
+
+        it('marks the alias as not a product and clears the others', async () => {
+            const { service, prisma, audit } = setup();
+            prisma.productAlias.findUnique.mockResolvedValue({ id: 3 });
+            await service.mapAlias(3, { noProduct: true }, 'a@example.com');
+            expect(prisma.productAlias.update).toHaveBeenCalledWith({
+                where: { id: 3 },
+                data: {
+                    noProduct: true,
+                    salesProductId: null,
+                    productId: null,
+                    decidedBy: 'PERSON',
+                    suggestedProductId: null,
+                    suggestedSalesProductId: null,
+                    suggestedNoProduct: false,
+                    question: null,
+                },
+            });
+            expect(audit.record).toHaveBeenCalledWith(
+                'a@example.com',
+                'alias-map',
+                'alias 3 mapped to not a product',
+                prisma,
+            );
+        });
+
+        it('refuses zero or several choices, and an unknown pricing product', async () => {
+            const { service, prisma } = setup();
+            prisma.productAlias.findUnique.mockResolvedValue({ id: 3 });
+            await expect(service.mapAlias(3, {}, 'a')).rejects.toBeInstanceOf(
+                BadRequestException,
+            );
+            await expect(
+                service.mapAlias(3, { productId: 1, noProduct: true }, 'a'),
+            ).rejects.toBeInstanceOf(BadRequestException);
+            prisma.product.findUnique.mockResolvedValue(null);
+            await expect(
+                service.mapAlias(3, { productId: 99 }, 'a'),
+            ).rejects.toBeInstanceOf(BadRequestException);
+            expect(prisma.productAlias.update).not.toHaveBeenCalled();
         });
 
         it('says so when either does not exist', async () => {

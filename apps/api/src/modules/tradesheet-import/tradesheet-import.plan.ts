@@ -3,11 +3,11 @@ import {
     classifyTab,
     mapPurchaseHeaders,
     mapSaleHeaders,
-    matchProduct,
     normaliseBackfillHeaders,
     parsePurchaseRow,
     parseSaleRow,
     referenceMatchKey,
+    resolveRowProduct,
     type HeaderMap,
     type ImportSource,
     type ParsedPurchase,
@@ -16,6 +16,8 @@ import {
     type PlanRow,
     type PlanRowStatus,
     type PurchaseField,
+    type RowResolveMethod,
+    type RowResolverData,
     type SaleField,
     type SheetRow,
     type TabKind,
@@ -31,13 +33,6 @@ import {
  */
 
 export type PlanMetal = 'GOLD' | 'SILVER';
-
-export interface AliasIndex {
-    /** Cleaned alias text to catalogue key. */
-    keys: Record<string, string>;
-    /** Catalogue key to the Goldilocks product it is linked to, when a person has linked it. */
-    productIds: Record<string, number | null>;
-}
 
 export interface ExistingTrade {
     id: number;
@@ -58,6 +53,9 @@ export interface ExistingTrade {
     notes: string | null;
     /** The lot it was linked to before this import, so that lot is rechecked if CPTY now names another. */
     lotKey: string | null;
+    productKey: string | null;
+    productId: number | null;
+    issues: string[];
 }
 
 export interface ExistingLot {
@@ -74,6 +72,9 @@ export interface ExistingLot {
     pricePaid: number | null;
     hedgedAt: number | null;
     commentsRaw: string | null;
+    productKey: string | null;
+    productId: number | null;
+    issues: string[];
 }
 
 interface Keyed {
@@ -82,7 +83,9 @@ interface Keyed {
     metal: PlanMetal;
     productKey: string | null;
     productId: number | null;
-    /** Issues from the parser plus the ones only the planner can see (duplicates, unknown product, bad quantity). */
+    /** How the product was found, for the preview counts. Null when the row has no product text. */
+    how: RowResolveMethod | null;
+    /** Issues from the parser plus the ones only the planner can see (duplicates, wrong metal, bad quantity). */
     issues: string[];
     duplicate: boolean;
 }
@@ -122,7 +125,7 @@ const tabMetal = (kind: TabKind): PlanMetal =>
 /** Turns one tab's cells into parsed rows. A tab it cannot read is returned with its problems and no rows. */
 export function parseTab(
     tab: TradesheetTab,
-    aliases: AliasIndex,
+    products: RowResolverData,
     source: ImportSource = 'TRADESHEET',
 ): ParsedTab {
     const { kind, skipReason } = classifyTab(tab.name, source);
@@ -175,7 +178,7 @@ export function parseTab(
                 parseSaleRow(toRow(r), saleMap as HeaderMap<SaleField>, r.row),
             )
             .filter((s): s is ParsedSale => s !== null);
-        return { ...empty, metal, sales: keyRows(parsed, aliases, metal) };
+        return { ...empty, metal, sales: keyRows(parsed, products, metal) };
     }
     const parsed = tab.rows
         .map((r) =>
@@ -186,12 +189,12 @@ export function parseTab(
             ),
         )
         .filter((p): p is ParsedPurchase => p !== null);
-    return { ...empty, metal, lots: keyRows(parsed, aliases, metal) };
+    return { ...empty, metal, lots: keyRows(parsed, products, metal) };
 }
 
 function keyRows<T extends ParsedSale | ParsedPurchase>(
     parsed: T[],
-    aliases: AliasIndex,
+    products: RowResolverData,
     metal: PlanMetal,
 ): Array<Keyed & { parsed: T; qty: number | null }> {
     const occurrences = assignOccurrences(parsed.map((p) => p.reference));
@@ -208,10 +211,21 @@ function keyRows<T extends ParsedSale | ParsedPurchase>(
         if (duplicate)
             issues.push(`Reference appears ${times} times in this file.`);
 
-        const match = matchProduct(p.product, aliases.keys);
-        const productKey = match.key;
-        if (!productKey && p.product)
-            issues.push(`Product "${p.product}" is not recognised.`);
+        const match = p.product
+            ? resolveRowProduct({ productText: p.product, metal }, products)
+            : null;
+        // The resolved product's metal says what it is; the text's own metal only counts when nothing resolved.
+        const productMetal =
+            match?.pricingProductId != null
+                ? products.catalogue.find(
+                      (c) => c.id === match.pricingProductId,
+                  )?.metalType
+                : undefined;
+        const saysMetal = productMetal ?? match?.metalFromText ?? null;
+        if (saysMetal && saysMetal !== metal)
+            issues.push(
+                `Product says ${saysMetal.toLowerCase()} but the tab is ${metal.toLowerCase()}.`,
+            );
 
         let qty = p.qty;
         if (qty !== null && !Number.isInteger(qty)) {
@@ -223,10 +237,9 @@ function keyRows<T extends ParsedSale | ParsedPurchase>(
             referenceKey,
             occurrence: occurrences[i] ?? 1,
             metal,
-            productKey,
-            productId: productKey
-                ? (aliases.productIds[productKey] ?? null)
-                : null,
+            productKey: match?.key || null,
+            productId: match?.pricingProductId ?? null,
+            how: match?.method ?? null,
             issues,
             duplicate,
             qty,
@@ -391,6 +404,20 @@ export function reconcileTab(
     };
 }
 
+/**
+ * An unchanged row keeps its data but picks up a better product match or fresh issues. The commit rewrites
+ * exactly the rows this returns true for, and the preview counts them with the same test.
+ */
+export function needsProductRefresh(r: PlannedSale | PlannedLot): boolean {
+    return (
+        r.status === 'UNCHANGED' &&
+        !!r.existing &&
+        (r.existing.productKey !== r.productKey ||
+            r.existing.productId !== r.productId ||
+            JSON.stringify(r.existing.issues) !== JSON.stringify(r.issues))
+    );
+}
+
 // --- the preview ------------------------------------------------------------------------
 
 const zeroCounts = (): PlanCounts => ({
@@ -400,6 +427,7 @@ const zeroCounts = (): PlanCounts => ({
     unchanged: 0,
     missing: 0,
     flagged: 0,
+    refreshed: 0,
 });
 
 const addCounts = (a: PlanCounts, b: PlanCounts): PlanCounts => ({
@@ -409,12 +437,14 @@ const addCounts = (a: PlanCounts, b: PlanCounts): PlanCounts => ({
     unchanged: a.unchanged + b.unchanged,
     missing: a.missing + b.missing,
     flagged: a.flagged + b.flagged,
+    refreshed: a.refreshed + b.refreshed,
 });
 
 export function summariseTab(rec: TabReconciliation): TabPlan {
     const counts = zeroCounts();
     const rows: PlanRow[] = [];
     const unmatched = new Map<string, number>();
+    const productMatches = { saved: 0, rule: 0, none: 0, notProduct: 0 };
 
     const all: Array<PlannedSale | PlannedLot> = [...rec.sales, ...rec.lots];
     for (const r of all) {
@@ -422,8 +452,15 @@ export function summariseTab(rec: TabReconciliation): TabPlan {
         else if (r.status === 'CHANGED') counts.changed++;
         else if (r.status === 'RESTORED') counts.restored++;
         else counts.unchanged++;
+        if (needsProductRefresh(r)) counts.refreshed++;
         if (r.issues.length > 0) counts.flagged++;
-        if (!r.productKey && r.parsed.product)
+        if (r.how) {
+            if (r.how === 'NONE') productMatches.none++;
+            else if (r.how === 'NOT_PRODUCT') productMatches.notProduct++;
+            else if (r.how === 'RULE') productMatches.rule++;
+            else productMatches.saved++;
+        }
+        if (r.how === 'NONE')
             unmatched.set(
                 r.parsed.product,
                 (unmatched.get(r.parsed.product) ?? 0) + 1,
@@ -458,6 +495,7 @@ export function summariseTab(rec: TabReconciliation): TabPlan {
         unmatchedProducts: [...unmatched.entries()]
             .map(([text, n]) => ({ text, rows: n }))
             .sort((a, b) => b.rows - a.rows),
+        productMatches,
     };
 }
 
@@ -465,6 +503,7 @@ export function summarise(
     fileName: string,
     sheetMonth: string,
     recs: TabReconciliation[],
+    warnings: string[] = [],
 ): TradesheetImportPlan {
     const tabs = recs.map(summariseTab);
     return {
@@ -472,5 +511,6 @@ export function summarise(
         sheetMonth,
         tabs,
         totals: tabs.reduce((acc, t) => addCounts(acc, t.counts), zeroCounts()),
+        warnings,
     };
 }

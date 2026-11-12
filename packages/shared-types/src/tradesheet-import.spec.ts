@@ -12,7 +12,6 @@ import {
   normaliseBackfillHeaders,
   mapPurchaseHeaders,
   mapSaleHeaders,
-  matchProduct,
   parseDeferredLinks,
   parsePurchaseRow,
   parseReference,
@@ -242,27 +241,12 @@ describe('sold comments', () => {
 });
 
 describe('products', () => {
-  const aliases = { '1oz britannia': '1oz_britannia', '1oz tree of life': '1oz_tree_of_life', '1oz': '1oz_generic' };
-
   it('pulls a quantity out of the product cell', () => {
     expect(extractQtyAndProduct('5 x 10g gold bar')).toEqual({ qty: 5, product: '10g gold bar' });
     expect(extractQtyAndProduct('5x 10g gold bar')).toEqual({ qty: 5, product: '10g gold bar' });
     expect(extractQtyAndProduct('1oz Eagles x 3')).toEqual({ qty: 3, product: '1oz Eagles' });
     expect(extractQtyAndProduct('Market Bar x1')).toEqual({ qty: 1, product: 'Market Bar' });
     expect(extractQtyAndProduct('1oz Britannia')).toEqual({ qty: null, product: '1oz Britannia' });
-  });
-
-  it('prefers the longest alias', () => {
-    expect(matchProduct('1 oz Tree of Life', aliases)).toEqual({ key: '1oz_tree_of_life', source: 'ALIAS', melt: false });
-    expect(matchProduct('1oz Britannia 2026', aliases).key).toBe('1oz_britannia');
-  });
-
-  it('falls back to weight plus bar or coin, and flags melt', () => {
-    expect(matchProduct('10 gram gold bars', {})).toEqual({ key: '10g_bar', source: 'WEIGHT', melt: false });
-    expect(matchProduct('2.5g Bar', {}).key).toBe('2.5g_bar');
-    expect(matchProduct('1/10oz Bar Melt', {})).toEqual({ key: '1/10oz_bar', source: 'WEIGHT', melt: true });
-    expect(matchProduct('Austrian 4 Ducats', {})).toEqual({ key: null, source: 'NONE', melt: false });
-    expect(matchProduct('', {}).key).toBeNull();
   });
 });
 

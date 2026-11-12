@@ -34,7 +34,11 @@ import { RoadmapController } from '../../modules/roadmap/roadmap.controller';
 import { RoadmapPullService } from '../../modules/roadmap/roadmap-pull.service';
 import { RoadmapPushService } from '../../modules/roadmap/roadmap-push.service';
 import { RoadmapInboxService } from '../../modules/roadmap/roadmap-inbox.service';
+import { RoadmapScopeService } from '../../modules/roadmap/roadmap-scope.service';
 import { RoadmapWebhookController } from '../../modules/roadmap/roadmap-webhook.controller';
+import { RoadmapQueueTokenController } from '../../modules/roadmap/roadmap-queue-token.controller';
+import { RoadmapQueueService } from '../../modules/roadmap/roadmap-queue.service';
+import { ROADMAP_WRITER } from '../../modules/roadmap/roadmap-writer';
 import { ConfigService } from '@nestjs/config';
 import { RoadmapService } from '../../modules/roadmap/roadmap.service';
 import { RoadmapSyncService } from '../../modules/roadmap/roadmap-sync.service';
@@ -66,6 +70,7 @@ const CONTROLLERS: Type<unknown>[] = [
     ProductsController,
     RoadmapController,
     RoadmapWebhookController,
+    RoadmapQueueTokenController,
     TradeController,
 ];
 
@@ -78,6 +83,10 @@ const PUBLIC_ROUTES = new Set([
     'POST /auth/refresh',
     // GitHub cannot sign in. The handler refuses any call without a valid HMAC signature of the raw body (see roadmap-webhook.controller.ts).
     'POST /roadmap/sync/webhook',
+    // The phone shortcut and the laptop tool cannot sign in. Each handler refuses any call without its own shared token (ROADMAP_INTAKE_TOKEN, ROADMAP_DRAIN_TOKEN; see roadmap-queue-token.controller.ts).
+    'POST /roadmap/queue/intake',
+    'GET /roadmap/queue/pending',
+    'POST /roadmap/queue/filed',
 ]);
 
 const METHOD_NAMES: Record<number, string> = {
@@ -211,6 +220,9 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: RoadmapPullService, useValue: {} },
                 { provide: RoadmapPushService, useValue: {} },
                 { provide: RoadmapInboxService, useValue: {} },
+                { provide: RoadmapScopeService, useValue: {} },
+                { provide: RoadmapQueueService, useValue: {} },
+                { provide: ROADMAP_WRITER, useValue: {} },
                 { provide: ConfigService, useValue: { get: () => undefined } },
                 { provide: ProductsService, useValue: productsService },
                 { provide: TradeService, useValue: tradeService },

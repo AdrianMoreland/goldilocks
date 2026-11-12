@@ -109,6 +109,17 @@ export class ProductsController {
         );
     }
 
+    @Get('admin/products/inactive')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'List inactive (hidden) products (admin)' })
+    async getInactive(): Promise<RawProduct[]> {
+        return (await this.service.getRawProductsIncludingInactive()).filter(
+            (p) => !p.isActive,
+        );
+    }
+
     @Get('admin/products/deleted')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')

@@ -1,4 +1,11 @@
-import type { WorkbookLoadTable } from '@goldilocks/shared-types';
+import {
+    aliasKey,
+    aliasOk,
+    deriveMetalHint,
+    normaliseProductText,
+    normaliseRefinery,
+    type WorkbookLoadTable,
+} from '@goldilocks/shared-types';
 
 /** A row after validation: column name -> cleaned value (string, number, boolean, null; dates are YYYY-MM-DD text). */
 export type Row = Record<string, unknown>;
@@ -46,10 +53,17 @@ export interface DirectTableSpec {
     tracked?: false;
     /** Rows belong to the imported stocktake named by this column. */
     stocktakeSnapshotColumn?: string;
+    /**
+     * Name of a date field. A stored row whose date is newer than the incoming row's is left untouched and counted
+     * as unchanged, so an older file never overwrites a fresher one. Either date missing: normal update.
+     */
+    newerWins?: string;
     /** Fields written on create only. */
     createOnly?: readonly string[];
-    /** Adds values computed from the mapped row. */
-    derive?: (data: Record<string, unknown>) => void;
+    /** Adds values computed from the mapped row (and the row's key, when `keyOf` made one). */
+    derive?: (data: Record<string, unknown>, row: Row, key: string) => void;
+    /** Computes the key from the row instead of reading `keyColumn`; null skips the row (counted as unmatched). */
+    keyOf?: (row: Row) => string | null;
 }
 
 /** Tables that are plain upserts by key. Trades, purchase lots and links have their own handlers. */
@@ -203,6 +217,7 @@ export const DIRECT_TABLES: Partial<
         delegate: 'bcSalesOrder',
         keyColumn: 'id',
         keyField: 'sourceKey',
+        newerWins: 'snapshotDate',
         fks: [{ field: 'customerId', column: 'client_code', kind: 'customer' }],
         fields: [
             ['branchCode', 'branch_code', 's'],
@@ -310,11 +325,36 @@ DIRECT_TABLES.bc_items = {
         ['refineryHint', 'refinery_hint', 's'],
     ],
 };
+/**
+ * The key a workbook alias row is stored under: the cleaned name, plus the refinery when it has one (`name|REFINERY`).
+ * It is built from the example text (or the part of `suggested_key` before " | "), never copied from the sheet.
+ * Null for a row whose name is not fit to be saved.
+ */
+export function workbookAliasKey(row: Row): string | null {
+    const raw =
+        text(row['example_text']) ??
+        (text(row['suggested_key']) ?? '').split(' | ')[0] ??
+        '';
+    const norm = normaliseProductText(raw);
+    if (!aliasOk(raw, norm)) return null;
+    return aliasKey(norm, normaliseRefinery(text(row['refinery'])));
+}
+
 /** Alias texts for the review queue. A confirmed product link is never overwritten: productKey is create-only. */
 DIRECT_TABLES.product_aliases = {
     delegate: 'productAlias',
     keyColumn: 'suggested_key',
     keyField: 'alias',
+    keyOf: workbookAliasKey,
+    derive: (data, row, key) => {
+        data['productKey'] = key;
+        // The metal the name was seen under, read the way the matching engine reads it.
+        data['metalHint'] = deriveMetalHint(
+            text(row['example_text']) ?? key,
+            text(row['sources']),
+            text(row['refinery']),
+        );
+    },
     fks: [],
     tracked: false,
     createOnly: ['productKey'],
@@ -322,6 +362,29 @@ DIRECT_TABLES.product_aliases = {
         ['productKey', 'suggested_key', 'sReq'],
         ['refinery', 'refinery', 's'],
         ['uses', 'uses', 'iReq'],
+        ['sources', 'sources', 's'],
+    ],
+};
+
+/**
+ * Zoho items and what was sold of each. `_product_id` and `_sales_product_id` are not workbook columns: the importer
+ * fills them from the BC item a SKU names (see `WorkbookImportService.saveZohoProducts`).
+ */
+DIRECT_TABLES.zoho_products = {
+    delegate: 'zohoProduct',
+    keyColumn: 'id',
+    keyField: 'sourceKey',
+    fks: [],
+    fields: [
+        ['sku', 'sku', 's'],
+        ['itemName', 'item_name', 'sReq'],
+        ['productNorm', 'product_norm', 's'],
+        ['metal', 'metal', 's'],
+        ['qtySold', 'qty_sold', 'n'],
+        ['amount', 'amount', 'n'],
+        ['avgPrice', 'avg_price', 'n'],
+        ['productId', '_product_id', 'i'],
+        ['salesProductId', '_sales_product_id', 'i'],
     ],
 };
 

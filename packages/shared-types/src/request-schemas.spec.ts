@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HistoricCloseQuerySchema, RecalculateOverridesSchema } from './market-data.schema';
+import { MapAliasRequestSchema } from './review.schema';
 import { UpdateStockRequestSchema } from './product.schema';
 import { CreateUserRequestSchema } from './session.schema';
 
@@ -69,5 +70,19 @@ describe('CreateUserRequestSchema password', () => {
 
   it('accepts a password of 10 characters', () => {
     expect(CreateUserRequestSchema.safeParse(body('1234567890')).success).toBe(true);
+  });
+});
+
+describe('MapAliasRequestSchema', () => {
+  it('accepts exactly one choice', () => {
+    expect(MapAliasRequestSchema.safeParse({ salesProductId: 3 }).success).toBe(true);
+    expect(MapAliasRequestSchema.safeParse({ productId: 4 }).success).toBe(true);
+    expect(MapAliasRequestSchema.safeParse({ noProduct: true }).success).toBe(true);
+  });
+  it('rejects none, several or a false noProduct', () => {
+    expect(MapAliasRequestSchema.safeParse({}).success).toBe(false);
+    expect(MapAliasRequestSchema.safeParse({ salesProductId: 3, productId: 4 }).success).toBe(false);
+    expect(MapAliasRequestSchema.safeParse({ productId: 4, noProduct: true }).success).toBe(false);
+    expect(MapAliasRequestSchema.safeParse({ noProduct: false }).success).toBe(false);
   });
 });

@@ -23,9 +23,21 @@ export const queryKeys = {
         register: (id: number) => ['stocktake', 'register', id] as const,
         bcItems: ['stocktake', 'bc-items'] as const,
     },
+    items: {
+        trace: (serial: string) => ['items', 'trace', serial] as const,
+    },
+    review: {
+        all: ['review'] as const,
+        productNames: (view: string, offset: number) => ['review', 'product-names', view, offset] as const,
+        aliasUsage: (id: number) => ['review', 'alias-usage', id] as const,
+        salesProducts: ['review', 'sales-products'] as const,
+        pricingProducts: ['review', 'pricing-products'] as const,
+    },
     roadmap: ['roadmap'] as const,
     roadmapSync: ['roadmap', 'sync'] as const,
     roadmapInbox: ['roadmap', 'inbox'] as const,
+    roadmapScope: ['roadmap', 'scope'] as const,
+    roadmapQueue: ['roadmap', 'queue'] as const,
     trade: {
         // Shared by the Trade tab and Portfolio's P/L subtab - same key on
         // purpose (see usePortfolioPL), so opening both doesn't double the
@@ -49,6 +61,7 @@ export const queryKeys = {
         fetchMetrics: ['admin', 'fetch-metrics'] as const,
         fetchLog: ['admin', 'fetch-log'] as const,
         deletedProducts: ['admin', 'deleted-products'] as const,
+        inactiveProducts: ['admin', 'inactive-products'] as const,
         errorLog: ['admin', 'error-log'] as const,
         overview: ['admin', 'overview'] as const,
         logs: (level: string, q: string) => ['admin', 'logs', level, q] as const,
