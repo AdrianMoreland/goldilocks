@@ -61,6 +61,11 @@ export const BcLedgerRowSchema = z.strictObject({
   salesAmount: z.number().nullable(),
   costAmount: z.number().nullable(),
   open: z.boolean().nullable(),
+  /** Serial No. column, when the list shows it. Placeholders ("NOBARNO3", "BRINKS TBC") are dropped. */
+  serialNo: text(60).default(null),
+  /** Customer or Vendor (Source Type) and its BC number (Source No.). */
+  sourceType: text(20).default(null),
+  sourceNo: text(40).default(null),
 });
 export type BcLedgerRow = z.infer<typeof BcLedgerRowSchema>;
 
@@ -156,6 +161,16 @@ export function itemStatusAfter(kind: ItemEventKind): ItemStatus {
 /** The form serials are matched in: upper case, letters and digits only (same as the import script's `nr_`). */
 export function serialKey(raw: unknown): string {
   return String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * A serial that names a real bar. BC holds placeholders typed when a bar had none ("NOBARNO12", "BRINKS TBC",
+ * "TBC"); those, and keys without a digit or shorter than 3 characters, are not serials.
+ */
+export function isRealSerial(raw: unknown): boolean {
+  const key = serialKey(raw);
+  if (key.length < 3 || !/\d/.test(key)) return false;
+  return !/^NOBARNO\d*$|TBC$|^NOSERIAL|^NA$|^NONE$/.test(key);
 }
 
 // --- reading a pasted list or an exported sheet ------------------------------------------------
@@ -312,6 +327,7 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
     const i = {
       entry: at('entry no.'), post: at('posting date'), type: at('entry type'), docType: at('document type'), docNo: at('document no.'), item: at('item no.'),
       loc: at('location code'), qty: at('quantity'), rem: at('remaining quantity'), sales: at('sales amount (actual)'), cost: at('cost amount (actual)'), open: at('open'),
+      serial: at('serial no.'), srcType: at('source type'), srcNo: at('source no.'),
     };
     for (const r of body) {
       const entryNo = num(cell(r, i.entry));
@@ -331,6 +347,9 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
         salesAmount: num(cell(r, i.sales)),
         costAmount: num(cell(r, i.cost)),
         open: bool(cell(r, i.open)),
+        serialNo: isRealSerial(cell(r, i.serial)) ? str(cell(r, i.serial), 60) : null,
+        sourceType: str(cell(r, i.srcType), 20),
+        sourceNo: str(cell(r, i.srcNo), 40),
       });
     }
   }

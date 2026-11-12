@@ -121,14 +121,15 @@ export function BcHistoryTab({ map }: { map: RedactionMapRow[] | null }) {
                 <CardHeader>
                     <CardTitle>Business Central lists</CardTitle>
                     <CardDescription>
-                        Posted Sales Shipments, Posted Sales Shipment Lines, Posted Purchase Receipts and Item Ledger Entries. Drop the exported .xlsx files or paste a list
-                        copied from BC. Each list is recognised by its columns; loading one again replaces it.
+                        Daily: paste Item Ledger Entries with the Serial No., Source Type and Source No. columns shown, filtered to the last week. That one list gives
+                        every bar its receipt, shipment and customer or vendor. Now and then, also paste Posted Sales Shipments (with External Document No.) to link
+                        shipments to tradesheet sales and to give new customers their BC number. Loading the same rows again changes nothing.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <FileDrop
                         title={map ? "Drop a BC list here" : "Load the redaction map above first"}
-                        hint="One .xlsx at a time. The serials come from the item tracking entries in the assembled workbook."
+                        hint="One .xlsx at a time, or paste below. Excel exports from BC can leave out added columns; pasting keeps them."
                         busy={reading}
                         onFile={(f) => void loadFile(f)}
                     />

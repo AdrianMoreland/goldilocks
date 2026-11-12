@@ -7,6 +7,7 @@ import {
   itemStatusAfter,
   mapBcHistory,
   parsePastedTable,
+  isRealSerial,
   serialKey,
 } from './bc-history';
 
@@ -68,6 +69,16 @@ describe('itemStatusAfter', () => {
     expect(itemStatusAfter('COLLECTED')).toBe('COLLECTED');
     expect(itemStatusAfter('RETURNED_TO_VENDOR')).toBe('GONE');
     expect(itemStatusAfter('RETURNED_BY_CUSTOMER')).toBe('IN_STOCK');
+  });
+});
+
+describe('isRealSerial', () => {
+  it('drops placeholders typed for bars without a serial', () => {
+    expect(isRealSerial('NOBARNO12')).toBe(false);
+    expect(isRealSerial('BRINKS TBC')).toBe(false);
+    expect(isRealSerial('')).toBe(false);
+    expect(isRealSerial('AA 174840')).toBe(true);
+    expect(isRealSerial('4626')).toBe(true);
   });
 });
 
@@ -138,9 +149,32 @@ describe('mapBcHistory', () => {
       names,
     );
     expect(m.ledger).toEqual([
-      { entryNo: 2470, postingDate: '2026-10-29', entryType: 'Sale', documentType: 'Sales Shipment', documentNo: 'SHP-100149', itemNo: '1101', locationCode: 'DU', quantity: -1, remainingQuantity: 0, salesAmount: 3905, costAmount: -3529, open: false },
+      { entryNo: 2470, postingDate: '2026-10-29', entryType: 'Sale', documentType: 'Sales Shipment', documentNo: 'SHP-100149', itemNo: '1101', locationCode: 'DU', quantity: -1, remainingQuantity: 0, salesAmount: 3905, costAmount: -3529, open: false, serialNo: null, sourceType: null, sourceNo: null },
     ]);
     expect(m.skipped).toBe(1);
+  });
+
+  it('reads serials and the customer or vendor from a pasted ledger', () => {
+    const m = mapBcHistory(
+      parsePastedTable(
+        'Posting Date\tEntry Type\tDocument Type\tDocument No.\tItem No.\tLot No.\tSerial No.\tDescription\tLocation Code\tQuantity\tInvoiced Quantity\tRemaining Quantity\tSales Amount (Actual)\tCost Amount (Actual)\tCost Amount (Non-Invtbl.)\tOpen\tOrder Type\tEntry No.\tSource Type\tSource No.\tExcise Tax Posted\n' +
+          '10/29/2026\tSale\tSales Shipment\tSHP-100149\t1101\t\t1334834\t\tDU\t-1\t-1\t0\t3,905.00\t-3,529.00\t0.00\tNo\t \t2227\tCustomer\tPRV02393\tNo\n' +
+          '11/12/2026\tSale\tSales Shipment\tSHP-100235\t4501\t\t\t\tDU\t-1,000\t-1,000\t0\t57,000.00\t-44,840.00\t0.00\tNo\t \t2701\tCustomer\tPRV00029\tNo\n' +
+          '9/7/2026\tSale\tSales Shipment\tSHP-100030\t3106\t\tNOBARNO25\t\tCO\t-1\t-1\t0\t912.44\t-920.15\t0.00\tNo\t \t1355\tCustomer\tCOI001\tNo\n' +
+          '9/10/2026\tSale\tSales Shipment\tSHP-100068\t1201\t\tAA 174840\t\tDU\t-1\t-1\t0\t4,060.00\t-3,602.00\t0.00\tNo\t \t1750\tCustomer\tPRV02221\tNo\n' +
+          '10/30/2026\tPositive Adjmt.\t \tIJL-100012\t1036\t\tVC275392\t\tBL\t1\t1\t1\t0.00\t5,632.39\t0.00\tYes\t \t2425\t \t\tNo\n',
+      ),
+      names,
+    );
+    expect(m.kind).toBe('ledger');
+    expect(m.ledger.map((e) => [e.entryNo, e.serialNo, e.sourceType, e.sourceNo, e.quantity, e.open])).toEqual([
+      [2227, '1334834', 'Customer', 'PRV02393', -1, false],
+      [2701, null, 'Customer', 'PRV00029', -1000, false],
+      [1355, null, 'Customer', 'COI001', -1, false],
+      [1750, 'AA 174840', 'Customer', 'PRV02221', -1, false],
+      [2425, 'VC275392', null, null, 1, true],
+    ]);
+    expect(m.ledger[0]!.salesAmount).toBe(3905);
   });
 
   it('produces rows the request schema accepts', () => {

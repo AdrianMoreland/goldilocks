@@ -1545,6 +1545,12 @@ model BcLedgerEntry {
   salesAmount       Decimal?  @db.Decimal(14, 4)
   costAmount        Decimal?  @db.Decimal(14, 4)
   open              Boolean?
+  /// Serial No. as pasted from BC (placeholders dropped); serialKey is the form serials are matched in.
+  serialNo          String?
+  serialKey         String?
+  /// Customer or Vendor, and that party's BC number.
+  sourceType        String?
+  sourceNo          String?
   missingFromImport Boolean   @default(false)
   importBatchId     Int
   createdAt         DateTime  @default(now()) @db.Timestamptz(6)
@@ -1552,6 +1558,8 @@ model BcLedgerEntry {
 
   @@index([documentNo])
   @@index([itemNo, locationCode])
+  @@index([serialKey])
+  @@index([sourceNo])
   @@map("bc_ledger_entries")
 }
 

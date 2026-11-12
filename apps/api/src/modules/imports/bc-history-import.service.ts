@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
     bcEventKind,
+    isRealSerial,
     itemStatusAfter,
     referenceMatchKey,
     serialKey,
@@ -243,6 +244,10 @@ export class BcHistoryImportService {
                     salesAmount: dec(e.salesAmount),
                     costAmount: dec(e.costAmount),
                     open: e.open,
+                    serialNo: e.serialNo,
+                    serialKey: e.serialNo ? serialKey(e.serialNo) : null,
+                    sourceType: e.sourceType,
+                    sourceNo: e.sourceNo,
                     missingFromImport: false,
                 },
             })),
@@ -420,8 +425,10 @@ export class BcHistoryImportService {
     // --- serial trace ------------------------------------------------------------------------------------
 
     /**
-     * One event per (ledger entry, serial) for every serial in the item tracking entries whose ledger entry is known,
-     * from this file or an earlier import. The party, customer and sale come from the shipment or receipt header.
+     * One event per (ledger entry, serial). Serials come from the Serial No. column of pasted ledger entries, and from
+     * the item tracking entries the workbook imports; either is enough. The party is the shipment or receipt header's
+     * customer or vendor when that list was imported, otherwise the ledger entry's Source No.; the sale comes only
+     * from a shipment header whose External Document No. names it.
      */
     private async planEvents(
         db: Db,
@@ -429,6 +436,50 @@ export class BcHistoryImportService {
         shipmentRows: { key: string; data: Row }[],
         people: { byCode: Map<string, CustomerRef> },
     ) {
+        type LedgerLike = {
+            entryType: string;
+            documentType: string | null;
+            documentNo: string;
+            itemNo: string;
+            locationCode: string | null;
+            postingDate: Date | null;
+            quantity: number;
+            salesAmount: number | null;
+            costAmount: number | null;
+            serialNo: string | null;
+            sourceType: string | null;
+            sourceNo: string | null;
+        };
+        const num = (v: { toString(): string } | null) =>
+            v === null ? null : Number(v.toString());
+        const ledger = new Map<number, LedgerLike>();
+        const keep = (e: {
+            entryNo: number;
+            entryType: string;
+            documentType: string | null;
+            documentNo: string;
+            itemNo: string;
+            locationCode: string | null;
+            postingDate: Date | null;
+            quantity: { toString(): string };
+            salesAmount: { toString(): string } | null;
+            costAmount: { toString(): string } | null;
+            serialNo: string | null;
+            sourceType: string | null;
+            sourceNo: string | null;
+        }) =>
+            ledger.set(e.entryNo, {
+                ...e,
+                quantity: Number(e.quantity.toString()),
+                salesAmount: num(e.salesAmount),
+                costAmount: num(e.costAmount),
+            });
+
+        // Ledger entries that already carry a serial, then the ones the tracking entries point at.
+        for (const e of await db.bcLedgerEntry.findMany({
+            where: { serialKey: { not: null } },
+        }))
+            keep(e);
         const tracking = await db.bcTrackingEntry.findMany({
             where: {
                 serialNorm: { not: null },
@@ -442,43 +493,25 @@ export class BcHistoryImportService {
                 serialNorm: true,
             },
         });
-        const entryNos = [
+        const missing = [
             ...new Set(
                 tracking
                     .map((t) => Number(t.entryNo))
-                    .filter((n) => Number.isInteger(n) && n > 0),
+                    .filter(
+                        (n) => Number.isInteger(n) && n > 0 && !ledger.has(n),
+                    ),
             ),
         ];
-
-        type LedgerLike = {
-            entryType: string;
-            documentType: string | null;
-            documentNo: string;
-            locationCode: string | null;
-            postingDate: Date | null;
-            quantity: number;
-            salesAmount: number | null;
-            costAmount: number | null;
-        };
-        const ledger = new Map<number, LedgerLike>();
-        for (const part of chunks(entryNos))
+        for (const part of chunks(missing))
             for (const e of await db.bcLedgerEntry.findMany({
                 where: { entryNo: { in: part } },
             }))
-                ledger.set(e.entryNo, {
-                    entryType: e.entryType,
-                    documentType: e.documentType,
-                    documentNo: e.documentNo,
-                    locationCode: e.locationCode,
-                    postingDate: e.postingDate,
-                    quantity: Number(e.quantity),
-                    salesAmount:
-                        e.salesAmount === null ? null : Number(e.salesAmount),
-                    costAmount:
-                        e.costAmount === null ? null : Number(e.costAmount),
-                });
+                keep(e);
         for (const e of dto.ledger)
-            ledger.set(e.entryNo, { ...e, postingDate: day(e.postingDate) });
+            ledger.set(e.entryNo, {
+                ...e,
+                postingDate: day(e.postingDate),
+            });
 
         // Shipment and receipt headers: this file first, then what earlier imports stored.
         const shipments = new Map<
@@ -527,17 +560,67 @@ export class BcHistoryImportService {
                     : null,
             });
 
-        const events: PlannedEvent[] = [];
+        // Customers by the BC numbers they have learnt, for entries whose header was never imported.
+        const sourceNos = [
+            ...new Set(
+                [...ledger.values()]
+                    .map((l) => l.sourceNo)
+                    .filter((n): n is string => !!n),
+            ),
+        ];
+        const byCustomerNo = new Map<string, number>();
+        const byVendorNo = new Map<string, number>();
+        for (const part of chunks(sourceNos))
+            for (const c of await db.customer.findMany({
+                where: {
+                    OR: [
+                        { bcCustomerNo: { in: part } },
+                        { bcVendorNo: { in: part } },
+                    ],
+                },
+                select: { id: true, bcCustomerNo: true, bcVendorNo: true },
+            })) {
+                if (c.bcCustomerNo) byCustomerNo.set(c.bcCustomerNo, c.id);
+                if (c.bcVendorNo) byVendorNo.set(c.bcVendorNo, c.id);
+            }
+
+        // Every (entry, serial) pair, from the ledger's own column and from the tracking entries.
+        const pairs = new Map<
+            string,
+            { entryNo: number; key: string; serial: string; itemNo: string }
+        >();
+        for (const [entryNo, l] of ledger) {
+            if (!l.serialNo || !isRealSerial(l.serialNo)) continue;
+            const key = serialKey(l.serialNo);
+            pairs.set(`${entryNo}|${key}`, {
+                entryNo,
+                key,
+                serial: l.serialNo.trim(),
+                itemNo: l.itemNo,
+            });
+        }
         let trackingWithoutLedger = 0;
         for (const t of tracking) {
             const entryNo = Number(t.entryNo);
-            const key = serialKey(t.serialNorm ?? t.serialNo);
-            if (!key) continue;
-            const l = ledger.get(entryNo);
-            if (!l) {
+            const raw = t.serialNorm ?? t.serialNo;
+            if (!isRealSerial(raw)) continue;
+            const key = serialKey(raw);
+            if (!ledger.has(entryNo)) {
                 trackingWithoutLedger++;
                 continue;
             }
+            if (!pairs.has(`${entryNo}|${key}`))
+                pairs.set(`${entryNo}|${key}`, {
+                    entryNo,
+                    key,
+                    serial: (t.serialNo ?? key).trim(),
+                    itemNo: t.itemNo,
+                });
+        }
+
+        const events: PlannedEvent[] = [];
+        for (const { entryNo, key, serial, itemNo } of pairs.values()) {
+            const l = ledger.get(entryNo)!;
             const kind = bcEventKind(
                 l.entryType,
                 l.documentType,
@@ -545,24 +628,29 @@ export class BcHistoryImportService {
                 l.quantity,
             );
             if (!kind) continue;
-            const doc =
-                shipments.get(l.documentNo) ?? receipts.get(l.documentNo);
+            const shipment = shipments.get(l.documentNo);
+            const doc = shipment ?? receipts.get(l.documentNo);
+            const source = (l.sourceType ?? '').toLowerCase();
+            const fromSource = l.sourceNo
+                ? source === 'vendor'
+                    ? byVendorNo.get(l.sourceNo)
+                    : source === 'customer'
+                      ? byCustomerNo.get(l.sourceNo)
+                      : undefined
+                : undefined;
             events.push({
                 sourceKey: `BC|${entryNo}|${key}`,
                 serialKey: key,
-                serial: (t.serialNo ?? key).trim(),
-                bcItemNo: t.itemNo,
+                serial,
+                bcItemNo: itemNo,
                 entryNo,
                 kind,
                 date: l.postingDate,
                 sourceRef: l.documentNo,
                 locationCode: l.locationCode,
-                partyNo: doc?.partyNo ?? null,
-                customerId: doc?.customerId ?? null,
-                tradeId:
-                    doc && 'tradeId' in doc
-                        ? (doc as { tradeId: number | null }).tradeId
-                        : null,
+                partyNo: doc?.partyNo ?? l.sourceNo ?? null,
+                customerId: doc?.customerId ?? fromSource ?? null,
+                tradeId: shipment?.tradeId ?? null,
                 quantity: Math.sign(l.quantity) || 1,
                 amount:
                     kind === 'COLLECTED' || kind === 'RETURNED_BY_CUSTOMER'
