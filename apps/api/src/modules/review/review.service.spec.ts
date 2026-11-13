@@ -13,7 +13,9 @@ function setup() {
             findMany: jest.fn(),
             updateMany: jest.fn(),
         },
-        trade: { count: jest.fn(), findMany: jest.fn() },
+        trade: { count: jest.fn(), findMany: jest.fn(), findFirst: jest.fn() },
+        bcShipment: { updateMany: jest.fn() },
+        itemEvent: { updateMany: jest.fn() },
         purchaseLot: { findMany: jest.fn().mockResolvedValue([]) },
         bcSalesOrder: { findMany: jest.fn().mockResolvedValue([]) },
         quote: { findMany: jest.fn().mockResolvedValue([]) },
@@ -169,6 +171,7 @@ describe('ReviewService', () => {
     it('decides only pending links, records who, and audits counts only', async () => {
         const { service, prisma, audit } = setup();
         prisma.entityLink.updateMany.mockResolvedValue({ count: 2 });
+        prisma.entityLink.findMany.mockResolvedValue([]);
         const res = await service.decide(
             { ids: [1, 2, 3], decision: 'CONFIRMED' },
             'admin@example.com',
@@ -187,6 +190,34 @@ describe('ReviewService', () => {
             '2 links confirmed',
             prisma,
         );
+    });
+
+    it('a confirmed shipment suggestion names the sale and rejects the others', async () => {
+        const { service, prisma } = setup();
+        prisma.entityLink.updateMany.mockResolvedValue({ count: 1 });
+        prisma.entityLink.findMany.mockResolvedValue([
+            { fromKey: 'SHP-100200|1101', toKey: 'trade#42' },
+        ]);
+        await service.decide({ ids: [7], decision: 'CONFIRMED' }, 'a@b.c');
+        expect(prisma.bcShipment.updateMany).toHaveBeenCalledWith({
+            where: { no: 'SHP-100200', tradeId: null },
+            data: { tradeId: 42 },
+        });
+        expect(prisma.itemEvent.updateMany).toHaveBeenCalledWith({
+            where: {
+                sourceRef: 'SHP-100200',
+                tradeId: null,
+                item: { bcItemNo: '1101' },
+            },
+            data: { tradeId: 42 },
+        });
+        expect(prisma.entityLink.updateMany).toHaveBeenLastCalledWith({
+            where: expect.objectContaining({
+                fromKey: 'SHP-100200|1101',
+                status: 'PENDING',
+            }),
+            data: expect.objectContaining({ status: 'REJECTED' }),
+        });
     });
 
     it('lists sales whose purchase line is not loaded, and repeated references', async () => {

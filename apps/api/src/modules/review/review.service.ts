@@ -27,6 +27,11 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { LinkRulesService } from './link-rules.service';
+import {
+    SHIPMENT_LINK,
+    applyShipmentLink,
+    tradeIdOfKey,
+} from '../imports/shipment-matcher';
 
 /** A name nobody has settled yet: no specific product, no pricing product, not marked as a non-product. */
 const UNSETTLED_ALIAS = {
@@ -183,9 +188,18 @@ export class ReviewService {
         const by = { sourceKey: { in: keys } };
 
         if (table === 'trades') {
-            for (const t of await this.prisma.trade.findMany({ where: by })) {
+            // A sale without a workbook key is named by its id (see tradeLinkKey).
+            const ids = keys
+                .map((k) => /^trade#(\d+)$/.exec(k)?.[1])
+                .filter((x): x is string => x !== undefined)
+                .map(Number);
+            for (const t of await this.prisma.trade.findMany({
+                where: { OR: [by, { id: { in: ids } }] },
+            })) {
                 put(
-                    t.sourceKey!,
+                    keys.includes(`trade#${t.id}`)
+                        ? `trade#${t.id}`
+                        : t.sourceKey!,
                     join(
                         t.reference,
                         t.qty !== null ? `${t.qty} ×` : null,
@@ -276,6 +290,44 @@ export class ReviewService {
                 where: by,
             }))
                 put(s.sourceKey, join(s.refinery, s.serial), null);
+        } else if (table === 'bc_shipments') {
+            // Key is "shipment no|BC item no"; the line is what the shipment held of that item.
+            const nos = [...new Set(keys.map((k) => k.split('|')[0]))];
+            const [ships, ledger] = await Promise.all([
+                this.prisma.bcShipment.findMany({
+                    where: { no: { in: nos } },
+                    include: { customer: true },
+                }),
+                this.prisma.bcLedgerEntry.findMany({
+                    where: { documentNo: { in: nos }, entryType: 'Sale' },
+                }),
+            ]);
+            const shipOf = new Map(ships.map((x) => [x.no, x]));
+            for (const key of keys) {
+                const [no, itemNo] = key.split('|');
+                const sh = shipOf.get(no);
+                if (!sh) continue;
+                const lines = ledger.filter(
+                    (l) => l.documentNo === no && l.itemNo === itemNo,
+                );
+                const qty = lines.reduce(
+                    (n, l) => n + Math.abs(Number(l.quantity)),
+                    0,
+                );
+                const amount = lines.reduce(
+                    (n, l) => n + Number(l.salesAmount ?? 0),
+                    0,
+                );
+                put(
+                    key,
+                    join(no, `${qty} × item ${itemNo}`),
+                    join(
+                        day(sh.postingDate),
+                        amount ? `€${Math.round(amount * 100) / 100}` : null,
+                        sh.customer?.name,
+                    ),
+                );
+            }
         } else if (table === 'bc_tracking_entries') {
             for (const e of await this.prisma.bcTrackingEntry.findMany({
                 where: by,
@@ -360,6 +412,7 @@ export class ReviewService {
                     confirmedAt: new Date(),
                 },
             });
+            await this.applyShipmentLinks(tx, body.ids, actor);
             await this.audit.record(
                 actor,
                 'review-links',
@@ -368,6 +421,43 @@ export class ReviewService {
             );
             return { updated: res.count };
         });
+    }
+
+    /**
+     * A confirmed shipment-to-sale suggestion takes effect: the shipment and its collection events name the sale,
+     * and the other sales suggested for the same shipment line are rejected.
+     */
+    private async applyShipmentLinks(
+        tx: Prisma.TransactionClient,
+        ids: number[],
+        actor: string,
+    ): Promise<void> {
+        const confirmed = await tx.entityLink.findMany({
+            where: {
+                id: { in: ids },
+                status: 'CONFIRMED',
+                linkType: SHIPMENT_LINK.linkType,
+                fromTable: SHIPMENT_LINK.fromTable,
+            },
+        });
+        for (const l of confirmed) {
+            const tradeId = await tradeIdOfKey(tx, l.toKey);
+            if (tradeId === null) continue;
+            await applyShipmentLink(tx, l.fromKey, tradeId);
+            await tx.entityLink.updateMany({
+                where: {
+                    linkType: SHIPMENT_LINK.linkType,
+                    fromTable: SHIPMENT_LINK.fromTable,
+                    fromKey: l.fromKey,
+                    status: 'PENDING',
+                },
+                data: {
+                    status: 'REJECTED',
+                    confirmedBy: actor,
+                    confirmedAt: new Date(),
+                },
+            });
+        }
     }
 
     // --- unresolved purchase lines and duplicate references --------------------------------------

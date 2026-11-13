@@ -192,6 +192,10 @@ function ResultCard({ result, saved }: { result: BcHistoryResult; saved: boolean
         ["New bars", result.itemsAdded],
         ["Bars whose status changes", result.itemsUpdated],
         ["New events", result.eventsAdded],
+        ["Events corrected", result.eventsUpdated],
+        ["Shipments without a reference matched to a sale", result.shipmentLinesLinked],
+        ["Shipments with a sale to confirm in Review", result.shipmentLinesSuggested],
+        ["Shipments with no sale found", result.shipmentLinesUnmatched],
         ["Serials waiting for their ledger entry", result.trackingWithoutLedger],
     ] as const
     return (

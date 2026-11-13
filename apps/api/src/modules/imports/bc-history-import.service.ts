@@ -12,6 +12,7 @@ import {
 import { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { changedFields } from './workbook-tables';
+import { matchShipments } from './shipment-matcher';
 
 type Db = Prisma.TransactionClient | PrismaService;
 type Row = Record<string, unknown>;
@@ -259,6 +260,9 @@ export class BcHistoryImportService {
         const plan = await this.planEvents(db, dto, shipmentRows, people);
         const applied = await this.applyEvents(db, plan.events, dry);
 
+        // Shipments with no reference: match them to sales by customer, product, quantity and amount.
+        const matched = await matchShipments(db, dry);
+
         const result: BcHistoryResult = {
             batchId,
             shipments,
@@ -274,8 +278,12 @@ export class BcHistoryImportService {
             itemsAdded: applied.itemsAdded,
             itemsUpdated: applied.itemsUpdated,
             eventsAdded: applied.eventsAdded,
+            eventsUpdated: applied.eventsUpdated,
             eventsUnchanged: applied.eventsUnchanged,
             trackingWithoutLedger: plan.trackingWithoutLedger,
+            shipmentLinesLinked: matched.linked,
+            shipmentLinesSuggested: matched.suggested,
+            shipmentLinesUnmatched: matched.unmatched,
         };
         if (!dry)
             await db.importBatch.update({
@@ -667,6 +675,7 @@ export class BcHistoryImportService {
             itemsAdded: 0,
             itemsUpdated: 0,
             eventsAdded: 0,
+            eventsUpdated: 0,
             eventsUnchanged: 0,
         };
         if (events.length === 0) return out;
@@ -688,16 +697,60 @@ export class BcHistoryImportService {
             }))
                 items.set(i.serialKey, i);
 
-        const seen = new Set<string>();
+        // Events already stored: a re-import corrects what changed (a date read the wrong way round, a customer
+        // learnt since). A sale linked by the shipment matcher is kept when this import knows none.
+        type Stored = {
+            id: number;
+            sourceKey: string;
+            kind: string;
+            date: Date | null;
+            locationCode: string | null;
+            partyNo: string | null;
+            customerId: number | null;
+            tradeId: number | null;
+        };
+        const stored = new Map<string, Stored>();
         for (const part of chunks(events.map((e) => e.sourceKey)))
             for (const e of await db.itemEvent.findMany({
                 where: { sourceKey: { in: part } },
-                select: { sourceKey: true },
+                select: {
+                    id: true,
+                    sourceKey: true,
+                    kind: true,
+                    date: true,
+                    locationCode: true,
+                    partyNo: true,
+                    customerId: true,
+                    tradeId: true,
+                },
             }))
-                seen.add(e.sourceKey);
-        const fresh = events.filter((e) => !seen.has(e.sourceKey));
-        out.eventsUnchanged = events.length - fresh.length;
+                stored.set(e.sourceKey, e);
+        const fresh = events.filter((e) => !stored.has(e.sourceKey));
+        const changed: { id: number; data: Record<string, unknown> }[] = [];
+        for (const e of events) {
+            const old = stored.get(e.sourceKey);
+            if (!old) continue;
+            const next = {
+                kind: e.kind,
+                date: e.date,
+                locationCode: e.locationCode,
+                partyNo: e.partyNo,
+                customerId: e.customerId ?? old.customerId,
+                tradeId: e.tradeId ?? old.tradeId,
+            };
+            const diff = changedFields(old, next);
+            if (Object.keys(diff).length)
+                changed.push({ id: old.id, data: diff });
+        }
         out.eventsAdded = fresh.length;
+        out.eventsUpdated = changed.length;
+        out.eventsUnchanged = events.length - fresh.length - changed.length;
+        if (!dry)
+            for (const c of changed)
+                await db.itemEvent.update({
+                    where: { id: c.id },
+                    data: c.data,
+                });
 
         // An item's status and location are its latest event's (by date, then ledger entry).
         const latest = new Map<string, PlannedEvent>();
