@@ -104,9 +104,17 @@ export const BcHistoryResultSchema = z.object({
   itemsAdded: z.number().int(),
   itemsUpdated: z.number().int(),
   eventsAdded: z.number().int(),
+  /** Stored events this import corrected (a date, a customer learnt since). */
+  eventsUpdated: z.number().int(),
   eventsUnchanged: z.number().int(),
   /** Serial tracking entries whose ledger entry is not imported yet; they get events on a later import. */
   trackingWithoutLedger: z.number().int(),
+  /** Shipment lines with no reference linked to a sale by customer, product, quantity and amount. */
+  shipmentLinesLinked: z.number().int(),
+  /** Shipment lines with sales suggested in the Review tab for a person to confirm. */
+  shipmentLinesSuggested: z.number().int(),
+  /** Shipment lines no sale fits. */
+  shipmentLinesUnmatched: z.number().int(),
 });
 export type BcHistoryResult = z.infer<typeof BcHistoryResultSchema>;
 
@@ -198,11 +206,33 @@ export function detectBcHistoryKind(header: readonly unknown[]): BcHistoryKind |
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+export type DateOrder = 'DMY' | 'MDY';
+
+const SLASH_DATE = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/;
+
 /**
- * A BC date as YYYY-MM-DD. Accepts a Date, an Excel serial, ISO text, or the M/D/YYYY text BC copies out in this
- * tenant (a first part above 12 is read as a day). Null when it cannot be read.
+ * Which way round the slash dates in a list are written. BC copies dates in the user's regional format, which differs
+ * between machines (12/10/2026 is 12 October on one and 10 December on another), so the whole list decides: a first
+ * part above 12 proves day-first, a second part above 12 proves month-first. Null when nothing in the list tells.
  */
-export function bcDate(raw: unknown): string | null {
+export function detectDateOrder(cells: readonly unknown[]): DateOrder | null {
+  let dmy = 0;
+  let mdy = 0;
+  for (const c of cells) {
+    const m = String(c ?? '').trim().match(SLASH_DATE);
+    if (!m) continue;
+    if (Number(m[1]) > 12) dmy++;
+    else if (Number(m[2]) > 12) mdy++;
+  }
+  if (dmy === mdy) return null;
+  return dmy > mdy ? 'DMY' : 'MDY';
+}
+
+/**
+ * A BC date as YYYY-MM-DD. Accepts a Date, an Excel serial, ISO text, or slash text read in `order` (day-first when
+ * not given: the Irish format). A value that only fits the other way round is read that way. Null when unreadable.
+ */
+export function bcDate(raw: unknown, order: DateOrder = 'DMY'): string | null {
   if (raw instanceof Date) return Number.isNaN(raw.getTime()) ? null : raw.toISOString().slice(0, 10);
   if (typeof raw === 'number' && raw > 20000 && raw < 80000) {
     const d = new Date(Date.UTC(1899, 11, 30) + Math.round(raw) * 86_400_000);
@@ -212,13 +242,14 @@ export function bcDate(raw: unknown): string | null {
   if (!s) return null;
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const us = s.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
-  if (!us) return null;
-  let month = Number(us[1]);
-  let day = Number(us[2]);
-  if (month > 12) [month, day] = [day, month];
+  const m = s.match(SLASH_DATE);
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  let [day, month] = order === 'DMY' ? [a, b] : [b, a];
+  if (month > 12 && day <= 12) [day, month] = [month, day];
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  return `${us[3]}-${pad(month)}-${pad(day)}`;
+  return `${m[3]}-${pad(month)}-${pad(day)}`;
 }
 
 function num(raw: unknown): number | null {
@@ -252,6 +283,8 @@ export interface BcHistoryMapped {
   unmappedNames: number;
   /** Rows without their key column, left out. */
   skipped: number;
+  /** How the list's slash dates were read (day-first unless the list proves otherwise). */
+  dateOrder: DateOrder;
 }
 
 /**
@@ -259,7 +292,7 @@ export interface BcHistoryMapped {
  * names never leave the browser. Company vendors (non-PRV) are not looked up: they are suppliers, not customers.
  */
 export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: ReadonlyMap<string, string>): BcHistoryMapped {
-  const out: BcHistoryMapped = { kind: null, shipments: [], shipmentLines: [], receipts: [], ledger: [], unmappedNames: 0, skipped: 0 };
+  const out: BcHistoryMapped = { kind: null, shipments: [], shipmentLines: [], receipts: [], ledger: [], unmappedNames: 0, skipped: 0, dateOrder: 'DMY' };
   const headerAt = sheet.findIndex((r, i) => i < 10 && detectBcHistoryKind(r) !== null);
   if (headerAt === -1) return out;
   const header = sheet[headerAt]!.map(headerNorm);
@@ -275,6 +308,10 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
     return c && /^C\d{6}$/.test(c) ? c : null;
   };
   const body = sheet.slice(headerAt + 1).filter((r) => r.some((c) => String(c ?? '').trim() !== ''));
+  const dateCols = header.map((h, i) => (h.endsWith('date') ? i : -1)).filter((i) => i >= 0);
+  const order = detectDateOrder(body.flatMap((r) => dateCols.map((i) => r[i]))) ?? 'DMY';
+  out.dateOrder = order;
+  const date = (raw: unknown) => bcDate(raw, order);
 
   if (kind === 'shipments') {
     const i = { no: at('no.'), custNo: at('sell-to customer no.'), name: at('sell-to customer name'), doc: at('document date'), post: at('posting date'), ext: at('external document no.'), loc: at('location code') };
@@ -285,8 +322,8 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
         no,
         customerNo: str(cell(r, i.custNo), 40),
         customerCode: code(cell(r, i.name)),
-        documentDate: bcDate(cell(r, i.doc)),
-        postingDate: bcDate(cell(r, i.post)),
+        documentDate: date(cell(r, i.doc)),
+        postingDate: date(cell(r, i.post)),
         externalDocNo: str(cell(r, i.ext), 100),
         locationCode: str(cell(r, i.loc), 40),
       });
@@ -319,7 +356,7 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
         no,
         vendorNo,
         sellerCode: vendorNo && /^PRV/i.test(vendorNo) ? code(cell(r, i.name)) : null,
-        documentDate: bcDate(cell(r, i.doc)),
+        documentDate: date(cell(r, i.doc)),
         locationCode: str(cell(r, i.loc), 40),
       });
     }
@@ -336,7 +373,7 @@ export function mapBcHistory(sheet: readonly (readonly unknown[])[], names: Read
       if (!entryNo || !Number.isInteger(entryNo) || entryNo <= 0 || !entryType || !itemNo) { out.skipped++; continue; }
       out.ledger.push({
         entryNo,
-        postingDate: bcDate(cell(r, i.post)),
+        postingDate: date(cell(r, i.post)),
         entryType,
         documentType: str(cell(r, i.docType), 40),
         documentNo: str(cell(r, i.docNo), 40) ?? '',

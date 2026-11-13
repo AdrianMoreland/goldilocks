@@ -3,6 +3,7 @@ import {
   BcHistoryRequestSchema,
   bcDate,
   bcEventKind,
+  detectDateOrder,
   detectBcHistoryKind,
   itemStatusAfter,
   mapBcHistory,
@@ -14,9 +15,14 @@ import {
 const names = new Map([['con mcnamee', 'C000101'], ['alan gale', 'C000202']]);
 
 describe('bcDate', () => {
-  it('reads the M/D/YYYY text BC copies out', () => {
+  it('reads slash dates in the order given, day-first by default', () => {
+    expect(bcDate('9/1/2026', 'MDY')).toBe('2026-09-01');
+    expect(bcDate('9/1/2026', 'DMY')).toBe('2026-01-09');
+    expect(bcDate('12/10/2026')).toBe('2026-10-12');
+  });
+  it('reads a value that only fits the other way round that way', () => {
     expect(bcDate('10/30/2026')).toBe('2026-10-30');
-    expect(bcDate('9/1/2026')).toBe('2026-09-01');
+    expect(bcDate('30/10/2026', 'MDY')).toBe('2026-10-30');
   });
   it('reads a first part above 12 as the day', () => {
     expect(bcDate('30/10/2026')).toBe('2026-10-30');
@@ -30,6 +36,14 @@ describe('bcDate', () => {
     expect(bcDate('')).toBeNull();
     expect(bcDate('soon')).toBeNull();
     expect(bcDate('13/13/2026')).toBeNull();
+  });
+});
+
+describe('detectDateOrder', () => {
+  it('lets the whole list decide', () => {
+    expect(detectDateOrder(['10/9/2026', '29/10/2026', '3/11/2026'])).toBe('DMY');
+    expect(detectDateOrder(['9/10/2026', '10/29/2026', '11/3/2026'])).toBe('MDY');
+    expect(detectDateOrder(['1/2/2026', 'x', null])).toBeNull();
   });
 });
 
@@ -104,6 +118,16 @@ describe('mapBcHistory', () => {
     ]);
     expect(m.unmappedNames).toBe(1);
     expect(JSON.stringify(m)).not.toContain('McNamee');
+  });
+
+  it('reads a day-first paste the same as a month-first one', () => {
+    const header = 'Document Date\tPosting Date\tNo.\tSell-to Customer No.\tSell-to Customer Name\n';
+    const dmy = mapBcHistory(parsePastedTable(header + '10/9/2026\t10/9/2026\tSHP-1\tPRV1\tX\n29/10/2026\t29/10/2026\tSHP-2\tPRV2\tY\n'), names);
+    const mdy = mapBcHistory(parsePastedTable(header + '9/10/2026\t9/10/2026\tSHP-1\tPRV1\tX\n10/29/2026\t10/29/2026\tSHP-2\tPRV2\tY\n'), names);
+    expect(dmy.dateOrder).toBe('DMY');
+    expect(mdy.dateOrder).toBe('MDY');
+    expect(dmy.shipments.map((x) => x.postingDate)).toEqual(['2026-09-10', '2026-10-29']);
+    expect(mdy.shipments.map((x) => x.postingDate)).toEqual(['2026-09-10', '2026-10-29']);
   });
 
   it('numbers shipment lines within their shipment', () => {
