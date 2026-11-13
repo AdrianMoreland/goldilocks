@@ -72,6 +72,21 @@ describe('decideLine', () => {
         });
     });
 
+    it('links the sale to the cent when several are within tolerance', () => {
+        const a = { ...line, amount: 4006 };
+        const sales = [
+            sale({ id: 1, receipt: 4006 }),
+            sale({ id: 2, sourceKey: 'TS|2', receipt: 4000 }),
+        ];
+        expect(decideLine(a, sales, 'Jane Doe', new Set())).toMatchObject({
+            outcome: 'LINK',
+            trade: { id: 1 },
+        });
+        expect(
+            decideLine({ ...line, amount: 4003 }, sales, 'Jane Doe', new Set()),
+        ).toMatchObject({ outcome: 'SUGGEST', note: 'SEVERAL_SALES_FIT' });
+    });
+
     it('ignores taken sales, other products, quantities and dates', () => {
         const none = [
             sale({ productId: 8 }),

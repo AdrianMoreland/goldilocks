@@ -53,6 +53,15 @@ export function amountAgrees(
     );
 }
 
+/** The sheet's receipt is BC's amount to the cent, with or without 23% VAT. */
+export function amountExact(receipt: number | null, bcAmount: number): boolean {
+    if (receipt === null || bcAmount <= 0) return false;
+    return (
+        Math.abs(receipt - bcAmount) < 0.01 ||
+        Math.abs(receipt - bcAmount * 1.23) < 0.01
+    );
+}
+
 export interface ShipmentLine {
     shipmentNo: string;
     itemNo: string;
@@ -110,6 +119,9 @@ export function decideLine(
     );
     const agreeing = fits.filter((t) => amountAgrees(t.receipt, line.amount));
     if (agreeing.length === 1) return { outcome: 'LINK', trade: agreeing[0] };
+    // Several within tolerance (two €4,000-ish bars a day apart): the one to the cent wins.
+    const exact = agreeing.filter((t) => amountExact(t.receipt, line.amount));
+    if (exact.length === 1) return { outcome: 'LINK', trade: exact[0] };
     if (fits.length === 0) return { outcome: 'NONE', reason: 'NO_SALE_FITS' };
     // Closest in time first.
     const ranked = [...fits].sort(
