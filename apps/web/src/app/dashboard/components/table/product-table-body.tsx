@@ -64,7 +64,10 @@ export function ProductTableBody({
                                         // Sticky on each cell rather than on <thead> — sticky
                                         // positioning on a <thead> is unreliable across browsers'
                                         // table layout implementations; per-cell is the robust form.
-                                        className="type-table-head bg-muted sticky top-0 z-10 px-3 py-1.5 text-base font-bold shadow-[inset_0_-1px_0_var(--border)]"
+                                        // Solid even when the active theme makes --muted translucent: the muted tint is
+                                        // laid over the opaque page colour so scrolled rows can never show through.
+                                        style={{ backgroundImage: "linear-gradient(var(--muted), var(--muted))", backgroundColor: "var(--background)" }}
+                                        className="type-table-head sticky top-0 z-10 px-3 py-1.5 text-base font-bold shadow-[inset_0_-1px_0_var(--border)]"
                                     >
                                         {header.isPlaceholder
                                             ? null
