@@ -490,6 +490,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Monthly count sessions on iPad; barcode/serial scan for bars, quantity for coins - L
 - [ ] Compare to BC inventory; discrepancy log with two-person sign-off - M *(first slice built 2026-10-28, not yet applied to the database: month-end stocktake at `/stocktake` for admins and managers. Paste-in of the BC Physical Inventory Journal, count entry with the normal-safe and customer-safe columns, variance, serial check against Item Tracking Entries, discrepancy register, finalise, CSV and print/PDF export, and BC item to product links. Not yet: carry-forward of last month's bars, customer-order tracking, native `.xlsx`, iPad scanning, two-person sign-off beyond the lead and second-checker names)*
 - [ ] Generic checklist/form module to replace other ad-hoc sheets - M
+- [ ] Live branch stock (1.12b): editable counts per branch replacing the Google stock sheet. Slice 1 API (tables, movements, edit/undo/transfer/serials, baseline load) built 2026-11-18, migration not yet applied; slice 2 board UI, slice 3 tradesheet "Apply to stock" with once-only reconciliation, slice 4 PGM/Melt - L
 - [ ] Inventory intelligence: reserved stock (quotes), stock reconciliation, low-stock signals - M
 
 ## 1.13 Teams integration 🟡

@@ -1639,3 +1639,144 @@ model ItemEvent {
   @@index([tradeId])
   @@map("item_events")
 }
+
+// ============================================================================
+// LIVE STOCK (roadmap 1.12b). Separate from the stocktake snapshots: current counts per branch that staff edit
+// day to day. A count is the sum of its movements; nothing overwrites a number without leaving a movement.
+// ============================================================================
+
+enum LiveStockKind {
+  COIN
+  BAR
+}
+
+enum LiveBarStatus {
+  IN_STOCK
+  SOLD
+  REMOVED
+}
+
+enum LiveMovementSource {
+  MANUAL
+  IMPORT
+  SHEET_SALE
+  SHEET_PURCHASE
+  TRANSFER
+  UNDO
+}
+
+enum SheetApplicationKind {
+  SALE
+  PURCHASE
+}
+
+enum SheetApplicationStatus {
+  APPLIED
+  NEEDS_DECISION
+  DISMISSED
+}
+
+/// A stock location by its sheet code (DU, CO, BL, BC). branchId links it to an app branch so that branch's staff may
+/// edit it; admins may edit every location. cutoverDate is the day the baseline was loaded: sheet rows dated on or
+/// before it are already in the baseline and never apply.
+model LiveStockBranch {
+  code        String          @id
+  name        String
+  branchId    Int?
+  cutoverDate DateTime?       @db.Date
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  lines       LiveStockLine[]
+
+  @@map("live_stock_branches")
+}
+
+/// One countable thing at one location: a coin variant, or a bar weight from one refinery. refinery is "" when it is
+/// not tracked. qty is the cached sum of the line's movements.
+model LiveStockLine {
+  id           Int             @id @default(autoincrement())
+  branchCode   String
+  branch       LiveStockBranch @relation(fields: [branchCode], references: [code])
+  metal        StockMetal
+  kind         LiveStockKind
+  family       String
+  variant      String
+  refinery     String          @default("")
+  qty          Int             @default(0)
+  lowThreshold Int?
+  /// Sold from a sheet row but no refinery or serial chosen yet.
+  unassigned   Int             @default(0)
+  details      String?
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
+
+  bars      LiveStockBar[]
+  movements LiveStockMovement[]
+
+  @@unique([branchCode, metal, kind, family, variant, refinery])
+  @@index([branchCode, metal])
+  @@map("live_stock_lines")
+}
+
+/// One serialled bar. A bar with no serial is only a count on its line. serialKey is the serial folded for matching;
+/// two in-stock bars never share one (a clash is reported, not overwritten).
+model LiveStockBar {
+  id        Int           @id @default(autoincrement())
+  lineId    Int
+  line      LiveStockLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  serial    String
+  serialKey String
+  grams     Decimal?      @db.Decimal(10, 4)
+  details   String?
+  status    LiveBarStatus @default(IN_STOCK)
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@index([lineId])
+  @@index([serialKey])
+  @@map("live_stock_bars")
+}
+
+/// Append-only. delta is signed; qtyAfter is the line's count once this applied. An undo is a new movement that points
+/// back at the one it reverses (reversesId); the original is never edited or deleted.
+model LiveStockMovement {
+  id         Int                @id @default(autoincrement())
+  lineId     Int
+  line       LiveStockLine      @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  delta      Int
+  qtyAfter   Int
+  source     LiveMovementSource
+  /// Sheet reference, transfer id or import batch the change came from.
+  reference  String?
+  reason     String?
+  note       String?
+  actor      String
+  at         DateTime           @default(now()) @db.Timestamptz(6)
+  reversesId Int?               @unique
+
+  @@index([lineId, at])
+  @@index([reference])
+  @@map("live_stock_movements")
+}
+
+/// A tradesheet row applied to stock, at most once per (referenceKey, occurrence). appliedQty is what has been taken
+/// from or added to stock so far, so a changed row applies only the difference.
+model SheetApplication {
+  id           Int                    @id @default(autoincrement())
+  referenceKey String
+  occurrence   Int                    @default(1)
+  kind         SheetApplicationKind
+  branchCode   String
+  lineId       Int?
+  rowDate      DateTime?              @db.Date
+  rowQty       Int
+  appliedQty   Int                    @default(0)
+  status       SheetApplicationStatus @default(APPLIED)
+  note         String?
+  decidedBy    String?
+  createdAt    DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime               @updatedAt @db.Timestamptz(6)
+
+  @@unique([referenceKey, occurrence, lineId])
+  @@index([status])
+  @@map("sheet_applications")
+}
