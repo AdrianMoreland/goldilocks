@@ -1,7 +1,7 @@
 import * as React from "react"
 import { flexRender, type Table as TanstackTable } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRowNavigation } from "@/hooks/use-row-navigation.hook"
 import { ProductRow } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
@@ -48,7 +48,12 @@ export function ProductTableBody({
                 once a sibling existed above it, so nothing here truly
                 scrolled - sticky had no real scroll container to lock to. */}
             <div className="min-h-0 flex-1 overflow-y-auto">
-                <Table className="type-table-item text-base">
+                {/* A plain <table>, not the shared <Table> wrapper: that wrapper is its own
+                    overflow container, so the sticky header pinned to it instead of to the
+                    scrolling div above and rows slid up past the header. Here the div above is
+                    the only scroller, so the header pins to its top edge and rows are cut off
+                    at the header's bottom edge. */}
+                <table data-slot="table" className="type-table-item w-full caption-bottom text-base">
                     <TableHeader className="bg-muted">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -59,7 +64,7 @@ export function ProductTableBody({
                                         // Sticky on each cell rather than on <thead> — sticky
                                         // positioning on a <thead> is unreliable across browsers'
                                         // table layout implementations; per-cell is the robust form.
-                                        className="type-table-head bg-muted sticky top-0 z-10 px-3 py-1.5 text-base font-bold"
+                                        className="type-table-head bg-muted sticky top-0 z-10 px-3 py-1.5 text-base font-bold shadow-[inset_0_-1px_0_var(--border)]"
                                     >
                                         {header.isPlaceholder
                                             ? null
@@ -115,7 +120,7 @@ export function ProductTableBody({
                             </TableRow>
                         )}
                     </TableBody>
-                </Table>
+                </table>
             </div>
         </div>
     )
