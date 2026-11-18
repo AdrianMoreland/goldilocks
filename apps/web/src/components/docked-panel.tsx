@@ -6,7 +6,7 @@ import { useMediaQuery } from "@/hooks/use-media-query.hook"
 /** Width of the right-hand column shared by the Pricing Tools and Assistant panels, so swapping one for the other never moves the page. */
 export const RIGHT_PANEL_WIDTH = "clamp(260px, 32vw, 384px)"
 /** The theme editor takes the app sidebar's place, so it is exactly as wide as the sidebar (BaseLayout defines --sidebar-width). */
-export const LEFT_PANEL_WIDTH = "var(--sidebar-width)"
+export const LEFT_PANEL_WIDTH = "15rem"
 
 /**
  * A column that sits beside the page and pushes it, rather than floating over

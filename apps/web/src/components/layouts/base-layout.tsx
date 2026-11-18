@@ -85,7 +85,7 @@ export function BaseLayout({ children, title, showLogo, description, headerActio
         onOpenChange={handleSidebarOpenChange}
         style={
           {
-            "--sidebar-width": features.redesign ? "15rem" : "16rem",
+            "--sidebar-width": features.redesign ? "9.5rem" : "16rem",
             "--sidebar-width-icon": "3rem",
             "--header-height": features.redesign ? "3.5rem" : "calc(var(--spacing) * 14)",
           } as React.CSSProperties
