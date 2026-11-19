@@ -1,5 +1,6 @@
 import * as React from "react"
 import type { MetalType } from "@/lib/types"
+import type { SpotFreshness } from "@goldilocks/shared-types"
 
 interface SpotPricesContextValue {
     /** The spot each metal is being quoted from right now: the user's override if they froze or typed one, otherwise the live market price. */
@@ -10,6 +11,10 @@ interface SpotPricesContextValue {
     /** Freezes the card (and so the table) at this spot. The side-panel tools must not call this: they hold their own spot (see tool-spots-context). */
     setSpot: (metal: MetalType, value: number) => void
     clearSpot: (metal: MetalType) => void
+    /** How far to trust the live prices (see spotFreshness); the tools ask for a spot before copying an old one. */
+    freshness: SpotFreshness
+    /** Market time of the live prices. */
+    snapshotAt: string | null
 }
 
 const SpotPricesContext = React.createContext<SpotPricesContextValue | null>(null)

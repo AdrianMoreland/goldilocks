@@ -4,23 +4,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/hooks/useApi';
 import { useMarketDataApi, type SpotOverrideRequest } from '@/api/market-data.api';
+import { useAdminApi } from '@/api/admin.api';
 import { queryKeys } from '@/lib/query-keys';
-import { formatMinutesAgo } from '@/app/dashboard/utils/formatters';
-import type { MarketDataResponse } from '../lib/types.ts';
-import { SPOT_STALE_AFTER_MS } from '@goldilocks/shared-types';
+import { formatAge, formatSnapshotTime } from '@/app/dashboard/utils/formatters';
+import type { MarketDataResponse, MetalType } from '../lib/types.ts';
+import { spotFreshness } from '@goldilocks/shared-types';
 
-/** Shared with the assistant (see shared-types), so the cards and the assistant never disagree about whether a price is stale. */
-export const STALE_THRESHOLD_MS = SPOT_STALE_AFTER_MS;
+/** How often the dashboard checks for a newer price snapshot. */
+const SPOT_STATUS_POLL_MS = 2 * 60 * 1000;
 
-/** To-the-second timestamp for the "prices fetched at" toast - deliberately more precise than lastUpdatedRelative's rounded minutes-ago text. */
-function formatFetchedAtTime(fetchedAt?: string | null): string | null {
-    if (!fetchedAt) return null;
-
-    return new Date(fetchedAt).toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
+/** "Prices as of 17:55 (12 min ago)" - the market time of the prices, never the time we fetched them. */
+function pricesAsOfMessage(snapshotAt?: string | null): string | null {
+    if (!snapshotAt) return null;
+    return `Prices as of ${formatSnapshotTime(snapshotAt)} (${formatAge(Date.now() - new Date(snapshotAt).getTime())})`;
 }
 
 /**
@@ -29,7 +25,7 @@ function formatFetchedAtTime(fetchedAt?: string | null): string | null {
  * each other because they came from the same backend response.
  */
 export function useMarketData() {
-    const { getMarketData, recalculate, refreshMarketData } = useMarketDataApi();
+    const { getMarketData, getSpotStatus, recalculate, refreshMarketData } = useMarketDataApi();
     const queryClient = useQueryClient();
 
     const query = useQuery<MarketDataResponse>({
@@ -40,6 +36,31 @@ export function useMarketData() {
     });
 
     const { data, isLoading, isFetching, error } = query;
+
+    // Every 2 minutes, a light check of the price times (it reads our cache
+    // and never calls the vendor while auto-refresh is paused). A new market
+    // snapshot refetches the full data so the table reprices; otherwise only
+    // the fetch time and pause state are patched in.
+    const { data: status } = useQuery({
+        queryKey: queryKeys.spotStatus,
+        queryFn: getSpotStatus,
+        enabled: data !== undefined,
+        refetchInterval: SPOT_STATUS_POLL_MS,
+        refetchOnWindowFocus: true,
+    });
+    useEffect(() => {
+        if (!status || !data) return;
+        if (status.snapshotAt !== data.snapshotAt) {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all, exact: true });
+            return;
+        }
+        if (status.lastFetchAt !== data.lastFetchAt || status.autoRefreshPaused !== data.autoRefreshPaused) {
+            queryClient.setQueryData<MarketDataResponse>(queryKeys.marketData.all, (old) =>
+                old ? { ...old, lastFetchAt: status.lastFetchAt, autoRefreshPaused: status.autoRefreshPaused } : old,
+            );
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status]);
 
     // Fetch FAILURE (the request itself errored) is a different kind of
     // problem than stale-but-successful data (see isStale below) - surfaced
@@ -72,17 +93,17 @@ export function useMarketData() {
         lastWarningShown.current = warning;
     }, [data?.priceWarning]);
 
-    // Bottom-right "prices fetched at" toast on initial page load - fires
+    // Bottom-right "prices as of" toast on initial page load - fires
     // once for the first snapshot the query resolves with. The equivalent
     // toast for a manual refresh lives in refreshMutation's onSuccess below,
     // since that's a separate fetch outside this query's own lifecycle.
     const hasShownInitialFetchToast = useRef(false);
     useEffect(() => {
-        if (!data?.fetchedAt || hasShownInitialFetchToast.current) return;
+        if (!data?.snapshotAt || hasShownInitialFetchToast.current) return;
         hasShownInitialFetchToast.current = true;
-        const time = formatFetchedAtTime(data.fetchedAt);
-        if (time) toast(`Prices fetched at ${time}`);
-    }, [data?.fetchedAt]);
+        const message = pricesAsOfMessage(data.snapshotAt);
+        if (message) toast(message);
+    }, [data?.snapshotAt]);
 
     // Ages are computed from Date.now(), so without a tick they'd freeze at
     // whatever they were when the snapshot last changed - and with a short
@@ -93,21 +114,18 @@ export function useMarketData() {
         return () => clearInterval(id);
     }, []);
 
-    const lastUpdatedRelative = useMemo(() => {
-        if (isLoading) return 'Loading…';
-        if (error) return 'unavailable';
-
-        return formatMinutesAgo(data?.fetchedAt);
+    // Green/amber/red/closed from when we last fetched; the text says how old the market price itself is.
+    const freshness = useMemo(
+        () => spotFreshness({ snapshotAt: data?.snapshotAt, lastFetchAt: data?.lastFetchAt, now: new Date() }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading, error, data?.fetchedAt, nowTick]);
+        [data?.snapshotAt, data?.lastFetchAt, nowTick],
+    );
 
-    const lastUpdatedLabel = `Last Updated: ${lastUpdatedRelative}`;
+    const lastUpdatedRelative = isLoading ? 'Loading…' : error ? 'unavailable' : formatAge(freshness.priceAgeMs);
 
-    const isStale = useMemo(() => {
-        if (!data?.fetchedAt) return false;
-        return Date.now() - new Date(data.fetchedAt).getTime() > STALE_THRESHOLD_MS;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.fetchedAt, nowTick]);
+    const lastUpdatedLabel = `Prices as of: ${lastUpdatedRelative}`;
+
+    const isStale = freshness.state === 'late' || freshness.state === 'stale';
 
     // ── Manual recalculation (UI spot overrides) ───────────────────────────
     const recalcMutation = useMutation({
@@ -115,7 +133,7 @@ export function useMarketData() {
 
         onSuccess: (pricedProducts) => {
             // The backend's /recalculate only returns the new products -
-            // spotPrices/historicSpot/fetchedAt are untouched (overrides are
+            // spotPrices/historicSpot/snapshotAt are untouched (overrides are
             // ephemeral UI state, never persisted), so patch just that slice.
             queryClient.setQueryData<MarketDataResponse>(queryKeys.marketData.all, (old) =>
                 old ? { ...old, products: pricedProducts } : old,
@@ -136,8 +154,8 @@ export function useMarketData() {
             // it can still mean "the live fetch failed and this is the
             // last-known-good DB price" (isFallback) or "no usable price
             // anywhere" (priceWarning). Neither of those is "updated", so
-            // don't say so - and skip the "fetched at" toast too, since
-            // touting a specific fetch time makes a failure read as a
+            // don't say so - and skip the "prices as of" line too, since
+            // touting a specific price time makes a failure read as a
             // success. See CardFreshnessEnum's 'fallback' state for the
             // matching per-card indicator.
             const anyFallback = marketData.spotPrices.some((spot) => spot.isFallback);
@@ -148,9 +166,7 @@ export function useMarketData() {
             } else if (anyFallback) {
                 toast.error('Live price fetch failed - showing the last known prices from the database.');
             } else {
-                const time = formatFetchedAtTime(marketData.fetchedAt);
-                if (time) toast(`Prices fetched at ${time}`);
-                toast.success('Spot prices updated');
+                toast.success('Spot prices updated', { description: pricesAsOfMessage(marketData.snapshotAt) ?? undefined });
             }
         },
 
@@ -164,7 +180,10 @@ export function useMarketData() {
         spotPrices: data?.spotPrices ?? [],
         historicSpot: data?.historicSpot ?? [],
         products: data?.products ?? [],
-        fetchedAt: data?.fetchedAt,
+        snapshotAt: data?.snapshotAt ?? null,
+        lastFetchAt: data?.lastFetchAt ?? null,
+        autoRefreshPaused: data?.autoRefreshPaused ?? false,
+        freshness,
         degradedMetals: data?.degradedMetals ?? [],
 
         loading: isLoading || isFetching,
@@ -178,4 +197,22 @@ export function useMarketData() {
         refresh: refreshMutation.mutate,
         refreshing: refreshMutation.isPending,
     };
+}
+
+/** Admin Retry on a failed metal card: one live vendor call, then reload the prices so the card and table agree. */
+export function useRetryMetalSpot() {
+    const { retryMetal } = useAdminApi();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (metal: MetalType) => retryMetal(metal),
+        onSuccess: async (_spot, metal) => {
+            await queryClient.invalidateQueries({ queryKey: queryKeys.marketData.all, exact: true });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.spotStatus });
+            toast.success(`${metal.charAt(0)}${metal.slice(1).toLowerCase()} price fetched`);
+        },
+        onError: (_error, metal) => {
+            toast.error(`Retry failed for ${metal.toLowerCase()} - still showing the last known price.`);
+        },
+    });
 }

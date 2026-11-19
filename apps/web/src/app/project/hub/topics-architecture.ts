@@ -329,7 +329,7 @@ export class AuthService {
             {
                 kind: "callout",
                 title: "Where this bites in Goldilocks",
-                text: "The 10-minute price cron runs in each API replica, and its pause toggle is in-memory. That is fine with one replica; with two it needs a BullMQ repeatable job (roadmap 0.7).",
+                text: "The 5-minute price cron runs in each API replica, and its pause toggle is in-memory (it starts paused after every deploy). That is fine with one replica; with two it needs a BullMQ repeatable job (roadmap 0.7).",
             },
         ],
     },

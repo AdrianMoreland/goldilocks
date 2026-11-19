@@ -86,6 +86,8 @@ export function AdminActions({ compact = false }: { compact?: boolean }) {
         mutationFn: api.toggleCron,
         onSuccess: ({ running }) => {
             queryClient.setQueryData(queryKeys.admin.cronStatus, { running })
+            // The dashboard header shows "Paused" from the spot-status poll.
+            void queryClient.invalidateQueries({ queryKey: queryKeys.spotStatus })
             toast.success(running ? "Price-refresh cron resumed" : "Price-refresh cron paused")
         },
     })

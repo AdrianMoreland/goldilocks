@@ -9,6 +9,7 @@ import {Button} from '@/components/ui/button';
 import {cn} from '@/lib/utils';
 import {Separator} from '@/components/ui/separator';
 import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
+import {useRetryMetalSpot} from '@/hooks/use-market-data.hook';
 import {useAssistantDock} from '@/contexts/docks-context';
 import {useGlobalShortcuts} from '@/hooks/use-global-shortcuts.hook';
 import {useAuth} from '@/contexts/auth-context';
@@ -54,8 +55,10 @@ function DashboardShell() {
             overriddenMetals: Object.keys(workbook.spotOverrides) as MetalType[],
             setSpot: workbook.handleSpotOverride,
             clearSpot: workbook.clearSpotOverride,
+            freshness: workbook.freshness,
+            snapshotAt: workbook.snapshotAt,
         }),
-        [workbook.displayPrices, workbook.prices, workbook.spotOverrides, workbook.handleSpotOverride, workbook.clearSpotOverride],
+        [workbook.displayPrices, workbook.prices, workbook.spotOverrides, workbook.handleSpotOverride, workbook.clearSpotOverride, workbook.freshness, workbook.snapshotAt],
     );
 
     return (
@@ -81,8 +84,11 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         products,
         historicSpot,
         metalCards,
-        lastUpdatedRelative,
         isStale,
+        freshness,
+        snapshotAt,
+        lastFetchAt,
+        autoRefreshPaused,
         refresh,
         refreshing,
         selectedMetal,
@@ -93,12 +99,12 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         clearAllSpotOverrides,
         spotOverrides,
         freezeSpot,
-        fetchedAt,
         loading,
         error,
     } = workbook;
     const { open: toolsOpen, toggleOpen: toggleTools, flipTransactionType, focusTradeQuantity, clearSelection, rowSelection, setRowSelection } = usePricingTools();
     const { isAdmin } = useAuth();
+    const retryMetal = useRetryMetalSpot();
     const assistant = useAssistantDock();
     const navigate = useNavigate();
     const [graphVisible, setGraphVisible] = useUserPreference('chart-visible', !features.redesign || window.innerHeight >= 900);
@@ -158,18 +164,13 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                 <>
                     {/* One cluster for price status: how fresh, why to worry, and the fix. Day/night, theme editor and sign-out live in the sidebar's user menu; the chart's collapse control lives on the chart. */}
                     <DataFreshnessIndicator
-                        lastUpdatedRelative={lastUpdatedRelative}
-                        snapshotAt={fetchedAt}
+                        freshness={freshness}
+                        snapshotAt={snapshotAt}
+                        lastFetchAt={lastFetchAt}
                         fetchSource={fetchSource}
-                        isStale={isStale}
+                        autoRefreshPaused={autoRefreshPaused}
                     />
-                    {isStale && (
-                        <StalePricesNotice
-                            lastUpdatedRelative={lastUpdatedRelative}
-                            snapshotAt={fetchedAt}
-                            fetchSource={fetchSource}
-                        />
-                    )}
+                    {isStale && <StalePricesNotice freshness={freshness} snapshotAt={snapshotAt} />}
                     <Button
                         variant="outline"
                         size="icon"
@@ -218,6 +219,8 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                                 onValueChange={(value) => handleSpotOverride(card.metal, value)}
                                 onFreeze={() => freezeSpot(card.metal)}
                                 onClearOverride={() => clearSpotOverride(card.metal)}
+                                onRetry={isAdmin ? () => retryMetal.mutate(card.metal) : undefined}
+                                retrying={retryMetal.isPending && retryMetal.variables === card.metal}
                             />
                         ))}
                     </div>

@@ -49,15 +49,33 @@ export function formatMinutesAgo(isoTimestamp: string | null | undefined): strin
 /** "GOLD" -> "Gold" - for anywhere a metal enum would otherwise leak into copy verbatim. */
 export const formatMetalName = (metal: string) => metal.charAt(0).toUpperCase() + metal.slice(1).toLowerCase()
 
-/** The clock time of a price snapshot, to the second - with the date only when it isn't today, so an old snapshot can't be mistaken for a recent one. */
+/** The clock time of a market price, to the minute (the vendor's times are delayed and coarse, so seconds would be false precision) - with the date only when it isn't today, so an old price can't be mistaken for a recent one. */
 export function formatSnapshotTime(isoTimestamp: string | null | undefined): string {
     if (!isoTimestamp) return "unknown"
 
     const date = new Date(isoTimestamp)
-    const time = date.toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    const time = date.toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit" })
     const isToday = date.toDateString() === new Date().toDateString()
 
     return isToday ? time : `${date.toLocaleDateString("en-IE", { day: "numeric", month: "short" })} ${time}`
+}
+
+/** How old something is, coarse enough to read at a glance: "just now", "12 min ago", "2 h 5 min ago", "3 days ago". */
+export function formatAge(ms: number | null | undefined): string {
+    if (ms === null || ms === undefined || !Number.isFinite(ms)) return "unknown"
+
+    const minutes = Math.floor(ms / 60_000)
+    if (minutes < 1) return "just now"
+    if (minutes < 60) return `${minutes} min ago`
+
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) {
+        const rest = minutes % 60
+        return rest === 0 ? `${hours} h ago` : `${hours} h ${rest} min ago`
+    }
+
+    const days = Math.floor(hours / 24)
+    return `${days} day${days === 1 ? "" : "s"} ago`
 }
 
 /** A spot price rounded the way it's displayed (whole euros, silver keeps cents), as a plain number for an input's value. */

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useEffect } from 'react';
-import { useMarketData, STALE_THRESHOLD_MS } from '@/hooks/use-market-data.hook';
+import { useMarketData } from '@/hooks/use-market-data.hook';
+import { spotFreshness } from '@goldilocks/shared-types';
 import { useUserPreference, useUserSessionState } from '@/hooks/use-user-preference.hook';
 import type { MetalType, SpotPrice } from '@/lib/types';
 import {MetalCardData} from "@/app/dashboard/schemas/card-data.schema.ts";
@@ -19,7 +20,9 @@ export function createMetalCard({
                                     changePercent,
                                     isCustomPrice,
                                     freshness,
-                                    lastFetchedAt,
+                                    snapshotAt,
+                                    lastFetchAt,
+                                    priceAgeMs,
                                     fetchSource,
                                 }: {
     metal: MetalType;
@@ -29,7 +32,9 @@ export function createMetalCard({
     changePercent?: number;
     isCustomPrice: boolean;
     freshness: MetalCardData['freshness'];
-    lastFetchedAt?: string;
+    snapshotAt?: string;
+    lastFetchAt?: string;
+    priceAgeMs?: number | null;
     fetchSource?: MetalCardData['fetchSource'];
 }): MetalCardData {
 
@@ -43,7 +48,9 @@ export function createMetalCard({
         changePercent: isCustomPrice ? undefined : changePercent,
         direction: isCustomPrice ? undefined : getDirection(change ?? 0),
         freshness,
-        lastFetchedAt,
+        snapshotAt,
+        lastFetchAt,
+        priceAgeMs,
         fetchSource,
     };
 }
@@ -54,15 +61,18 @@ export function createMetalCard({
  * live fetch was just attempted and failed but a last-known-good DB price
  * exists (checked before the age-based "stale" check - a fallback price
  * might technically still be within the staleness window but the fact a
- * fetch just failed is the more important thing to surface); "stale" if
- * its snapshot is older than the cron's normal cadence allows; otherwise
- * "fresh".
+ * fetch just failed is the more important thing to surface); otherwise
+ * fresh/late/stale/closed by spotFreshness, from when we fetched it.
  */
-function getCardFreshness(spot: SpotPrice | undefined, isDegraded: boolean): MetalCardData['freshness'] {
-    if (isDegraded || !spot) return 'failed';
-    if (spot.isFallback) return 'fallback';
-    const age = Date.now() - new Date(spot.timestamp).getTime();
-    return age > STALE_THRESHOLD_MS ? 'stale' : 'fresh';
+function getCardFreshness(
+    spot: SpotPrice | undefined,
+    isDegraded: boolean,
+): { freshness: MetalCardData['freshness']; priceAgeMs: number | null } {
+    if (!spot) return { freshness: 'failed', priceAgeMs: null };
+    const { state, priceAgeMs } = spotFreshness({ snapshotAt: spot.timestamp, lastFetchAt: spot.createdAt, now: new Date() });
+    if (isDegraded) return { freshness: 'failed', priceAgeMs };
+    if (spot.isFallback) return { freshness: 'fallback', priceAgeMs };
+    return { freshness: state === 'unknown' ? 'failed' : state, priceAgeMs };
 }
 
 
@@ -77,9 +87,11 @@ function getDirection(
 }
 
 // ── Internal: debounced recalc ────────────────────────────────────────────────
+/** Re-prices the table for the current overrides; also after a new price snapshot arrives (the poll refetches live-priced products, which would otherwise drop a frozen spot from the table). */
 function useDebouncedRecalc(
     spotOverrides: Partial<Record<MetalType, number>>,
     recalc: (overrides: Partial<Record<MetalType, number>>) => void,
+    snapshotAt: string | null,
 ) {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,7 +109,7 @@ function useDebouncedRecalc(
                 clearTimeout(timerRef.current);
             }
         };
-    }, [spotOverrides, recalc]);
+    }, [spotOverrides, recalc, snapshotAt]);
 }
 
 // ── Public hook ───────────────────────────────────────────────────────────────
@@ -120,7 +132,10 @@ export function usePricingWorkbook() {
         error,
         lastUpdatedLabel,
         lastUpdatedRelative,
-        fetchedAt,
+        snapshotAt,
+        lastFetchAt,
+        autoRefreshPaused,
+        freshness,
         isStale,
         degradedMetals,
         recalc,
@@ -128,7 +143,7 @@ export function usePricingWorkbook() {
         refreshing
     } = useMarketData();
 
-    useDebouncedRecalc(spotOverrides, recalc);
+    useDebouncedRecalc(spotOverrides, recalc, snapshotAt);
 
     // ── Derived: display price per metal (override beats live) ────────────────
     const displayPrices = useMemo(
@@ -181,8 +196,9 @@ export function usePricingWorkbook() {
                     change: spot?.change,
                     changePercent: spot?.changePercent,
                     isCustomPrice: spotOverrides[metal] !== undefined,
-                    freshness: getCardFreshness(spot, degradedMetals.includes(metal)),
-                    lastFetchedAt: spot?.timestamp,
+                    ...getCardFreshness(spot, degradedMetals.includes(metal)),
+                    snapshotAt: spot?.timestamp,
+                    lastFetchAt: spot?.createdAt,
                     fetchSource: spot?.fetchSource,
                 });
             }),
@@ -221,7 +237,10 @@ export function usePricingWorkbook() {
 
         spotStatusLabel: lastUpdatedLabel,
         lastUpdatedRelative,
-        fetchedAt,
+        snapshotAt,
+        lastFetchAt,
+        autoRefreshPaused,
+        freshness,
         isStale,
         degradedMetals,
 

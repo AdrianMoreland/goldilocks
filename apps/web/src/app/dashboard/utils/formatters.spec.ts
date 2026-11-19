@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatEuro, formatGrams, formatPercent, formatPrice, formatSpot } from "./formatters"
+import { formatAge, formatEuro, formatGrams, formatPercent, formatPrice, formatSpot } from "./formatters"
 
 describe("formatPrice (quoted prices, whole euros)", () => {
     it("shows euros with a thousands separator and no cents", () => {
@@ -53,5 +53,20 @@ describe("formatGrams and formatPercent", () => {
     it("shows a dash for a missing value", () => {
         expect(formatGrams(null)).toBe("-")
         expect(formatPercent(undefined)).toBe("-")
+    })
+})
+
+describe("formatAge (how old a price is, for the price status)", () => {
+    it.each([
+        [null, "unknown"],
+        [30_000, "just now"],
+        [60_000, "1 min ago"],
+        [12 * 60_000 + 59_000, "12 min ago"],
+        [60 * 60_000, "1 h ago"],
+        [125 * 60_000, "2 h 5 min ago"],
+        [26 * 60 * 60_000, "1 day ago"],
+        [3 * 24 * 60 * 60_000, "3 days ago"],
+    ])("%s ms -> %s", (ms, label) => {
+        expect(formatAge(ms)).toBe(label)
     })
 })
