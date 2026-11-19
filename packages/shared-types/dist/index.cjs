@@ -328,6 +328,7 @@ __export(index_exports, {
   RelinkRequestSchema: () => RelinkRequestSchema,
   RelinkResultSchema: () => RelinkResultSchema,
   RelinkTableResultSchema: () => RelinkTableResultSchema,
+  ResolveSheetApplicationRequestSchema: () => ResolveSheetApplicationRequestSchema,
   ReviewLinkRowSchema: () => ReviewLinkRowSchema,
   ReviewLinkTypeSchema: () => ReviewLinkTypeSchema,
   ReviewLinksQuerySchema: () => ReviewLinksQuerySchema,
@@ -384,6 +385,11 @@ __export(index_exports, {
   SettleNamesRequestSchema: () => SettleNamesRequestSchema,
   SettleNamesResultSchema: () => SettleNamesResultSchema,
   SettleResultSchema: () => SettleResultSchema,
+  SheetApplyItemSchema: () => SheetApplyItemSchema,
+  SheetApplyPreviewSchema: () => SheetApplyPreviewSchema,
+  SheetApplyResultSchema: () => SheetApplyResultSchema,
+  SheetKindSchema: () => SheetKindSchema,
+  SheetLineOptionSchema: () => SheetLineOptionSchema,
   SheetNameEnum: () => SheetNameEnum,
   SheetTaskListQuerySchema: () => SheetTaskListQuerySchema,
   SheetTaskSchema: () => SheetTaskSchema,
@@ -533,6 +539,7 @@ __export(index_exports, {
   mapOutsideCode: () => mapOutsideCode,
   mapPurchaseHeaders: () => mapPurchaseHeaders,
   mapSaleHeaders: () => mapSaleHeaders,
+  matchLines: () => matchLines2,
   matchProductName: () => matchProductName,
   matchTradeLine: () => matchTradeLine,
   meltLabel: () => meltLabel,
@@ -585,6 +592,7 @@ __export(index_exports, {
   planBarImport: () => planBarImport,
   planBaseline: () => planBaseline,
   planCustomerOrderImport: () => planCustomerOrderImport,
+  planRow: () => planRow,
   planUpload: () => planUpload,
   priceMetalEvidence: () => priceMetalEvidence,
   pricingSkuFor: () => pricingSkuFor,
@@ -592,6 +600,7 @@ __export(index_exports, {
   readCollected: () => readCollected,
   readForeignCoin: () => readForeignCoin,
   readImportWorkbook: () => readImportWorkbook,
+  readProduct: () => readProduct,
   referenceMatchKey: () => referenceMatchKey,
   refineryInText: () => refineryInText,
   refineryMatch: () => refineryMatch,
@@ -8933,6 +8942,117 @@ var LiveStockBoardQuerySchema = import_zod31.z.object({
   branch: BranchCode,
   metal: LiveMetalSchema.default("GOLD")
 });
+var SheetKindSchema = import_zod31.z.enum(["SALE", "PURCHASE"]);
+var SheetLineOptionSchema = import_zod31.z.object({
+  lineId: import_zod31.z.number().int(),
+  label: import_zod31.z.string(),
+  qty: import_zod31.z.number().int()
+});
+var SheetApplyItemSchema = import_zod31.z.object({
+  /** kind|referenceKey|occurrence, stable across uploads. */
+  key: import_zod31.z.string(),
+  applicationId: import_zod31.z.number().int().nullable(),
+  kind: SheetKindSchema,
+  reference: import_zod31.z.string(),
+  branchCode: import_zod31.z.string(),
+  metal: LiveMetalSchema,
+  productText: import_zod31.z.string(),
+  date: import_zod31.z.string().nullable(),
+  /** Signed change to stock: negative for a sale. */
+  delta: import_zod31.z.number().int(),
+  /** The line it lands on, when it is clear. */
+  line: SheetLineOptionSchema.nullable(),
+  outcome: import_zod31.z.enum(["APPLY", "CREATE", "ASK_COUNTED", "PICK_LINE", "UNMATCHED", "WITHDRAWN", "NEGATIVE"]),
+  message: import_zod31.z.string(),
+  /** Lines a person may choose from, for the outcomes that need a choice. */
+  options: import_zod31.z.array(SheetLineOptionSchema)
+});
+var SheetApplyPreviewSchema = import_zod31.z.object({
+  /** Cut-over date per branch; null means that branch has no baseline yet and none of its rows apply. */
+  cutovers: import_zod31.z.record(import_zod31.z.string(), import_zod31.z.string().nullable()),
+  willApply: import_zod31.z.array(SheetApplyItemSchema),
+  needsDecision: import_zod31.z.array(SheetApplyItemSchema),
+  /** Rows already waiting from an earlier run. */
+  pending: import_zod31.z.array(SheetApplyItemSchema),
+  skipped: import_zod31.z.record(import_zod31.z.string(), import_zod31.z.number().int())
+});
+var SheetApplyResultSchema = import_zod31.z.object({
+  applied: import_zod31.z.number().int(),
+  units: import_zod31.z.number().int(),
+  waiting: import_zod31.z.number().int(),
+  failed: import_zod31.z.array(import_zod31.z.object({ reference: import_zod31.z.string(), message: import_zod31.z.string() })),
+  skipped: import_zod31.z.record(import_zod31.z.string(), import_zod31.z.number().int())
+});
+var ResolveSheetApplicationRequestSchema = import_zod31.z.object({
+  choice: import_zod31.z.enum(["COUNTED", "APPLY", "LINE", "REVERSE", "KEEP", "DISMISS"]),
+  lineId: import_zod31.z.number().int().optional()
+});
+
+// src/sheet-apply.ts
+function readProduct(text4) {
+  const isBar = /\bbars?\b/i.test(text4);
+  if (isBar) {
+    const w = parseBarWeight(text4);
+    return w.grams === null ? null : { kind: "BAR", variant: w.variant };
+  }
+  const coin = parseCoinName(text4);
+  if (coin.family === "Other") return null;
+  return { kind: "COIN", family: coin.family, variant: coin.variant, weight: parseWeight(text4)?.label ?? null };
+}
+function matchLines2(product, lines) {
+  if (product.kind === "BAR") return lines.filter((l) => l.kind === "BAR" && l.variant === product.variant);
+  const sameFamily = lines.filter((l) => l.kind === "COIN" && l.family.toLowerCase() === product.family.toLowerCase());
+  const exact = sameFamily.filter((l) => l.variant.toLowerCase() === product.variant.toLowerCase());
+  if (exact.length) return exact;
+  if (!product.weight) return [];
+  return sameFamily.filter((l) => l.variant.toLowerCase().startsWith(product.weight.toLowerCase()));
+}
+function planRow(row, prior, ctx) {
+  if (!row.eligible) {
+    if (prior && prior.status === "APPLIED" && prior.appliedQty !== 0) {
+      return { type: "WITHDRAWN", appliedQty: prior.appliedQty, lineId: prior.lineId };
+    }
+    return { type: "SKIP", reason: "INELIGIBLE" };
+  }
+  if (!row.branchCode || ctx.cutoverDate === null) return { type: "SKIP", reason: "NO_BRANCH" };
+  if (prior?.status === "DISMISSED") return { type: "SKIP", reason: "DISMISSED" };
+  if (!row.date) return { type: "SKIP", reason: "NO_DATE" };
+  if (row.date <= ctx.cutoverDate) return { type: "SKIP", reason: "CUTOVER" };
+  if (!row.qty || row.qty <= 0) return { type: "SKIP", reason: "NO_QTY" };
+  const sign = row.kind === "SALE" ? -1 : 1;
+  const target = sign * row.qty;
+  if (prior) {
+    if (prior.status === "NEEDS_DECISION") return { type: "SKIP", reason: "PENDING" };
+    const diff = target - prior.appliedQty;
+    if (diff === 0) return { type: "SKIP", reason: "UNCHANGED" };
+    if (prior.lineId === null) return { type: "SKIP", reason: "PENDING" };
+    return { type: "APPLY", delta: diff, lineId: prior.lineId };
+  }
+  const product = readProduct(row.productText);
+  if (!product) return { type: "UNMATCHED", delta: target, message: `Cannot tell what \u201C${row.productText}\u201D is.` };
+  let found = matchLines2(product, ctx.candidates);
+  if (row.kind === "SALE") {
+    const stocked = found.filter((l) => l.qty > 0);
+    if (stocked.length === 0) {
+      return {
+        type: "UNMATCHED",
+        delta: target,
+        message: found.length ? "The matching line has no stock on record." : "No stock line matches this product at this branch."
+      };
+    }
+    found = stocked;
+  }
+  if (found.length === 0) {
+    const create = product.kind === "BAR" ? { kind: "BAR", family: "Bar", variant: product.variant, refinery: "" } : { kind: "COIN", family: product.family, variant: product.variant, refinery: "" };
+    return { type: "CREATE_AND_APPLY", delta: target, create };
+  }
+  if (found.length > 1) return { type: "PICK_LINE", delta: target, lineIds: found.map((l) => l.lineId) };
+  const only = found[0];
+  if (only.lastManualOn !== null && only.lastManualOn >= row.date) {
+    return { type: "ASK_COUNTED", delta: target, lineId: only.lineId };
+  }
+  return { type: "APPLY", delta: target, lineId: only.lineId };
+}
 
 // src/product-names.ts
 var METAL_TOKEN = [
@@ -9636,6 +9756,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   RelinkRequestSchema,
   RelinkResultSchema,
   RelinkTableResultSchema,
+  ResolveSheetApplicationRequestSchema,
   ReviewLinkRowSchema,
   ReviewLinkTypeSchema,
   ReviewLinksQuerySchema,
@@ -9692,6 +9813,11 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SettleNamesRequestSchema,
   SettleNamesResultSchema,
   SettleResultSchema,
+  SheetApplyItemSchema,
+  SheetApplyPreviewSchema,
+  SheetApplyResultSchema,
+  SheetKindSchema,
+  SheetLineOptionSchema,
   SheetNameEnum,
   SheetTaskListQuerySchema,
   SheetTaskSchema,
@@ -9841,6 +9967,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   mapOutsideCode,
   mapPurchaseHeaders,
   mapSaleHeaders,
+  matchLines,
   matchProductName,
   matchTradeLine,
   meltLabel,
@@ -9893,6 +10020,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   planBarImport,
   planBaseline,
   planCustomerOrderImport,
+  planRow,
   planUpload,
   priceMetalEvidence,
   pricingSkuFor,
@@ -9900,6 +10028,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   readCollected,
   readForeignCoin,
   readImportWorkbook,
+  readProduct,
   referenceMatchKey,
   refineryInText,
   refineryMatch,

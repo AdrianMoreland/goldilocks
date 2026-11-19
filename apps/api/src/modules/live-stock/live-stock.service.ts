@@ -65,7 +65,7 @@ export class LiveStockService {
 
     // ------------------------------------------------------------ access
 
-    private canEditBranch(
+    canEditBranch(
         user: AuthenticatedUser,
         branch: { branchId: number | null },
     ): boolean {
@@ -73,7 +73,7 @@ export class LiveStockService {
         return branch.branchId !== null && branch.branchId === user.branchId;
     }
 
-    private async assertCanEdit(
+    async assertCanEdit(
         user: AuthenticatedUser,
         branchCode: string,
     ): Promise<void> {
@@ -211,7 +211,7 @@ export class LiveStockService {
      * Change a line's count by `delta` and record why. Rejects a count below zero, and for bars a count below the number
      * of serialled bars still in stock. Throws inside the transaction, so nothing is half written.
      */
-    private async move(
+    async move(
         tx: Tx,
         lineId: number,
         delta: number,
@@ -256,7 +256,7 @@ export class LiveStockService {
         return { id: m.id, qtyAfter: line.qty };
     }
 
-    private async lineOrThrow(tx: Tx | PrismaService, id: number) {
+    async lineOrThrow(tx: Tx | PrismaService, id: number) {
         const line = await tx.liveStockLine.findUnique({ where: { id } });
         if (!line) throw new NotFoundException(`Stock line ${id} not found.`);
         return line;

@@ -105,5 +105,6 @@ export * from './customer-records.schema';
 export * from './inventory.schema';
 export * from './live-stock';
 export * from './live-stock.schema';
+export * from './sheet-apply';
 export * from './product-names';
 export * from './bc-history';
