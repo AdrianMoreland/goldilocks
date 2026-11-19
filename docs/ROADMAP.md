@@ -92,9 +92,14 @@ Single source of truth for what to build and in what order. Merges three earlier
 - [x] Admin cron control (pause/resume) and fetch-time toast
 - [x] Admin error log / system status panel (first version)
 - [x] Distinct toast on fetch **failure** (vs. stale data) - S *(`use-market-data.hook.ts`: "Live price fetch failed - showing the last known prices from the database", plus separate refresh-failed and fetch-error toasts)*
-- [ ] Explicit "serving last-known-good" fallback indicator on the cards - S *(the toast and the stale-prices notice say it; no persistent per-card marker)*
-- [ ] Retry button per failed metal fetch on the dashboard cards - S *(the API route `POST /metals/:metal/retry` and an admin Overview retry exist; the cards have no button)*
-- [ ] 🟠 **Spot polling:** `refetchInterval` (60 s – 5 min) on the spot query so prices update without a reload or Refresh - S *(today only the admin tabs and a few tool queries poll; the dashboard's market data does not. Part of 0.13)*
+- [x] Explicit "serving last-known-good" fallback indicator on the cards - S *(done 2026-11-19: a persistent "Last known price" / "No live price" line on the card, `section-cards.tsx` `FetchFailedNote`)*
+- [x] Retry button per failed metal fetch on the dashboard cards - S *(done 2026-11-19: admins only, since it spends vendor quota; `useRetryMetalSpot` in `use-market-data.hook.ts` calls `POST /metals/:metal/retry`)*
+- [x] 🟠 **Spot polling:** `refetchInterval` (60 s – 5 min) on the spot query so prices update without a reload or Refresh - S *(done 2026-11-19: the dashboard polls the light `GET /market-data/spot-status` every 2 min (cache only, never the vendor while the cron is paused) and refetches the full market data only when the market time changes; frozen spots are re-applied after the refetch. The full three-query split stays in 0.13)*
+- [x] **Header shows the price's own market time:** "As of 17:55 · 12 min ago", not when it was fetched; the dot follows the time since the last fetch (green up to 6 min, amber after a missed fetch, red at 25 min, grey with the Friday close while the market is shut, Fri 22:00 to Sun 23:00 UK); source and fetch time in the tooltip; toasts and the stale notice reworded; API field `fetchedAt` renamed `snapshotAt`, plus `lastFetchAt` and `autoRefreshPaused` - S *(done 2026-11-19: `packages/shared-types/src/spot-freshness.ts` with `spot-freshness.spec.ts`; `data-freshness-indicator.tsx`; `market-data.service.spec.ts`)*
+- [x] Price cron every 5 minutes, paused after every start-up and deploy; while paused, a page load never calls the vendor (the stored price is shown with its real age) and the header says "Paused" - S *(done 2026-11-19: `metals.cron.ts`, `MetalsProvider.getAllLatestForLaunch`, specs in `metals.cron.spec.ts` and `metals.provider.spec.ts`)*
+- [x] A vendor response with a missing or future timestamp is a failed fetch, never stamped "now" (which made an unknown-age price look new) - S *(done 2026-11-19: `vendorAsOf` in `vendor-rates.ts`, specs in `vendor-rates.spec.ts` and `metals.provider.spec.ts`)*
+- [x] Before Easy Copy or Message customer quotes a live spot that is amber or red, ask: type a current spot (it becomes the Trade tool's spot) or go on with the old price - S *(done 2026-11-19: `pricing-tools/stale-spot-guard.tsx`; not asked when the spot is frozen or typed)*
+- [ ] Market-hours calendar: bank holidays and early closes for the grey "closed" state (today only the weekend gap) - S
 - [ ] Polling indicator (live / retrying / offline) and backoff on repeated failures - M *(replaces the earlier SSE indicator and auto-reconnect items; SSE is now a conditional item in 0.7)*
 - [ ] Loading skeletons + empty states for cards, chart, table - S *(none exist today)*
 - [ ] Customer-facing display mode: fullscreen, hides premiums/margins, sell prices only - M
@@ -200,7 +205,7 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 - [ ] **Live status:** per-metal age/source/dot, next-fetch countdown, pause state, polling state + failure count, overall banner (good / degraded / failed) - M
 - [ ] **Dependency health:** Postgres latency + pool use, Redis latency/hit ratio/TTLs, MetalsAPI latency + status, **quota used vs plan + projected monthly**, process uptime + commit SHA + env - M
 - [ ] **Fetch history table:** last 50–100 attempts, filter by metal/outcome, expandable failure snippet, per-row retry, CSV export, summary (success rate 24h/7d, avg + p95 latency, longest gap) - M
-- [ ] **Data sanity:** sudden-move flag (optionally reject), gold/silver ratio band, zero/null/stale-timestamp rejection, **currency check (EUR not USD)**, market-open-aware staleness - M
+- [ ] **Data sanity:** sudden-move flag (optionally reject), gold/silver ratio band, zero/null/stale-timestamp rejection, **currency check (EUR not USD)**, market-open-aware staleness - M *(weekend gap done 2026-11-19 in `spot-freshness.ts`; the rest open)*
 - [ ] Config snapshot (read-only, key masked) and actions row (force refresh, clear Redis, run health check, download diagnostics JSON) - S
 - [ ] Usage analytics: most-viewed metals, most-copied products, copy-format usage, active sessions (management pitch evidence) - M
 - [x] Metrics widget: fetch success rate 24h, avg latency, cache hit ratio - S
@@ -297,7 +302,7 @@ Found by the 2026-10-01 code review. Do these right after CI (0.10) and before t
 
 - [ ] Reproduce problem 2 (freeze a spot → Refresh → compare a card with a table row; also a product edit while frozen) and measure the real payload and the history share - S
 - [ ] `GET /market-data/history` with a `HistoryCacheStore extends CacheAsideStore` (Redis, TTL of hours, busted by the daily close job); coordinate with 1.3 - M
-- [ ] `GET /market-data/spot` (cards, freshness, `isFallback`, `degradedMetals`) - S
+- [ ] `GET /market-data/spot` (cards, freshness, `isFallback`, `degradedMetals`) - S *(partly: `GET /market-data/spot-status` returns the times, pause state and `degradedMetals`, no prices yet)*
 - [ ] Web: `useSpotQuery` (poll 60 s – 5 min), `useProductsQuery` (staleTime ~5 min), `useHistoryQuery` (staleTime of hours); `useMarketData()` stays as a thin composite so consumers barely change - M
 - [ ] Client-side pricing: `pricedProducts = useMemo(() => products.map(p => calculateProductPrice(p, displayPrices)))` - M
 - [ ] Targeted invalidation: a product edit/delete/restore invalidates products only; Refresh invalidates spot only; one `invalidateProducts()` helper for the 8 call sites - S
