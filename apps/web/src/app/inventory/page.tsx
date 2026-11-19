@@ -10,8 +10,9 @@ import { CountTabs } from "@/components/ui/count-tabs"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import StocktakeListPage from "@/app/stocktake/page"
+import { LiveStockTab } from "./live/live-stock-tab"
 
-type Tab = "position" | "bars" | "coins" | "month-end"
+type Tab = "live" | "position" | "bars" | "coins" | "month-end"
 
 const PAGE = 50
 const METALS: Record<string, string> = { GOLD: "Gold", SILVER: "Silver", PGM: "Platinum / palladium" }
@@ -24,9 +25,9 @@ const BAR_STATUS: Record<string, string> = { UNCONFIRMED: "Not seen yet", CONFIR
  */
 export default function InventoryPage() {
     const api = useInventoryApi()
-    const [tab, setTab] = useState<Tab>("position")
+    const [tab, setTab] = useState<Tab>("live")
     const [stocktakeId, setStocktakeId] = useState<number | undefined>(undefined)
-    const position = useQuery({ queryKey: ["inventory", "position", stocktakeId], queryFn: () => api.position(stocktakeId) })
+    const position = useQuery({ queryKey: ["inventory", "position", stocktakeId], queryFn: () => api.position(stocktakeId), enabled: tab !== "live" })
     const st = position.data?.stocktake
 
     return (
@@ -43,7 +44,7 @@ export default function InventoryPage() {
                         { value: "month-end", label: "Month-end" },
                     ]}
                 />
-                {tab !== "month-end" && position.data && (
+                {tab !== "live" && tab !== "month-end" && position.data && (
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                         {st ? (
                             <>
@@ -68,6 +69,7 @@ export default function InventoryPage() {
                         )}
                     </div>
                 )}
+                {tab === "live" && <LiveStockTab />}
                 {tab === "position" && <PositionTab position={position.data} loading={position.isLoading} />}
                 {tab === "bars" && st && <BarsTab stocktakeId={st.id} />}
                 {tab === "coins" && st && <CoinsTab stocktakeId={st.id} />}

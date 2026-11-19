@@ -80,11 +80,21 @@ function average(values: number[]): number {
     return values.reduce((sum, v) => sum + v, 0) / values.length
 }
 
+/**
+ * The member a merged "{fraction} Coin" row stands for in the side panel: the plain product named like the row
+ * ("1/4oz Coin"), never a mint-specific one ("1/4oz US Eagle"). Falls back to the first member when none is plain.
+ */
+function standardMember(metalType: MetalType, label: string, group: Product[]): Product {
+    const plain = group.find((p) => stripMetalWord(p.name, metalType).toLowerCase() === label.toLowerCase())
+    return plain ?? group[0]
+}
+
 function mergeCoinGroup(metalType: MetalType, label: string, group: Product[]): DisplayProduct {
+    const standard = standardMember(metalType, label, group)
     const mostRecent = group.reduce((latest, p) => (p.updatedAt > latest.updatedAt ? p : latest), group[0])
 
     return {
-        id: group[0].id,
+        id: standard.id,
         sku: group.map((p) => p.sku).join(" / "),
         name: label,
         metalType,

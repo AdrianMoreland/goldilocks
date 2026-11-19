@@ -1,5 +1,6 @@
 import type { TradeCartResponse, TradeTransactionType } from "@goldilocks/shared-types"
 import { formatPrice, formatSpot } from "./formatters"
+import { escapeHtml, renderHtmlTable } from "./html-table"
 
 export type MessageChannel = "whatsapp" | "email"
 
@@ -16,7 +17,6 @@ interface MessageInput {
 
 type Line = TradeCartResponse["lines"][number]
 
-const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 const pct = (line: Line) => `${line.percent.toFixed(2)}%`
 const bold = (value: string) => `*${value}*`
 
@@ -152,18 +152,12 @@ export function buildCustomerMessage(input: MessageInput): { text: string; html?
         "Merrion Gold",
     ].join("\n")
 
-    // Inline styles plus a bgcolor attribute: Outlook and Gmail drop most
-    // stylesheet rules but honour these. Gold is the brand's own colour.
-    const cell = (value: string, tag: "th" | "td", strong = false) =>
-        tag === "th"
-            ? `<th bgcolor="#DAAB69" style="border:1px solid #ddd;padding:6px 10px;text-align:left;background-color:#DAAB69;color:#1a1a1a;">${escapeHtml(value)}</th>`
-            : `<td style="border:1px solid #ddd;padding:6px 10px;text-align:left;${strong ? "font-weight:bold;" : ""}">${escapeHtml(value)}</td>`
     const paragraph = (value: string) => `<p style="margin:0 0 12px;">${escapeHtml(value)}</p>`
 
     const html = `<div style="font-family:sans-serif;font-size:14px;">
 ${paragraph("Dear Customer,")}
 <p style="margin:0 0 12px;">${introHtml}</p>
-<table style="border-collapse:collapse;margin:0 0 12px;font-size:13px;"><thead><tr>${headers.map((h) => cell(h, "th")).join("")}</tr></thead><tbody>${tableRows.map((r) => `<tr>${r.map((c, i) => cell(c, "td", i > 0 && !(showQty && i === 1))).join("")}</tr>`).join("")}</tbody></table>
+${renderHtmlTable(headers, tableRows, (i) => i > 0 && !(showQty && i === 1))}
 ${paragraph(closing)}
 ${paragraph("Kind regards,")}
 <p style="margin:0;">Merrion Gold</p>

@@ -106,6 +106,16 @@ import {
     PortfolioBuildRequestSchema,
     PortfolioBuildResponseSchema,
 } from '@goldilocks/shared-types';
+import {
+    AdjustLiveStockRequestSchema,
+    CreateLiveStockLineRequestSchema,
+    AddLiveStockBarRequestSchema,
+    SetLiveStockBarStatusRequestSchema,
+    TransferLiveStockRequestSchema,
+    LowThresholdRequestSchema,
+    LinkLiveStockBranchRequestSchema,
+    LiveBaselineRequestSchema,
+} from '@goldilocks/shared-types';
 import { createDto } from './dto-generator';
 
 // ============================================================================
@@ -676,4 +686,48 @@ export class RoadmapQueueFiledRequestDto extends createDto(
 export class RoadmapQueueFiledResultDto extends createDto(
     RoadmapQueueFiledResultSchema,
     'RoadmapQueueFiledResultDto',
+) {}
+
+// ============================================================================
+// LIVE STOCK DTOs
+// ============================================================================
+
+export class AdjustLiveStockRequestDto extends createDto(
+    AdjustLiveStockRequestSchema,
+    'AdjustLiveStockRequestDto',
+) {}
+
+export class CreateLiveStockLineRequestDto extends createDto(
+    CreateLiveStockLineRequestSchema,
+    'CreateLiveStockLineRequestDto',
+) {}
+
+export class AddLiveStockBarRequestDto extends createDto(
+    AddLiveStockBarRequestSchema,
+    'AddLiveStockBarRequestDto',
+) {}
+
+export class SetLiveStockBarStatusRequestDto extends createDto(
+    SetLiveStockBarStatusRequestSchema,
+    'SetLiveStockBarStatusRequestDto',
+) {}
+
+export class TransferLiveStockRequestDto extends createDto(
+    TransferLiveStockRequestSchema,
+    'TransferLiveStockRequestDto',
+) {}
+
+export class LowThresholdRequestDto extends createDto(
+    LowThresholdRequestSchema,
+    'LowThresholdRequestDto',
+) {}
+
+export class LinkLiveStockBranchRequestDto extends createDto(
+    LinkLiveStockBranchRequestSchema,
+    'LinkLiveStockBranchRequestDto',
+) {}
+
+export class LiveBaselineRequestDto extends createDto(
+    LiveBaselineRequestSchema,
+    'LiveBaselineRequestDto',
 ) {}
