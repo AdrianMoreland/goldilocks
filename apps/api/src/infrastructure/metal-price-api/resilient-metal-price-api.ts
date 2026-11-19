@@ -14,7 +14,7 @@ import type { MetalPriceApiPort } from './metal-price-api.port';
 const REQUEST_TIMEOUT_MS = 10_000;
 const FAILURE_THRESHOLD = 3;
 // Short on purpose: it exists to stop bursts of cache-miss requests from each re-calling a dead vendor.
-// The 10-minute cron outlasts it, so a recovered vendor is picked up on the next scheduled run.
+// The 5-minute cron outlasts it, so a recovered vendor is picked up on the next scheduled run.
 const COOLDOWN_MS = 60_000;
 
 /**

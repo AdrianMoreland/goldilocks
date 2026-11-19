@@ -3,11 +3,9 @@ import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { MetalsProvider } from './metals.provider';
 import { HistoricSpotService } from './historic-spot.service';
 import { getYesterday } from '../../common/utils/date.utils';
+import { PRICE_REFRESH_JOB } from './price-refresh-schedule';
 
 const STALE_THRESHOLD_DAYS = 1;
-
-/** Name registered with SchedulerRegistry - lets the admin panel actually start/stop the underlying cron-job timer, not just a flag the job checks. */
-const PRICE_REFRESH_JOB = 'updateMetals';
 
 @Injectable()
 export class MetalsCron implements OnModuleInit {
@@ -19,7 +17,7 @@ export class MetalsCron implements OnModuleInit {
         private readonly schedulerRegistry: SchedulerRegistry,
     ) {}
 
-    /** Whether the 10-minute price-refresh cron is currently running. Resets to running on every restart/redeploy - this is a manual runtime pause, not a persisted setting. */
+    /** Whether the 5-minute price-refresh cron is currently running. It starts paused on every restart/redeploy (vendor quota); an admin resumes it from the Admin panel. */
     isPriceCronRunning(): boolean {
         return this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB).isActive;
     }
@@ -77,7 +75,12 @@ export class MetalsCron implements OnModuleInit {
         await this.historicSpots.seedHistoricPrices();
     }
 
-    @Cron(CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB })
+    // Every 5 minutes while running; registered paused so a deploy never
+    // starts spending vendor quota on its own (an admin resumes it).
+    @Cron(CronExpression.EVERY_5_MINUTES, {
+        name: PRICE_REFRESH_JOB,
+        disabled: true,
+    })
     async updateMetals() {
         try {
             const { degradedMetals } =

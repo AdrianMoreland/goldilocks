@@ -4,6 +4,7 @@ import type { MetalPriceApiPort } from '../../infrastructure/metal-price-api/met
 import type { SpotPriceCacheStore } from './spot-price-cache.store';
 import type { CascadeMetricsService } from './cascade-metrics.service';
 import type { FetchAttemptService } from './fetch-attempt.service';
+import type { PriceRefreshSchedule } from './price-refresh-schedule';
 import type { RawSpotPrice } from '@goldilocks/shared-types';
 
 // Vendor rates are "units of metal per 1 EUR", so price = 1 / rate.
@@ -34,7 +35,7 @@ const dbRow = (
     timestamp,
 });
 
-function build() {
+function build({ autoRefreshRunning = true } = {}) {
     const prisma = {
         metalSpotPrice: {
             createMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -52,12 +53,14 @@ function build() {
     };
     const metrics = { recordCacheHit: jest.fn(), recordCacheMiss: jest.fn() };
     const attempts = { record: jest.fn().mockResolvedValue(undefined) };
+    const schedule = { isRunning: jest.fn(() => autoRefreshRunning) };
     const provider = new MetalsProvider(
         prisma as unknown as PrismaService,
         api as unknown as MetalPriceApiPort,
         spotCache as unknown as SpotPriceCacheStore,
         metrics as unknown as CascadeMetricsService,
         attempts as unknown as FetchAttemptService,
+        schedule as unknown as PriceRefreshSchedule,
     );
     return { provider, prisma, api, spotCache, metrics, attempts };
 }
@@ -178,18 +181,31 @@ describe('MetalsProvider.refreshAll', () => {
         expect(prices.find((p) => p.metalType === 'GOLD')?.priceEur).toBe(0);
     });
 
-    it('ignores a vendor timestamp in the future', async () => {
-        const { provider, api } = build();
-        api.livePrices.mockResolvedValue(
-            liveResponse(ALL_RATES, {
-                timestamp: Math.floor(Date.now() / 1000) + 86_400,
-            }),
-        );
+    it.each([
+        ['in the future', Math.floor(Date.now() / 1000) + 86_400],
+        ['missing', undefined],
+    ])(
+        'treats a vendor timestamp %s as a failed fetch and keeps the last stored price',
+        async (_label, timestamp) => {
+            const { provider, api, prisma, spotCache, attempts } = build();
+            api.livePrices.mockResolvedValue(
+                liveResponse(ALL_RATES, { timestamp }),
+            );
+            spotCache.getFromDbOnly.mockImplementation(
+                async (metal: RawSpotPrice['metalType']) => dbRow(metal, 100),
+            );
 
-        const { prices } = await provider.refreshAll();
+            const { prices } = await provider.refreshAll();
 
-        expect(Date.parse(prices[0].timestamp)).toBeLessThanOrEqual(Date.now());
-    });
+            expect(prisma.metalSpotPrice.createMany).not.toHaveBeenCalled();
+            expect(
+                prices.every((p) => p.fetchSource === 'db' && p.isFallback),
+            ).toBe(true);
+            expect(attempts.record).toHaveBeenCalledWith(
+                expect.objectContaining({ success: false }),
+            );
+        },
+    );
 });
 
 describe('MetalsProvider.retryMetal', () => {
@@ -294,5 +310,36 @@ describe('MetalsProvider.getAllLatestForLaunch', () => {
             'SILVER',
         ]);
         expect(prices).toHaveLength(4);
+    });
+
+    it('never calls the vendor while auto-refresh is paused: an old stored price is served as it is', async () => {
+        const { provider, api, spotCache } = build({
+            autoRefreshRunning: false,
+        });
+        const old = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
+        spotCache.getFromDbOnly.mockImplementation(
+            async (metal: RawSpotPrice['metalType']) => dbRow(metal, 100, old),
+        );
+
+        const { prices, degradedMetals } =
+            await provider.getAllLatestForLaunch();
+
+        expect(api.livePrices).not.toHaveBeenCalled();
+        expect(degradedMetals).toEqual([]);
+        expect(prices).toHaveLength(4);
+        expect(
+            prices.every((p) => p.fetchSource === 'db' && p.timestamp === old),
+        ).toBe(true);
+    });
+
+    it('marks a metal degraded, without calling the vendor, when paused and nothing is stored', async () => {
+        const { provider, api } = build({ autoRefreshRunning: false });
+
+        const { prices, degradedMetals } =
+            await provider.getAllLatestForLaunch();
+
+        expect(api.livePrices).not.toHaveBeenCalled();
+        expect(degradedMetals).toHaveLength(4);
+        expect(prices).toEqual([]);
     });
 });

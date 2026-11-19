@@ -12,6 +12,7 @@ import { CascadeMetricsService } from './cascade-metrics.service';
 import { FetchAttemptService } from './fetch-attempt.service';
 import { HistoricSpotService } from './historic-spot.service';
 import { SpotPriceRetentionService } from './spot-price-retention.service';
+import { PriceRefreshSchedule } from './price-refresh-schedule';
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import { SpotPriceRetentionService } from './spot-price-retention.service';
         CascadeMetricsService,
         FetchAttemptService,
         SpotPriceRetentionService,
+        PriceRefreshSchedule,
     ],
     exports: [
         MetalsProvider, // MarketDataModule needs this - MetalsService no longer exists

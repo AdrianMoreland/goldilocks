@@ -35,7 +35,7 @@ import {
 /**
  * Ops-only controller. The frontend gets spot prices via GET /market-data -
  * this controller exists purely for admin-only operational actions: a
- * manual refresh, pausing/resuming the 10-minute price-refresh cron, and
+ * manual refresh, pausing/resuming the 5-minute price-refresh cron, and
  * clearing the spot-price cache.
  */
 @ApiTags('metals')
@@ -68,7 +68,7 @@ export class MetalsController {
     @Get('cron-status')
     @ApiOperation({
         summary:
-            'Whether the 10-minute price-refresh cron is currently running (admin)',
+            'Whether the 5-minute price-refresh cron is currently running (admin). It starts paused after every deploy.',
     })
     getCronStatus(): { running: boolean } {
         return { running: this.metalsCron.isPriceCronRunning() };
@@ -76,7 +76,7 @@ export class MetalsController {
 
     @Post('cron-toggle')
     @ApiOperation({
-        summary: 'Pause or resume the 10-minute price-refresh cron (admin)',
+        summary: 'Pause or resume the 5-minute price-refresh cron (admin)',
         description:
             'A manual runtime pause - resets to running on the next restart/redeploy, not a persisted setting.',
     })

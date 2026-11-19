@@ -12,7 +12,7 @@ import { RedisService } from '../../infrastructure/redis/redis.service';
 import { FetchAttemptService } from '../metals/fetch-attempt.service';
 
 const HEAP_LIMIT_BYTES = 1024 * 1024 * 1024;
-// The price cron runs every 10 minutes: three missed runs is worth a nudge, a few hours is an outage.
+// The price cron runs every 5 minutes while resumed: half an hour without a fetch is worth a nudge, a few hours is an outage.
 const PRICE_FEED_DEGRADED_AFTER_MIN = 30;
 const PRICE_FEED_DOWN_AFTER_MIN = 180;
 const EVENT_LOOP_DEGRADED_MS = 200;
