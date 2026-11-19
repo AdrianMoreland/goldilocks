@@ -8,7 +8,7 @@ import type { Product } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
 import { useLocalStorageState } from "@/hooks/use-local-storage-state.hook"
 import { METAL_TABS, MetalTabValue } from "@/app/dashboard/components/table/metal-tabs"
-import { buildDisplayProducts, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
+import { buildDisplayProducts, isUsFractionCoin, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
 import {productColumns} from "@/app/dashboard/components/table/product-columns.tsx";
 
 const SECTION_SORT = { id: "productType", desc: false } as const
@@ -18,10 +18,13 @@ function filterByMetalTab(data: DisplayProduct[], tab: MetalTabValue): DisplayPr
     return metalType ? data.filter((p) => p.metalType === metalType) : data
 }
 
-/** Global search - matches name or SKU, independent of which columns are currently visible. */
+/**
+ * Global search - matches name or SKU, independent of which columns are currently visible. The US Eagle versions of
+ * the small coins (1/2oz US Eagle etc.) stay out of the table until a search matches them.
+ */
 function filterBySearch(data: DisplayProduct[], search: string): DisplayProduct[] {
     const term = search.trim().toLowerCase()
-    if (!term) return data
+    if (!term) return data.filter((p) => !isUsFractionCoin(p))
     return data.filter((p) => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
 }
 
@@ -78,8 +81,7 @@ export function useProductTable(
         if (initialData?.length) setData(initialData)
     }, [initialData])
 
-    // Bars (by weight) then coins (reverse weight), with small fractional
-    // coins collapsed to one generic row per weight - see product-grouping.ts.
+    // Bars (by weight) then coins (reverse weight) - see product-grouping.ts.
     const displayProducts = React.useMemo(() => buildDisplayProducts(data), [data])
 
     const filteredData = React.useMemo(

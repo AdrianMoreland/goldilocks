@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
-    DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
 import {TableCellViewer} from "@/app/dashboard/components/table-cell-viewer.tsx";
@@ -126,8 +125,6 @@ function SpreadBadge({ value, tone }: { value: number; tone: keyof typeof PRICE_
  */
 function RowActionsMenu({ product }: { product: DisplayProduct }) {
     const { isAdmin } = useAuth()
-    // Which real product a dialog is open for — on a merged coin row that's
-    // one of its mints, picked from the submenu.
     const [editing, setEditing] = React.useState<Product | null>(null)
     const [deleting, setDeleting] = React.useState<Product | null>(null)
     const [hiding, setHiding] = React.useState<Product | null>(null)
@@ -150,11 +147,6 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
         </>
     )
 
-    // A merged "{fraction} Coin" row averages several mints; its own id is
-    // just the first mint's. Acting on it would silently hit one arbitrary
-    // product, so it offers one submenu per real mint instead.
-    const members = product.members && product.members.length > 1 ? product.members : null
-
     return (
         <>
             <DropdownMenu>
@@ -169,21 +161,7 @@ function RowActionsMenu({ product }: { product: DisplayProduct }) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                    {members ? (
-                        <>
-                            <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-                                Average of {members.length} mints
-                            </DropdownMenuLabel>
-                            {members.map((member) => (
-                                <DropdownMenuSub key={member.id}>
-                                    <DropdownMenuSubTrigger className="cursor-pointer">{member.name}</DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent className="w-44">{actionsFor(member)}</DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                            ))}
-                        </>
-                    ) : (
-                        actionsFor(product)
-                    )}
+                    {actionsFor(product)}
                 </DropdownMenuContent>
             </DropdownMenu>
             {editing && (
