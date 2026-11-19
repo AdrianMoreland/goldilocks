@@ -129,3 +129,88 @@ describe('MarketDataService.getPricedCatalogue', () => {
         expect(degradedMetals).toEqual(['SILVER']);
     });
 });
+
+describe('MarketDataService.getMarketData', () => {
+    function buildForLoad(prices: RawSpotPrice[], autoRefreshRunning: boolean) {
+        return new MarketDataService(
+            {
+                getAllLatestForLaunch: jest.fn(async () => ({
+                    prices,
+                    degradedMetals: [],
+                })),
+                isAutoRefreshRunning: jest.fn(() => autoRefreshRunning),
+            } as unknown as MetalsProvider,
+            {
+                getHistoricSpots: jest.fn(async () => []),
+            } as unknown as HistoricSpotService,
+            {
+                getRawProducts: jest.fn(async () => [gold100g]),
+            } as unknown as ProductsService,
+        );
+    }
+
+    it('reports the oldest market time and the oldest fetch time across the metals, and the auto-refresh state', async () => {
+        const data = await buildForLoad(
+            [
+                spot('GOLD', 3000, {
+                    timestamp: '2026-11-18T11:50:00.000Z',
+                    createdAt: '2026-11-18T12:00:00.000Z',
+                }),
+                spot('SILVER', 35, {
+                    timestamp: '2026-11-18T11:40:00.000Z',
+                    createdAt: '2026-11-18T11:50:00.000Z',
+                }),
+            ],
+            false,
+        ).getMarketData();
+
+        expect(data).toMatchObject({
+            snapshotAt: '2026-11-18T11:40:00.000Z',
+            lastFetchAt: '2026-11-18T11:50:00.000Z',
+            autoRefreshPaused: true,
+        });
+        expect(data).not.toHaveProperty('fetchedAt');
+    });
+
+    it('has no market or fetch time when there is no price at all', async () => {
+        const data = await buildForLoad([], true).getMarketData();
+
+        expect(data).toMatchObject({
+            snapshotAt: null,
+            lastFetchAt: null,
+            autoRefreshPaused: false,
+        });
+    });
+});
+
+describe('MarketDataService.getSpotStatus', () => {
+    it('reports the price times and auto-refresh state without loading products or history', async () => {
+        const getRawProducts = jest.fn();
+        const getHistoricSpots = jest.fn();
+        const service = new MarketDataService(
+            {
+                getAllLatestForLaunch: jest.fn(async () => ({
+                    prices: [
+                        spot('GOLD', 3000, {
+                            timestamp: '2026-11-18T11:50:00.000Z',
+                            createdAt: '2026-11-18T12:00:00.000Z',
+                        }),
+                    ],
+                    degradedMetals: ['SILVER'],
+                })),
+                isAutoRefreshRunning: jest.fn(() => true),
+            } as unknown as MetalsProvider,
+            { getHistoricSpots } as unknown as HistoricSpotService,
+            { getRawProducts } as unknown as ProductsService,
+        );
+
+        await expect(service.getSpotStatus()).resolves.toEqual({
+            snapshotAt: '2026-11-18T11:50:00.000Z',
+            lastFetchAt: '2026-11-18T12:00:00.000Z',
+            autoRefreshPaused: false,
+            degradedMetals: ['SILVER'],
+        });
+        expect(getRawProducts).not.toHaveBeenCalled();
+        expect(getHistoricSpots).not.toHaveBeenCalled();
+    });
+});
