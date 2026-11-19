@@ -7,11 +7,14 @@ import {
     LiveStockBranchesResponseSchema,
     LiveStockBranchSchema,
     LiveStockMovementSchema,
+    SheetApplyPreviewSchema,
+    SheetApplyResultSchema,
     type AddLiveStockBarRequest,
     type AdjustLiveStockRequest,
     type CreateLiveStockLineRequest,
     type LiveBaselineRequest,
     type LiveStockBoardQuery,
+    type ResolveSheetApplicationRequest,
     type SetLiveStockBarStatusRequest,
     type TransferLiveStockRequest,
 } from '@goldilocks/shared-types';
@@ -36,6 +39,9 @@ export function useLiveStockApi() {
         undo: (movementId: number) => client.post(`/live-stock/movements/${movementId}/undo`, {}, qty),
         link: (code: string, branchId: number | null) => client.put(`/live-stock/branches/${code}/link`, { branchId }, LiveStockBranchSchema),
         previewBaseline: (body: LiveBaselineRequest) => client.post('/live-stock/baseline/preview', body, LiveBaselinePreviewSchema),
+        sheetPreview: () => client.get('/live-stock/sheet/preview', SheetApplyPreviewSchema),
+        sheetApply: () => client.post('/live-stock/sheet/apply', {}, SheetApplyResultSchema),
+        sheetResolve: (id: number, body: ResolveSheetApplicationRequest) => client.post(`/live-stock/sheet/applications/${id}/resolve`, body, z.object({ status: z.string() })),
         commitBaseline: (body: LiveBaselineRequest) => client.post('/live-stock/baseline', body, LiveBaselineResultSchema),
     };
 }

@@ -211,3 +211,61 @@ export const LiveStockBoardQuerySchema = z.object({
   metal: LiveMetalSchema.default('GOLD'),
 });
 export type LiveStockBoardQuery = z.infer<typeof LiveStockBoardQuerySchema>;
+
+// ---------------------------------------------------------------- tradesheet "Apply to stock"
+
+export const SheetKindSchema = z.enum(['SALE', 'PURCHASE']);
+
+export const SheetLineOptionSchema = z.object({
+  lineId: z.number().int(),
+  label: z.string(),
+  qty: z.number().int(),
+});
+
+/** What one tradesheet row would do, or is waiting on. */
+export const SheetApplyItemSchema = z.object({
+  /** kind|referenceKey|occurrence, stable across uploads. */
+  key: z.string(),
+  applicationId: z.number().int().nullable(),
+  kind: SheetKindSchema,
+  reference: z.string(),
+  branchCode: z.string(),
+  metal: LiveMetalSchema,
+  productText: z.string(),
+  date: z.string().nullable(),
+  /** Signed change to stock: negative for a sale. */
+  delta: z.number().int(),
+  /** The line it lands on, when it is clear. */
+  line: SheetLineOptionSchema.nullable(),
+  outcome: z.enum(['APPLY', 'CREATE', 'ASK_COUNTED', 'PICK_LINE', 'UNMATCHED', 'WITHDRAWN', 'NEGATIVE']),
+  message: z.string(),
+  /** Lines a person may choose from, for the outcomes that need a choice. */
+  options: z.array(SheetLineOptionSchema),
+});
+export type SheetApplyItem = z.infer<typeof SheetApplyItemSchema>;
+
+export const SheetApplyPreviewSchema = z.object({
+  /** Cut-over date per branch; null means that branch has no baseline yet and none of its rows apply. */
+  cutovers: z.record(z.string(), z.string().nullable()),
+  willApply: z.array(SheetApplyItemSchema),
+  needsDecision: z.array(SheetApplyItemSchema),
+  /** Rows already waiting from an earlier run. */
+  pending: z.array(SheetApplyItemSchema),
+  skipped: z.record(z.string(), z.number().int()),
+});
+export type SheetApplyPreview = z.infer<typeof SheetApplyPreviewSchema>;
+
+export const SheetApplyResultSchema = z.object({
+  applied: z.number().int(),
+  units: z.number().int(),
+  waiting: z.number().int(),
+  failed: z.array(z.object({ reference: z.string(), message: z.string() })),
+  skipped: z.record(z.string(), z.number().int()),
+});
+export type SheetApplyResult = z.infer<typeof SheetApplyResultSchema>;
+
+export const ResolveSheetApplicationRequestSchema = z.object({
+  choice: z.enum(['COUNTED', 'APPLY', 'LINE', 'REVERSE', 'KEEP', 'DISMISS']),
+  lineId: z.number().int().optional(),
+});
+export type ResolveSheetApplicationRequest = z.infer<typeof ResolveSheetApplicationRequestSchema>;

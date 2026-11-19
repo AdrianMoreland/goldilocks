@@ -1772,11 +1772,13 @@ model SheetApplication {
   appliedQty   Int                    @default(0)
   status       SheetApplicationStatus @default(APPLIED)
   note         String?
+  /// Why it waits or was set aside: COUNTED_ASK, PICK_LINE, UNMATCHED, NEGATIVE, WITHDRAWN, KEPT, REVERSED, DISMISSED.
+  reason       String?
   decidedBy    String?
   createdAt    DateTime               @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime               @updatedAt @db.Timestamptz(6)
 
-  @@unique([referenceKey, occurrence, lineId])
+  @@unique([kind, referenceKey, occurrence])
   @@index([status])
   @@map("sheet_applications")
 }

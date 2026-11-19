@@ -115,6 +115,7 @@ import {
     LowThresholdRequestSchema,
     LinkLiveStockBranchRequestSchema,
     LiveBaselineRequestSchema,
+    ResolveSheetApplicationRequestSchema,
 } from '@goldilocks/shared-types';
 import { createDto } from './dto-generator';
 
@@ -730,4 +731,9 @@ export class LinkLiveStockBranchRequestDto extends createDto(
 export class LiveBaselineRequestDto extends createDto(
     LiveBaselineRequestSchema,
     'LiveBaselineRequestDto',
+) {}
+
+export class ResolveSheetApplicationRequestDto extends createDto(
+    ResolveSheetApplicationRequestSchema,
+    'ResolveSheetApplicationRequestDto',
 ) {}

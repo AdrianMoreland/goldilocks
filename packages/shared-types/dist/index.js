@@ -8301,6 +8301,117 @@ var LiveStockBoardQuerySchema = z31.object({
   branch: BranchCode,
   metal: LiveMetalSchema.default("GOLD")
 });
+var SheetKindSchema = z31.enum(["SALE", "PURCHASE"]);
+var SheetLineOptionSchema = z31.object({
+  lineId: z31.number().int(),
+  label: z31.string(),
+  qty: z31.number().int()
+});
+var SheetApplyItemSchema = z31.object({
+  /** kind|referenceKey|occurrence, stable across uploads. */
+  key: z31.string(),
+  applicationId: z31.number().int().nullable(),
+  kind: SheetKindSchema,
+  reference: z31.string(),
+  branchCode: z31.string(),
+  metal: LiveMetalSchema,
+  productText: z31.string(),
+  date: z31.string().nullable(),
+  /** Signed change to stock: negative for a sale. */
+  delta: z31.number().int(),
+  /** The line it lands on, when it is clear. */
+  line: SheetLineOptionSchema.nullable(),
+  outcome: z31.enum(["APPLY", "CREATE", "ASK_COUNTED", "PICK_LINE", "UNMATCHED", "WITHDRAWN", "NEGATIVE"]),
+  message: z31.string(),
+  /** Lines a person may choose from, for the outcomes that need a choice. */
+  options: z31.array(SheetLineOptionSchema)
+});
+var SheetApplyPreviewSchema = z31.object({
+  /** Cut-over date per branch; null means that branch has no baseline yet and none of its rows apply. */
+  cutovers: z31.record(z31.string(), z31.string().nullable()),
+  willApply: z31.array(SheetApplyItemSchema),
+  needsDecision: z31.array(SheetApplyItemSchema),
+  /** Rows already waiting from an earlier run. */
+  pending: z31.array(SheetApplyItemSchema),
+  skipped: z31.record(z31.string(), z31.number().int())
+});
+var SheetApplyResultSchema = z31.object({
+  applied: z31.number().int(),
+  units: z31.number().int(),
+  waiting: z31.number().int(),
+  failed: z31.array(z31.object({ reference: z31.string(), message: z31.string() })),
+  skipped: z31.record(z31.string(), z31.number().int())
+});
+var ResolveSheetApplicationRequestSchema = z31.object({
+  choice: z31.enum(["COUNTED", "APPLY", "LINE", "REVERSE", "KEEP", "DISMISS"]),
+  lineId: z31.number().int().optional()
+});
+
+// src/sheet-apply.ts
+function readProduct(text4) {
+  const isBar = /\bbars?\b/i.test(text4);
+  if (isBar) {
+    const w = parseBarWeight(text4);
+    return w.grams === null ? null : { kind: "BAR", variant: w.variant };
+  }
+  const coin = parseCoinName(text4);
+  if (coin.family === "Other") return null;
+  return { kind: "COIN", family: coin.family, variant: coin.variant, weight: parseWeight(text4)?.label ?? null };
+}
+function matchLines2(product, lines) {
+  if (product.kind === "BAR") return lines.filter((l) => l.kind === "BAR" && l.variant === product.variant);
+  const sameFamily = lines.filter((l) => l.kind === "COIN" && l.family.toLowerCase() === product.family.toLowerCase());
+  const exact = sameFamily.filter((l) => l.variant.toLowerCase() === product.variant.toLowerCase());
+  if (exact.length) return exact;
+  if (!product.weight) return [];
+  return sameFamily.filter((l) => l.variant.toLowerCase().startsWith(product.weight.toLowerCase()));
+}
+function planRow(row, prior, ctx) {
+  if (!row.eligible) {
+    if (prior && prior.status === "APPLIED" && prior.appliedQty !== 0) {
+      return { type: "WITHDRAWN", appliedQty: prior.appliedQty, lineId: prior.lineId };
+    }
+    return { type: "SKIP", reason: "INELIGIBLE" };
+  }
+  if (!row.branchCode || ctx.cutoverDate === null) return { type: "SKIP", reason: "NO_BRANCH" };
+  if (prior?.status === "DISMISSED") return { type: "SKIP", reason: "DISMISSED" };
+  if (!row.date) return { type: "SKIP", reason: "NO_DATE" };
+  if (row.date <= ctx.cutoverDate) return { type: "SKIP", reason: "CUTOVER" };
+  if (!row.qty || row.qty <= 0) return { type: "SKIP", reason: "NO_QTY" };
+  const sign = row.kind === "SALE" ? -1 : 1;
+  const target = sign * row.qty;
+  if (prior) {
+    if (prior.status === "NEEDS_DECISION") return { type: "SKIP", reason: "PENDING" };
+    const diff = target - prior.appliedQty;
+    if (diff === 0) return { type: "SKIP", reason: "UNCHANGED" };
+    if (prior.lineId === null) return { type: "SKIP", reason: "PENDING" };
+    return { type: "APPLY", delta: diff, lineId: prior.lineId };
+  }
+  const product = readProduct(row.productText);
+  if (!product) return { type: "UNMATCHED", delta: target, message: `Cannot tell what \u201C${row.productText}\u201D is.` };
+  let found = matchLines2(product, ctx.candidates);
+  if (row.kind === "SALE") {
+    const stocked = found.filter((l) => l.qty > 0);
+    if (stocked.length === 0) {
+      return {
+        type: "UNMATCHED",
+        delta: target,
+        message: found.length ? "The matching line has no stock on record." : "No stock line matches this product at this branch."
+      };
+    }
+    found = stocked;
+  }
+  if (found.length === 0) {
+    const create = product.kind === "BAR" ? { kind: "BAR", family: "Bar", variant: product.variant, refinery: "" } : { kind: "COIN", family: product.family, variant: product.variant, refinery: "" };
+    return { type: "CREATE_AND_APPLY", delta: target, create };
+  }
+  if (found.length > 1) return { type: "PICK_LINE", delta: target, lineIds: found.map((l) => l.lineId) };
+  const only = found[0];
+  if (only.lastManualOn !== null && only.lastManualOn >= row.date) {
+    return { type: "ASK_COUNTED", delta: target, lineId: only.lineId };
+  }
+  return { type: "APPLY", delta: target, lineId: only.lineId };
+}
 
 // src/product-names.ts
 var METAL_TOKEN = [
@@ -9003,6 +9114,7 @@ export {
   RelinkRequestSchema,
   RelinkResultSchema,
   RelinkTableResultSchema,
+  ResolveSheetApplicationRequestSchema,
   ReviewLinkRowSchema,
   ReviewLinkTypeSchema,
   ReviewLinksQuerySchema,
@@ -9059,6 +9171,11 @@ export {
   SettleNamesRequestSchema,
   SettleNamesResultSchema,
   SettleResultSchema,
+  SheetApplyItemSchema,
+  SheetApplyPreviewSchema,
+  SheetApplyResultSchema,
+  SheetKindSchema,
+  SheetLineOptionSchema,
   SheetNameEnum,
   SheetTaskListQuerySchema,
   SheetTaskSchema,
@@ -9208,6 +9325,7 @@ export {
   mapOutsideCode,
   mapPurchaseHeaders,
   mapSaleHeaders,
+  matchLines2 as matchLines,
   matchProductName,
   matchTradeLine,
   meltLabel,
@@ -9260,6 +9378,7 @@ export {
   planBarImport,
   planBaseline,
   planCustomerOrderImport,
+  planRow,
   planUpload,
   priceMetalEvidence,
   pricingSkuFor,
@@ -9267,6 +9386,7 @@ export {
   readCollected,
   readForeignCoin,
   readImportWorkbook,
+  readProduct,
   referenceMatchKey,
   refineryInText,
   refineryMatch,

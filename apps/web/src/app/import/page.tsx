@@ -3,6 +3,7 @@ import type { RedactionMapRow } from "@goldilocks/shared-types"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { CountTabs } from "@/components/ui/count-tabs"
 import TradesheetsPage from "@/app/tradesheets/page"
+import { ApplyStockTab } from "./apply-stock-tab"
 import { BatchHistory } from "./batch-history"
 import { BcHistoryTab } from "./bc-history-tab"
 import { BcReportTab } from "./bc-report-tab"
@@ -10,7 +11,7 @@ import { MapStep } from "./map-step"
 import { ReviewTab } from "./review-tab"
 import { WorkbookTab } from "./workbook-tab"
 
-type Tab = "tradesheet" | "workbook" | "bc" | "bcHistory" | "review"
+type Tab = "tradesheet" | "applyStock" | "workbook" | "bc" | "bcHistory" | "review"
 
 /**
  * Where files go in. The monthly tradesheet is the existing import. The assembled workbook and the Business Central
@@ -28,6 +29,7 @@ export default function ImportHubPage() {
                     onValueChange={(v) => setTab(v as Tab)}
                     items={[
                         { value: "tradesheet", label: "Tradesheet" },
+                        { value: "applyStock", label: "Apply to stock" },
                         { value: "workbook", label: "Assembled workbook" },
                         { value: "bc", label: "BC awaiting collection" },
                         { value: "bcHistory", label: "BC history and serials" },
@@ -35,6 +37,11 @@ export default function ImportHubPage() {
                     ]}
                 />
                 {tab === "tradesheet" && <TradesheetsPage embedded />}
+                {tab === "applyStock" && (
+                    <div className="mx-auto w-full max-w-6xl">
+                        <ApplyStockTab />
+                    </div>
+                )}
                 {tab === "review" && (
                     <div className="mx-auto w-full max-w-6xl">
                         <ReviewTab />
