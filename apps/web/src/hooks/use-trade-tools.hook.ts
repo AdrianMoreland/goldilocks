@@ -8,7 +8,6 @@ import { useToolSpot } from '@/app/dashboard/context/tool-spots-context';
 import { usePricingTools } from '@/app/dashboard/context/pricing-tools-context';
 import { useMeltCalculator } from './use-melt-calculator.hook';
 import { findDefaultProduct } from '@/lib/default-product';
-import { usCounterpart } from '@/app/dashboard/components/table/product-grouping';
 import {
     MeltCategoryKeyEnum,
     type TradeCartRequest,
@@ -23,6 +22,8 @@ export const MELT_CATEGORY_OPTIONS = MeltCategoryKeyEnum.options;
 interface CartItemState {
     id: number;
     productId: number | null;
+    /** The product this line started as (the ticked table row); differs from productId once a variant is picked. */
+    baseId?: number | null;
     quantity: number;
     percent: number;
 }
@@ -161,28 +162,15 @@ export function useTradeTools(
         [selectedProductIds, products],
     );
 
-    // The small coins (1/2oz, 1/4oz, 1/10oz, 1g) come in a generic and a US Eagle version. A ticked generic coin is
-    // quoted as the generic one; the "US version" switch quotes its US Eagle twin instead.
-    const [useUsVersion, setUseUsVersion] = useState(false);
-    const usSwaps = useMemo(() => {
-        const swaps = new Map<number, number>();
-        for (const id of relevantSelectedIds) {
-            const product = products.find((p) => p.id === id);
-            const us = product && usCounterpart(product, products);
-            if (us) swaps.set(id, us.id);
-        }
-        return swaps;
-    }, [relevantSelectedIds, products]);
-    const hasUsVersion = usSwaps.size > 0;
-
+    // An item keeps the table row it came from (baseId) even when its variant is switched in the Trade tab, so the
+    // sync below still recognises it and does not reset it.
     useEffect(() => {
         if (!relevantSelectedIds.length) return;
 
         setItemsForMetal((current) => {
-            const existingByProductId = new Map(current.map((item) => [item.productId, item]));
-            return relevantSelectedIds.map((selectedId) => {
-                const productId = useUsVersion ? (usSwaps.get(selectedId) ?? selectedId) : selectedId;
-                const existing = existingByProductId.get(productId);
+            const existingByBaseId = new Map(current.map((item) => [item.baseId ?? item.productId, item]));
+            return relevantSelectedIds.map((productId) => {
+                const existing = existingByBaseId.get(productId);
                 if (existing) return existing;
                 return {
                     id: newItemId(),
@@ -192,7 +180,7 @@ export function useTradeTools(
                 };
             });
         });
-    }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal, useUsVersion, usSwaps]);
+    }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal]);
 
     // Price/Buyback lives in the pricing-tools context so a keyboard shortcut
     // can flip it from anywhere - so re-default the cart's premium/discount
@@ -237,7 +225,21 @@ export function useTradeTools(
             setItemsForMetal((current) =>
                 current.map((item) =>
                     item.id === id
-                        ? { ...item, productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
+                        ? { ...item, productId, baseId: productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
+                        : item,
+                ),
+            );
+        },
+        [products, transactionType, adjustmentDeltaPct, setItemsForMetal],
+    );
+
+    /** Switches a line to another variant of the same product (Regular, US, PAMP, CombiBar...) and uses that variant's own premium or discount. */
+    const updateItemVariant = useCallback(
+        (id: number, productId: number) => {
+            setItemsForMetal((current) =>
+                current.map((item) =>
+                    item.id === id
+                        ? { ...item, productId, baseId: item.baseId ?? item.productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
                         : item,
                 ),
             );
@@ -328,9 +330,6 @@ export function useTradeTools(
         bootstrapLoading: bootstrapQuery.isLoading,
         bootstrapError: bootstrapQuery.error,
         products,
-        hasUsVersion,
-        useUsVersion,
-        setUseUsVersion,
 
         transactionType,
         setTransactionType,
@@ -346,6 +345,7 @@ export function useTradeTools(
         addItem,
         removeItem,
         updateItemProduct,
+        updateItemVariant,
         updateItemQuantity,
         updateItemPercent,
 

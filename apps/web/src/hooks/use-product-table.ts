@@ -8,7 +8,7 @@ import type { Product } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
 import { useLocalStorageState } from "@/hooks/use-local-storage-state.hook"
 import { METAL_TABS, MetalTabValue } from "@/app/dashboard/components/table/metal-tabs"
-import { buildDisplayProducts, isUsFractionCoin, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
+import { buildDisplayProducts, isVariantProduct, type DisplayProduct } from "@/app/dashboard/components/table/product-grouping"
 import {productColumns} from "@/app/dashboard/components/table/product-columns.tsx";
 
 const SECTION_SORT = { id: "productType", desc: false } as const
@@ -19,12 +19,12 @@ function filterByMetalTab(data: DisplayProduct[], tab: MetalTabValue): DisplayPr
 }
 
 /**
- * Global search - matches name or SKU, independent of which columns are currently visible. The US Eagle versions of
- * the small coins (1/2oz US Eagle etc.) stay out of the table until a search matches them.
+ * Global search - matches name or SKU, independent of which columns are currently visible. Variants (US Eagle small
+ * coins, CombiBar and PAMP bars) stay out of the table until a search matches them.
  */
 function filterBySearch(data: DisplayProduct[], search: string): DisplayProduct[] {
     const term = search.trim().toLowerCase()
-    if (!term) return data.filter((p) => !isUsFractionCoin(p))
+    if (!term) return data.filter((p) => !isVariantProduct(p))
     return data.filter((p) => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
 }
 
