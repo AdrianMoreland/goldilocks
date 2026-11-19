@@ -641,7 +641,8 @@ export class WorkbookImportService {
                 !branch ||
                 (status !== 'ALLOCATED' &&
                     status !== 'COLLECTED' &&
-                    status !== 'ORDERED')
+                    status !== 'ORDERED' &&
+                    status !== 'TO_ORDER')
             ) {
                 counts.unmatched++;
                 continue;
