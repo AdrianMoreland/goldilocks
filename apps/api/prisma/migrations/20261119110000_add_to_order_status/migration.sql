@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "CustomerOrderStatus" ADD VALUE IF NOT EXISTS 'TO_ORDER' BEFORE 'ORDERED';

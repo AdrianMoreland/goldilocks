@@ -567,6 +567,8 @@ model StocktakeCoin {
 }
 
 enum CustomerOrderStatus {
+  /// Customer has paid; the order has not yet been placed with the supplier.
+  TO_ORDER
   ORDERED
   IN_TRANSIT
   DELIVERED
