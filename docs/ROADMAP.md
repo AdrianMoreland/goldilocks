@@ -490,6 +490,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Monthly count sessions on iPad; barcode/serial scan for bars, quantity for coins - L
 - [ ] Compare to BC inventory; discrepancy log with two-person sign-off - M *(first slice built 2026-10-28, not yet applied to the database: month-end stocktake at `/stocktake` for admins and managers. Paste-in of the BC Physical Inventory Journal, count entry with the normal-safe and customer-safe columns, variance, serial check against Item Tracking Entries, discrepancy register, finalise, CSV and print/PDF export, and BC item to product links. Not yet: carry-forward of last month's bars, customer-order tracking, native `.xlsx`, iPad scanning, two-person sign-off beyond the lead and second-checker names)*
 - [ ] Generic checklist/form module to replace other ad-hoc sheets - M
+- [ ] Live branch stock (1.12b): editable counts per branch replacing the Google stock sheet. Slice 1 API (tables, movements, edit/undo/transfer/serials, baseline load) built 2026-11-18, migration applied; slice 2 board UI built; slice 3 tradesheet "Apply to stock" (Import hub tab, once-only reconciliation, ask-when-unsure) built 2026-11-19, not yet seen in a browser; slice 4 PGM/Melt - L
 - [ ] Inventory intelligence: reserved stock (quotes), stock reconciliation, low-stock signals - M
 
 ## 1.13 Teams integration 🟡
@@ -556,6 +557,16 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 - [x] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
 - [x] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the claude.ai page data - M
+
+## 1.21 Serial trace: vendor to collection 🟠 ← depends: 1.19; feeds 1.11, 1.12
+
+Follow any bar by serial from the vendor it was bought from to the customer who collected it. Business Central stays the system of record: Goldilocks mirrors its posted documents. Each bar is an `Item`; every movement is an append-only `ItemEvent` that names its source (BC, Zoho, tradesheet, stocktake, staff). Decisions: a posted BC sales shipment is the collection (serials can be added in BC after the customer leaves); coins are not tracked one by one; a bar bought back is the same item; Zoho-era bars are linked back to purchases for the last 6 months only.
+
+- [x] Slice 1: BC history import on the Import hub (Posted Sales Shipments + Lines, Posted Purchase Receipts, Item Ledger Entries; `.xlsx` or pasted from BC), items and events built from the item tracking entries, shipments linked to sales by External Document No. (tradesheet ref or Zoho invoice), customers learn their BC customer and vendor numbers, serial lookup - M *(live 2026-11-12. Daily update is one paste of Item Ledger Entries with Serial No., Source Type and Source No.; the shipments list adds the tradesheet link)*
+- [ ] Slice 2: fallback matching where BC has no reference: shipment → sale by customer + item + quantity + date; private-seller receipt → IE-GP row by seller + quantity + amount; company receipt → supplier invoice. Exact matches linked, the rest suggested in the Review tab - M *(shipment → sale is built, 2026-11-13: per shipment line by customer (id or sheet name), product, quantity, a 120-day window and the amount, run on every BC history save; one sure match is linked, the rest go to the Review tab. BC dates now read day-first or month-first per paste, and a re-paste corrects stored dates and bar events. Receipt matching is not built)*
+- [ ] Slice 3: Zoho-era bars from invoice-line serials (purchase inferred through the sale's P line, marked inferred), stocktake bars as COUNTED events, Customer Orders serials as ALLOCATED events - M
+- [ ] Slice 4: serial page in `/dashboard` (search, timeline, where it is now) and a "shipped in BC, not collected in the tradesheet" list that raises sheet tasks - M *(the shipped-not-collected list and its sheet tasks are built, on the Import hub's BC tab, 2026-11-12; the serial page in `/dashboard` is not)*
+- [ ] Later: read the same documents from the BC API instead of exports - M ← depends: 1.0 `[BC]`
 
 ---
 

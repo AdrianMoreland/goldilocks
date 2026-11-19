@@ -4,8 +4,6 @@ export type ProductGroup = "bar" | "coin" | "bonded"
 
 export type DisplayProduct = Product & {
     productType: ProductGroup
-    /** Only on merged "{fraction} Coin" rows: the real per-mint products averaged into it. Admin actions target these, never the merged row's borrowed id. */
-    members?: Product[]
 }
 
 const METAL_WORDS: Record<MetalType, string> = {
@@ -18,9 +16,7 @@ const METAL_WORDS: Record<MetalType, string> = {
 const ONE_OZ_TOLERANCE_G = 0.5
 const MERGE_TOLERANCE_G = 0.05
 
-// The only fractional coin weights that get collapsed into one generic row
-// per metal. 1oz coins and sovereigns keep their specific mint/name - see
-// isConcreteCoin below.
+// The small coin weights that have a generic version and a US Eagle version.
 const COIN_MERGE_TARGETS: { label: string; weightGrams: number }[] = [
     { label: "1/10oz Coin", weightGrams: GRAMS_PER_TROY_OUNCE / 10 },
     { label: "1/4oz Coin", weightGrams: GRAMS_PER_TROY_OUNCE / 4 },
@@ -54,11 +50,6 @@ function isOneOz(weightGrams: number): boolean {
     return Math.abs(weightGrams - GRAMS_PER_TROY_OUNCE) < ONE_OZ_TOLERANCE_G
 }
 
-/** 1oz coins and sovereigns are the only coins with "concrete" (mint-specific) names - everything else is a merge candidate. */
-function isConcreteCoin(product: Product): boolean {
-    return isOneOz(product.weight) || isSovereign(product.name)
-}
-
 function findCoinMergeLabel(weightGrams: number): string | null {
     const match = COIN_MERGE_TARGETS.find((t) => Math.abs(weightGrams - t.weightGrams) < MERGE_TOLERANCE_G)
     return match?.label ?? null
@@ -76,53 +67,82 @@ function stripMetalWord(name: string, metalType: MetalType): string {
         .replace(/(\d+(?:\.\d+)?)\s+(g|kg|oz)\b/gi, "$1$2")
 }
 
-function average(values: number[]): number {
-    return values.reduce((sum, v) => sum + v, 0) / values.length
+/** A small coin (1/10oz, 1/4oz, 1/2oz, 1g) rather than a bar, a bonded product, a sovereign or a 1oz coin. */
+function isFractionCoin(product: { name: string; weight: number }): boolean {
+    return (
+        !isBar(product.name) &&
+        !isBonded(product.name) &&
+        !isSovereign(product.name) &&
+        !isOneOz(product.weight) &&
+        findCoinMergeLabel(product.weight) !== null
+    )
 }
 
-function mergeCoinGroup(metalType: MetalType, label: string, group: Product[]): DisplayProduct {
-    const mostRecent = group.reduce((latest, p) => (p.updatedAt > latest.updatedAt ? p : latest), group[0])
+/** Variant labels in the order the Trade tab's dropdown lists them (after "Regular"). */
+export const VARIANT_ORDER = ["US", "CombiBar", "PAMP", "PAMP Diwali"] as const
+export type VariantLabel = (typeof VARIANT_ORDER)[number]
+export const REGULAR_VARIANT = "Regular"
 
-    return {
-        id: group[0].id,
-        sku: group.map((p) => p.sku).join(" / "),
-        name: label,
-        metalType,
-        weight: average(group.map((p) => p.weight)),
-        spotPrice: average(group.map((p) => p.spotPrice)),
-        marketValue: average(group.map((p) => p.marketValue)),
-        spreadSell: average(group.map((p) => p.spreadSell)),
-        spreadBuy: average(group.map((p) => p.spreadBuy)),
-        vatRate: average(group.map((p) => p.vatRate)),
-        priceSell: average(group.map((p) => p.priceSell)),
-        priceSellVatExcl: average(group.map((p) => p.priceSellVatExcl)),
-        priceBuy: average(group.map((p) => p.priceBuy)),
-        description: `Averaged across ${group.length} coin types: ${group.map((p) => p.name).join(", ")}`,
-        stock: group.reduce((sum, p) => sum + p.stock, 0),
-        isActive: group.some((p) => p.isActive),
-        createdAt: mostRecent.createdAt,
-        updatedAt: mostRecent.updatedAt,
-        productType: "coin",
-        members: group,
-    }
+/** The US Eagle version of a small coin ("1/2oz US Eagle"). */
+export function isUsFractionCoin(product: { name: string; weight: number }): boolean {
+    return isFractionCoin(product) && /\bUS\b/i.test(product.name)
+}
+
+/**
+ * Which variant a product is: US (small coins), CombiBar, PAMP or PAMP Diwali (bars); null for a regular product.
+ * The main table hides variants until a search matches them.
+ */
+export function variantLabel(product: { name: string; weight: number }): VariantLabel | null {
+    if (isUsFractionCoin(product)) return "US"
+    if (!isBar(product.name) || isBonded(product.name)) return null
+    if (/pamp/i.test(product.name)) return /diwali/i.test(product.name) ? "PAMP Diwali" : "PAMP"
+    if (/combi/i.test(product.name)) return "CombiBar"
+    return null
+}
+
+export function isVariantProduct(product: { name: string; weight: number }): boolean {
+    return variantLabel(product) !== null
+}
+
+export interface VariantChoice<T> {
+    label: typeof REGULAR_VARIANT | VariantLabel
+    product: T
+}
+
+/**
+ * The regular product and its variants at the same weight and metal, "Regular" first. Empty when the product has no
+ * variants (or there is no single regular product to pair them with), so the Trade tab shows no dropdown.
+ */
+export function variantChoices<T extends { id: number; name: string; weight: number; metalType: MetalType }>(
+    product: T,
+    all: T[],
+): VariantChoice<T>[] {
+    const sameKind = isBar(product.name) ? (p: T) => isBar(p.name) : (p: T) => isFractionCoin(p)
+    if (!sameKind(product) || isBonded(product.name)) return []
+    const group = all.filter(
+        (other) =>
+            other.metalType === product.metalType &&
+            Math.abs(other.weight - product.weight) < MERGE_TOLERANCE_G &&
+            sameKind(other) &&
+            !isBonded(other.name),
+    )
+    const regulars = group.filter((p) => !isVariantProduct(p))
+    const variants = VARIANT_ORDER.flatMap((label) =>
+        group.filter((p) => variantLabel(p) === label).map((p) => ({ label, product: p })),
+    )
+    if (regulars.length !== 1 || variants.length === 0) return []
+    return [{ label: REGULAR_VARIANT, product: regulars[0] }, ...variants]
 }
 
 /**
  * Builds the display-ready product list: bars renamed to drop the metal
- * word (weight order), then coins (reverse weight order) - with 1oz coins
- * and sovereigns kept as their specific mint/name, and every other
- * fractional coin weight (1/2oz, 1/4oz, 1/10oz, 1g) collapsed into one
- * generic "{fraction} Coin" row per metal, averaging price/premium across
- * whichever mint variants exist at that weight and summing their stock.
- *
- * This is purely a display transform - the underlying per-mint products in
- * the database are untouched, so per-mint stock tracking still works.
+ * word (weight order), then coins (reverse weight order), then bonded. Every
+ * product keeps its own row, name and premium; nothing is averaged.
  */
 export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
     const bars: DisplayProduct[] = []
-    const concreteCoins: DisplayProduct[] = []
+    const coins: DisplayProduct[] = []
     const bonded: DisplayProduct[] = []
-    const mergeGroups = new Map<string, Product[]>()
 
     for (const product of products) {
         // "Bonded" (deferred-VAT storage) products get their own section
@@ -147,35 +167,12 @@ export function buildDisplayProducts(products: Product[]): DisplayProduct[] {
             continue
         }
 
-        if (isConcreteCoin(product)) {
-            concreteCoins.push({ ...product, productType: "coin" })
-            continue
-        }
-
-        const mergeLabel = findCoinMergeLabel(product.weight)
-        if (!mergeLabel) {
-            // Doesn't match a known merge weight - fall back to showing it as-is.
-            concreteCoins.push({ ...product, productType: "coin" })
-            continue
-        }
-
-        const key = `${product.metalType}|${mergeLabel}`
-        const group = mergeGroups.get(key) ?? []
-        group.push(product)
-        mergeGroups.set(key, group)
+        coins.push({ ...product, productType: "coin" })
     }
-
-    const mergedCoins: DisplayProduct[] = Array.from(mergeGroups.entries()).map(([key, group]) => {
-        const [metalType, label] = key.split("|") as [MetalType, string]
-        return mergeCoinGroup(metalType, label, group)
-    })
 
     bars.sort((a, b) => a.weight - b.weight || a.name.localeCompare(b.name))
     bonded.sort((a, b) => a.weight - b.weight || a.name.localeCompare(b.name))
-
-    const coins = [...concreteCoins, ...mergedCoins].sort(
-        (a, b) => b.weight - a.weight || a.name.localeCompare(b.name),
-    )
+    coins.sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name))
 
     return [...bars, ...coins, ...bonded]
 }

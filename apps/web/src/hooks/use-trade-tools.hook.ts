@@ -22,6 +22,8 @@ export const MELT_CATEGORY_OPTIONS = MeltCategoryKeyEnum.options;
 interface CartItemState {
     id: number;
     productId: number | null;
+    /** The product this line started as (the ticked table row); differs from productId once a variant is picked. */
+    baseId?: number | null;
     quantity: number;
     percent: number;
 }
@@ -160,13 +162,15 @@ export function useTradeTools(
         [selectedProductIds, products],
     );
 
+    // An item keeps the table row it came from (baseId) even when its variant is switched in the Trade tab, so the
+    // sync below still recognises it and does not reset it.
     useEffect(() => {
         if (!relevantSelectedIds.length) return;
 
         setItemsForMetal((current) => {
-            const existingByProductId = new Map(current.map((item) => [item.productId, item]));
+            const existingByBaseId = new Map(current.map((item) => [item.baseId ?? item.productId, item]));
             return relevantSelectedIds.map((productId) => {
-                const existing = existingByProductId.get(productId);
+                const existing = existingByBaseId.get(productId);
                 if (existing) return existing;
                 return {
                     id: newItemId(),
@@ -221,7 +225,21 @@ export function useTradeTools(
             setItemsForMetal((current) =>
                 current.map((item) =>
                     item.id === id
-                        ? { ...item, productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
+                        ? { ...item, productId, baseId: productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
+                        : item,
+                ),
+            );
+        },
+        [products, transactionType, adjustmentDeltaPct, setItemsForMetal],
+    );
+
+    /** Switches a line to another variant of the same product (Regular, US, PAMP, CombiBar...) and uses that variant's own premium or discount. */
+    const updateItemVariant = useCallback(
+        (id: number, productId: number) => {
+            setItemsForMetal((current) =>
+                current.map((item) =>
+                    item.id === id
+                        ? { ...item, productId, baseId: item.baseId ?? item.productId, percent: defaultPercentFor(products, productId, transactionType, adjustmentDeltaPct) }
                         : item,
                 ),
             );
@@ -327,6 +345,7 @@ export function useTradeTools(
         addItem,
         removeItem,
         updateItemProduct,
+        updateItemVariant,
         updateItemQuantity,
         updateItemPercent,
 

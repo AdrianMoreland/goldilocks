@@ -10,6 +10,7 @@ import { CountTabs } from "@/components/ui/count-tabs"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import StocktakeListPage from "@/app/stocktake/page"
+import { LiveStockTab } from "./live/live-stock-tab"
 
 type Tab = "position" | "bars" | "coins" | "month-end"
 
@@ -17,61 +18,79 @@ const PAGE = 50
 const METALS: Record<string, string> = { GOLD: "Gold", SILVER: "Silver", PGM: "Platinum / palladium" }
 const BAR_STATUS: Record<string, string> = { UNCONFIRMED: "Not seen yet", CONFIRMED: "Confirmed", NEW: "New", GONE: "Gone" }
 
+
 /**
- * Stock in one place, from the stocktake models: the position, bars by serial, coins by quantity, and the month-end
- * count. Figures come from one stocktake (the newest unless another is chosen) and an imported sheet is labelled as
- * such. Free-to-sell is not shown yet: it needs every product name tied to a sales product first.
+ * Inventory. The main page is the live branch stock (what is in each branch now, edited after sales, loaded from the
+ * stock sheet). The month-end stocktake views from the stocktake models (position, bars by serial, coins, the count)
+ * sit behind a second tab: they are for the end of each month, not for every day.
  */
+type View = "live" | "stocktake"
+
 export default function InventoryPage() {
     const api = useInventoryApi()
+    const [view, setView] = useState<View>("live")
     const [tab, setTab] = useState<Tab>("position")
     const [stocktakeId, setStocktakeId] = useState<number | undefined>(undefined)
-    const position = useQuery({ queryKey: ["inventory", "position", stocktakeId], queryFn: () => api.position(stocktakeId) })
+    const position = useQuery({ queryKey: ["inventory", "position", stocktakeId], queryFn: () => api.position(stocktakeId), enabled: view === "stocktake" })
     const st = position.data?.stocktake
 
     return (
-        <BaseLayout title="Inventory" description="Stock position, bars by serial, coins and the month-end count">
+        <BaseLayout title="Inventory" description="What each branch holds now, and the month-end stocktake">
             <div className="space-y-4 px-4 lg:px-6">
                 <CountTabs
-                    aria-label="Inventory views"
-                    value={tab}
-                    onValueChange={(v) => setTab(v as Tab)}
+                    aria-label="Inventory sections"
+                    value={view}
+                    onValueChange={(v) => setView(v as View)}
                     items={[
-                        { value: "position", label: "Position" },
-                        { value: "bars", label: "Bars", count: position.data?.bars.total },
-                        { value: "coins", label: "Coins", count: position.data?.coins.lines },
-                        { value: "month-end", label: "Month-end" },
+                        { value: "live", label: "Live stock" },
+                        { value: "stocktake", label: "Month-end stocktake" },
                     ]}
                 />
-                {tab !== "month-end" && position.data && (
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                        {st ? (
-                            <>
-                                <span className="text-muted-foreground">Figures from</span>
-                                <select
-                                    aria-label="Stocktake"
-                                    className="border-input bg-background h-9 rounded-md border px-2"
-                                    value={st.id}
-                                    onChange={(e) => setStocktakeId(Number(e.target.value))}
-                                >
-                                    {position.data.available.map((s) => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.name} ({s.countDate})
-                                        </option>
-                                    ))}
-                                </select>
-                                {st.imported && <Badge variant="outline">Imported sheet, not counted here</Badge>}
-                                <Badge variant="secondary">{st.status.toLowerCase()}</Badge>
-                            </>
-                        ) : (
-                            <span className="text-muted-foreground">No stocktake yet. Import the stock sheet or start a month-end count.</span>
+                {view === "live" && <LiveStockTab />}
+                {view === "stocktake" && (
+                    <div className="space-y-4">
+                        <CountTabs
+                            aria-label="Stocktake views"
+                            value={tab}
+                            onValueChange={(v) => setTab(v as Tab)}
+                            items={[
+                                { value: "position", label: "Position" },
+                                { value: "bars", label: "Bars", count: position.data?.bars.total },
+                                { value: "coins", label: "Coins", count: position.data?.coins.lines },
+                                { value: "month-end", label: "Month-end" },
+                            ]}
+                        />
+                        {tab !== "month-end" && position.data && (
+                            <div className="flex flex-wrap items-center gap-3 text-sm">
+                                {st ? (
+                                    <>
+                                        <span className="text-muted-foreground">Figures from</span>
+                                        <select
+                                            aria-label="Stocktake"
+                                            className="border-input bg-background h-9 rounded-md border px-2"
+                                            value={st.id}
+                                            onChange={(e) => setStocktakeId(Number(e.target.value))}
+                                        >
+                                            {position.data.available.map((x) => (
+                                                <option key={x.id} value={x.id}>
+                                                    {x.name} ({x.countDate})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {st.imported && <Badge variant="outline">Imported sheet, not counted here</Badge>}
+                                        <Badge variant="secondary">{st.status.toLowerCase()}</Badge>
+                                    </>
+                                ) : (
+                                    <span className="text-muted-foreground">No stocktake yet. Import the stock sheet or start a month-end count.</span>
+                                )}
+                            </div>
                         )}
+                        {tab === "position" && <PositionTab position={position.data} loading={position.isLoading} />}
+                        {tab === "bars" && st && <BarsTab stocktakeId={st.id} />}
+                        {tab === "coins" && st && <CoinsTab stocktakeId={st.id} />}
+                        {tab === "month-end" && <StocktakeListPage embedded />}
                     </div>
                 )}
-                {tab === "position" && <PositionTab position={position.data} loading={position.isLoading} />}
-                {tab === "bars" && st && <BarsTab stocktakeId={st.id} />}
-                {tab === "coins" && st && <CoinsTab stocktakeId={st.id} />}
-                {tab === "month-end" && <StocktakeListPage embedded />}
             </div>
         </BaseLayout>
     )

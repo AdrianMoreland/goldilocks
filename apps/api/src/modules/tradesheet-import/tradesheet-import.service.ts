@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { aliasOk } from '@goldilocks/shared-types';
+import { aliasOk, metalAwareAlias } from '@goldilocks/shared-types';
 import type {
     AllocationSummary,
     RowResolverData,
@@ -143,21 +143,48 @@ export class TradesheetImportService {
             string,
             { alias: string; uses: number; metalHint: 'GOLD' | 'SILVER' | null }
         >();
-        for (const rec of recs) {
-            for (const r of [...rec.sales, ...rec.lots]) {
-                if (r.status === 'MISSING' || r.status === 'UNCHANGED')
-                    continue;
-                if (r.how !== 'NONE' || !r.productKey) continue;
-                if (!aliasOk(r.parsed.product, r.productKey)) continue;
-                const seen = found.get(r.productKey);
-                if (seen) seen.uses++;
-                else
-                    found.set(r.productKey, {
-                        alias: r.productKey,
-                        uses: 1,
-                        metalHint: r.metal,
-                    });
-            }
+        const rows = recs
+            .flatMap((rec) => [...rec.sales, ...rec.lots])
+            .filter(
+                (r) =>
+                    r.status !== 'MISSING' &&
+                    r.status !== 'UNCHANGED' &&
+                    r.how === 'NONE' &&
+                    r.productKey &&
+                    aliasOk(r.parsed.product, r.productKey),
+            );
+        // A name is ambiguous between gold and silver when it is already saved, or this import met it on both tabs.
+        const plainKeys = [...new Set(rows.map((r) => r.productKey as string))];
+        const saved = new Set(
+            plainKeys.length === 0
+                ? []
+                : (
+                      await tx.productAlias.findMany({
+                          where: { alias: { in: plainKeys } },
+                          select: { alias: true },
+                      })
+                  ).map((a) => a.alias),
+        );
+        const metalsByKey = new Map<string, Set<string>>();
+        for (const r of rows) {
+            const k = r.productKey as string;
+            (metalsByKey.get(k) ?? metalsByKey.set(k, new Set()).get(k)!).add(
+                r.metal,
+            );
+        }
+        for (const r of rows) {
+            const plain = r.productKey as string;
+            const ambiguous =
+                saved.has(plain) || (metalsByKey.get(plain)?.size ?? 0) > 1;
+            const alias = metalAwareAlias(
+                plain,
+                r.parsed.product,
+                r.metal,
+                ambiguous,
+            );
+            const seen = found.get(alias);
+            if (seen) seen.uses++;
+            else found.set(alias, { alias, uses: 1, metalHint: r.metal });
         }
         const names = [...found.values()];
         await this.names.registerNames(names, 'tradesheet', tx);

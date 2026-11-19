@@ -23,6 +23,16 @@ export const queryKeys = {
         register: (id: number) => ['stocktake', 'register', id] as const,
         bcItems: ['stocktake', 'bc-items'] as const,
     },
+    liveStock: {
+        all: ['live-stock'] as const,
+        branches: ['live-stock', 'branches'] as const,
+        board: (branch: string, metal: string) => ['live-stock', 'board', branch, metal] as const,
+        history: (lineId: number) => ['live-stock', 'history', lineId] as const,
+    },
+    items: {
+        trace: (serial: string) => ['items', 'trace', serial] as const,
+        shippedNotCollected: ['items', 'shipped-not-collected'] as const,
+    },
     review: {
         all: ['review'] as const,
         productNames: (view: string, offset: number) => ['review', 'product-names', view, offset] as const,

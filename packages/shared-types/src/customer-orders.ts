@@ -2,14 +2,16 @@ import { parseQuantity, parseTsv, type ParseIssue } from './stocktake';
 import type { StockMetal } from './stocktake-physical';
 
 /**
- * Where an item for a customer is in its life. ORDERED and IN_TRANSIT are not in the branch yet.
+ * Where an item for a customer is in its life. TO_ORDER (paid, not yet ordered from the supplier), ORDERED and
+ * IN_TRANSIT are not in the branch yet.
  * DELIVERED is here but not bagged; BAGGED is in the customer safe. COLLECTED has left with the customer.
  * Collection is never inferred from one source: the evidence log records where each claim came from.
  */
-export const CUSTOMER_ORDER_STATUSES = ['ORDERED', 'IN_TRANSIT', 'DELIVERED', 'BAGGED', 'ALLOCATED', 'COLLECTED'] as const;
+export const CUSTOMER_ORDER_STATUSES = ['TO_ORDER', 'ORDERED', 'IN_TRANSIT', 'DELIVERED', 'BAGGED', 'ALLOCATED', 'COLLECTED'] as const;
 export type CustomerOrderStatus = (typeof CUSTOMER_ORDER_STATUSES)[number];
 
 export const CUSTOMER_ORDER_STATUS_LABELS: Record<CustomerOrderStatus, string> = {
+  TO_ORDER: 'To order (pending supplier)',
   ORDERED: 'Ordered',
   IN_TRANSIT: 'In transit',
   DELIVERED: 'Here, not bagged',
@@ -112,6 +114,9 @@ export function parseSheetDate(raw: string | undefined): string | null {
 }
 
 const STATUS_WORDS: Record<string, CustomerOrderStatus> = {
+  'to order': 'TO_ORDER',
+  'needs product': 'TO_ORDER',
+  'pending supplier': 'TO_ORDER',
   ordered: 'ORDERED',
   'in transit': 'IN_TRANSIT',
   transit: 'IN_TRANSIT',
@@ -226,12 +231,13 @@ export function parseCustomerOrdersPaste(
 
 /** Order of a status in an item's life. BAGGED is the old name of ALLOCATED, so they rank the same. */
 const STATUS_RANK: Record<CustomerOrderStatus, number> = {
-  ORDERED: 0,
-  IN_TRANSIT: 1,
-  DELIVERED: 2,
-  BAGGED: 3,
-  ALLOCATED: 3,
-  COLLECTED: 4,
+  TO_ORDER: 0,
+  ORDERED: 1,
+  IN_TRANSIT: 2,
+  DELIVERED: 3,
+  BAGGED: 4,
+  ALLOCATED: 4,
+  COLLECTED: 5,
 };
 
 /** What a stored item holds that a repeat paste may change. */

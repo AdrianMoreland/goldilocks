@@ -21,6 +21,7 @@ import type {
     LinkDecisionResult,
     NameSuggestionAcceptResult,
     NameSuggestionDecisionResult,
+    RelinkResult,
     SettleNamesResult,
     OverAllocatedResponse,
     PricingProductOption,
@@ -33,6 +34,7 @@ import type {
 import { ReviewService } from './review.service';
 import { BcSalesProductsService } from './bc-sales-products.service';
 import { ProductNamesService } from './product-names.service';
+import { ProductRelinkService } from './product-relink.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -45,6 +47,7 @@ import {
     MapAliasRequestDto,
     NameSuggestionAcceptRequestDto,
     NameSuggestionDecisionRequestDto,
+    RelinkRequestDto,
     SettleNamesRequestDto,
 } from '../../common/dto/dtos';
 
@@ -59,6 +62,7 @@ export class ReviewController {
         private readonly review: ReviewService,
         private readonly bcProducts: BcSalesProductsService,
         private readonly names: ProductNamesService,
+        private readonly relinkRows: ProductRelinkService,
     ) {}
 
     @Get('summary')
@@ -166,6 +170,19 @@ export class ReviewController {
         @Req() req: RequestWithUser,
     ): Promise<SettleNamesResult> {
         return this.names.rescan(body.dryRun, req.user.email);
+    }
+
+    @Post('product-names/relink')
+    @HttpCode(200)
+    @ApiOperation({
+        summary:
+            "Give existing rows their product from the settled names (dryRun only counts). Fills empty fields; correct also follows a person's decisions. Never clears a product.",
+    })
+    relink(
+        @Body() body: RelinkRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<RelinkResult> {
+        return this.relinkRows.relink(body, req.user.email);
     }
 
     @Post('product-names/accept')

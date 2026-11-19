@@ -8,6 +8,7 @@ import {
     matchProductName,
     normaliseProductText,
     normaliseRefinery,
+    spotLookup,
     type AliasRow,
     type AliasUsageExample,
     type AliasUsageMetal,
@@ -22,11 +23,17 @@ import {
     type NameSuggestionDecisionResult,
     type NameSuggestionTarget,
     type ProductMatch,
+    type MatchMetal,
     type SettleNamesResult,
 } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import {
+    buildEvidenceIndex,
+    evidenceFor,
+    type EvidenceRow,
+} from './product-name-evidence';
 import {
     buildUsageIndex,
     splitAlias,
@@ -212,15 +219,18 @@ export class ProductNamesService {
         const rows = await db.productAlias.findMany({ where });
         if (rows.length === 0) return result;
         const cat = await this.catalogue(db);
+        const evidence = await this.loadEvidence(db, rows);
 
         const writes: { id: number; data: Settled }[] = [];
         for (const row of rows) {
+            const seen = evidence(row);
             const m = matchProductName(
                 {
                     text: row.alias,
                     refinery: row.refinery,
-                    metal: row.metalHint,
+                    metal: row.metalHint ?? seen.metal ?? null,
                     sources: row.sources,
+                    metalEvidence: seen.metalEvidence,
                 },
                 cat,
             );
@@ -236,6 +246,81 @@ export class ProductNamesService {
         }
         if (!dryRun) await this.write(db, writes);
         return result;
+    }
+
+    /**
+     * The metal the rows that carry each name point to, from grouped queries (never one per name): the tab metal of its
+     * sales and purchases, and the unit prices of those and of Zoho invoice and purchase order lines against that day's
+     * spot (euro: the sheets and Zoho are in euro). Only names with no metal of their own are looked at.
+     */
+    private async loadEvidence(
+        db: Db,
+        aliases: AliasRecord[],
+    ): Promise<(row: AliasRecord) => ReturnType<typeof evidenceFor>> {
+        const names = [
+            ...new Set(
+                aliases
+                    .filter((a) => !a.metalHint)
+                    .map((a) => splitAlias(a.alias).name)
+                    .filter(Boolean),
+            ),
+        ];
+        if (names.length === 0) return () => ({});
+        type Raw = {
+            k: string;
+            refinery: string | null;
+            metal: string | null;
+            d: string | null;
+            unit: number | null;
+        };
+        const [trades, lots, zoho, orders, spots] = await Promise.all([
+            db.$queryRaw<Raw[]>`
+                SELECT "productKey" AS k, "refinery" AS refinery, "metal"::text AS metal, "date"::text AS d,
+                       CASE WHEN "qty" > 0 THEN ("totalPrice" / "qty")::float8 END AS unit
+                FROM trades WHERE "productKey" = ANY(${names}::text[])`,
+            db.$queryRaw<Raw[]>`
+                SELECT "productKey" AS k, "refinery" AS refinery, "metal"::text AS metal, "received"::text AS d,
+                       COALESCE("pricePerItem", CASE WHEN "qty" > 0 THEN "pricePaid" / "qty" END)::float8 AS unit
+                FROM purchase_lots WHERE "productKey" = ANY(${names}::text[])`,
+            db.$queryRaw<Raw[]>`
+                SELECT COALESCE(NULLIF("productNorm", ''), "itemName") AS k, "refinery" AS refinery, NULL::text AS metal,
+                       "date"::text AS d, "unitPrice"::float8 AS unit
+                FROM zoho_invoice_lines
+                WHERE COALESCE(NULLIF("productNorm", ''), "itemName") = ANY(${names}::text[])`,
+            db.$queryRaw<Raw[]>`
+                SELECT COALESCE(NULLIF("productNorm", ''), "itemName") AS k, NULL::text AS refinery, NULL::text AS metal,
+                       "date"::text AS d, "price"::float8 AS unit
+                FROM zoho_purchase_order_lines
+                WHERE COALESCE(NULLIF("productNorm", ''), "itemName") = ANY(${names}::text[])`,
+            db.$queryRaw<{ m: string; d: string; p: number }[]>`
+                SELECT "metalType"::text AS m, ("recordedAt" AT TIME ZONE 'UTC')::date::text AS d,
+                       AVG("priceEur")::float8 AS p
+                FROM historic_spot_prices GROUP BY 1, 2`,
+        ]);
+        const rows: EvidenceRow[] = [];
+        for (const r of [...trades, ...lots, ...zoho, ...orders]) {
+            const tab =
+                r.metal === 'GOLD' || r.metal === 'SILVER' || r.metal === 'PGM'
+                    ? r.metal
+                    : null;
+            rows.push({
+                name: normaliseProductText(r.k),
+                refinery: normaliseRefinery(r.refinery),
+                tabMetal: tab,
+                date: r.d,
+                unitPrice: r.unit === null ? null : Number(r.unit),
+            });
+        }
+        const index = buildEvidenceIndex(rows);
+        const spotOn = spotLookup(
+            spots
+                .filter((s): s is typeof s & { m: MatchMetal } =>
+                    ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'].includes(s.m),
+                )
+                .map((s) => ({ metal: s.m, date: s.d, price: Number(s.p) })),
+        );
+        return (row) =>
+            evidenceFor(row.alias, index, spotOn, { metalHint: row.metalHint });
     }
 
     /**
@@ -369,7 +454,7 @@ export class ProductNamesService {
             resolved: boolean;
             n: number;
         };
-        const [trades, lots, zoho, safe] = await Promise.all([
+        const [trades, lots, zoho, orders, safe] = await Promise.all([
             db.$queryRaw<Raw[]>`
                 SELECT "productKey" AS k, "refinery" AS refinery, "metal"::text AS metal,
                        ("productId" IS NOT NULL) AS resolved, COUNT(*)::int AS n
@@ -384,6 +469,11 @@ export class ProductNamesService {
                 SELECT COALESCE(NULLIF("productNorm", ''), "itemName") AS k, "refinery" AS refinery,
                        NULL::text AS metal, ("salesProductId" IS NOT NULL) AS resolved, COUNT(*)::int AS n
                 FROM zoho_invoice_lines GROUP BY 1, 2, 4`,
+            // Purchase order lines never carry a product of their own: they only show where the name is used.
+            db.$queryRaw<Raw[]>`
+                SELECT COALESCE(NULLIF("productNorm", ''), "itemName") AS k, NULL::text AS refinery,
+                       NULL::text AS metal, false AS resolved, COUNT(*)::int AS n
+                FROM zoho_purchase_order_lines GROUP BY 1`,
             db.$queryRaw<Raw[]>`
                 SELECT "product" AS k, "refinery" AS refinery, "metal"::text AS metal,
                        true AS resolved, COUNT(*)::int AS n
@@ -411,6 +501,7 @@ export class ProductNamesService {
         add(trades, 'SALES', false);
         add(lots, 'PURCHASES', false);
         add(zoho, 'ZOHO', true);
+        add(orders, 'ZOHO_PO', true);
         add(safe, 'CUSTOMER_SAFE', true);
         return buildUsageIndex(groups);
     }

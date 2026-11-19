@@ -484,7 +484,13 @@ type Raw = {
 /** The four grouped usage queries, answered by the table each one reads. */
 function usageSetup(
     aliases: R[],
-    data: { trades?: Raw[]; lots?: Raw[]; zoho?: Raw[]; safe?: Raw[] },
+    data: {
+        trades?: Raw[];
+        lots?: Raw[];
+        zoho?: Raw[];
+        orders?: Raw[];
+        safe?: Raw[];
+    },
 ) {
     const base = setup(aliases);
     const prisma = base.prisma as unknown as {
@@ -499,6 +505,8 @@ function usageSetup(
         if (sql.includes('FROM trades')) return data.trades ?? [];
         if (sql.includes('FROM purchase_lots')) return data.lots ?? [];
         if (sql.includes('FROM zoho_invoice_lines')) return data.zoho ?? [];
+        if (sql.includes('FROM zoho_purchase_order_lines'))
+            return data.orders ?? [];
         if (sql.includes('FROM customer_order_items')) return data.safe ?? [];
         return [];
     });
@@ -611,13 +619,29 @@ describe('ProductNamesService.list: settled per row and context', () => {
         ]);
     });
 
+    it('counts Zoho purchase order lines in "seen in", and they never keep a name in the queue', async () => {
+        const { service } = usageSetup([waiting(1, '1oz 22 carat')], {
+            trades: [g('1oz 22 carat', 'GOLD', true, 3)],
+            orders: [g('1oz 22 carat', null, false, 5)],
+        });
+        const { rows } = await service.list({});
+        expect(rows).toHaveLength(0);
+        const all = usageSetup([waiting(1, '1oz 22 carat')], {
+            orders: [g('1oz 22 carat', null, false, 5)],
+        });
+        const r = await all.service.list({});
+        expect(r.rows[0].seenIn).toEqual([
+            { source: 'ZOHO_PO', metal: null, count: 5 },
+        ]);
+    });
+
     it('runs the usage queries once for the whole list, not once per name', async () => {
         const { service, prisma } = usageSetup(
             [waiting(1, 'a b'), waiting(2, 'c d'), waiting(3, 'e f')],
             {},
         );
         await service.list({});
-        expect(prisma.$queryRaw).toHaveBeenCalledTimes(4);
+        expect(prisma.$queryRaw).toHaveBeenCalledTimes(5);
     });
 });
 
@@ -858,5 +882,135 @@ describe('ProductNamesService.applyPerMetal', () => {
                 'a@b.c',
             ),
         ).rejects.toThrow('already decided');
+    });
+});
+
+describe('ProductNamesService.settle: metal from the rows', () => {
+    const KOOKABURRA = [
+        P(245, '1OZ-SILVER-COIN', '1oz Silver Coin', 'SILVER'),
+        P(248, 'GOLD-1OZ-COIN', '1oz Gold Coin', 'GOLD'),
+    ];
+    const SPECIFIC = [
+        {
+            id: 900,
+            name: 'Kookaburra 1oz Silver',
+            metal: 'SILVER',
+            refinery: null,
+            genericNorm: '1oz kookaburra',
+            pricingProductId: 245,
+        },
+        {
+            id: 901,
+            name: 'American Buffalo 1oz Gold',
+            metal: 'GOLD',
+            refinery: null,
+            genericNorm: '1oz american buffalo',
+            pricingProductId: 248,
+        },
+    ];
+    type Ev = {
+        k: string;
+        refinery: string | null;
+        metal: string | null;
+        d: string | null;
+        unit: number | null;
+    };
+    const day = (d: number) => `2025-03-0${d}`;
+    const spots = [1, 2, 3, 4].flatMap((d) => [
+        { m: 'GOLD', d: day(d), p: 3000 },
+        { m: 'SILVER', d: day(d), p: 32 },
+        { m: 'PLATINUM', d: day(d), p: 1000 },
+        { m: 'PALLADIUM', d: day(d), p: 600 },
+    ]);
+
+    function evSetup(
+        name: string,
+        data: { trades?: Ev[]; lots?: Ev[]; zoho?: Ev[]; orders?: Ev[] },
+        over: R = {},
+    ) {
+        const base = setup([
+            alias({ id: 1, alias: name, productKey: name, ...over }),
+        ]);
+        const prisma = base.prisma as unknown as {
+            $queryRaw: jest.Mock;
+            product: { findMany: jest.Mock };
+            salesProduct: { findMany: jest.Mock };
+        };
+        prisma.product.findMany.mockResolvedValue(KOOKABURRA);
+        prisma.salesProduct.findMany.mockResolvedValue(SPECIFIC);
+        prisma.$queryRaw.mockImplementation(async (strings: string[]) => {
+            const sql = strings.join('?');
+            if (sql.includes('historic_spot_prices')) return spots;
+            if (sql.includes('FROM trades')) return data.trades ?? [];
+            if (sql.includes('FROM purchase_lots')) return data.lots ?? [];
+            if (sql.includes('FROM zoho_invoice_lines')) return data.zoho ?? [];
+            if (sql.includes('FROM zoho_purchase_order_lines'))
+                return data.orders ?? [];
+            return [];
+        });
+        return base;
+    }
+    const row = (
+        k: string,
+        metal: string | null,
+        d: number,
+        unit: number | null,
+    ): Ev => ({ k, refinery: null, metal, d: day(d), unit });
+
+    it('a Kookaburra whose rows are all priced at silver is the silver Kookaburra, by rule', async () => {
+        const { service, rows } = evSetup('1oz kookaburra', {
+            trades: [
+                row('1oz kookaburra', 'PGM', 1, 38),
+                row('1oz kookaburra', 'PGM', 2, 40),
+            ],
+            zoho: [row('1oz kookaburra', null, 3, 39)],
+        });
+        const r = await service.settle('all');
+        expect(r).toMatchObject({ certain: 1, likely: 0, unclear: 0 });
+        expect(rows[0]).toMatchObject({
+            salesProductId: 900,
+            productId: null,
+            decidedBy: 'RULE',
+        });
+    });
+
+    it('one priced row is only a suggestion', async () => {
+        const { service, rows } = evSetup('1oz kookaburra', {
+            zoho: [row('1oz kookaburra', null, 1, 38)],
+        });
+        expect((await service.settle('all')).likely).toBe(1);
+        expect(rows[0]).toMatchObject({
+            suggestedSalesProductId: 900,
+            decidedBy: null,
+        });
+    });
+
+    it('rows priced as different metals, or no rows, leave it UNCLEAR', async () => {
+        const mixed = evSetup('1oz kookaburra', {
+            zoho: [
+                row('1oz kookaburra', null, 1, 38),
+                row('1oz kookaburra', null, 2, 3100),
+            ],
+        });
+        expect((await mixed.service.settle('all')).unclear).toBe(1);
+        const none = evSetup('1oz kookaburra', {});
+        expect((await none.service.settle('all')).unclear).toBe(1);
+    });
+
+    it('a name used only on the gold tab is gold, certain', async () => {
+        const { service, rows } = evSetup('1oz buffalo', {
+            trades: [row('1oz buffalo', 'GOLD', 1, null)],
+            lots: [row('1oz buffalo', 'GOLD', 2, null)],
+        });
+        expect((await service.settle('all')).certain).toBe(1);
+        expect(rows[0]).toMatchObject({ salesProductId: 901 });
+    });
+
+    it('reads the rows in a few grouped queries, not one per name', async () => {
+        const { service, prisma } = evSetup('1oz kookaburra', {});
+        await service.settle('all');
+        expect(
+            (prisma as unknown as { $queryRaw: jest.Mock }).$queryRaw,
+        ).toHaveBeenCalledTimes(5);
     });
 });

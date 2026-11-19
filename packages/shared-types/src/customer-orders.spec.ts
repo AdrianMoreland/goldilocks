@@ -114,6 +114,12 @@ describe('planCustomerOrderImport', () => {
     expect(back.toUpdate).toEqual([]);
     expect(back.unchanged).toBe(1);
   });
+  it('ranks TO_ORDER before ORDERED and never moves back to it', () => {
+    expect(planCustomerOrderImport([stored({ status: 'TO_ORDER' })], [row({ status: 'ORDERED' })]).toUpdate).toEqual([{ id: 1, changes: { status: 'ORDERED' } }]);
+    const back = planCustomerOrderImport([stored({ status: 'ORDERED' })], [row({ status: 'TO_ORDER' })]);
+    expect(back.toUpdate).toEqual([]);
+    expect(back.unchanged).toBe(1);
+  });
   it('treats BAGGED and ALLOCATED as the same status', () => {
     expect(planCustomerOrderImport([stored({ status: 'BAGGED' })], [row({ status: 'ALLOCATED' })])).toMatchObject({ toUpdate: [], unchanged: 1 });
     expect(planCustomerOrderImport([stored({ status: 'ALLOCATED' })], [row({ status: 'BAGGED' })])).toMatchObject({ toUpdate: [], unchanged: 1 });

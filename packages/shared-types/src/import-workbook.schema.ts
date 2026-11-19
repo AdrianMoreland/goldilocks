@@ -19,7 +19,7 @@ export const LINK_TYPES = [
   'safe_trade', 'serial_customer_safe', 'serial_stock_bar', 'lot_supplier_invoice', 'bc_trade',
 ] as const;
 export const LINK_CONFIDENCES = ['EXACT', 'PROBABLE'] as const;
-export const SAFE_STATUSES = ['ALLOCATED', 'COLLECTED', 'ORDERED'] as const;
+export const SAFE_STATUSES = ['ALLOCATED', 'COLLECTED', 'ORDERED', 'TO_ORDER'] as const;
 
 const sys = oneOf(...SYSTEMS);
 const flag = oneOf(...COLLECTED_FLAGS);

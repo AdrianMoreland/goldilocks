@@ -101,7 +101,7 @@ export const AliasTargetSchema = z.object({
 export type AliasTarget = z.infer<typeof AliasTargetSchema>;
 
 /** Where a product name is used. */
-export const ALIAS_USAGE_SOURCES = ['SALES', 'PURCHASES', 'ZOHO', 'CUSTOMER_SAFE'] as const;
+export const ALIAS_USAGE_SOURCES = ['SALES', 'PURCHASES', 'ZOHO', 'ZOHO_PO', 'CUSTOMER_SAFE'] as const;
 export const AliasUsageSourceSchema = z.enum(ALIAS_USAGE_SOURCES);
 export type AliasUsageSource = z.infer<typeof AliasUsageSourceSchema>;
 export const AliasUsageMetalSchema = z.enum(['GOLD', 'SILVER', 'PGM']);
@@ -222,6 +222,47 @@ export const SettleNamesResultSchema = z.object({
   unchanged: z.number().int(),
 });
 export type SettleNamesResult = z.infer<typeof SettleNamesResultSchema>;
+
+/** The tables Relink looks at: the only ones with a product column. */
+export const RELINK_TABLES = ['trades', 'purchase_lots', 'zoho_invoice_lines', 'zoho_products', 'quotes'] as const;
+export type RelinkTable = (typeof RELINK_TABLES)[number];
+
+/**
+ * Relink: re-attach products on existing rows from the settled names. `dryRun` counts and writes nothing. `correct`
+ * also changes rows whose product disagrees with a person's decision (fill-only otherwise).
+ */
+export const RelinkRequestSchema = z.object({ dryRun: z.boolean(), correct: z.boolean().default(false) });
+export type RelinkRequest = z.infer<typeof RelinkRequestSchema>;
+
+export const RelinkTableResultSchema = z.object({
+  rowsChecked: z.number().int(),
+  /** Rows with no product that a settled name gives one (written when applied). */
+  fill: z.number().int(),
+  /** Rows whose product disagrees with a person's decision (written only when `correct` is on). */
+  correct: z.number().int(),
+  /** Rows that resolve to a pricing product only, in a table with no column for one. Not written. */
+  pricingOnlyNoColumn: z.number().int(),
+  /** Rows with no product that no name or rule resolves. */
+  unresolved: z.number().int(),
+  /** Rows whose name is settled as "not a product". Never touched. */
+  notProduct: z.number().int(),
+  /** Rows changed. Always 0 on a dry run. */
+  written: z.number().int(),
+});
+export type RelinkTableResult = z.infer<typeof RelinkTableResultSchema>;
+
+export const RelinkResultSchema = z.object({
+  dryRun: z.boolean(),
+  correct: z.boolean(),
+  tables: z.object({
+    trades: RelinkTableResultSchema,
+    purchase_lots: RelinkTableResultSchema,
+    zoho_invoice_lines: RelinkTableResultSchema,
+    zoho_products: RelinkTableResultSchema,
+    quotes: RelinkTableResultSchema,
+  }),
+});
+export type RelinkResult = z.infer<typeof RelinkResultSchema>;
 
 /** Turn down the engine's suggestions for these names. */
 export const NameSuggestionDecisionRequestSchema = z.object({

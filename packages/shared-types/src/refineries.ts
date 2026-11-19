@@ -26,6 +26,10 @@ export const REFINERIES: ReadonlyArray<{ refinery: string; spellings: readonly s
   { refinery: 'SEMPSA', spellings: [] },
   { refinery: 'RAND REFINERY', spellings: [] },
   { refinery: 'DEGUSSA', spellings: [] },
+  { refinery: 'ASAHI', spellings: ['Asahi Refining'] },
+  { refinery: 'ENGELHARD', spellings: [] },
+  { refinery: 'KANTONAL BANK', spellings: ['Kantonalbank', 'Zurcher Kantonalbank'] },
+  { refinery: 'MELBOURNE MINT', spellings: ['The Melbourne Mint'] },
 ];
 
 /** Words for "no single refinery": they resolve to null. */

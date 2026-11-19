@@ -35,6 +35,7 @@ const SOURCE_ORDER: AliasUsageSource[] = [
     'SALES',
     'PURCHASES',
     'ZOHO',
+    'ZOHO_PO',
     'CUSTOMER_SAFE',
 ];
 const METAL_ORDER: (AliasUsageMetal | null)[] = ['GOLD', 'SILVER', 'PGM', null];

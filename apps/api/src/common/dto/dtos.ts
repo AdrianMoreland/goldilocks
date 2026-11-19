@@ -58,6 +58,8 @@ import {
     TradesheetImportRequestSchema,
     WorkbookChunkRequestSchema,
     BcAwaitingRequestSchema,
+    BcHistoryRequestSchema,
+    ItemTraceQuerySchema,
     RecordSearchRequestSchema,
     LinkDecisionRequestSchema,
     CreateSalesProductRequestSchema,
@@ -65,6 +67,7 @@ import {
     MapAliasRequestSchema,
     SettleNamesRequestSchema,
     ApplyPerMetalRequestSchema,
+    RelinkRequestSchema,
     NameSuggestionAcceptRequestSchema,
     NameSuggestionDecisionRequestSchema,
     FetchAttemptSchema,
@@ -102,6 +105,17 @@ import {
     ProfitAnalysisResponseSchema,
     PortfolioBuildRequestSchema,
     PortfolioBuildResponseSchema,
+} from '@goldilocks/shared-types';
+import {
+    AdjustLiveStockRequestSchema,
+    CreateLiveStockLineRequestSchema,
+    AddLiveStockBarRequestSchema,
+    SetLiveStockBarStatusRequestSchema,
+    TransferLiveStockRequestSchema,
+    LowThresholdRequestSchema,
+    LinkLiveStockBranchRequestSchema,
+    LiveBaselineRequestSchema,
+    ResolveSheetApplicationRequestSchema,
 } from '@goldilocks/shared-types';
 import { createDto } from './dto-generator';
 
@@ -580,6 +594,16 @@ export class BcAwaitingRequestDto extends createDto(
     'BcAwaitingRequestDto',
 ) {}
 
+export class BcHistoryRequestDto extends createDto(
+    BcHistoryRequestSchema,
+    'BcHistoryRequestDto',
+) {}
+
+export class ItemTraceQueryDto extends createDto(
+    ItemTraceQuerySchema,
+    'ItemTraceQueryDto',
+) {}
+
 export class LinkDecisionRequestDto extends createDto(
     LinkDecisionRequestSchema,
     'LinkDecisionRequestDto',
@@ -603,6 +627,11 @@ export class MapAliasRequestDto extends createDto(
 export class ApplyPerMetalRequestDto extends createDto(
     ApplyPerMetalRequestSchema,
     'ApplyPerMetalRequestDto',
+) {}
+
+export class RelinkRequestDto extends createDto(
+    RelinkRequestSchema,
+    'RelinkRequestDto',
 ) {}
 
 export class SettleNamesRequestDto extends createDto(
@@ -658,4 +687,53 @@ export class RoadmapQueueFiledRequestDto extends createDto(
 export class RoadmapQueueFiledResultDto extends createDto(
     RoadmapQueueFiledResultSchema,
     'RoadmapQueueFiledResultDto',
+) {}
+
+// ============================================================================
+// LIVE STOCK DTOs
+// ============================================================================
+
+export class AdjustLiveStockRequestDto extends createDto(
+    AdjustLiveStockRequestSchema,
+    'AdjustLiveStockRequestDto',
+) {}
+
+export class CreateLiveStockLineRequestDto extends createDto(
+    CreateLiveStockLineRequestSchema,
+    'CreateLiveStockLineRequestDto',
+) {}
+
+export class AddLiveStockBarRequestDto extends createDto(
+    AddLiveStockBarRequestSchema,
+    'AddLiveStockBarRequestDto',
+) {}
+
+export class SetLiveStockBarStatusRequestDto extends createDto(
+    SetLiveStockBarStatusRequestSchema,
+    'SetLiveStockBarStatusRequestDto',
+) {}
+
+export class TransferLiveStockRequestDto extends createDto(
+    TransferLiveStockRequestSchema,
+    'TransferLiveStockRequestDto',
+) {}
+
+export class LowThresholdRequestDto extends createDto(
+    LowThresholdRequestSchema,
+    'LowThresholdRequestDto',
+) {}
+
+export class LinkLiveStockBranchRequestDto extends createDto(
+    LinkLiveStockBranchRequestSchema,
+    'LinkLiveStockBranchRequestDto',
+) {}
+
+export class LiveBaselineRequestDto extends createDto(
+    LiveBaselineRequestSchema,
+    'LiveBaselineRequestDto',
+) {}
+
+export class ResolveSheetApplicationRequestDto extends createDto(
+    ResolveSheetApplicationRequestSchema,
+    'ResolveSheetApplicationRequestDto',
 ) {}

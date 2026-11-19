@@ -1,11 +1,13 @@
 import { toast } from "sonner"
-import { buildClipboardPayload, toExportableColumnIds } from "./clipboard-table"
+import { applyPriceScope, buildClipboardPayload, toExportableColumnIds, type PriceScope } from "./clipboard-table"
 import type { DisplayProduct } from "./product-grouping"
 
 /** Copies the selected rows as both TSV (Excel/Sheets) and an HTML table (Outlook/Word/Slack) in one clipboard write, so the paste looks like a real table wherever it lands. Used by the Trade tab's Easy Copy button. */
-export async function copyRowsToClipboard(selectedProducts: DisplayProduct[], visibleColumnIds: string[]) {
+/** `scope` (Trade tab) picks which price sides to show; without it the table's own visible columns are copied as they are. */
+export async function copyRowsToClipboard(selectedProducts: DisplayProduct[], visibleColumnIds: string[], scope?: PriceScope) {
     const count = selectedProducts.length
-    const columnIds = toExportableColumnIds(visibleColumnIds)
+    const exportable = toExportableColumnIds(visibleColumnIds)
+    const columnIds = scope ? applyPriceScope(exportable, scope) : exportable
     const { text, html } = buildClipboardPayload(selectedProducts, columnIds)
 
     try {

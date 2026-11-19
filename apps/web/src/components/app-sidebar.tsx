@@ -49,7 +49,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))} className="cursor-pointer">
                 <Search />
-                <span>Search and commands</span>
+                <span>Search</span>
                 <Kbd className="ms-auto">{modKeyLabel} K</Kbd>
               </SidebarMenuButton>
             </SidebarMenuItem>

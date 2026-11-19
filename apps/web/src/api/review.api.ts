@@ -11,6 +11,7 @@ import {
     NameSuggestionAcceptResultSchema,
     NameSuggestionDecisionResultSchema,
     OverAllocatedResponseSchema,
+    RelinkResultSchema,
     PricingProductOptionListSchema,
     ReviewLinksResponseSchema,
     ReviewSummarySchema,
@@ -25,6 +26,7 @@ import {
     type LinkDecisionRequest,
     type MapAliasRequest,
     type NameSuggestionAcceptRequest,
+    type RelinkRequest,
     type AliasesQuery,
 } from '@goldilocks/shared-types';
 
@@ -52,6 +54,8 @@ export function useReviewApi() {
         applyPerMetal: (id: number, body: ApplyPerMetalRequest) => client.post(`/review/aliases/${id}/per-metal`, body, ApplyPerMetalResultSchema),
         /** Rescan the product names with the rules. A dry run only counts. */
         rescanNames: (dryRun: boolean) => client.post('/review/product-names/settle', { dryRun }, SettleNamesResultSchema),
+        /** Gives existing rows their product from the settled names. A dry run only counts. */
+        relinkRows: (body: RelinkRequest) => client.post('/review/product-names/relink', body, RelinkResultSchema),
         /** Each item carries the suggestion the person saw; the server skips a name whose suggestion has changed. */
         acceptNames: (items: NameSuggestionAcceptRequest['items']) => client.post('/review/product-names/accept', { items }, NameSuggestionAcceptResultSchema),
         rejectNames: (ids: number[]) => client.post('/review/product-names/reject', { ids }, NameSuggestionDecisionResultSchema),

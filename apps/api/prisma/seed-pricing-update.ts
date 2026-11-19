@@ -35,9 +35,9 @@ const prisma = new PrismaService(new ConfigService());
  * Each product also gets its category (BAR or COIN) from its kind, and the
  * fractional gold coins are named "1/10oz Coin", "1/4oz Coin" and "1/2oz Coin".
  *
- * PAMP/CombiBar brand-stamp variants and any row the sheet marks
- * unavailable ("-" or a zero premium placeholder) are deliberately left out
- * - same call as the previous round, still true of this workbook.
+ * PAMP, PAMP Diwali and CombiBar gold bars are included as variants of the
+ * regular bar at the same weight. Any row the sheet marks unavailable ("-" or
+ * a zero premium placeholder) is left out.
  *
  * Every write is idempotent (safe to re-run) and never touches `stock` on a
  * product that already exists - inventory counts are managed separately
@@ -55,9 +55,10 @@ const NON_GOLD_VAT = 0.23; // silver/platinum/palladium aren't EU "investment me
 const GRAMS_PER_TROY_OUNCE = 31.1035;
 
 interface Entry {
-    /** Used verbatim in the SKU: `${metal}-${skuSuffix}-${kind}`. */
+    /** Used verbatim in the SKU: `${metal}-${skuSuffix}-${kind}`; a MELT row has the SKU `${metal}-MELT`. */
     skuSuffix: string;
-    kind: "BAR" | "COIN";
+    /** MELT is the per-troy-ounce row for melt and scrap: no bar or coin category. */
+    kind: "BAR" | "COIN" | "MELT";
     name: string;
     weightGrams: number;
     premium: number;
@@ -90,6 +91,10 @@ const coin = (skuSuffix: string, name: string, weightGrams: number, premium: num
 /** A hidden row: no spread, no stock, inactive. See `Entry.hidden`. */
 const hiddenBar = (skuSuffix: string, name: string, weightGrams: number): Entry => ({ ...bar(skuSuffix, name, weightGrams, 0, 0, 0), hidden: true });
 const hiddenCoin = (skuSuffix: string, name: string, weightGrams: number): Entry => ({ ...coin(skuSuffix, name, weightGrams, 0, 0, 0), hidden: true });
+/** The Melt row of a metal, priced per troy ounce. */
+const hiddenMelt = (name: string): Entry => ({ skuSuffix: "MELT", kind: "MELT", name, weightGrams: GRAMS_PER_TROY_OUNCE, premium: 0, discount: 0, stock: 0, hidden: true });
+
+const skuOf = (metal: MetalType, entry: Entry) => (entry.kind === "MELT" ? `${metal}-MELT` : `${metal}-${entry.skuSuffix}-${entry.kind}`);
 
 // ============================================================================
 // GOLD - no 10oz bar (workbook lists it with a 0% placeholder premium, i.e.
@@ -106,9 +111,20 @@ const GOLD_ENTRIES: Entry[] = [
     bar("100G", "100 g Gold Bar", 100, 0.051, 0.0375, 25),
     bar("250G", "250 g Gold Bar", 250, 0.046, 0.035, 12),
     bar("500G", "500 g Gold Bar", 500, 0.0455, 0.0325, 6),
-    bar("1KG", "1 kg Gold Bar", 1000, 0.035, 0.03, 4),
+    bar("1KG", "1 kg Gold Bar", 1000, 0.031, 0.03, 4),
 
-    coin("1OZ-MAPLELEAF", "1oz Maple Leaf", GRAMS_PER_TROY_OUNCE, 0.057, 0.0375, 40),
+    // PAMP, PAMP Diwali and CombiBar variants: hidden from the main price table until searched, picked as a variant in the Trade tab.
+    bar("5G-PAMP-DIWALI", "5 g Gold PAMP Diwali Bar", 5, 0.175, 0.065, 0),
+    bar("10G-PAMP", "10 g Gold PAMP Bar", 10, 0.1325, 0.05, 0),
+    bar("20G-COMBIBAR", "20 g Gold CombiBar", 20, 0.09, 0.05, 0),
+    bar("20G-PAMP", "20 g Gold PAMP Bar", 20, 0.085, 0.05, 0),
+    bar("1OZ-PAMP", "1 oz Gold PAMP Bar", GRAMS_PER_TROY_OUNCE, 0.075, 0.04, 0),
+    bar("50G-COMBIBAR", "50 g Gold CombiBar", 50, 0.07, 0.04, 0),
+    bar("50G-PAMP", "50 g Gold PAMP Bar", 50, 0.0675, 0.04, 0),
+    bar("100G-COMBIBAR", "100 g Gold CombiBar", 100, 0.065, 0.0375, 0),
+    bar("100G-PAMP", "100 g Gold PAMP Bar", 100, 0.0675, 0.0375, 0),
+
+    coin("1OZ-MAPLELEAF", "1oz Maple Leaf", GRAMS_PER_TROY_OUNCE, 0.0575, 0.0375, 40),
     coin("1OZ-BRITANNIA", "1oz Britannia", GRAMS_PER_TROY_OUNCE, 0.065, 0.0375, 35),
     coin("1OZ-KRUGERRAND", "1oz Krugerrand", GRAMS_PER_TROY_OUNCE, 0.0585, 0.0375, 35),
     coin("1OZ-PHILHARMONIC", "1oz Philharmonic", GRAMS_PER_TROY_OUNCE, 0.0675, 0.0375, 30),
@@ -132,6 +148,18 @@ const GOLD_ENTRIES: Entry[] = [
     hiddenBar("1/2OZ", "1/2oz Gold Bar", 15.5518),
     hiddenCoin("QUARTER-SOVEREIGN", "Quarter Sovereign", 1.997),
     hiddenCoin("QUINTUPLE-SOVEREIGN", "Quintuple Sovereign", 39.94),
+    hiddenMelt("Gold Melt"),
+    hiddenCoin("2OZ", "2oz Gold Coin", GRAMS_PER_TROY_OUNCE * 2),
+    hiddenCoin("30G", "30g Gold Coin", 30),
+    hiddenCoin("15G", "15g Gold Coin", 15),
+    hiddenCoin("3G", "3g Gold Coin", 3),
+    hiddenCoin("1/20OZ", "1/20oz Gold Coin", GRAMS_PER_TROY_OUNCE / 20),
+    hiddenBar("1/10OZ", "1/10oz Gold Bar", GRAMS_PER_TROY_OUNCE / 10),
+    hiddenBar("2OZ", "2oz Gold Bar", GRAMS_PER_TROY_OUNCE * 2),
+    hiddenBar("5OZ", "5oz Gold Bar", GRAMS_PER_TROY_OUNCE * 5),
+    hiddenBar("1TOLA", "1 tola Gold Bar", 11.6638),
+    hiddenBar("5TOLA", "5 tola Gold Bar", 58.319),
+    hiddenBar("10TOLA", "10 tola Gold Bar", 116.638),
 ];
 
 // ============================================================================
@@ -171,6 +199,18 @@ const SILVER_ENTRIES: Entry[] = [
     hiddenBar("1000OZ", "1000oz Silver Bar", GRAMS_PER_TROY_OUNCE * 1000),
     hiddenBar("10OZ", "10oz Silver Bar", GRAMS_PER_TROY_OUNCE * 10),
     hiddenBar("50G", "50g Silver Bar", 50),
+    hiddenMelt("Silver Melt"),
+    hiddenCoin("1/10OZ", "1/10oz Silver Coin", GRAMS_PER_TROY_OUNCE / 10),
+    hiddenCoin("1/4OZ", "1/4oz Silver Coin", GRAMS_PER_TROY_OUNCE / 4),
+    hiddenCoin("1/2OZ", "1/2oz Silver Coin", GRAMS_PER_TROY_OUNCE / 2),
+    hiddenCoin("5OZ", "5oz Silver Coin", GRAMS_PER_TROY_OUNCE * 5),
+    hiddenCoin("100G", "100g Silver Coin", 100),
+    hiddenCoin("30G", "30g Silver Coin", 30),
+    hiddenBar("5G", "5g Silver Bar", 5),
+    hiddenBar("10G", "10g Silver Bar", 10),
+    hiddenBar("20G", "20g Silver Bar", 20),
+    hiddenBar("5KG", "5kg Silver Bar", 5000),
+    hiddenBar("15KG", "15kg Silver Bar", 15000),
 ];
 
 // ============================================================================
@@ -189,6 +229,9 @@ const PLATINUM_ENTRIES: Entry[] = [
     coin("1OZ-BRITANNIA", "1oz Britannia", GRAMS_PER_TROY_OUNCE, 0.12, 0.035, 15),
     coin("1OZ-MAPLE", "1oz Maple", GRAMS_PER_TROY_OUNCE, 0.12, 0.035, 15),
     hiddenCoin("1OZ", "1oz Platinum Coin", GRAMS_PER_TROY_OUNCE),
+    hiddenBar("2.5G", "2.5g Platinum Bar", 2.5),
+    hiddenBar("1/2OZ", "1/2oz Platinum Bar", GRAMS_PER_TROY_OUNCE / 2),
+    hiddenBar("10OZ", "10oz Platinum Bar", GRAMS_PER_TROY_OUNCE * 10),
 ];
 
 const PALLADIUM_ENTRIES: Entry[] = [
@@ -213,7 +256,8 @@ const CATALOGUE: Record<MetalType, Entry[]> = {
 };
 
 async function upsertEntry(metal: MetalType, entry: Entry) {
-    const sku = `${metal}-${entry.skuSuffix}-${entry.kind}`;
+    const sku = skuOf(metal, entry);
+    const category = entry.kind === "MELT" ? null : entry.kind;
     const vatRate = metal === MetalType.GOLD || isBondedProduct(entry.name) ? GOLD_VAT : NON_GOLD_VAT;
 
     const result = await prisma.product.upsert({
@@ -224,7 +268,7 @@ async function upsertEntry(metal: MetalType, entry: Entry) {
             spreadSell: entry.premium,
             spreadBuy: -entry.discount,
             vatRate,
-            category: entry.kind,
+            category,
         },
         create: {
             sku,
@@ -234,7 +278,7 @@ async function upsertEntry(metal: MetalType, entry: Entry) {
             spreadSell: entry.premium,
             spreadBuy: -entry.discount,
             vatRate,
-            category: entry.kind,
+            category,
             stock: entry.stock,
             description: entry.name,
             ...(entry.hidden ? { isActive: false } : {}),
@@ -260,7 +304,7 @@ async function main() {
             console.log(`${r.created ? "✨ Created" : "✅ Updated"} ${r.sku}`);
         }
 
-        const validSkus = entries.map((e) => `${metal}-${e.skuSuffix}-${e.kind}`);
+        const validSkus = entries.map((e) => skuOf(metal, e));
         const stale = await prisma.product.findMany({
             where: { metalType: metal, sku: { notIn: validSkus } },
             select: { id: true, sku: true },

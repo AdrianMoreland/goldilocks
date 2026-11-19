@@ -46,14 +46,14 @@ const navGroups: NavGroup[] = [
     label: "Navigation",
     items: [
       {
-        title: "Pricing Workbook",
+        title: "Pricing",
         url: "/dashboard",
         icon: LayoutDashboard,
         requires: "pricingWorkbook",
         keywords: ["dashboard", "prices", "spot", "products"],
       },
       {
-        title: "Knowledge Center",
+        title: "SOP",
         url: "/knowledge",
         icon: BookOpen,
         keywords: ["procedures", "sop", "help", "how to"],
@@ -77,14 +77,14 @@ const tradesheetsItem: NavItem = { title: "Trade sheets", url: "/tradesheets", i
 const stockOrdersItems: NavItem[] = [
   { title: "Inventory", url: "/inventory", icon: Boxes, keywords: ["stock", "bars", "coins", "stocktake", "month end"] },
   { title: "Orders", url: "/orders", icon: ListChecks, keywords: ["customer orders", "allocate", "collect", "sheet updates"] },
-  { title: "Import hub", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report", "review"] },
+  { title: "Import", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report", "review"] },
   { title: "Customers", url: "/customers", icon: Users, keywords: ["customer", "client", "history"] },
   { title: "Invoices", url: "/invoices", icon: Receipt, keywords: ["invoice", "zoho", "serial", "payment"] },
 ]
 
 const adminItems: NavItem[] = [
-  { title: "Admin Console", url: "/admin", icon: ShieldCheck, keywords: ["admin", "logs", "errors", "health", "users"] },
-  { title: "Project Management", url: "/project", icon: KanbanSquare, keywords: ["roadmap", "tasks", "plan"] },
+  { title: "Admin", url: "/admin", icon: ShieldCheck, keywords: ["admin", "logs", "errors", "health", "users"] },
+  { title: "Project", url: "/project", icon: KanbanSquare, keywords: ["roadmap", "tasks", "plan"] },
 ]
 
 /**

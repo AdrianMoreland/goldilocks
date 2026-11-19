@@ -77,6 +77,16 @@ type IdMap = ReadonlyMap<string, SalesProductId> | Record<string, SalesProductId
 const lookup = (m: IdMap | undefined, k: string): SalesProductId | undefined =>
   !m ? undefined : m instanceof Map ? m.get(k) : Object.prototype.hasOwnProperty.call(m, k) ? (m as Record<string, SalesProductId>)[k] : undefined;
 
+/**
+ * The alias to save for a name a tab met. Gold and silver share many names and a saved name holds one decision, so when the
+ * name is ambiguous (already saved, or met on both metals) and the text names no metal, the tab's metal is added as a word
+ * ("1oz britannia silver"). The resolver reads the row's metal as one more word, so that name only fits that metal's rows.
+ */
+export function metalAwareAlias(key: string, text: string | null | undefined, metal: MetalType, ambiguous: boolean): string {
+  if (!ambiguous || (metal !== 'GOLD' && metal !== 'SILVER') || metalInText(text)) return key;
+  return `${key} ${metal.toLowerCase()}`;
+}
+
 export function aliasKey(productNorm: string, refinery: string | null): string {
   return refinery ? `${productNorm}|${refinery}` : productNorm;
 }
@@ -224,6 +234,7 @@ function bestDecision(
 ): ProductDecision | null {
   let best: ProductDecision | null = null;
   let bestTokens = 0;
+  let bestFits = false;
   for (const d of decisions) {
     if (d.productId === null && d.salesProductId === null && !d.noProduct) continue;
     if (d.decidedBy === 'RULE' && !d.noProduct && d.metalHint !== rowMetal) continue;
@@ -232,12 +243,22 @@ function bestDecision(
     const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
     if (bar >= 0 && decisionRefinery !== refinery) continue;
     if (!aliasOk(name, name)) continue;
-    const tokens = name.split(' ').filter(Boolean);
+    // A repeated word ("50g bar bar") adds no information, so it must not outrank the same name without it.
+    const tokens = [...new Set(name.split(' ').filter(Boolean))];
     if (tokens.length < 2 && !tokens.some((t) => WEIGHT_TOKEN.test(t))) continue;
     if (!tokens.every((t) => keyTokens.has(t))) continue;
-    if (!best || tokens.length > bestTokens || (tokens.length === bestTokens && d.key.length > best.key.length)) {
+    // Of two decisions that fit the words, the one whose metal is the row's (or unknown) comes first. A decision of
+    // another metal still applies when it is the only one, because a person's decision holds whatever the tab.
+    const fits = !d.metalHint || d.metalHint === rowMetal;
+    if (
+      !best ||
+      (fits && !bestFits) ||
+      (fits === bestFits &&
+        (tokens.length > bestTokens || (tokens.length === bestTokens && d.key.length > best.key.length)))
+    ) {
       best = d;
       bestTokens = tokens.length;
+      bestFits = fits;
     }
   }
   return best;
@@ -274,7 +295,14 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
 
   // 2. A saved name decision.
   if (key && aliasOk(text, key)) {
-    const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases, metalInText(text) ?? input.metal);
+    // Gold and silver share many names, and a saved name holds one decision. A row whose text names no metal is
+    // looked up with its tab's metal as one more word, so "1oz britannia silver" outranks the plain "1oz britannia"
+    // on a silver tab only; the plain name stays as the fallback.
+    const keyTokens = new Set(key.split(' '));
+    const textMetal = metalInText(text);
+    const rowMetalWord = textMetal ?? input.metal;
+    if (rowMetalWord === 'GOLD' || rowMetalWord === 'SILVER') keyTokens.add(rowMetalWord.toLowerCase());
+    const d = bestDecision(keyTokens, refinery, data.decisions ?? [], data.refineryAliases, textMetal ?? input.metal);
     if (d?.noProduct) return { ...base, pricingProductId: null, salesProductId: null, method: 'NOT_PRODUCT' };
     if (d) {
       const r = d.salesProductId !== null ? viaSales('ALIAS', d.salesProductId) : null;

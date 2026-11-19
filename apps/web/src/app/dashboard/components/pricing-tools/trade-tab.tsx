@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { useMarketDataApi } from "@/api/market-data.api"
-import { ArrowLeftRight, Flame, Table2, X, Plus } from "lucide-react"
+import { ArrowLeftRight, Flame, X, Plus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TRADE_FIRST_QTY_ID, usePricingTools } from "../../context/pricing-tools-context"
@@ -10,12 +10,14 @@ import { formatEuro, formatGrams, formatMetalName, formatPrice } from "../../uti
 import { describeApiError } from "../../utils/describe-error"
 import { CustomerMessageButton } from "./customer-message-button"
 import { copyRowsToClipboard } from "../table/copy-rows-button"
+import { EasyCopyButton } from "./easy-copy-button"
 import { buildDisplayProducts } from "../table/product-grouping"
 import { ToolSpotEditor } from "./tool-spot-editor"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
 import { NumberInput } from "@/components/number-input"
+import { isVariantProduct, variantChoices } from "../table/product-grouping"
 
 export function TradeTab() {
     const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
@@ -111,6 +113,9 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                 {trade.items.length > 0 && (
                     <div className="text-muted-foreground flex items-center gap-1.5 pr-1.5 pl-6 text-[11px] font-semibold">
                         <span className="flex-1">Product</span>
+                        {trade.items.some((item) => item.product && variantChoices(item.product, trade.products).length > 0) && (
+                            <span className="w-[4.75rem] text-center">Variant</span>
+                        )}
                         <span className="w-11 text-center">Qty</span>
                         <span className="w-14 text-center">{trade.transactionType === "buying" ? "Prem %" : "Disc %"}</span>
                         <span className="w-7" />
@@ -118,7 +123,15 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                    {trade.items.map((item, index) => (
+                    {trade.items.map((item, index) => {
+                        // Products with variants (PAMP, CombiBar, US...) show the regular one in the product box and
+                        // the variant in its own dropdown.
+                        const choices = item.product ? variantChoices(item.product, trade.products) : []
+                        const hasVariants = choices.length > 0
+                        const productValue = hasVariants ? choices[0].product.id : item.productId
+                        const options = trade.products.filter((p) => !isVariantProduct(p) || (!hasVariants && p.id === item.productId))
+                        const anyVariants = trade.items.some((i) => i.product && variantChoices(i.product, trade.products).length > 0)
+                        return (
                         <div key={item.id} className="bg-muted/40 flex items-center gap-1.5 rounded-2xl p-1.5 pl-2.5">
                             <span
                                 className="size-2 shrink-0 rounded-full"
@@ -126,20 +139,40 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 aria-hidden
                             />
                             <Select
-                                value={item.productId ? String(item.productId) : undefined}
+                                value={productValue ? String(productValue) : undefined}
                                 onValueChange={(value) => trade.updateItemProduct(item.id, Number(value))}
                             >
                                 <SelectTrigger className="bg-background h-8 min-w-0 flex-1 cursor-pointer rounded-lg border-0 text-xs shadow-none" title={item.product?.name}>
                                     <SelectValue placeholder="Select a product" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {trade.products.map((p) => (
+                                    {options.map((p) => (
                                         <SelectItem key={p.id} value={String(p.id)}>
                                             {p.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+
+                            {hasVariants ? (
+                                <Select value={String(item.productId)} onValueChange={(value) => trade.updateItemVariant(item.id, Number(value))}>
+                                    <SelectTrigger
+                                        className="bg-background h-8 w-[4.75rem] shrink-0 cursor-pointer rounded-lg border-0 px-2 text-xs shadow-none"
+                                        aria-label={`Variant of ${item.product?.name ?? "item"}`}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {choices.map((choice) => (
+                                            <SelectItem key={choice.product.id} value={String(choice.product.id)}>
+                                                {choice.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                anyVariants && <span className="w-[4.75rem] shrink-0" aria-hidden />
+                            )}
 
                             <NumberInput
                                 id={index === 0 ? TRADE_FIRST_QTY_ID : undefined}
@@ -173,7 +206,8 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 <X className="size-3.5" />
                             </button>
                         </div>
-                    ))}
+                        )
+                    })}
                 </div>
 
                 <button
@@ -219,15 +253,15 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     <TooltipTrigger asChild>
                         {/* A span carries the tooltip because a disabled button swallows hover events. */}
                         <span className="flex">
-                            <button
-                                type="button"
+                            <EasyCopyButton
                                 disabled={selectedProductIds.length === 0}
-                                onClick={() => {
+                                isPrice={trade.transactionType === "buying"}
+                                onCopy={(scope) => {
                                     const source = tableCopySource.current
                                     if (!source) return
                                     // The copy prices from the Trade tool spot. When it still follows the card, the table's own rows are already right.
                                     if (!trade.spotDetached || trade.spot === null) {
-                                        void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds)
+                                        void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds, scope)
                                         return
                                     }
                                     const overrides = { ...displayPrices, [activeMetal]: trade.spot }
@@ -235,14 +269,11 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                         .then((priced) => {
                                             const byId = new Map(buildDisplayProducts(priced).map((p) => [p.id, p]))
                                             const rows = source.selectedProducts.map((row) => byId.get(row.id) ?? row)
-                                            return copyRowsToClipboard(rows, source.visibleColumnIds)
+                                            return copyRowsToClipboard(rows, source.visibleColumnIds, scope)
                                         })
                                         .catch(() => toast.error("Couldn't price the copy at your spot"))
                                 }}
-                                className="border-border bg-card hover:bg-muted flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <Table2 className="size-4" /> Easy Copy
-                            </button>
+                            />
                         </span>
                     </TooltipTrigger>
                     <TooltipContent side="top">
