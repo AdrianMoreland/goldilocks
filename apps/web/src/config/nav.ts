@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ClipboardCheck,
+  Workflow,
   Boxes,
   Download,
   Receipt,
@@ -21,6 +22,8 @@ export interface NavItem {
   icon: LucideIcon
   /** Hidden for branches without this capability. */
   requires?: "pricingWorkbook"
+  /** Shown to admins only, in its place in the group (the route enforces the same). */
+  adminOnly?: boolean
   /** Extra words the command palette matches besides the title. */
   keywords?: string[]
 }
@@ -55,6 +58,13 @@ const navGroups: NavGroup[] = [
         icon: BookOpen,
         keywords: ["procedures", "sop", "help", "how to"],
       },
+      {
+        title: "Rules",
+        url: "/rules",
+        icon: Workflow,
+        adminOnly: true,
+        keywords: ["offers", "premium limits", "alerts", "checks", "segments", "assistant"],
+      },
     ],
   },
 ]
@@ -84,7 +94,7 @@ const adminItems: NavItem[] = [
 export function navGroupsFor({ isAdmin, isManager, grouped, capabilities }: NavAccess): NavGroup[] {
   const visible = navGroups.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.requires || capabilities[item.requires]),
+    items: group.items.filter((item) => (!item.requires || capabilities[item.requires]) && (!item.adminOnly || isAdmin)),
   }))
   // Managers get the stocktake and customer orders without the rest of the admin group; admins see them inside it.
   if (isAdmin && grouped) {
