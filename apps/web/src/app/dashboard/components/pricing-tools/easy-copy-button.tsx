@@ -8,10 +8,12 @@ interface EasyCopyButtonProps {
     /** True in Price mode (the customer buying), false in Buyback mode: decides which side is named first. */
     isPrice: boolean
     onCopy: (scope: PriceScope) => void
+    /** Runs before the choices open (the stale-spot check); it calls `open` to carry on. */
+    beforeOpen?: (open: () => void) => void
 }
 
 /** Easy Copy: asks which prices the copied table should show, then hands the choice to `onCopy`. */
-export function EasyCopyButton({ disabled, isPrice, onCopy }: EasyCopyButtonProps) {
+export function EasyCopyButton({ disabled, isPrice, onCopy, beforeOpen }: EasyCopyButtonProps) {
     const [open, setOpen] = useState(false)
     const selected = isPrice ? "Price" : "Buyback"
     const other = isPrice ? "Buyback" : "Price"
@@ -22,7 +24,13 @@ export function EasyCopyButton({ disabled, isPrice, onCopy }: EasyCopyButtonProp
     }
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover
+            open={open}
+            onOpenChange={(next) => {
+                if (next && beforeOpen) beforeOpen(() => setOpen(true))
+                else setOpen(next)
+            }}
+        >
             <PopoverTrigger asChild>
                 <button
                     type="button"

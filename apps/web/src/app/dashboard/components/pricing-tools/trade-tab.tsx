@@ -13,6 +13,7 @@ import { copyRowsToClipboard } from "../table/copy-rows-button"
 import { EasyCopyButton } from "./easy-copy-button"
 import { buildDisplayProducts } from "../table/product-grouping"
 import { ToolSpotEditor } from "./tool-spot-editor"
+import { useStaleSpotGuard } from "./stale-spot-guard"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
@@ -98,6 +99,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
     const percentLabel = trade.transactionType === "buying" ? "Premium %" : "Discount %"
     const cartError = trade.cartError ? describeApiError(trade.cartError, "calculate this order") : null
     const totalLabel = trade.transactionType === "buying" ? "Total price to customer" : "Total buyback to customer"
+    const staleSpot = useStaleSpotGuard(activeMetal)
 
     return (
         <div className="flex flex-col gap-4">
@@ -256,6 +258,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                             <EasyCopyButton
                                 disabled={selectedProductIds.length === 0}
                                 isPrice={trade.transactionType === "buying"}
+                                beforeOpen={staleSpot.guard}
                                 onCopy={(scope) => {
                                     const source = tableCopySource.current
                                     if (!source) return
@@ -283,7 +286,14 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     </TooltipContent>
                 </Tooltip>
 
-                <CustomerMessageButton cart={trade.cartResult} transactionType={trade.transactionType} fetchOtherSide={trade.quoteOppositeSide} />
+                <CustomerMessageButton
+                    cart={trade.cartResult}
+                    transactionType={trade.transactionType}
+                    fetchOtherSide={trade.quoteOppositeSide}
+                    quotedSpot={trade.spot}
+                    beforeOpen={staleSpot.guard}
+                />
+                {staleSpot.dialog}
             </div>
         </div>
     )

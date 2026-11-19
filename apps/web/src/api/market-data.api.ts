@@ -1,6 +1,6 @@
 // src/api/market-data.api.ts
 import { useApiClient } from '@/api/api-client';
-import { MarketDataResponseSchema, ProductArraySchema } from '@goldilocks/shared-types';
+import { MarketDataResponseSchema, ProductArraySchema, SpotStatusResponseSchema } from '@goldilocks/shared-types';
 import type { MetalType } from '../lib/types.ts';
 
 export type SpotOverrideRequest = Partial<Record<MetalType, number>>;
@@ -16,6 +16,9 @@ export function useMarketDataApi() {
 
     return {
         getMarketData: () => client.get('/market-data', MarketDataResponseSchema),
+
+        /** Light poll: price times and auto-refresh state only. */
+        getSpotStatus: () => client.get('/market-data/spot-status', SpotStatusResponseSchema),
 
         recalculate: (overrides: SpotOverrideRequest) =>
             client.post('/market-data/recalculate', overrides, ProductArraySchema),

@@ -10,6 +10,10 @@ interface CustomerMessageButtonProps {
     transactionType: TradeTransactionType
     /** Prices the same items from the other side of the trade, for messages that show Price and Buyback together. */
     fetchOtherSide: (customSpot: number) => Promise<TradeCartResponse>
+    /** The spot the quote should be priced from; a cart still priced from another spot is not sent. */
+    quotedSpot: number | null
+    /** Runs before the steps open (the stale-spot check); it calls `open` to carry on. */
+    beforeOpen?: (open: () => void) => void
 }
 
 const CHANNEL_LABEL: Record<MessageChannel, string> = { whatsapp: "WhatsApp", email: "Email" }
@@ -20,7 +24,7 @@ const CHANNEL_LABEL: Record<MessageChannel, string> = { whatsapp: "WhatsApp", em
  * just the side being quoted, or both Price and Buyback. The message, filled
  * in from the current quote, lands on the clipboard.
  */
-export function CustomerMessageButton({ cart, transactionType, fetchOtherSide }: CustomerMessageButtonProps) {
+export function CustomerMessageButton({ cart, transactionType, fetchOtherSide, quotedSpot, beforeOpen }: CustomerMessageButtonProps) {
     const [open, setOpen] = useState(false)
     const [busy, setBusy] = useState(false)
     const [channel, setChannel] = useState<MessageChannel | null>(null)
@@ -39,6 +43,11 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide }:
 
     const finish = async (both: boolean) => {
         if (!cart || !channel) return
+        // Just after a new spot is typed, the cart can still be the one priced from the old spot.
+        if (quotedSpot !== null && Math.abs(cart.spot - quotedSpot) > 0.005) {
+            toast.info("Still repricing at the new spot - try again in a moment.")
+            return
+        }
         setBusy(true)
 
         try {
@@ -78,6 +87,10 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide }:
         <Popover
             open={open}
             onOpenChange={(next) => {
+                if (next && beforeOpen) {
+                    beforeOpen(() => setOpen(true))
+                    return
+                }
                 setOpen(next)
                 if (!next) reset()
             }}

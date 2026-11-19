@@ -32,6 +32,7 @@ export * from './auth.schemas';
 export {
     MarketDataResponseSchema,
     RefreshResponseSchema,
+    SpotStatusResponseSchema,
     RecalculateOverridesSchema,
     HistoricCloseQuerySchema,
 } from './market-data.schema';
@@ -39,6 +40,7 @@ export {
 export type {
     MarketDataResponse,
     RefreshResponse,
+    SpotStatusResponse,
     RecalculateOverrides,
     HistoricCloseQuery,
 } from './market-data.schema';
@@ -47,6 +49,7 @@ export type {
 export * from './trade.schema';
 export * from './portfolio.schema';
 export * from './pricing-math';
+export * from './spot-freshness';
 export * from './product-pricing';
 export * from './portfolio-builder-math';
 export * from './session.schema';

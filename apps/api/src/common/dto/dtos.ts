@@ -90,6 +90,7 @@ import {
 import {
     ApiSuccessResponseSchema,
     MarketDataResponseSchema,
+    SpotStatusResponseSchema,
     CreateProductDtoSchema,
     CreateSpotPriceDtoSchema,
     HealthCheckSchema,
@@ -210,6 +211,11 @@ export class UpdateProductDto extends createDto(
 export class UpdateStockRequestDto extends createDto(
     UpdateStockRequestSchema,
     'UpdateStockRequestDto',
+) {}
+
+export class SpotStatusResponseDto extends createDto(
+    SpotStatusResponseSchema,
+    'SpotStatusResponseDto',
 ) {}
 
 export class MarketDataResponseDto extends createDto(

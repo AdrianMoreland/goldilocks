@@ -23,19 +23,25 @@ export function isUsableRate(rate: MetalRate | undefined): rate is MetalRate {
     return rate !== undefined && rate.eur > 0;
 }
 
+/** How far ahead of our clock a vendor time may be (clock drift) before it is rejected. */
+const VENDOR_CLOCK_TOLERANCE_MS = 60 * 1000;
+
 /**
- * When the vendor says the rates were struck. Vendor timestamps are unix
- * seconds; anything missing or not in the past is replaced by `now` so a bad
- * value can't make a price look brand new.
+ * When the vendor says the rates were struck (unix seconds). Null when that
+ * time is missing, invalid or in the future: the caller must then treat the
+ * fetch as failed rather than stamp the price with "now", which would make
+ * an unknown-age price look brand new. A time within a minute ahead of ours
+ * is clock drift and is capped at now.
  */
 export function vendorAsOf(
     vendorSeconds: unknown,
     now: number = Date.now(),
-): Date {
+): Date | null {
+    if (vendorSeconds === null || vendorSeconds === undefined) return null;
     const vendorMs = Number(vendorSeconds) * 1000;
-    return Number.isFinite(vendorMs) && vendorMs > 0 && vendorMs <= now
-        ? new Date(vendorMs)
-        : new Date(now);
+    if (!Number.isFinite(vendorMs) || vendorMs <= 0) return null;
+    if (vendorMs > now + VENDOR_CLOCK_TOLERANCE_MS) return null;
+    return new Date(Math.min(vendorMs, now));
 }
 
 /**

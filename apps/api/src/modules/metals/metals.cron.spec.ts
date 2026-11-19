@@ -118,6 +118,33 @@ describe('MetalsCron pause/resume', () => {
     });
 });
 
+describe('MetalsCron schedule', () => {
+    // The options the @Cron decorator registered for the price job.
+    const priceJobOptions = () => {
+        const handler = Object.getOwnPropertyDescriptor(
+            MetalsCron.prototype,
+            'updateMetals',
+        )?.value as object;
+        return Reflect.getMetadataKeys(handler)
+            .map((key) => Reflect.getMetadata(key, handler) as unknown)
+            .find(
+                (value): value is { name: string } =>
+                    (value as { name?: string } | undefined)?.name ===
+                    'updateMetals',
+            );
+    };
+
+    it('fetches every 5 minutes', () => {
+        expect(priceJobOptions()).toMatchObject({
+            cronTime: '0 */5 * * * *',
+        });
+    });
+
+    it('starts paused after every start-up, so a deploy never spends quota on its own', () => {
+        expect(priceJobOptions()).toMatchObject({ disabled: true });
+    });
+});
+
 describe('MetalsCron.updateMetals', () => {
     it('refreshes with the CRON trigger', async () => {
         const { cron, provider } = build();

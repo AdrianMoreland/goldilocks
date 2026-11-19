@@ -1,13 +1,14 @@
 import * as React from "react"
+import { SPOT_FETCH_INTERVAL_MS } from "@goldilocks/shared-types"
 
-/** Matches the backend cron's CronExpression.EVERY_10_MINUTES (clock-aligned to :00/:10/:20…, not "10 minutes after the last fetch"), so this needs no data from the server - just the current time. */
-const CRON_INTERVAL_MS = 10 * 60 * 1000
+/** Matches the backend cron's CronExpression.EVERY_5_MINUTES (clock-aligned to :00/:05/:10…, not "5 minutes after the last fetch"), so this needs no data from the server - just the current time. */
+const CRON_INTERVAL_MS = SPOT_FETCH_INTERVAL_MS
 
 function msUntilNextMark(): number {
     return CRON_INTERVAL_MS - (Date.now() % CRON_INTERVAL_MS)
 }
 
-/** Ticking countdown to the next scheduled price-refresh cron run. Purely a clock computation - doesn't know or care whether an admin has actually paused the cron (see the Admin Panel), it just reflects when it WOULD normally fire. */
+/** Ticking countdown to the next scheduled price-refresh cron run. Purely a clock computation: callers hide it while the cron is paused (the market data says so). */
 export function useNextFetchCountdown() {
     const [msRemaining, setMsRemaining] = React.useState(msUntilNextMark)
 

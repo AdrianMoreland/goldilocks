@@ -20,15 +20,20 @@ describe('vendorAsOf', () => {
     const now = Date.parse('2026-09-30T12:00:00Z');
 
     it('uses a vendor timestamp in the past (unix seconds)', () => {
-        expect(vendorAsOf(1_750_000_000, now).getTime()).toBe(
+        expect(vendorAsOf(1_750_000_000, now)?.getTime()).toBe(
             1_750_000_000_000,
         );
     });
 
+    it('accepts a vendor clock up to a minute ahead of ours, capped at now', () => {
+        expect(vendorAsOf(now / 1000 + 30, now)?.getTime()).toBe(now);
+    });
+
+    // Stamping "now" on a price with no real time would make it look fresh.
     it.each([undefined, null, 'soon', 0, -5, NaN, now / 1000 + 3600])(
-        'falls back to now for %s',
+        'has no usable time for %s',
         (bad) => {
-            expect(vendorAsOf(bad, now).getTime()).toBe(now);
+            expect(vendorAsOf(bad, now)).toBeNull();
         },
     );
 });

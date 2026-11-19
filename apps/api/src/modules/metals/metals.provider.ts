@@ -13,6 +13,7 @@ import {
 import { SpotPriceCacheStore } from './spot-price-cache.store';
 import { CascadeMetricsService } from './cascade-metrics.service';
 import { FetchAttemptService } from './fetch-attempt.service';
+import { PriceRefreshSchedule } from './price-refresh-schedule';
 import { ALL_METALS } from '../../common/utils/pricing.util';
 import {
     isUsableRate,
@@ -23,9 +24,9 @@ import {
 
 // How old a DB-sourced price is allowed to be before the launch-read
 // cascade (getAllLatestForLaunch) stops trusting it and falls through to a
-// live API call instead. The cron refreshes every 10 minutes, so anything
-// past this points to the cron having been down/failing, not just a normal
-// gap between cycles.
+// live API call instead - only while the cron is running. The cron refreshes
+// every 5 minutes, so anything past this points to the cron failing, not
+// just a normal gap between cycles.
 const DB_STALE_MS = 30 * 60 * 1000;
 
 function isFresh(timestampIso: string, maxAgeMs: number): boolean {
@@ -95,7 +96,13 @@ export class MetalsProvider {
         private readonly spotCache: SpotPriceCacheStore,
         private readonly cascadeMetrics: CascadeMetricsService,
         private readonly fetchAttempts: FetchAttemptService,
+        private readonly schedule: PriceRefreshSchedule,
     ) {}
+
+    /** Whether the price cron is running; while it is paused nothing but an explicit Refresh or Retry calls the vendor. */
+    isAutoRefreshRunning(): boolean {
+        return this.schedule.isRunning();
+    }
 
     // ── Orchestration - Reads (cache → DB only, no external call) ───────
 
@@ -122,10 +129,15 @@ export class MetalsProvider {
      * "any value that isn't zero or ancient" is acceptable, so cache and DB
      * are tried first and the live API is only a last resort per metal,
      * rather than always paying for a network call like refreshAll does.
+     *
+     * While the cron is paused the live API is never called from here: the
+     * stored price is served whatever its age (the UI shows that age), so
+     * only an explicit Refresh or Retry spends vendor quota.
      */
     async getAllLatestForLaunch(): Promise<MetalsRefreshResult> {
         const prices: RawSpotPrice[] = [];
         const needsLiveFetch: MetalType[] = [];
+        const autoRefreshRunning = this.schedule.isRunning();
 
         for (const metal of ALL_METALS) {
             const cached = await this.spotCache.getCachedOnly(metal);
@@ -137,7 +149,10 @@ export class MetalsProvider {
             this.cascadeMetrics.recordCacheMiss();
 
             const dbRow = await this.spotCache.getFromDbOnly(metal);
-            if (isUsablePrice(dbRow) && isFresh(dbRow.timestamp, DB_STALE_MS)) {
+            if (
+                isUsablePrice(dbRow) &&
+                (!autoRefreshRunning || isFresh(dbRow.timestamp, DB_STALE_MS))
+            ) {
                 await this.spotCache.set(metal, dbRow);
                 prices.push(withFetchSource(dbRow, 'db'));
                 continue;
@@ -148,6 +163,11 @@ export class MetalsProvider {
 
         if (needsLiveFetch.length === 0) {
             return { prices, degradedMetals: [] };
+        }
+
+        if (!autoRefreshRunning) {
+            // Paused, and nothing usable is stored for these metals.
+            return { prices, degradedMetals: needsLiveFetch };
         }
 
         this.logger.warn(
@@ -318,7 +338,7 @@ export class MetalsProvider {
      */
     private async fetchFromExternalApi(triggeredBy: FetchTrigger): Promise<{
         rates: MetalRates;
-        /** When the vendor says these rates were struck (their `timestamp`), not when we asked - a cache/DB hit later shows this same time, which is what staff need to judge how old the price really is. Falls back to "now" if the vendor omits it. */
+        /** When the vendor says these rates were struck (their `timestamp`), not when we asked - a cache/DB hit later shows this same time, which is what staff need to judge how old the price really is. A response without a usable time is treated as a failed fetch, never stamped with "now". */
         asOf: Date;
     }> {
         const startedAt = Date.now();
@@ -345,6 +365,18 @@ export class MetalsProvider {
             }
 
             const asOf = vendorAsOf(response.timestamp);
+            if (!asOf) {
+                const errorMessage = `MetalPriceAPI returned no usable timestamp (${String(response.timestamp)}) - keeping the last stored prices`;
+                this.logger.error(errorMessage);
+                await this.fetchAttempts.record({
+                    durationMs: Date.now() - startedAt,
+                    success: false,
+                    errorMessage,
+                    metalsResolved: [],
+                    triggeredBy,
+                });
+                return { rates: {}, asOf: new Date() };
+            }
             this.logger.debug(
                 `Base=${response.base}, Timestamp=${response.timestamp}`,
             );

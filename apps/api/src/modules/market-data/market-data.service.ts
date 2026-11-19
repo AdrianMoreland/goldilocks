@@ -5,6 +5,7 @@ import {
     Product,
     RawSpotPrice,
     MarketDataResponse,
+    SpotStatusResponse,
 } from '@goldilocks/shared-types';
 import { MetalsProvider } from '../metals/metals.provider';
 import { HistoricSpotService } from '../metals/historic-spot.service';
@@ -40,6 +41,14 @@ export interface PricedCatalogue {
 
 const ALL_METALS: MetalType[] = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
 
+/** The oldest of a set of ISO times (the one that decides how stale the set is), or null for none. */
+function oldestIso(times: string[]): string | null {
+    return times.reduce<string | null>(
+        (oldest, time) => (oldest === null || time < oldest ? time : oldest),
+        null,
+    );
+}
+
 /**
  * MarketDataService - the composition layer.
  *
@@ -71,6 +80,24 @@ export class MarketDataService {
         const { prices, degradedMetals } =
             await this.metalsProvider.getAllLatestForLaunch();
         return this.composeMarketData(prices, degradedMetals);
+    }
+
+    /**
+     * The dashboard's 2-minute poll: when the prices were struck and fetched,
+     * and whether auto-refresh is paused. Same cascade as the page load (so
+     * it never calls the vendor while the cron is paused), but no products
+     * or history, so polling stays cheap. The page refetches the full market
+     * data only when snapshotAt changes.
+     */
+    async getSpotStatus(): Promise<SpotStatusResponse> {
+        const { prices, degradedMetals } =
+            await this.metalsProvider.getAllLatestForLaunch();
+        return {
+            snapshotAt: oldestIso(prices.map((s) => s.timestamp)),
+            lastFetchAt: oldestIso(prices.map((s) => s.createdAt)),
+            autoRefreshPaused: !this.metalsProvider.isAutoRefreshRunning(),
+            degradedMetals,
+        };
     }
 
     /**
@@ -192,26 +219,17 @@ export class MarketDataService {
             spotPrices: enrichedSpotPrices,
             historicSpot,
             products,
-            // The actual snapshot time, not "now" - the oldest timestamp
-            // across spotPrices, so a cache/DB hit correctly shows as
-            // however old it really is rather than as freshly fetched.
-            fetchedAt: this.getSnapshotTimestamp(enrichedSpotPrices),
+            // The market time, not "now": a cache/DB hit shows as however
+            // old the price really is rather than as freshly fetched.
+            snapshotAt: oldestIso(enrichedSpotPrices.map((s) => s.timestamp)),
+            lastFetchAt: oldestIso(enrichedSpotPrices.map((s) => s.createdAt)),
+            autoRefreshPaused: !this.metalsProvider.isAutoRefreshRunning(),
             priceWarning:
                 degradedMetals.length > 0
                     ? `Live price unavailable for ${degradedMetals.join(', ')} - showing €0.00 until the price feed recovers.`
                     : null,
             degradedMetals,
         };
-    }
-
-    private getSnapshotTimestamp(spotPrices: RawSpotPrice[]): string {
-        if (spotPrices.length === 0) return new Date().toISOString();
-
-        return spotPrices.reduce(
-            (oldest, spot) =>
-                spot.timestamp < oldest ? spot.timestamp : oldest,
-            spotPrices[0].timestamp,
-        );
     }
 
     /**

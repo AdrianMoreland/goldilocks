@@ -14,6 +14,7 @@ import {
     HistoricCloseQueryDto,
     MarketDataResponseDto,
     ProductResponseDto,
+    SpotStatusResponseDto,
     RecalculateOverridesDto,
 } from '../../common/dto/dtos';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -40,6 +41,23 @@ export class MarketDataController {
     @Get()
     async getMarketData(): Promise<MarketDataResponseDto> {
         return this.marketDataService.getMarketData();
+    }
+
+    @ApiOperation({
+        summary: 'Get the spot-price status (polled by the dashboard)',
+        description:
+            'When the prices shown were struck (vendor time) and last fetched, and whether ' +
+            'auto-refresh is paused. No products or history. Never calls the vendor while ' +
+            'the price cron is paused.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Spot-price status',
+        type: SpotStatusResponseDto,
+    })
+    @Get('spot-status')
+    async getSpotStatus(): Promise<SpotStatusResponseDto> {
+        return this.marketDataService.getSpotStatus();
     }
 
     @ApiOperation({

@@ -5,6 +5,8 @@ export const queryKeys = {
     marketData: {
         all: ['market-data'] as const,
     },
+    // GET /market-data/spot-status: the light 2-minute poll behind the price status.
+    spotStatus: ['spot-status'] as const,
     marketMode: ['market-mode'] as const,
     customerOrders: {
         list: ['customer-orders', 'list'] as const,

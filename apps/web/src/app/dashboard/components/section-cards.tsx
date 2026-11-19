@@ -4,41 +4,41 @@ import {
 
 import React, {useState} from "react";
 import {Input} from "@/components/ui/input.tsx";
-import {PauseIcon, PlayIcon, ArrowUp, ArrowDown, Snowflake, Pencil} from "lucide-react";
+import {PauseIcon, PlayIcon, ArrowUp, ArrowDown, Snowflake, Pencil, AlertTriangle, RotateCw} from "lucide-react";
 import {features} from "@/config/features";
 import {cn} from "@/lib/utils";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {MetalCardData} from "../schemas/card-data.schema";
 import {metalAccentStyle} from "./pricing-tools/tab-theme";
-import {formatMinutesAgo, formatSnapshotTime, formatSpot, roundSpot} from "../utils/formatters";
+import {formatAge, formatSnapshotTime, formatSpot, roundSpot} from "../utils/formatters";
+import {FRESHNESS_DOT_CLASS, FRESHNESS_LABEL} from "../utils/freshness";
 import {FETCH_SOURCE_LABEL} from "../utils/fetch-source";
 
 const FRESHNESS_DOT_COLOR: Record<MetalCardData["freshness"], string> = {
-    fresh: "bg-status-ok",
-    stale: "bg-status-warn",
+    ...FRESHNESS_DOT_CLASS,
     fallback: "bg-status-stale",
     failed: "bg-status-bad",
 }
 
-const FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
-    fresh: "Fresh",
-    stale: "Stale",
+const CARD_FRESHNESS_LABEL: Record<MetalCardData["freshness"], string> = {
+    ...FRESHNESS_LABEL,
     fallback: "Live fetch failed - showing last known price",
-    failed: "Failed to fetch",
+    failed: "No usable price",
 }
 
-/** The dot next to the metal name — fresh/stale/failed, computed from the vendor snapshot time + degradedMetals (see use-pricing-workbook.hook.ts). Money-risk signal: a red or amber dot means don't trust this price without checking further. The age is not repeated per card: all four come from one vendor call, so the header's status text and stale triangle say it once. */
+/** The dot next to the metal name, on the header's scale (see utils/freshness.ts) plus the two failure states. Money-risk signal: amber or red means check the price before quoting. */
 function FreshnessDot({ data }: { data: MetalCardData }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span className="inline-flex items-center" tabIndex={0} aria-label={`Price freshness: ${FRESHNESS_LABEL[data.freshness]}`}>
+                <span className="inline-flex items-center" tabIndex={0} aria-label={`Price freshness: ${CARD_FRESHNESS_LABEL[data.freshness]}`}>
                     <span className={`inline-block size-2 shrink-0 rounded-full ${FRESHNESS_DOT_COLOR[data.freshness]}`} />
                 </span>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-                <p>{FRESHNESS_LABEL[data.freshness]}</p>
-                <p>API snapshot: {formatSnapshotTime(data.lastFetchedAt)} ({formatMinutesAgo(data.lastFetchedAt)})</p>
+                <p>{CARD_FRESHNESS_LABEL[data.freshness]}</p>
+                <p>Market price as of {formatSnapshotTime(data.snapshotAt)} ({formatAge(data.priceAgeMs)})</p>
+                {data.lastFetchAt && <p className="opacity-70">Fetched at {formatSnapshotTime(data.lastFetchAt)}</p>}
                 {data.fetchSource && <p className="opacity-70">Served from: {FETCH_SOURCE_LABEL[data.fetchSource]}</p>}
             </TooltipContent>
         </Tooltip>
@@ -56,6 +56,9 @@ interface SectionCardProps {
     onFreeze?: () => void;
     /** Back to live market prices. */
     onClearOverride?: () => void;
+    /** Admins only: one live fetch for a metal whose last fetch failed (spends vendor quota). */
+    onRetry?: () => void;
+    retrying?: boolean;
 }
 
 export function SectionCards({
@@ -65,6 +68,8 @@ export function SectionCards({
                                  onValueChange,
                                  onFreeze,
                                  onClearOverride,
+                                 onRetry,
+                                 retrying = false,
                              }: SectionCardProps) {
 
     // Frozen is simply "there is an override" — held by the workbook, so it
@@ -244,6 +249,31 @@ export function SectionCards({
                     {data.direction === "down" && (<ArrowDown className="h-3 w-3"/>)}
                 </div>
             ) : null}
+
+            {(data.freshness === "fallback" || data.freshness === "failed") && (
+                <FetchFailedNote failed={data.freshness === "failed"} onRetry={onRetry} retrying={retrying} />
+            )}
         </CardContent>
     </Card>);
+}
+
+/** Persistent per-card marker that the last live fetch for this metal failed: the price is the last stored one (or none at all). */
+function FetchFailedNote({ failed, onRetry, retrying }: { failed: boolean; onRetry?: () => void; retrying: boolean }) {
+    return (
+        <div className="flex w-full items-center gap-1.5 text-[11px] font-medium text-status-stale" onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle className="size-3 shrink-0" aria-hidden />
+            <span className="truncate">{failed ? "No live price" : "Last known price"}</span>
+            {onRetry && (
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    disabled={retrying}
+                    className="hover:bg-muted focus-visible:ring-ring/50 ml-auto inline-flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-foreground outline-none focus-visible:ring-[3px] disabled:cursor-wait disabled:opacity-60"
+                >
+                    <RotateCw className={cn("size-3", retrying && "animate-spin")} aria-hidden />
+                    Retry
+                </button>
+            )}
+        </div>
+    )
 }
