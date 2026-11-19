@@ -11,9 +11,9 @@ import type { TradeTransactionType } from './trade.schema';
 export const GRAMS_PER_TROY_OUNCE = 31.1034768;
 
 /**
- * How old a live spot snapshot can be before prices may be out of date. The
- * cron refreshes every 10 minutes, so 15 survives one missed run without
- * flagging a healthy snapshot. Read by the dashboard cards and the assistant.
+ * How old a market price (its vendor time) can be before the assistant
+ * calls it possibly out of date. The dashboard's dot follows the fetch age
+ * instead (see spot-freshness.ts).
  */
 export const SPOT_STALE_AFTER_MS = 15 * 60 * 1000;
 

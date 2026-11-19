@@ -7,8 +7,12 @@ export const MarketDataResponseSchema = z.object({
   spotPrices: z.array(SpotPriceSchema),
   historicSpot: z.array(HistoricSpotSchema),
   products: z.array(ProductSchema),
-  /** The actual timestamp of the spot-price snapshot being shown - the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
-  fetchedAt: z.iso.datetime(),
+  /** When the market price shown was struck: the vendor's own time, the oldest across spotPrices. Null when there is no price. Not when we fetched it, and not when this request ran. */
+  snapshotAt: z.iso.datetime().nullable(),
+  /** When we last received these prices from the vendor: the oldest fetch time across spotPrices. The freshness dot follows this. Null when there is no price. */
+  lastFetchAt: z.iso.datetime().nullable(),
+  /** True while the price cron is paused: nothing refreshes the prices until someone clicks Refresh. */
+  autoRefreshPaused: z.boolean(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
    * live API without finding a usable (non-zero, non-stale) price, so the
@@ -21,10 +25,19 @@ export const MarketDataResponseSchema = z.object({
   degradedMetals: z.array(MetalTypeEnum),
 });
 
+/** The light poll behind the dashboard's price status: no products, no history. */
+export const SpotStatusResponseSchema = MarketDataResponseSchema.pick({
+  snapshotAt: true,
+  lastFetchAt: true,
+  autoRefreshPaused: true,
+  degradedMetals: true,
+});
+export type SpotStatusResponse = z.infer<typeof SpotStatusResponseSchema>;
+
 export const RefreshResponseSchema = z.object({
   spot: SpotPriceSchema,
   products: z.array(ProductSchema),
-  fetchedAt: z.iso.datetime(),
+  snapshotAt: z.iso.datetime().nullable(),
 });
 
 // "What if" spot overrides from the UI. A string/NaN/negative here would flow
