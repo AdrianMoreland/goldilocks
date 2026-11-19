@@ -147,7 +147,25 @@ export function liveRefinery(text: string | null | undefined): { value: string; 
   return { value: refineryWords(t), listed: false };
 }
 
-export const LIVE_BRANCH_CODES = ['DU', 'CO', 'BL', 'BC'] as const;
+/** Tab order: Dublin is the main branch. */
+export const LIVE_BRANCH_CODES = ['DU', 'BL', 'CO', 'BC'] as const;
+
+/** What each stock location is called. BL is Blanchardstown, not Belfast. */
+export const LIVE_BRANCH_NAMES: Record<string, string> = {
+  DU: 'Dublin',
+  BL: 'Blanchardstown',
+  CO: 'Cork',
+  BC: 'Barcelona',
+};
+
+/** Sort branch codes into tab order; unknown codes go last, alphabetically. */
+export function sortBranchCodes<T extends { code: string }>(branches: T[]): T[] {
+  const rank = (c: string) => {
+    const i = (LIVE_BRANCH_CODES as readonly string[]).indexOf(c);
+    return i < 0 ? 99 : i;
+  };
+  return [...branches].sort((a, b) => rank(a.code) - rank(b.code) || a.code.localeCompare(b.code));
+}
 
 /** Compare variants by size, then name. Unweighted variants sort last. */
 export function variantGrams(variant: string): number {

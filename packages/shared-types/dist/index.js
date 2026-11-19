@@ -5982,7 +5982,11 @@ var REFINERIES = [
   { refinery: "ROYAL CANADIAN MINT", spellings: [] },
   { refinery: "SEMPSA", spellings: [] },
   { refinery: "RAND REFINERY", spellings: [] },
-  { refinery: "DEGUSSA", spellings: [] }
+  { refinery: "DEGUSSA", spellings: [] },
+  { refinery: "ASAHI", spellings: ["Asahi Refining"] },
+  { refinery: "ENGELHARD", spellings: [] },
+  { refinery: "KANTONAL BANK", spellings: ["Kantonalbank", "Zurcher Kantonalbank"] },
+  { refinery: "MELBOURNE MINT", spellings: ["The Melbourne Mint"] }
 ];
 var NO_REFINERY = ["Best Value (Mixed Refiners)", "Mixed", "Mixed/Other", "Unknown"];
 function refineryWords(s) {
@@ -8026,7 +8030,20 @@ function liveRefinery(text4) {
   if (hit) return { value: hit, listed: true };
   return { value: refineryWords(t), listed: false };
 }
-var LIVE_BRANCH_CODES = ["DU", "CO", "BL", "BC"];
+var LIVE_BRANCH_CODES = ["DU", "BL", "CO", "BC"];
+var LIVE_BRANCH_NAMES = {
+  DU: "Dublin",
+  BL: "Blanchardstown",
+  CO: "Cork",
+  BC: "Barcelona"
+};
+function sortBranchCodes(branches) {
+  const rank2 = (c) => {
+    const i = LIVE_BRANCH_CODES.indexOf(c);
+    return i < 0 ? 99 : i;
+  };
+  return [...branches].sort((a, b) => rank2(a.code) - rank2(b.code) || a.code.localeCompare(b.code));
+}
 function variantGrams(variant) {
   return parseWeight(variant)?.grams ?? Number.POSITIVE_INFINITY;
 }
@@ -9006,6 +9023,7 @@ export {
   LINK_CONFIDENCES,
   LINK_TYPES,
   LIVE_BRANCH_CODES,
+  LIVE_BRANCH_NAMES,
   LatestHandoverSchema,
   LinkBcItemRequestSchema,
   LinkDecisionRequestSchema,
@@ -9403,6 +9421,7 @@ export {
   shareTermsAcrossBlocks,
   sheetTasksForStep,
   solveMissingPurchaseField,
+  sortBranchCodes,
   splitDocSections,
   splitFrontmatter,
   splitScopeBundle,
