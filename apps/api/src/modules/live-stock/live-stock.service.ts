@@ -51,7 +51,7 @@ interface MoveMeta {
 }
 
 /**
- * Live stock: current counts per branch, edited day to day. A line's quantity is the running sum of its movements;
+ * Live stock: current counts per branch, edited day to day. Branch codes are the stock sheet's (DU Dublin, BL Blanchardstown, CO Cork, BC Barcelona). A line's quantity is the running sum of its movements;
  * every change goes through `move`, which writes the movement and the audit entry in the same transaction, so a count
  * never changes without a trail. Business rules (no negative counts, bars never fewer than their serials, one in-stock
  * bar per serial) live here, not in the controller.

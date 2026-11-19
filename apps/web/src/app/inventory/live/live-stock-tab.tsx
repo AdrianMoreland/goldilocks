@@ -22,6 +22,7 @@ const METALS: { value: LiveMetal; label: string }[] = [
 
 type Dialog = { kind: "edit" | "history" | "transfer"; line: LiveStockLine } | { kind: "add" } | { kind: "baseline" } | null
 
+/** The shared name table wins over the stored name, so a renamed location shows correctly before data catches up. */
 const branchName = (code: string, fallback: string) => LIVE_BRANCH_NAMES[code] ?? fallback
 
 /**
