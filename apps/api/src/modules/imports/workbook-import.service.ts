@@ -632,6 +632,7 @@ export class WorkbookImportService {
             const qty = r['qty'];
             const product = str(r['product_text'])?.trim();
             const branch = str(r['branch_code'])?.trim();
+            // TO_ORDER: paid by the customer, not yet ordered from the supplier (sheet wording: NEEDS PRODUCT).
             const status = r['status_norm'];
             if (
                 typeof qty !== 'number' ||
