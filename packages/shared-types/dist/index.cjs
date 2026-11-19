@@ -546,6 +546,7 @@ __export(index_exports, {
   meltLabel: () => meltLabel,
   mergeMetalPrices: () => mergeMetalPrices,
   mergeRoadmap: () => mergeRoadmap,
+  metalAwareAlias: () => metalAwareAlias,
   metalInText: () => metalInText,
   metalsFitting: () => metalsFitting,
   nextAction: () => nextAction,
@@ -7657,6 +7658,10 @@ function normaliseRefinery(text4, aliases = []) {
   return listed === void 0 ? key : listed;
 }
 var lookup = (m, k) => !m ? void 0 : m instanceof Map ? m.get(k) : Object.prototype.hasOwnProperty.call(m, k) ? m[k] : void 0;
+function metalAwareAlias(key, text4, metal, ambiguous) {
+  if (!ambiguous || metal !== "GOLD" && metal !== "SILVER" || metalInText(text4)) return key;
+  return `${key} ${metal.toLowerCase()}`;
+}
 function aliasKey(productNorm, refinery) {
   return refinery ? `${productNorm}|${refinery}` : productNorm;
 }
@@ -7755,7 +7760,11 @@ function resolveRowProduct(input, data) {
     if (r) return r;
   }
   if (key && aliasOk(text4, key)) {
-    const d = bestDecision(new Set(key.split(" ")), refinery, data.decisions ?? [], data.refineryAliases, metalInText(text4) ?? input.metal);
+    const keyTokens = new Set(key.split(" "));
+    const textMetal = metalInText(text4);
+    const rowMetalWord = textMetal ?? input.metal;
+    if (rowMetalWord === "GOLD" || rowMetalWord === "SILVER") keyTokens.add(rowMetalWord.toLowerCase());
+    const d = bestDecision(keyTokens, refinery, data.decisions ?? [], data.refineryAliases, textMetal ?? input.metal);
     if (d?.noProduct) return { ...base, pricingProductId: null, salesProductId: null, method: "NOT_PRODUCT" };
     if (d) {
       const r = d.salesProductId !== null ? viaSales("ALIAS", d.salesProductId) : null;
@@ -10001,6 +10010,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   meltLabel,
   mergeMetalPrices,
   mergeRoadmap,
+  metalAwareAlias,
   metalInText,
   metalsFitting,
   nextAction,

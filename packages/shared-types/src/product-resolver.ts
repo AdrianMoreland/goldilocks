@@ -77,6 +77,16 @@ type IdMap = ReadonlyMap<string, SalesProductId> | Record<string, SalesProductId
 const lookup = (m: IdMap | undefined, k: string): SalesProductId | undefined =>
   !m ? undefined : m instanceof Map ? m.get(k) : Object.prototype.hasOwnProperty.call(m, k) ? (m as Record<string, SalesProductId>)[k] : undefined;
 
+/**
+ * The alias to save for a name a tab met. Gold and silver share many names and a saved name holds one decision, so when the
+ * name is ambiguous (already saved, or met on both metals) and the text names no metal, the tab's metal is added as a word
+ * ("1oz britannia silver"). The resolver reads the row's metal as one more word, so that name only fits that metal's rows.
+ */
+export function metalAwareAlias(key: string, text: string | null | undefined, metal: MetalType, ambiguous: boolean): string {
+  if (!ambiguous || (metal !== 'GOLD' && metal !== 'SILVER') || metalInText(text)) return key;
+  return `${key} ${metal.toLowerCase()}`;
+}
+
 export function aliasKey(productNorm: string, refinery: string | null): string {
   return refinery ? `${productNorm}|${refinery}` : productNorm;
 }
@@ -285,7 +295,14 @@ export function resolveRowProduct(input: RowResolveInput, data: RowResolverData)
 
   // 2. A saved name decision.
   if (key && aliasOk(text, key)) {
-    const d = bestDecision(new Set(key.split(' ')), refinery, data.decisions ?? [], data.refineryAliases, metalInText(text) ?? input.metal);
+    // Gold and silver share many names, and a saved name holds one decision. A row whose text names no metal is
+    // looked up with its tab's metal as one more word, so "1oz britannia silver" outranks the plain "1oz britannia"
+    // on a silver tab only; the plain name stays as the fallback.
+    const keyTokens = new Set(key.split(' '));
+    const textMetal = metalInText(text);
+    const rowMetalWord = textMetal ?? input.metal;
+    if (rowMetalWord === 'GOLD' || rowMetalWord === 'SILVER') keyTokens.add(rowMetalWord.toLowerCase());
+    const d = bestDecision(keyTokens, refinery, data.decisions ?? [], data.refineryAliases, textMetal ?? input.metal);
     if (d?.noProduct) return { ...base, pricingProductId: null, salesProductId: null, method: 'NOT_PRODUCT' };
     if (d) {
       const r = d.salesProductId !== null ? viaSales('ALIAS', d.salesProductId) : null;

@@ -239,7 +239,6 @@ describe('parseTab', () => {
         it.each([
             ['IE - Gold', 'Silver 1oz Britannia', 11, 'silver', 'gold'],
             ['IE - Silver', '1oz Gold Bar', 12, 'gold', 'silver'],
-            ['IE - Silver', 'Platinum - 100g bar', 10, 'platinum', 'silver'],
         ])('flags %s: %s', (tab, text, id, says, tabIs) => {
             const r = run(tab, text);
             expect(r.productId).toBe(id);
@@ -266,6 +265,13 @@ describe('parseTab', () => {
             expect(r.issues).toEqual([
                 'Product says silver but the tab is gold.',
             ]);
+        });
+
+        it('stays quiet for platinum and palladium in the silver tab', () => {
+            const r = run('IE - Silver', 'Platinum - 100g bar');
+            expect(r.productId).toBe(10);
+            expect(r.issues).toEqual([]);
+            expect(run('IE - Silver', '1oz Palladium').issues).toEqual([]);
         });
 
         it('uses the text metal when nothing resolved', () => {
