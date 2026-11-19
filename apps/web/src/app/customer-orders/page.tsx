@@ -45,6 +45,7 @@ export default function CustomerOrdersPage() {
     }
     const fail = (e: Error) => toast.error(e.message)
 
+    // "OPEN" = every status except COLLECTED, so TO_ORDER (paid, not yet ordered from the supplier) shows by default.
     const [status, setStatus] = useState<CustomerOrderStatus | "ALL" | "OPEN">("OPEN")
     const [branch, setBranch] = useState("all")
     const [q, setQ] = useState("")
