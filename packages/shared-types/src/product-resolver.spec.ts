@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aliasKey, normaliseRefinery, resolveProduct, resolveRowProduct, type ResolverData, type RowResolverData } from './product-resolver';
+import { aliasKey, metalAwareAlias, normaliseRefinery, resolveProduct, resolveRowProduct, type ResolverData, type RowResolverData } from './product-resolver';
 import { refineryInText, REFINERIES } from './refineries';
 import { aliasOk, normaliseProductText, PRODUCT_NORM_EXAMPLES } from './product-text';
 import { metalInText, pricingSkuFor } from './product-rules';
@@ -287,6 +287,15 @@ describe('resolveRowProduct', () => {
     expect(resolveRowProduct({ productText: '(31.1g) 1oz Gold Bar', metal: 'GOLD' }, { ...rowData, decisions: [] })).toMatchObject({ method: 'RULE', pricingProductId: 1 });
   });
 
+  describe('metalAwareAlias', () => {
+    it('adds the tab metal only to an ambiguous name whose text names no metal', () => {
+      expect(metalAwareAlias('1oz britannia', '1oz Britannia', 'SILVER', true)).toBe('1oz britannia silver');
+      expect(metalAwareAlias('1oz britannia', '1oz Britannia', 'GOLD', true)).toBe('1oz britannia gold');
+      expect(metalAwareAlias('1/4oz maple', '1/4oz Maple', 'GOLD', false)).toBe('1/4oz maple');
+      expect(metalAwareAlias('1oz britannia', '1oz Platinum Britannia', 'SILVER', true)).toBe('1oz britannia');
+    });
+  });
+
   describe('decisions', () => {
     const base: RowResolverData = {
       catalogue: rowData.catalogue,
@@ -315,6 +324,19 @@ describe('resolveRowProduct', () => {
       expect(run([gold, silver])).toMatchObject({ method: 'ALIAS', pricingProductId: 1 });
       // Alone, a decision of another metal still applies (a person's decision holds whatever the tab).
       expect(run([silver])).toMatchObject({ method: 'ALIAS', pricingProductId: 2 });
+    });
+    it('reads the tab metal as one more word, so a metal-suffixed name separates gold from silver', () => {
+      const plain = { key: '1oz britannia', productId: 1, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: null };
+      const gold = { key: '1oz britannia gold', productId: 3, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: 'GOLD' as const };
+      const silver = { key: '1oz britannia silver', productId: 4, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: 'SILVER' as const };
+      const run = (metal: 'GOLD' | 'SILVER' | 'PLATINUM', text: string, decisions: RowResolverData['decisions']) =>
+        resolveRowProduct({ productText: text, metal }, { ...base, decisions });
+      expect(run('GOLD', '1oz Britannia', [plain, silver, gold])).toMatchObject({ method: 'ALIAS', pricingProductId: 3 });
+      expect(run('SILVER', '1oz Britannia', [plain, silver, gold])).toMatchObject({ method: 'ALIAS', pricingProductId: 4 });
+      // No suffixed name for the tab: the plain name still applies.
+      expect(run('SILVER', '1oz Britannia', [plain, gold])).toMatchObject({ method: 'ALIAS', pricingProductId: 1 });
+      // A text that names its own metal is not given the tab's metal.
+      expect(run('SILVER', '1oz Gold Britannia', [plain, silver, gold])).toMatchObject({ method: 'ALIAS', pricingProductId: 3 });
     });
     it('breaks a tie by the earlier decision', () => {
       const d = [

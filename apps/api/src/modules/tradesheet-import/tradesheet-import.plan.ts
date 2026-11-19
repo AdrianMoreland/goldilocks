@@ -222,7 +222,11 @@ function keyRows<T extends ParsedSale | ParsedPurchase>(
                   )?.metalType
                 : undefined;
         const saysMetal = productMetal ?? match?.metalFromText ?? null;
-        if (saysMetal && saysMetal !== metal)
+        // Platinum and palladium sales/purchases legitimately live in the silver tab.
+        const pgmInSilverTab =
+            metal === 'SILVER' &&
+            (saysMetal === 'PLATINUM' || saysMetal === 'PALLADIUM');
+        if (saysMetal && saysMetal !== metal && !pgmInSilverTab)
             issues.push(
                 `Product says ${saysMetal.toLowerCase()} but the tab is ${metal.toLowerCase()}.`,
             );
