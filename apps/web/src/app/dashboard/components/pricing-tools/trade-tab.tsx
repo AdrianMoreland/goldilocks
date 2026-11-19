@@ -17,7 +17,7 @@ import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
 import { NumberInput } from "@/components/number-input"
-import { Checkbox } from "@/components/ui/checkbox"
+import { isVariantProduct, variantChoices } from "../table/product-grouping"
 
 export function TradeTab() {
     const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
@@ -113,6 +113,9 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                 {trade.items.length > 0 && (
                     <div className="text-muted-foreground flex items-center gap-1.5 pr-1.5 pl-6 text-[11px] font-semibold">
                         <span className="flex-1">Product</span>
+                        {trade.items.some((item) => item.product && variantChoices(item.product, trade.products).length > 0) && (
+                            <span className="w-[4.75rem] text-center">Variant</span>
+                        )}
                         <span className="w-11 text-center">Qty</span>
                         <span className="w-14 text-center">{trade.transactionType === "buying" ? "Prem %" : "Disc %"}</span>
                         <span className="w-7" />
@@ -120,7 +123,15 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                    {trade.items.map((item, index) => (
+                    {trade.items.map((item, index) => {
+                        // Products with variants (PAMP, CombiBar, US...) show the regular one in the product box and
+                        // the variant in its own dropdown.
+                        const choices = item.product ? variantChoices(item.product, trade.products) : []
+                        const hasVariants = choices.length > 0
+                        const productValue = hasVariants ? choices[0].product.id : item.productId
+                        const options = trade.products.filter((p) => !isVariantProduct(p) || (!hasVariants && p.id === item.productId))
+                        const anyVariants = trade.items.some((i) => i.product && variantChoices(i.product, trade.products).length > 0)
+                        return (
                         <div key={item.id} className="bg-muted/40 flex items-center gap-1.5 rounded-2xl p-1.5 pl-2.5">
                             <span
                                 className="size-2 shrink-0 rounded-full"
@@ -128,20 +139,40 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 aria-hidden
                             />
                             <Select
-                                value={item.productId ? String(item.productId) : undefined}
+                                value={productValue ? String(productValue) : undefined}
                                 onValueChange={(value) => trade.updateItemProduct(item.id, Number(value))}
                             >
                                 <SelectTrigger className="bg-background h-8 min-w-0 flex-1 cursor-pointer rounded-lg border-0 text-xs shadow-none" title={item.product?.name}>
                                     <SelectValue placeholder="Select a product" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {trade.products.map((p) => (
+                                    {options.map((p) => (
                                         <SelectItem key={p.id} value={String(p.id)}>
                                             {p.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+
+                            {hasVariants ? (
+                                <Select value={String(item.productId)} onValueChange={(value) => trade.updateItemVariant(item.id, Number(value))}>
+                                    <SelectTrigger
+                                        className="bg-background h-8 w-[4.75rem] shrink-0 cursor-pointer rounded-lg border-0 px-2 text-xs shadow-none"
+                                        aria-label={`Variant of ${item.product?.name ?? "item"}`}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {choices.map((choice) => (
+                                            <SelectItem key={choice.product.id} value={String(choice.product.id)}>
+                                                {choice.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                anyVariants && <span className="w-[4.75rem] shrink-0" aria-hidden />
+                            )}
 
                             <NumberInput
                                 id={index === 0 ? TRADE_FIRST_QTY_ID : undefined}
@@ -175,15 +206,9 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 <X className="size-3.5" />
                             </button>
                         </div>
-                    ))}
+                        )
+                    })}
                 </div>
-
-                {trade.hasUsVersion && (
-                    <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-medium">
-                        <Checkbox checked={trade.useUsVersion} onCheckedChange={(checked) => trade.setUseUsVersion(checked === true)} />
-                        Use the US version of these coins
-                    </label>
-                )}
 
                 <button
                     type="button"

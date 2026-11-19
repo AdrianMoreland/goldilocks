@@ -1,5 +1,6 @@
 import { GRAMS_PER_TROY_OUNCE } from '@goldilocks/shared-types';
 import type { MetalType } from '@/lib/types';
+import { isVariantProduct } from '@/app/dashboard/components/table/product-grouping';
 
 const BAR_NAME_RE = /bar/i;
 const BONDED_NAME_RE = /bonded/i;
@@ -17,8 +18,8 @@ export function findDefaultProduct<T extends { name: string; weight: number }>(m
     const targetWeight = metal === 'SILVER' ? 1000 : GRAMS_PER_TROY_OUNCE;
     const tolerance = metal === 'SILVER' ? 1 : 0.5;
 
-    const bar = products.find(
-        (p) => BAR_NAME_RE.test(p.name) && !BONDED_NAME_RE.test(p.name) && Math.abs(p.weight - targetWeight) < tolerance,
-    );
-    return bar ?? products.find((p) => BAR_NAME_RE.test(p.name) && !BONDED_NAME_RE.test(p.name)) ?? products[0] ?? null;
+    // Variants (PAMP, CombiBar) are never the default: the regular bar is.
+    const regular = (p: T) => BAR_NAME_RE.test(p.name) && !BONDED_NAME_RE.test(p.name) && !isVariantProduct(p);
+    const bar = products.find((p) => regular(p) && Math.abs(p.weight - targetWeight) < tolerance);
+    return bar ?? products.find(regular) ?? products[0] ?? null;
 }

@@ -35,9 +35,9 @@ const prisma = new PrismaService(new ConfigService());
  * Each product also gets its category (BAR or COIN) from its kind, and the
  * fractional gold coins are named "1/10oz Coin", "1/4oz Coin" and "1/2oz Coin".
  *
- * PAMP/CombiBar brand-stamp variants and any row the sheet marks
- * unavailable ("-" or a zero premium placeholder) are deliberately left out
- * - same call as the previous round, still true of this workbook.
+ * PAMP, PAMP Diwali and CombiBar gold bars are included as variants of the
+ * regular bar at the same weight. Any row the sheet marks unavailable ("-" or
+ * a zero premium placeholder) is left out.
  *
  * Every write is idempotent (safe to re-run) and never touches `stock` on a
  * product that already exists - inventory counts are managed separately
@@ -111,9 +111,20 @@ const GOLD_ENTRIES: Entry[] = [
     bar("100G", "100 g Gold Bar", 100, 0.051, 0.0375, 25),
     bar("250G", "250 g Gold Bar", 250, 0.046, 0.035, 12),
     bar("500G", "500 g Gold Bar", 500, 0.0455, 0.0325, 6),
-    bar("1KG", "1 kg Gold Bar", 1000, 0.035, 0.03, 4),
+    bar("1KG", "1 kg Gold Bar", 1000, 0.031, 0.03, 4),
 
-    coin("1OZ-MAPLELEAF", "1oz Maple Leaf", GRAMS_PER_TROY_OUNCE, 0.057, 0.0375, 40),
+    // PAMP, PAMP Diwali and CombiBar variants: hidden from the main price table until searched, picked as a variant in the Trade tab.
+    bar("5G-PAMP-DIWALI", "5 g Gold PAMP Diwali Bar", 5, 0.175, 0.065, 0),
+    bar("10G-PAMP", "10 g Gold PAMP Bar", 10, 0.1325, 0.05, 0),
+    bar("20G-COMBIBAR", "20 g Gold CombiBar", 20, 0.09, 0.05, 0),
+    bar("20G-PAMP", "20 g Gold PAMP Bar", 20, 0.085, 0.05, 0),
+    bar("1OZ-PAMP", "1 oz Gold PAMP Bar", GRAMS_PER_TROY_OUNCE, 0.075, 0.04, 0),
+    bar("50G-COMBIBAR", "50 g Gold CombiBar", 50, 0.07, 0.04, 0),
+    bar("50G-PAMP", "50 g Gold PAMP Bar", 50, 0.0675, 0.04, 0),
+    bar("100G-COMBIBAR", "100 g Gold CombiBar", 100, 0.065, 0.0375, 0),
+    bar("100G-PAMP", "100 g Gold PAMP Bar", 100, 0.0675, 0.0375, 0),
+
+    coin("1OZ-MAPLELEAF", "1oz Maple Leaf", GRAMS_PER_TROY_OUNCE, 0.0575, 0.0375, 40),
     coin("1OZ-BRITANNIA", "1oz Britannia", GRAMS_PER_TROY_OUNCE, 0.065, 0.0375, 35),
     coin("1OZ-KRUGERRAND", "1oz Krugerrand", GRAMS_PER_TROY_OUNCE, 0.0585, 0.0375, 35),
     coin("1OZ-PHILHARMONIC", "1oz Philharmonic", GRAMS_PER_TROY_OUNCE, 0.0675, 0.0375, 30),

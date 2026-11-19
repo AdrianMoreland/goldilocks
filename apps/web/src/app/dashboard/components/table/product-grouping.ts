@@ -78,24 +78,60 @@ function isFractionCoin(product: { name: string; weight: number }): boolean {
     )
 }
 
-/** The US Eagle version of a small coin ("1/2oz US Eagle"). The main table hides these until the user searches. */
+/** Variant labels in the order the Trade tab's dropdown lists them (after "Regular"). */
+export const VARIANT_ORDER = ["US", "CombiBar", "PAMP", "PAMP Diwali"] as const
+export type VariantLabel = (typeof VARIANT_ORDER)[number]
+export const REGULAR_VARIANT = "Regular"
+
+/** The US Eagle version of a small coin ("1/2oz US Eagle"). */
 export function isUsFractionCoin(product: { name: string; weight: number }): boolean {
     return isFractionCoin(product) && /\bUS\b/i.test(product.name)
 }
 
-/** The US version of a generic small coin at the same weight and metal, or undefined when there is none (or the product is not a generic small coin). */
-export function usCounterpart<T extends { id: number; name: string; weight: number; metalType: MetalType }>(
+/**
+ * Which variant a product is: US (small coins), CombiBar, PAMP or PAMP Diwali (bars); null for a regular product.
+ * The main table hides variants until a search matches them.
+ */
+export function variantLabel(product: { name: string; weight: number }): VariantLabel | null {
+    if (isUsFractionCoin(product)) return "US"
+    if (!isBar(product.name) || isBonded(product.name)) return null
+    if (/pamp/i.test(product.name)) return /diwali/i.test(product.name) ? "PAMP Diwali" : "PAMP"
+    if (/combi/i.test(product.name)) return "CombiBar"
+    return null
+}
+
+export function isVariantProduct(product: { name: string; weight: number }): boolean {
+    return variantLabel(product) !== null
+}
+
+export interface VariantChoice<T> {
+    label: typeof REGULAR_VARIANT | VariantLabel
+    product: T
+}
+
+/**
+ * The regular product and its variants at the same weight and metal, "Regular" first. Empty when the product has no
+ * variants (or there is no single regular product to pair them with), so the Trade tab shows no dropdown.
+ */
+export function variantChoices<T extends { id: number; name: string; weight: number; metalType: MetalType }>(
     product: T,
     all: T[],
-): T | undefined {
-    if (!isFractionCoin(product) || isUsFractionCoin(product)) return undefined
-    return all.find(
+): VariantChoice<T>[] {
+    const sameKind = isBar(product.name) ? (p: T) => isBar(p.name) : (p: T) => isFractionCoin(p)
+    if (!sameKind(product) || isBonded(product.name)) return []
+    const group = all.filter(
         (other) =>
-            other.id !== product.id &&
             other.metalType === product.metalType &&
-            isUsFractionCoin(other) &&
-            Math.abs(other.weight - product.weight) < MERGE_TOLERANCE_G,
+            Math.abs(other.weight - product.weight) < MERGE_TOLERANCE_G &&
+            sameKind(other) &&
+            !isBonded(other.name),
     )
+    const regulars = group.filter((p) => !isVariantProduct(p))
+    const variants = VARIANT_ORDER.flatMap((label) =>
+        group.filter((p) => variantLabel(p) === label).map((p) => ({ label, product: p })),
+    )
+    if (regulars.length !== 1 || variants.length === 0) return []
+    return [{ label: REGULAR_VARIANT, product: regulars[0] }, ...variants]
 }
 
 /**
