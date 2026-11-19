@@ -306,6 +306,16 @@ describe('resolveRowProduct', () => {
       expect(withDecisions([{ key: 'bar', productId: 3, salesProductId: null }])).toMatchObject({ method: 'RULE' });
       expect(resolveRowProduct({ productText: '10g', metal: 'GOLD' }, { ...base, decisions: [{ key: '10g', productId: 3, salesProductId: null }] })).toMatchObject({ method: 'NONE' });
     });
+    it('prefers the decision whose metal fits the row over a longer one of another metal', () => {
+      const gold = { key: '50g bar', productId: 1, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: null };
+      const silver = { key: '50g bar bar', productId: 2, salesProductId: null, decidedBy: 'PERSON' as const, metalHint: 'SILVER' as const };
+      const run = (decisions: RowResolverData['decisions']) =>
+        resolveRowProduct({ productText: '50g bar', metal: 'GOLD' }, { ...base, decisions });
+      expect(run([silver, gold])).toMatchObject({ method: 'ALIAS', pricingProductId: 1 });
+      expect(run([gold, silver])).toMatchObject({ method: 'ALIAS', pricingProductId: 1 });
+      // Alone, a decision of another metal still applies (a person's decision holds whatever the tab).
+      expect(run([silver])).toMatchObject({ method: 'ALIAS', pricingProductId: 2 });
+    });
     it('breaks a tie by the earlier decision', () => {
       const d = [
         { key: '1oz bar', productId: 3, salesProductId: null },

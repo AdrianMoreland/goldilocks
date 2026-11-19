@@ -224,6 +224,7 @@ function bestDecision(
 ): ProductDecision | null {
   let best: ProductDecision | null = null;
   let bestTokens = 0;
+  let bestFits = false;
   for (const d of decisions) {
     if (d.productId === null && d.salesProductId === null && !d.noProduct) continue;
     if (d.decidedBy === 'RULE' && !d.noProduct && d.metalHint !== rowMetal) continue;
@@ -232,12 +233,22 @@ function bestDecision(
     const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
     if (bar >= 0 && decisionRefinery !== refinery) continue;
     if (!aliasOk(name, name)) continue;
-    const tokens = name.split(' ').filter(Boolean);
+    // A repeated word ("50g bar bar") adds no information, so it must not outrank the same name without it.
+    const tokens = [...new Set(name.split(' ').filter(Boolean))];
     if (tokens.length < 2 && !tokens.some((t) => WEIGHT_TOKEN.test(t))) continue;
     if (!tokens.every((t) => keyTokens.has(t))) continue;
-    if (!best || tokens.length > bestTokens || (tokens.length === bestTokens && d.key.length > best.key.length)) {
+    // Of two decisions that fit the words, the one whose metal is the row's (or unknown) comes first. A decision of
+    // another metal still applies when it is the only one, because a person's decision holds whatever the tab.
+    const fits = !d.metalHint || d.metalHint === rowMetal;
+    if (
+      !best ||
+      (fits && !bestFits) ||
+      (fits === bestFits &&
+        (tokens.length > bestTokens || (tokens.length === bestTokens && d.key.length > best.key.length)))
+    ) {
       best = d;
       bestTokens = tokens.length;
+      bestFits = fits;
     }
   }
   return best;

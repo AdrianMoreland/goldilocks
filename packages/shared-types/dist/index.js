@@ -7069,6 +7069,7 @@ var WEIGHT_TOKEN = /^(\d+\/\d+|\d+(?:\.\d+)?)(oz|g|kg)$/;
 function bestDecision(keyTokens, refinery, decisions, refineryAliases, rowMetal) {
   let best = null;
   let bestTokens = 0;
+  let bestFits = false;
   for (const d of decisions) {
     if (d.productId === null && d.salesProductId === null && !d.noProduct) continue;
     if (d.decidedBy === "RULE" && !d.noProduct && d.metalHint !== rowMetal) continue;
@@ -7077,12 +7078,14 @@ function bestDecision(keyTokens, refinery, decisions, refineryAliases, rowMetal)
     const decisionRefinery = bar < 0 ? null : normaliseRefinery(d.key.slice(bar + 1).trim(), refineryAliases);
     if (bar >= 0 && decisionRefinery !== refinery) continue;
     if (!aliasOk(name, name)) continue;
-    const tokens = name.split(" ").filter(Boolean);
+    const tokens = [...new Set(name.split(" ").filter(Boolean))];
     if (tokens.length < 2 && !tokens.some((t) => WEIGHT_TOKEN.test(t))) continue;
     if (!tokens.every((t) => keyTokens.has(t))) continue;
-    if (!best || tokens.length > bestTokens || tokens.length === bestTokens && d.key.length > best.key.length) {
+    const fits = !d.metalHint || d.metalHint === rowMetal;
+    if (!best || fits && !bestFits || fits === bestFits && (tokens.length > bestTokens || tokens.length === bestTokens && d.key.length > best.key.length)) {
       best = d;
       bestTokens = tokens.length;
+      bestFits = fits;
     }
   }
   return best;
