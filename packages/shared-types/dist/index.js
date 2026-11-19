@@ -4085,8 +4085,9 @@ var CarryForwardResultSchema = z22.object({
 });
 
 // src/customer-orders.ts
-var CUSTOMER_ORDER_STATUSES = ["ORDERED", "IN_TRANSIT", "DELIVERED", "BAGGED", "ALLOCATED", "COLLECTED"];
+var CUSTOMER_ORDER_STATUSES = ["TO_ORDER", "ORDERED", "IN_TRANSIT", "DELIVERED", "BAGGED", "ALLOCATED", "COLLECTED"];
 var CUSTOMER_ORDER_STATUS_LABELS = {
+  TO_ORDER: "To order (pending supplier)",
   ORDERED: "Ordered",
   IN_TRANSIT: "In transit",
   DELIVERED: "Here, not bagged",
@@ -4152,6 +4153,9 @@ function parseSheetDate(raw) {
   return null;
 }
 var STATUS_WORDS = {
+  "to order": "TO_ORDER",
+  "needs product": "TO_ORDER",
+  "pending supplier": "TO_ORDER",
   ordered: "ORDERED",
   "in transit": "IN_TRANSIT",
   transit: "IN_TRANSIT",
@@ -4235,12 +4239,13 @@ function parseCustomerOrdersPaste(text4, fallbackStatus) {
   return { rows, issues };
 }
 var STATUS_RANK = {
-  ORDERED: 0,
-  IN_TRANSIT: 1,
-  DELIVERED: 2,
-  BAGGED: 3,
-  ALLOCATED: 3,
-  COLLECTED: 4
+  TO_ORDER: 0,
+  ORDERED: 1,
+  IN_TRANSIT: 2,
+  DELIVERED: 3,
+  BAGGED: 4,
+  ALLOCATED: 4,
+  COLLECTED: 5
 };
 function customerOrderChanges(stored, row, options = {}) {
   const changes = {};
@@ -5255,7 +5260,7 @@ var LINK_TYPES = [
   "bc_trade"
 ];
 var LINK_CONFIDENCES = ["EXACT", "PROBABLE"];
-var SAFE_STATUSES = ["ALLOCATED", "COLLECTED", "ORDERED"];
+var SAFE_STATUSES = ["ALLOCATED", "COLLECTED", "ORDERED", "TO_ORDER"];
 var sys = oneOf(...SYSTEMS);
 var flag = oneOf(...COLLECTED_FLAGS);
 var IMPORT_TABLE_SPECS = {

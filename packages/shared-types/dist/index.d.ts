@@ -4040,11 +4040,12 @@ declare function buildCoinExportRows(coins: {
 }[]): (string | number)[][];
 
 /**
- * Where an item for a customer is in its life. ORDERED and IN_TRANSIT are not in the branch yet.
+ * Where an item for a customer is in its life. TO_ORDER (paid, not yet ordered from the supplier), ORDERED and
+ * IN_TRANSIT are not in the branch yet.
  * DELIVERED is here but not bagged; BAGGED is in the customer safe. COLLECTED has left with the customer.
  * Collection is never inferred from one source: the evidence log records where each claim came from.
  */
-declare const CUSTOMER_ORDER_STATUSES: readonly ["ORDERED", "IN_TRANSIT", "DELIVERED", "BAGGED", "ALLOCATED", "COLLECTED"];
+declare const CUSTOMER_ORDER_STATUSES: readonly ["TO_ORDER", "ORDERED", "IN_TRANSIT", "DELIVERED", "BAGGED", "ALLOCATED", "COLLECTED"];
 type CustomerOrderStatus = (typeof CUSTOMER_ORDER_STATUSES)[number];
 declare const CUSTOMER_ORDER_STATUS_LABELS: Record<CustomerOrderStatus, string>;
 /** Physically in the branch, so still part of stock and of the customer-safe count. */
@@ -4210,6 +4211,7 @@ declare function linkOrdersToTradesheet(orders: {
 }[], lines: TradesheetLine[]): OrderLink[];
 
 declare const CustomerOrderStatusEnum: z.ZodEnum<{
+    TO_ORDER: "TO_ORDER";
     ORDERED: "ORDERED";
     IN_TRANSIT: "IN_TRANSIT";
     DELIVERED: "DELIVERED";
@@ -4258,6 +4260,7 @@ declare const CustomerOrderSchema: z.ZodObject<{
     refinery: z.ZodNullable<z.ZodString>;
     serials: z.ZodNullable<z.ZodString>;
     status: z.ZodEnum<{
+        TO_ORDER: "TO_ORDER";
         ORDERED: "ORDERED";
         IN_TRANSIT: "IN_TRANSIT";
         DELIVERED: "DELIVERED";
@@ -4305,6 +4308,7 @@ declare const CreateCustomerOrderRequestSchema: z.ZodObject<{
     refinery: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     serials: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodDefault<z.ZodEnum<{
+        TO_ORDER: "TO_ORDER";
         ORDERED: "ORDERED";
         IN_TRANSIT: "IN_TRANSIT";
         DELIVERED: "DELIVERED";
@@ -4333,6 +4337,7 @@ declare const UpdateCustomerOrderRequestSchema: z.ZodObject<{
     refinery: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     serials: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{
+        TO_ORDER: "TO_ORDER";
         ORDERED: "ORDERED";
         IN_TRANSIT: "IN_TRANSIT";
         DELIVERED: "DELIVERED";
@@ -4365,6 +4370,7 @@ declare const ImportCustomerOrdersRequestSchema: z.ZodObject<{
         PGM: "PGM";
     }>;
     fallbackStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        TO_ORDER: "TO_ORDER";
         ORDERED: "ORDERED";
         IN_TRANSIT: "IN_TRANSIT";
         DELIVERED: "DELIVERED";
@@ -5432,7 +5438,7 @@ declare const CPTY_KINDS: readonly ["LOT_REF", "QUOTE_ONLY", "DEFERRED", "SUPPLI
 declare const COLLECTED_FLAGS: readonly ["YES", "NO", "CHECK"];
 declare const LINK_TYPES: readonly ["trade_lot", "invoice_line_trade", "line_serial_bc_tracking", "trade_supplier_invoice", "stock_bar_bc_tracking", "safe_trade", "serial_customer_safe", "serial_stock_bar", "lot_supplier_invoice", "bc_trade"];
 declare const LINK_CONFIDENCES: readonly ["EXACT", "PROBABLE"];
-declare const SAFE_STATUSES: readonly ["ALLOCATED", "COLLECTED", "ORDERED"];
+declare const SAFE_STATUSES: readonly ["ALLOCATED", "COLLECTED", "ORDERED", "TO_ORDER"];
 /** Column kinds for every table, in the script's column order. */
 declare const IMPORT_TABLE_SPECS: {
     readonly trades: {
@@ -5696,7 +5702,7 @@ declare const IMPORT_TABLE_SPECS: {
         readonly branch_code: "s";
         readonly status_raw: "s";
         readonly status_norm: {
-            readonly oneOf: readonly ["ALLOCATED", "COLLECTED", "ORDERED"];
+            readonly oneOf: readonly ["ALLOCATED", "COLLECTED", "ORDERED", "TO_ORDER"];
         };
         readonly branch: "s";
         readonly date: "d";
