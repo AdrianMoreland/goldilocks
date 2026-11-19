@@ -19,6 +19,9 @@ export default tseslint.config(
       'src/hooks/use-metals.hook.ts',
       // shadcn-generated primitives.
       'src/components/ui/**',
+      // Components copied from devl.dev for the Rules hub, kept close to upstream; the adapter in ui.tsx is ours and linted.
+      'src/app/rules/devl/**',
+      '!src/app/rules/devl/ui.tsx',
     ],
   },
   {

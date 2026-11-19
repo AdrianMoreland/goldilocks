@@ -24,6 +24,7 @@ const CustomerDetail = lazy(() => import('@/app/customers/detail/page'))
 const Invoices = lazy(() => import('@/app/invoices/page'))
 const InvoiceDetail = lazy(() => import('@/app/invoices/detail/page'))
 const KnowledgeCenter = lazy(() => import('@/app/knowledge/page'))
+const Rules = lazy(() => import('@/app/rules/page'))
 const KnowledgeAll = lazy(() => import('@/app/knowledge/all/page'))
 const KnowledgeBusinessCentral = lazy(() => import('@/app/knowledge/business-central/page'))
 const KnowledgeArticle = lazy(() => import('@/app/knowledge/article/page'))
@@ -139,6 +140,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/tradesheets",
     element: <RequireAdmin><Tradesheets /></RequireAdmin>
+  },
+  // Rules hub (assistant offers, premium limits, alerts, checks): admins only; any rules API will enforce the same
+  {
+    path: "/rules",
+    element: <RequireAdmin><Rules /></RequireAdmin>
   },
   // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
   {

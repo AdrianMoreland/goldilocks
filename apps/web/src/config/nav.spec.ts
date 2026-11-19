@@ -12,6 +12,7 @@ describe("navGroupsFor", () => {
   it("gives an admin the Stock & orders group and a separate Admin group when asked", () => {
     const groups = navGroupsFor({ isAdmin: true, isManager: true, grouped: true, capabilities: withWorkbook })
     expect(groups.map((group) => group.label)).toEqual(["Navigation", "Stock & orders", "Admin"])
+    expect(groups[0].items.map((item) => item.url)).toEqual(["/dashboard", "/knowledge", "/rules"])
     expect(groups[1].items.map((item) => item.url)).toEqual(["/inventory", "/orders", "/import", "/customers", "/invoices"])
     expect(groups[2].items.map((item) => item.url)).toEqual(["/admin", "/project"])
   })
@@ -39,12 +40,19 @@ describe("navGroupsFor", () => {
     expect(urls({ isAdmin: true, isManager: true, capabilities: withWorkbook })).toEqual([
       "/dashboard",
       "/knowledge",
+      "/rules",
       "/stocktake",
       "/customer-orders",
       "/tradesheets",
       "/admin",
       "/project",
     ])
+  })
+
+  it("shows the Rules hub to admins only, right under the Knowledge Center", () => {
+    expect(urls({ isAdmin: false, isManager: true, capabilities: withWorkbook })).not.toContain("/rules")
+    expect(urls({ isAdmin: false, isManager: false, capabilities: withoutWorkbook })).not.toContain("/rules")
+    expect(urls({ isAdmin: true, isManager: false, capabilities: withoutWorkbook }).slice(0, 2)).toEqual(["/knowledge", "/rules"])
   })
 
   it("lists each page once", () => {

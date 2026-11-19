@@ -38,6 +38,13 @@
   --color-buyback-text: var(--buyback-text);
   --color-warning: var(--warning);
   --color-warning-text: var(--warning-text);
+  /* Tones the Rules hub's devl.dev components use (they were built on coss ui), mapped onto the status colours. */
+  --color-warning-foreground: var(--warning-text);
+  --color-success: var(--status-ok);
+  --color-success-foreground: var(--status-ok);
+  --color-info: var(--status-info);
+  --color-info-foreground: var(--status-info);
+  --color-destructive-foreground: var(--destructive);
   --color-stop: var(--stop);
   --color-stop-bg: var(--stop-bg);
   --color-stop-border: var(--stop-border);
