@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { useMarketDataApi } from "@/api/market-data.api"
-import { ArrowLeftRight, Flame, Table2, X, Plus } from "lucide-react"
+import { ArrowLeftRight, Flame, X, Plus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TRADE_FIRST_QTY_ID, usePricingTools } from "../../context/pricing-tools-context"
@@ -10,6 +10,7 @@ import { formatEuro, formatGrams, formatMetalName, formatPrice } from "../../uti
 import { describeApiError } from "../../utils/describe-error"
 import { CustomerMessageButton } from "./customer-message-button"
 import { copyRowsToClipboard } from "../table/copy-rows-button"
+import { EasyCopyButton } from "./easy-copy-button"
 import { buildDisplayProducts } from "../table/product-grouping"
 import { ToolSpotEditor } from "./tool-spot-editor"
 import { tabThemeStyle } from "./tab-theme"
@@ -219,15 +220,15 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     <TooltipTrigger asChild>
                         {/* A span carries the tooltip because a disabled button swallows hover events. */}
                         <span className="flex">
-                            <button
-                                type="button"
+                            <EasyCopyButton
                                 disabled={selectedProductIds.length === 0}
-                                onClick={() => {
+                                isPrice={trade.transactionType === "buying"}
+                                onCopy={(scope) => {
                                     const source = tableCopySource.current
                                     if (!source) return
                                     // The copy prices from the Trade tool spot. When it still follows the card, the table's own rows are already right.
                                     if (!trade.spotDetached || trade.spot === null) {
-                                        void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds)
+                                        void copyRowsToClipboard(source.selectedProducts, source.visibleColumnIds, scope)
                                         return
                                     }
                                     const overrides = { ...displayPrices, [activeMetal]: trade.spot }
@@ -235,14 +236,11 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                         .then((priced) => {
                                             const byId = new Map(buildDisplayProducts(priced).map((p) => [p.id, p]))
                                             const rows = source.selectedProducts.map((row) => byId.get(row.id) ?? row)
-                                            return copyRowsToClipboard(rows, source.visibleColumnIds)
+                                            return copyRowsToClipboard(rows, source.visibleColumnIds, scope)
                                         })
                                         .catch(() => toast.error("Couldn't price the copy at your spot"))
                                 }}
-                                className="border-border bg-card hover:bg-muted flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <Table2 className="size-4" /> Easy Copy
-                            </button>
+                            />
                         </span>
                     </TooltipTrigger>
                     <TooltipContent side="top">

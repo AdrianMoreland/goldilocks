@@ -1,4 +1,5 @@
 import { formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
+import { renderHtmlTable } from "../../utils/html-table"
 import { productColumnLabels } from "./product-columns"
 import type { DisplayProduct } from "./product-grouping"
 
@@ -26,10 +27,31 @@ export function toExportableColumnIds(columnIds: string[]): ExportableColumnId[]
     return columnIds.filter((id): id is ExportableColumnId => EXPORTABLE_COLUMN_IDS.includes(id as ExportableColumnId))
 }
 
+/** Which price sides an Easy Copy shows: the Price columns, the Buyback columns, or both (always Price first, as in the customer email). */
+export interface PriceScope {
+    price: boolean
+    buyback: boolean
+}
+
+const PRICE_SIDE_IDS: ExportableColumnId[] = ["priceSell", "spreadSell", "priceSellVatExcl"]
+const BUYBACK_SIDE_IDS: ExportableColumnId[] = ["priceBuy", "spreadBuy"]
+const FIGURE_IDS: ExportableColumnId[] = ["priceSell", "spreadSell", "priceBuy", "spreadBuy", "priceSellVatExcl"]
+
+/**
+ * Applies a price scope to the table's visible columns: the other columns stay in their order, then the chosen price
+ * sides follow, Price before Buyback, each with its percentage. A side the table has hidden is still added when asked for.
+ */
+export function applyPriceScope(columnIds: ExportableColumnId[], scope: PriceScope): ExportableColumnId[] {
+    const rest = columnIds.filter((id) => !PRICE_SIDE_IDS.includes(id) && !BUYBACK_SIDE_IDS.includes(id))
+    const withVat = columnIds.includes("priceSellVatExcl") ? PRICE_SIDE_IDS : PRICE_SIDE_IDS.filter((id) => id !== "priceSellVatExcl")
+    return [...rest, ...(scope.price ? withVat : []), ...(scope.buyback ? BUYBACK_SIDE_IDS : [])]
+}
+
 /**
  * Builds both a tab-separated (Excel/Sheets) and an HTML `<table>` (Outlook,
  * Word, Slack, anything that renders text/html) representation of the same
  * rows, so a single clipboard write looks right everywhere it gets pasted.
+ * The HTML table is the same gold-headed table the customer email uses.
  */
 export function buildClipboardPayload(
     products: DisplayProduct[],
@@ -39,18 +61,7 @@ export function buildClipboardPayload(
     const rows = products.map((product) => columnIds.map((id) => CELL_VALUE[id](product)))
 
     const text = [headers, ...rows].map((cells) => cells.join("\t")).join("\n")
-
-    const htmlRow = (cells: string[], tag: "th" | "td") =>
-        `<tr>${cells.map((cell) => `<${tag} style="border:1px solid #ddd;padding:6px 10px;text-align:left;">${escapeHtml(cell)}</${tag}>`).join("")}</tr>`
-
-    const html = `<table style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
-        <thead>${htmlRow(headers, "th")}</thead>
-        <tbody>${rows.map((row) => htmlRow(row, "td")).join("")}</tbody>
-    </table>`
+    const html = renderHtmlTable(headers, rows, (i) => FIGURE_IDS.includes(columnIds[i]))
 
     return { text, html }
-}
-
-function escapeHtml(value: string): string {
-    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
