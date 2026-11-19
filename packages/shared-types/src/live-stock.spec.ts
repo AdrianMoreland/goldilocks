@@ -135,3 +135,16 @@ describe('AdjustLiveStockRequestSchema', () => {
     expect(AdjustLiveStockRequestSchema.safeParse({ ...base, delta: 0 }).success).toBe(false);
   });
 });
+
+describe('branch order and names', () => {
+  it('puts Dublin first and names Blanchardstown', async () => {
+    const { sortBranchCodes, LIVE_BRANCH_NAMES } = await import('./index');
+    const sorted = sortBranchCodes([{ code: 'BC' }, { code: 'CO' }, { code: 'DU' }, { code: 'BL' }, { code: 'ZZ' }]);
+    expect(sorted.map((b) => b.code)).toEqual(['DU', 'BL', 'CO', 'BC', 'ZZ']);
+    expect(LIVE_BRANCH_NAMES.BL).toBe('Blanchardstown');
+  });
+  it('knows the four extra refineries', async () => {
+    const { liveRefinery } = await import('./index');
+    for (const r of ['Asahi', 'Engelhard', 'Kantonal Bank', 'Melbourne Mint']) expect(liveRefinery(r).listed).toBe(true);
+  });
+});
