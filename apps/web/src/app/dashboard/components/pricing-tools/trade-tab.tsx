@@ -17,6 +17,7 @@ import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
 import { NumberInput } from "@/components/number-input"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export function TradeTab() {
     const { activeMetal, selectedProductIds, deselectProductId, pendingTradeProductId, clearPendingTradeProduct } = usePricingTools()
@@ -176,6 +177,13 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                         </div>
                     ))}
                 </div>
+
+                {trade.hasUsVersion && (
+                    <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-medium">
+                        <Checkbox checked={trade.useUsVersion} onCheckedChange={(checked) => trade.setUseUsVersion(checked === true)} />
+                        Use the US version of these coins
+                    </label>
+                )}
 
                 <button
                     type="button"

@@ -8,6 +8,7 @@ import { useToolSpot } from '@/app/dashboard/context/tool-spots-context';
 import { usePricingTools } from '@/app/dashboard/context/pricing-tools-context';
 import { useMeltCalculator } from './use-melt-calculator.hook';
 import { findDefaultProduct } from '@/lib/default-product';
+import { usCounterpart } from '@/app/dashboard/components/table/product-grouping';
 import {
     MeltCategoryKeyEnum,
     type TradeCartRequest,
@@ -160,12 +161,27 @@ export function useTradeTools(
         [selectedProductIds, products],
     );
 
+    // The small coins (1/2oz, 1/4oz, 1/10oz, 1g) come in a generic and a US Eagle version. A ticked generic coin is
+    // quoted as the generic one; the "US version" switch quotes its US Eagle twin instead.
+    const [useUsVersion, setUseUsVersion] = useState(false);
+    const usSwaps = useMemo(() => {
+        const swaps = new Map<number, number>();
+        for (const id of relevantSelectedIds) {
+            const product = products.find((p) => p.id === id);
+            const us = product && usCounterpart(product, products);
+            if (us) swaps.set(id, us.id);
+        }
+        return swaps;
+    }, [relevantSelectedIds, products]);
+    const hasUsVersion = usSwaps.size > 0;
+
     useEffect(() => {
         if (!relevantSelectedIds.length) return;
 
         setItemsForMetal((current) => {
             const existingByProductId = new Map(current.map((item) => [item.productId, item]));
-            return relevantSelectedIds.map((productId) => {
+            return relevantSelectedIds.map((selectedId) => {
+                const productId = useUsVersion ? (usSwaps.get(selectedId) ?? selectedId) : selectedId;
                 const existing = existingByProductId.get(productId);
                 if (existing) return existing;
                 return {
@@ -176,7 +192,7 @@ export function useTradeTools(
                 };
             });
         });
-    }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal]);
+    }, [relevantSelectedIds, products, transactionType, adjustmentDeltaPct, newItemId, setItemsForMetal, useUsVersion, usSwaps]);
 
     // Price/Buyback lives in the pricing-tools context so a keyboard shortcut
     // can flip it from anywhere - so re-default the cart's premium/discount
@@ -312,6 +328,9 @@ export function useTradeTools(
         bootstrapLoading: bootstrapQuery.isLoading,
         bootstrapError: bootstrapQuery.error,
         products,
+        hasUsVersion,
+        useUsVersion,
+        setUseUsVersion,
 
         transactionType,
         setTransactionType,
