@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { ChevronDown, FileSpreadsheet, Plus, Search, Upload } from "lucide-react"
+import { ChevronDown, FileSpreadsheet, Pencil, Plus, Search, Upload } from "lucide-react"
 import { LIVE_BRANCH_NAMES, sortBranchCodes, type LiveMetal, type LiveStockLine } from "@goldilocks/shared-types"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils"
 import { AllBranchesGrid } from "./all-branches-grid"
 import { BaselineDialog } from "./baseline-dialog"
 import { AddLineDialog, EditCountDialog, HistoryDialog, TransferDialog } from "./dialogs"
-import { applyFilter, branchGrid, groupBars, groupCoins, lineName, summarise, type BoardSummary, type StockFilter } from "./live-stock-model"
+import { applyFilter, branchGrid, draftChanges, groupBars, groupCoins, lineName, stepDraft, summarise, withDraft, type BoardSummary, type CountDraft, type DraftChange, type StockFilter } from "./live-stock-model"
 import { BranchSheet, LineActionsSheet, SerialsSheet, type BranchChoice } from "./sheets"
 import { LOW_PILL } from "./level-style"
-import { BarWeightGroup, StockRow, type RowActions, type SerialActions } from "./stock-row"
+import { BarWeightBlock, StockBlock, StockRow, type RowActions, type SerialActions } from "./stock-row"
 import { useAllBoards, useBoard, useBoardMutations, useBranches } from "./use-live-stock"
 
 // The metal family colours from the design system: the only fixed hex values allowed in component code.
@@ -38,8 +38,9 @@ const segmentButton = (on: boolean) =>
 /**
  * Live branch stock: what each branch holds now, editable at the counter. One branch at a time ("This branch"), or
  * every branch side by side to compare ("All branches"). The branch is one control: a list on the left on a wide
- * screen, a button that opens a sheet on a phone. The four numbers on top are filters. Bars show one total per
- * weight and open to their refineries; coins are grouped by family, one line per variant.
+ * screen, a button that opens a sheet on a phone. Every bar weight (its refineries) and coin family (its variants) is a
+ * block, and the blocks flow into balanced columns. Reading is the default; "Edit counts" (admins and managers) turns
+ * each count into a stepper that builds a draft, saved together from the bar at the bottom.
  */
 export function LiveStockTab() {
     const { isAdmin } = useAuth()
@@ -50,8 +51,10 @@ export function LiveStockTab() {
     const [query, setQuery] = useState("")
     const [showAll, setShowAll] = useState(false)
     const [filter, setFilter] = useState<StockFilter | null>(null)
-    const [open, setOpen] = useState<Set<string>>(new Set())
     const [dialog, setDialog] = useState<Dialog>(null)
+    const [editing, setEditing] = useState(false)
+    const [draft, setDraft] = useState<CountDraft>({})
+    const [review, setReview] = useState(false)
 
     const list = useMemo(
         () => sortBranchCodes(branches.data?.branches ?? []).map((b) => ({ ...b, name: branchName(b.code, b.name) })),
@@ -68,14 +71,15 @@ export function LiveStockTab() {
     const m = useBoardMutations(branch ?? "", metal)
     const canEdit = Boolean(current?.canEdit)
 
-    const lines = useMemo(() => board.data?.lines ?? [], [board.data])
+    const savedLines = useMemo(() => board.data?.lines ?? [], [board.data])
+    // While editing, totals and groups show the drafted counts.
+    const lines = useMemo(() => withDraft(savedLines, draft), [savedLines, draft])
+    const changes = draftChanges(draft)
     const summary = useMemo(() => summarise(lines), [lines])
     const filtered = useMemo(() => applyFilter(lines, filter), [lines, filter])
     const searching = query.trim() !== ""
     const coins = useMemo(() => groupCoins(filtered, { showAll, query }), [filtered, showAll, query])
     const bars = useMemo(() => groupBars(filtered, { showAll, query }), [filtered, showAll, query])
-    // Searching, or asking for the low or unpicked lines, means wanting to see those lines: open every weight.
-    const forceOpen = searching || filter === "low" || filter === "pick"
 
     // Cheap to rebuild (a few hundred lines at most), so no memo keyed on every board.
     const boardData = boards.map((q) => q.data)
@@ -89,25 +93,19 @@ export function LiveStockTab() {
     }))
 
     // Dialogs keep the line they opened on; show its newest numbers after each change.
-    const fresh = (l: LiveStockLine) => lines.find((x) => x.id === l.id) ?? l
-
-    const toggle = (variant: string) =>
-        setOpen((cur) => {
-            const next = new Set(cur)
-            if (next.has(variant)) next.delete(variant)
-            else next.add(variant)
-            return next
-        })
+    const fresh = (l: LiveStockLine) => savedLines.find((x) => x.id === l.id) ?? l
 
     const pickBranch = (code: string) => {
         setPicked(code)
         setView("branch")
-        setOpen(new Set())
     }
 
     const actions: RowActions = {
         canEdit,
-        onStep: (line, delta) => m.adjust.mutate({ lineId: line.id, body: { delta, reason: "Quick change" }, label: lineName(line) }),
+        editing,
+        savedQty: (line) => draft[line.id]?.line.qty,
+        // The draft is built from the saved line, so "back to the saved count" is recognised.
+        onStep: (line, delta) => setDraft((cur) => stepDraft(cur, fresh(line), delta)),
         onEdit: (line) => setDialog({ kind: "edit", line }),
         onMore: (line) => setDialog({ kind: "more", line }),
         onSerials: (line) => setDialog({ kind: "serials", line }),
@@ -121,10 +119,19 @@ export function LiveStockTab() {
     if (branches.isLoading) return <Skeleton className="h-64 w-full" />
     if (list.length === 0) return <p className="text-muted-foreground text-sm">No stock locations are set up yet.</p>
 
-    const coinTotal = coins.reduce((n, f) => n + f.total, 0)
-    const barTotal = bars.reduce((n, w) => n + w.total, 0)
-    const showBars = filter !== "coins"
+    const showBars = filter !== "coins" && filter !== "proof"
     const showCoins = filter !== "bars"
+    const saveDraft = () =>
+        m.saveCounts.mutate(
+            changes.map((c) => ({ lineId: c.lineId, qty: c.to })),
+            {
+                onSuccess: ({ saved }) => {
+                    const done = new Set(saved.map((x) => x.lineId))
+                    setDraft((cur) => Object.fromEntries(Object.entries(cur).filter(([id]) => !done.has(Number(id)))))
+                    setReview(false)
+                },
+            },
+        )
     const nothing = (!showBars || bars.length === 0) && (!showCoins || coins.length === 0)
 
     return (
@@ -140,7 +147,18 @@ export function LiveStockTab() {
                 </div>
                 {/* On a phone Add line sits beside the view switch and the admin tools take their own row. */}
                 {canEdit && view === "branch" && (
-                    <Button className="ml-auto h-[44px] gap-2 @min-[640px]/live:order-last @min-[640px]/live:ml-0" onClick={() => setDialog({ kind: "add" })}>
+                    <Button
+                        variant={editing ? "default" : "outline"}
+                        aria-pressed={editing}
+                        className="ml-auto h-[44px] gap-2 @min-[640px]/live:order-last @min-[640px]/live:ml-0"
+                        onClick={() => setEditing((e) => !e)}
+                    >
+                        <Pencil className="size-4" />
+                        {editing ? "Done editing" : "Edit counts"}
+                    </Button>
+                )}
+                {canEdit && view === "branch" && (
+                    <Button variant="outline" className="h-[44px] gap-2 @min-[640px]/live:order-last @min-[640px]/live:ml-0" onClick={() => setDialog({ kind: "add" })}>
                         <Plus className="size-4" />
                         Add line
                     </Button>
@@ -227,7 +245,14 @@ export function LiveStockTab() {
                         )
                     ) : (
                         <>
-                            <Summary summary={summary} filter={filter} onFilter={(f) => setFilter((cur) => (cur === f ? null : f))} />
+                            <Summary
+                                branch={current?.name ?? ""}
+                                metal={metal}
+                                summary={summary}
+                                anyLowMark={lines.some((l) => l.lowThreshold !== null)}
+                                filter={filter}
+                                onFilter={(f) => setFilter((cur) => (cur === f ? null : f))}
+                            />
 
                             <div className="flex flex-wrap items-center gap-[8px]">
                                 <label className="bg-card text-muted-foreground flex h-[44px] flex-[1_1_220px] items-center gap-[8px] rounded-lg border px-[12px]">
@@ -241,13 +266,18 @@ export function LiveStockTab() {
                                         onChange={(e) => setQuery(e.target.value)}
                                     />
                                 </label>
-                                <div role="group" aria-label="Show" className="flex gap-[6px]">
+                                <div role="group" aria-label="Show" className="flex flex-wrap gap-[6px]">
                                     <Chip on={!showAll} onClick={() => setShowAll(false)}>
                                         In stock
                                     </Chip>
                                     <Chip on={showAll} onClick={() => setShowAll(true)}>
                                         Include empty
                                     </Chip>
+                                    {(["bars", "coins", "proof"] as const).map((f) => (
+                                        <Chip key={f} on={filter === f} onClick={() => setFilter((cur) => (cur === f ? null : f))}>
+                                            {f === "bars" ? "Bars" : f === "coins" ? "Coins" : "Proof"}
+                                        </Chip>
+                                    ))}
                                 </div>
                             </div>
 
@@ -265,35 +295,36 @@ export function LiveStockTab() {
                                     onLoad={() => setDialog({ kind: "baseline" })}
                                 />
                             ) : (
-                                <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-[18px] @min-[780px]/main:grid-cols-2">
-                                    {showBars && bars.length > 0 && (
-                                        <Section label="Bars" total={barTotal}>
-                                            {bars.map((w) => (
-                                                <BarWeightGroup key={w.variant} weight={w} open={forceOpen || open.has(w.variant)} onToggle={() => toggle(w.variant)} actions={actions} />
-                                            ))}
-                                        </Section>
-                                    )}
-                                    {showCoins && coins.length > 0 && (
-                                        <Section label="Coins" total={coinTotal}>
-                                            {coins.map((f) => (
-                                                <div key={f.family} className="border-b last:border-b-0">
-                                                    <div className="bg-muted flex items-center justify-between border-b px-[14px] py-[10px] text-[14px] font-bold">
-                                                        <span>{f.family}</span>
-                                                        <span className="text-muted-foreground font-semibold tabular-nums">{f.total}</span>
-                                                    </div>
-                                                    {f.rows.map((l) => (
-                                                        <StockRow key={l.id} line={l} label={l.variant} actions={actions} />
-                                                    ))}
-                                                </div>
-                                            ))}
-                                        </Section>
-                                    )}
+                                <div className="columns-1 gap-[14px] @min-[640px]/main:columns-2 @min-[1000px]/main:columns-3">
+                                    {showBars && bars.map((w) => <BarWeightBlock key={w.variant} weight={w} actions={actions} />)}
+                                    {showCoins &&
+                                        coins.map((f) => (
+                                            <StockBlock key={f.family} kind="Coin" title={f.family} total={f.total}>
+                                                {f.rows.map((l) => (
+                                                    <StockRow key={l.id} line={l} label={l.variant} actions={actions} />
+                                                ))}
+                                            </StockBlock>
+                                        ))}
                                 </div>
                             )}
                         </>
                     )}
                 </div>
             </div>
+
+            {changes.length > 0 && (
+                <DraftBar
+                    changes={changes}
+                    review={review}
+                    saving={m.saveCounts.isPending}
+                    onReview={() => setReview((r) => !r)}
+                    onDiscard={() => {
+                        setDraft({})
+                        setReview(false)
+                    }}
+                    onSave={saveDraft}
+                />
+            )}
 
             {dialog?.kind === "branch" && <BranchSheet branches={choices} current={branch} onPick={pickBranch} onClose={() => setDialog(null)} />}
             {dialog?.kind === "more" && (
@@ -339,36 +370,125 @@ export function LiveStockTab() {
     )
 }
 
-const TILES: { filter: StockFilter; label: string; value: (s: BoardSummary) => number; warn?: boolean }[] = [
-    { filter: "coins", label: "coins", value: (s) => s.coins },
-    { filter: "bars", label: "bars", value: (s) => s.bars },
-    { filter: "low", label: "running low", value: (s) => s.low, warn: true },
-    { filter: "pick", label: "serials to pick", value: (s) => s.toPick, warn: true },
-]
-
-/** The four numbers are also filters: tap one to see only those lines, tap it again to see everything. */
-function Summary({ summary, filter, onFilter }: { summary: BoardSummary; filter: StockFilter | null; onFilter: (f: StockFilter) => void }) {
+/**
+ * The branch at a glance: its total, split into coins and bars, then the two counts that need someone. Running low and
+ * serials to pick are filters (tap to see only those lines). Until any line has a low mark, the tile says how to set one.
+ */
+function Summary({
+    branch,
+    metal,
+    summary,
+    anyLowMark,
+    filter,
+    onFilter,
+}: {
+    branch: string
+    metal: LiveMetal
+    summary: BoardSummary
+    anyLowMark: boolean
+    filter: StockFilter | null
+    onFilter: (f: StockFilter) => void
+}) {
+    const total = summary.coins + summary.bars
+    const coinShare = total ? Math.round((summary.coins * 100) / total) : 0
+    const tile = (on: boolean) =>
+        cn("bg-card min-h-[72px] min-w-0 rounded-xl border px-[14px] py-[10px] text-left", on ? "border-primary ring-primary ring-1 ring-inset" : "hover:bg-muted/50")
     return (
-        <div className="grid grid-cols-4 gap-[8px]">
-            {TILES.map((t) => {
-                const n = t.value(summary)
-                const on = filter === t.filter
-                return (
-                    <button
-                        key={t.filter}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => onFilter(t.filter)}
-                        className={cn(
-                            "bg-card min-h-[64px] min-w-0 rounded-lg border px-[10px] py-[8px] text-left @min-[420px]/main:px-[12px] @min-[420px]/main:py-[10px]",
-                            on ? "border-primary ring-primary ring-1 ring-inset" : "hover:bg-muted/50",
-                        )}
-                    >
-                        <b className={cn("block text-[19px] leading-[1.15] font-bold tabular-nums @min-[420px]/main:text-[22px]", t.warn && n > 0 && "text-amber-800 dark:text-amber-300")}>{n}</b>
-                        <span className="text-muted-foreground block text-[12px] leading-tight">{t.label}</span>
+        <div className="grid grid-cols-2 gap-[10px] @min-[720px]/main:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="bg-card col-span-2 min-w-0 rounded-xl border px-[14px] py-[12px] @min-[720px]/main:col-span-1">
+                <div className="flex items-baseline justify-between gap-[8px]">
+                    <span className="text-muted-foreground truncate text-[13px]">
+                        {branch} · {metal === "GOLD" ? "gold" : "silver"}
+                    </span>
+                    <span className="text-[22px] font-extrabold tabular-nums">
+                        {total} <span className="text-muted-foreground text-[13px] font-medium">items</span>
+                    </span>
+                </div>
+                <div aria-hidden className="bg-muted mt-[8px] mb-[6px] flex h-[8px] overflow-hidden rounded-full">
+                    <span className="bg-primary" style={{ width: `${coinShare}%` }} />
+                    <span className="bg-primary/45 flex-1" />
+                </div>
+                <div className="text-muted-foreground flex justify-between text-[13px] tabular-nums">
+                    <span>
+                        <b className="text-foreground">{summary.coins}</b> coins
+                    </span>
+                    <span>
+                        <b className="text-foreground">{summary.bars}</b> bars
+                    </span>
+                </div>
+            </div>
+            {anyLowMark ? (
+                <button type="button" aria-pressed={filter === "low"} onClick={() => onFilter("low")} className={tile(filter === "low")}>
+                    <b className={cn("block text-[22px] leading-[1.15] font-extrabold tabular-nums", summary.low > 0 && "text-amber-800 dark:text-amber-300")}>{summary.low}</b>
+                    <span className="text-muted-foreground block text-[12px] leading-tight">running low</span>
+                </button>
+            ) : (
+                <div className="bg-card min-h-[72px] min-w-0 rounded-xl border border-dashed px-[14px] py-[10px]">
+                    <b className="block text-[14px] font-semibold">Running low</b>
+                    <span className="text-primary block text-[12px] leading-tight">Set a low mark from a line's ⋯ menu to see this</span>
+                </div>
+            )}
+            <button type="button" aria-pressed={filter === "pick"} onClick={() => onFilter("pick")} className={tile(filter === "pick")}>
+                <b className={cn("block text-[22px] leading-[1.15] font-extrabold tabular-nums", summary.toPick > 0 && "text-amber-800 dark:text-amber-300")}>{summary.toPick}</b>
+                <span className="text-muted-foreground block text-[12px] leading-tight">serials to pick</span>
+            </button>
+        </div>
+    )
+}
+
+/** Unsaved counts from edit mode: how many, a list to check, and Discard or Save. Fixed to the bottom of the screen. */
+function DraftBar({
+    changes,
+    review,
+    saving,
+    onReview,
+    onDiscard,
+    onSave,
+}: {
+    changes: DraftChange[]
+    review: boolean
+    saving: boolean
+    onReview: () => void
+    onDiscard: () => void
+    onSave: () => void
+}) {
+    const n = changes.length
+    return (
+        <div
+            role="region"
+            aria-label="Unsaved count changes"
+            className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-[12px] pb-[calc(14px+env(safe-area-inset-bottom,0px))]"
+        >
+            <div className="bg-foreground text-background pointer-events-auto mx-auto max-w-[720px] rounded-xl px-[14px] py-[12px] shadow-2xl">
+                {review && (
+                    <ul className="mb-[8px] max-h-[180px] overflow-auto text-[14px]">
+                        {changes.map((c) => (
+                            <li key={c.lineId} className="border-background/15 flex justify-between gap-[12px] border-b py-[6px] tabular-nums">
+                                <span className="truncate font-semibold">{c.label}</span>
+                                <span className="flex-none">
+                                    {c.from} → <b>{c.to}</b> ({c.to > c.from ? "+" : "−"}
+                                    {Math.abs(c.to - c.from)})
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                <div className="flex flex-wrap items-center gap-[8px]">
+                    <span aria-hidden className="bg-primary size-[8px] rounded-full" />
+                    <span className="min-w-[120px] flex-1 font-semibold">
+                        {n === 1 ? "1 change" : `${n} changes`} not saved
+                    </span>
+                    <button type="button" onClick={onReview} className="h-[40px] rounded-lg px-[12px] text-[14px] font-semibold hover:opacity-80">
+                        {review ? "Hide" : "Review"}
                     </button>
-                )
-            })}
+                    <button type="button" onClick={onDiscard} disabled={saving} className="border-background/30 h-[40px] rounded-lg border px-[12px] text-[14px] font-semibold">
+                        Discard
+                    </button>
+                    <button type="button" onClick={onSave} disabled={saving} className="bg-background text-foreground h-[40px] rounded-lg px-[16px] text-[14px] font-bold disabled:opacity-60">
+                        {saving ? "Saving…" : "Save changes"}
+                    </button>
+                </div>
+            </div>
         </div>
     )
 }
@@ -386,18 +506,6 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
         >
             {children}
         </button>
-    )
-}
-
-function Section({ label, total, children }: { label: string; total: number; children: ReactNode }) {
-    return (
-        <section aria-label={label} className="min-w-0">
-            <h3 className="text-muted-foreground mb-[8px] flex items-baseline justify-between text-[12px] font-semibold tracking-wider uppercase">
-                {label}
-                <b className="text-foreground text-[14px] tracking-normal normal-case tabular-nums">{total}</b>
-            </h3>
-            <div className="bg-card overflow-hidden rounded-lg border">{children}</div>
-        </section>
     )
 }
 

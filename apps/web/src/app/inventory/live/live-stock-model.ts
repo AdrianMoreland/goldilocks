@@ -76,7 +76,7 @@ export function groupBars(lines: LiveStockLine[], opts: GroupOptions): BarWeight
 }
 
 /** What a summary tile filters the list to. */
-export type StockFilter = "coins" | "bars" | "low" | "pick"
+export type StockFilter = "coins" | "bars" | "low" | "pick" | "proof"
 
 export interface BoardSummary {
     coins: number
@@ -112,6 +112,8 @@ export function applyFilter(lines: LiveStockLine[], filter: StockFilter | null):
             return lines.filter((l) => levelOf(l) === "low")
         case "pick":
             return lines.filter((l) => l.unassigned > 0)
+        case "proof":
+            return lines.filter((l) => /\bproof\b/i.test(l.variant))
         default:
             return lines
     }
@@ -185,3 +187,35 @@ export const titleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c)
 export const lineName = (l: Pick<LiveStockLine, "family" | "variant" | "refinery" | "kind">) =>
     l.kind === "BAR" ? `${l.variant} bar${l.refinery ? ` · ${titleCase(l.refinery)}` : ""}` : `${l.family} ${l.variant}`.trim()
 
+
+// ---------------------------------------------------------------- edit mode draft
+
+/** Counts changed in edit mode but not saved yet, by line id; each keeps its line so it can be saved from any board. */
+export type CountDraft = Record<number, { line: LiveStockLine; qty: number }>
+
+/** One step up or down on a line in the draft (never below 0); back at the saved count, the line leaves the draft. */
+export function stepDraft(draft: CountDraft, line: LiveStockLine, delta: number): CountDraft {
+    const from = draft[line.id]?.qty ?? line.qty
+    const qty = Math.max(0, from + delta)
+    const next = { ...draft }
+    if (qty === line.qty) delete next[line.id]
+    else next[line.id] = { line, qty }
+    return next
+}
+
+/** The lines as they would be after saving the draft, so totals and groups show the new counts while editing. */
+export function withDraft(lines: LiveStockLine[], draft: CountDraft): LiveStockLine[] {
+    return lines.map((l) => (draft[l.id] ? { ...l, qty: draft[l.id].qty } : l))
+}
+
+export interface DraftChange {
+    lineId: number
+    label: string
+    from: number
+    to: number
+}
+
+/** The draft as a list to review and save, in the order the lines were first changed. */
+export function draftChanges(draft: CountDraft): DraftChange[] {
+    return Object.values(draft).map(({ line, qty }) => ({ lineId: line.id, label: lineName(line), from: line.qty, to: qty }))
+}
