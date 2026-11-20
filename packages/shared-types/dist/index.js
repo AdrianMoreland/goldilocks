@@ -1016,6 +1016,14 @@ var CreateBranchRequestSchema = z8.object({
 
 // src/session.schema.ts
 var SessionUserRoleEnum = z9.enum(["ADMIN", "MANAGER", "SALES", "ACCOUNTING", "AUDITOR"]);
+var UI_SETTINGS_MAX_BYTES = 16e3;
+var ColorModeEnum = z9.enum(["dark", "light"]);
+var UiSettingsSchema = z9.object({
+  mode: ColorModeEnum,
+  look: z9.record(z9.string(), z9.unknown()).nullable()
+}).refine((v) => JSON.stringify(v).length <= UI_SETTINGS_MAX_BYTES, {
+  message: "Those display settings are too large to save."
+});
 var SessionUserSchema = z9.object({
   id: z9.string(),
   email: z9.string(),
@@ -1024,7 +1032,9 @@ var SessionUserSchema = z9.object({
   role: SessionUserRoleEnum,
   admin: z9.boolean(),
   // Defaults to null so a web build deployed before the API still parses the old response shape.
-  branch: SessionBranchSchema.nullable().default(null)
+  branch: SessionBranchSchema.nullable().default(null),
+  /** Null until the person first changes their look; the app then uses its defaults (dark). */
+  uiSettings: UiSettingsSchema.nullable().default(null)
 });
 var LoginRequestSchema = z9.object({
   email: z9.string().email(),
@@ -9037,6 +9047,7 @@ export {
   ChangePasswordSchema,
   ClientErrorReportBatchSchema,
   ClientErrorReportSchema,
+  ColorModeEnum,
   CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema,
@@ -9368,6 +9379,8 @@ export {
   TradesheetImportResultSchema,
   TradesheetTabSchema,
   TransferLiveStockRequestSchema,
+  UI_SETTINGS_MAX_BYTES,
+  UiSettingsSchema,
   UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema,
   UpdateBarRequestSchema,

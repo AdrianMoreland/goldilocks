@@ -8,6 +8,7 @@ import {
     ParseUUIDPipe,
     Patch,
     Post,
+    Put,
     Req,
     UseGuards,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import {
     RefreshRequestDto,
     SessionUserDto,
     SetUserBranchRequestDto,
+    UiSettingsRequestDto,
 } from '../../common/dto/dtos';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 
@@ -73,6 +75,22 @@ export class AuthController {
     @ApiOperation({ summary: 'Current session user' })
     async me(@Req() req: RequestWithUser): Promise<SessionUserDto> {
         return this.authService.me(req.user.id);
+    }
+
+    @Put('me/ui-settings')
+    @HttpCode(204)
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: 'Save the look the current user chose',
+        description:
+            'Light or dark plus the theme editor settings, stored on the account so they follow the person to any browser.',
+    })
+    async saveUiSettings(
+        @Req() req: RequestWithUser,
+        @Body() body: UiSettingsRequestDto,
+    ): Promise<void> {
+        await this.authService.saveUiSettings(req.user.id, body);
     }
 
     @Post('admin/users')
