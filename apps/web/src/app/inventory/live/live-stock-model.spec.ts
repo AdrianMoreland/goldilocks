@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { LiveStockLine } from "@goldilocks/shared-types"
-import { applyFilter, branchGrid, groupBars, groupCoins, levelOf, levelOfMany, summarise } from "./live-stock-model"
+import { applyFilter, branchGrid, draftChanges, groupBars, groupCoins, levelOf, levelOfMany, stepDraft, summarise, withDraft } from "./live-stock-model"
 
 const line = (o: Partial<LiveStockLine>): LiveStockLine => ({
     id: 1, branchCode: "DU", metal: "GOLD", kind: "COIN", family: "Krugerrand", variant: "1oz", refinery: "",
@@ -117,5 +117,37 @@ describe("branchGrid", () => {
         expect(kr?.cells.DU?.level).toBe("low")
         expect(kr?.cells.CO?.level).toBe("zero")
         expect(grid[1]?.rows.some((r) => r.label === "Maple 1oz")).toBe(false)
+    })
+})
+
+describe("proof filter", () => {
+    it("keeps only proof variants, whatever the case", () => {
+        const lines = [line({ id: 1, variant: "1oz Proof" }), line({ id: 2, variant: "1oz" }), line({ id: 3, variant: "Half proof" })]
+        expect(applyFilter(lines, "proof").map((l) => l.id)).toEqual([1, 3])
+    })
+})
+
+describe("count draft", () => {
+    const a = line({ id: 1, kind: "COIN", family: "Krugerrand", variant: "1oz", qty: 31 })
+    const b = line({ id: 2, kind: "BAR", family: "Bar", variant: "1g", refinery: "UMICORE", qty: 0 })
+
+    it("collects steps, never goes below zero, and drops a line back at its saved count", () => {
+        let d = stepDraft({}, a, -1)
+        d = stepDraft(d, a, -1)
+        expect(d[1].qty).toBe(29)
+        d = stepDraft(d, b, -1)
+        expect(d[2]).toBeUndefined()
+        d = stepDraft(d, a, 1)
+        d = stepDraft(d, a, 1)
+        expect(d).toEqual({})
+    })
+
+    it("shows the drafted counts on the lines and lists the changes to save", () => {
+        const d = stepDraft(stepDraft({}, a, -2), b, 3)
+        expect(withDraft([a, b], d).map((l) => l.qty)).toEqual([29, 3])
+        expect(draftChanges(d)).toEqual([
+            { lineId: 1, label: "Krugerrand 1oz", from: 31, to: 29 },
+            { lineId: 2, label: "1g bar · Umicore", from: 0, to: 3 },
+        ])
     })
 })

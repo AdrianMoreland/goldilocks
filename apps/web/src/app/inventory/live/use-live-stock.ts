@@ -90,5 +90,40 @@ export function useBoardMutations(branch: string, metal: string) {
         onError: fail,
         onSettled: refresh,
     })
-    return { adjust, undo, createLine, transfer, addBar, barStatus }
+    /**
+     * Saves the edit-mode draft: one count per line, one after another, so a refusal part-way leaves the rest unsaved
+     * (the caller keeps those in the draft). One toast for the batch, whose Undo reverses every saved change.
+     */
+    const saveCounts = useMutation({
+        mutationFn: async (changes: { lineId: number; qty: number }[]) => {
+            const saved: { lineId: number; movementId: number }[] = []
+            for (const c of changes) {
+                try {
+                    const r = await api.adjust(c.lineId, { qty: c.qty, reason: "Count edited" })
+                    saved.push({ lineId: c.lineId, movementId: r.movementId })
+                } catch (e) {
+                    return { saved, error: e instanceof Error ? e : new Error(String(e)) }
+                }
+            }
+            return { saved, error: null as Error | null }
+        },
+        onSuccess: ({ saved, error }) => {
+            if (error) fail(new Error(`${saved.length} saved, then: ${error.message}`))
+            if (saved.length === 0) return
+            const undoAll = async () => {
+                try {
+                    for (const s of [...saved].reverse()) await api.undo(s.movementId)
+                    toast.success("Changes undone", at)
+                } catch (e) {
+                    fail(e instanceof Error ? e : new Error(String(e)))
+                } finally {
+                    void refresh()
+                }
+            }
+            toast(saved.length === 1 ? "1 count saved" : `${saved.length} counts saved`, { ...at, action: { label: "Undo", onClick: () => void undoAll() }, duration: 8000 })
+        },
+        onError: fail,
+        onSettled: refresh,
+    })
+    return { adjust, undo, createLine, transfer, addBar, barStatus, saveCounts }
 }

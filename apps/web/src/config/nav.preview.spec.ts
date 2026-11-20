@@ -9,15 +9,14 @@ function urls(access: Parameters<typeof navGroupsFor>[0]): string[] {
 }
 
 describe("navGroupsFor with the preview features on", () => {
-  it("offers every non-admin the Stock page, with or without the workbook", () => {
-    expect(urls({ isAdmin: false, isManager: false, capabilities: { pricingWorkbook: true } })).toEqual(["/dashboard", "/stock", "/knowledge"])
-    expect(urls({ isAdmin: false, isManager: false, capabilities: { pricingWorkbook: false } })).toEqual(["/stock", "/knowledge"])
-    expect(urls({ isAdmin: false, isManager: true, capabilities: { pricingWorkbook: true } })).toContain("/stock")
+  it("offers every non-admin the Inventory page, with or without the workbook", () => {
+    expect(urls({ isAdmin: false, isManager: false, capabilities: { pricingWorkbook: true } })).toEqual(["/dashboard", "/inventory", "/knowledge"])
+    expect(urls({ isAdmin: false, isManager: false, capabilities: { pricingWorkbook: false } })).toEqual(["/inventory", "/knowledge"])
+    expect(urls({ isAdmin: false, isManager: true, capabilities: { pricingWorkbook: true } })).toContain("/inventory")
   })
 
-  it("leaves Stock out for admins, who have Inventory", () => {
+  it("lists Inventory once for admins, in their Stock & orders group", () => {
     const all = urls({ isAdmin: true, isManager: true, grouped: true, capabilities: { pricingWorkbook: true } })
-    expect(all).not.toContain("/stock")
-    expect(all).toContain("/inventory")
+    expect(all.filter((u) => u === "/inventory")).toHaveLength(1)
   })
 })
