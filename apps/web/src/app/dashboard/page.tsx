@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {RefreshCw, PanelRight, ChevronRight} from 'lucide-react';
+import {RefreshCw, PanelRight, ChevronRight, Monitor} from 'lucide-react';
+import {Link} from 'react-router-dom';
 import {DataTable} from './components/table/data-table2.tsx';
 import {BaseLayout} from '@/components/layouts/base-layout';
 import {SectionCards} from './components/section-cards.tsx';
@@ -181,6 +182,9 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                         aria-label="Refresh spot prices"
                     >
                         <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}/>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="cursor-pointer" title="Open the price board (full screen, live prices)" aria-label="Open the price board">
+                        <Link to="/board"><Monitor className="h-4 w-4"/></Link>
                     </Button>
                     {!features.redesign && <Separator orientation="vertical" className="mx-1 hidden data-[orientation=vertical]:h-5 sm:block"/>}
                     {/* Next to the product table so prices can be asked for while looking at them; the assistant quotes the same spot the table does. */}

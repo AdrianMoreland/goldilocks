@@ -8,6 +8,7 @@ import { features } from '@/config/features'
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
+const Board = lazy(() => import('@/app/board/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
@@ -92,6 +93,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/dashboard",
     element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
+  },
+  // Price board: full-screen live prices for an iPad or a branch screen; same access as the dashboard
+  {
+    path: "/board",
+    element: <RequireCapability capability="pricingWorkbook"><Board /></RequireCapability>
   },
   // Admin console — admins only; the API enforces the same on every call it makes
   {
