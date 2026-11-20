@@ -158,13 +158,15 @@ function RedesignedPanel({
     if (phone) {
         return (
             <>
-                {shown && <div aria-hidden className="fixed inset-0 z-[54] bg-black/40" onClick={onClose} />}
+                {/* z-49: above the page header (40) and the quote bar (48), under every menu, dialog and tooltip (50), which portal
+                    to the body and must open on top of the sheet - at 55 they opened behind it and could not be tapped. */}
+                {shown && <div aria-hidden className="fixed inset-0 z-[49] bg-black/40" onClick={onClose} />}
                 <div
                     role="dialog"
                     aria-label="Pricing tools"
                     inert={!shown}
                     className={cn(
-                        "bg-card fixed inset-x-0 bottom-0 z-[55] flex h-[88svh] flex-col rounded-t-[18px] border border-b-0 shadow-2xl transition-[transform,visibility] duration-200",
+                        "bg-card fixed inset-x-0 bottom-0 z-[49] flex h-[88svh] flex-col rounded-t-[18px] border border-b-0 shadow-2xl transition-[transform,visibility] duration-200",
                         shown ? "translate-y-0" : "invisible translate-y-full",
                     )}
                 >
