@@ -213,7 +213,8 @@ function PillField({ label, value, onChange, suffix }: { label: string; value: n
                 <button
                     type="button"
                     onClick={() => onChange(0)}
-                    className="text-muted-foreground/60 hover:text-foreground shrink-0 cursor-pointer"
+                    // A 36px tap area around the 16px icon, in px because the theme's spacing unit is compact; the negative margin keeps the pill's height.
+                    className="text-muted-foreground/60 hover:text-foreground -my-2 -mr-2 grid size-[36px] shrink-0 cursor-pointer place-items-center rounded-full"
                     aria-label={`Clear ${label}`}
                 >
                     <CircleX className="size-4" />
