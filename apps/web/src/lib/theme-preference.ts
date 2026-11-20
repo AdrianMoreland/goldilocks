@@ -99,6 +99,33 @@ function normalize(raw: unknown): ThemePreference | null {
     return pref
 }
 
+/** Reads a stored look (from this browser or from the account) into a valid preference, or null when unusable. */
+export function themePreferenceFrom(raw: unknown): ThemePreference | null {
+    return normalize(raw)
+}
+
+export type ColorMode = "dark" | "light"
+
+/** Where the light/dark switch keeps this browser's choice (the ThemeProvider's storage key). */
+export const COLOR_MODE_STORAGE_KEY = "vite-ui-theme"
+
+/**
+ * The look to start a signed-in session with. The account wins, so a choice follows the person to any browser.
+ * Without one (they never changed it since this was added), this browser's earlier choice is kept, so nobody loses a
+ * look they already set; with nothing anywhere, dark and the app's default theme.
+ */
+export function initialLook(
+    saved: { mode: ColorMode; look: Record<string, unknown> | null } | null,
+    localPreference: ThemePreference | null,
+    localMode: string | null,
+): { preference: ThemePreference; mode: ColorMode } {
+    if (saved) return { preference: themePreferenceFrom(saved.look) ?? DEFAULT_THEME_PREFERENCE, mode: saved.mode }
+    return {
+        preference: localPreference ?? DEFAULT_THEME_PREFERENCE,
+        mode: localMode === "light" || localMode === "dark" ? localMode : "dark",
+    }
+}
+
 export function loadThemePreference(userId: string): ThemePreference | null {
     try {
         const raw = localStorage.getItem(storageKey(userId))

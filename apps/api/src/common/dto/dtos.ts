@@ -13,6 +13,7 @@ import {
     SessionUserSchema,
     CreateUserRequestSchema,
     SetUserBranchRequestSchema,
+    UiSettingsSchema,
     SetKbVisibilityRequestSchema,
     BranchSchema,
     MarketModeStateSchema,
@@ -137,6 +138,11 @@ export class LoginResponseDto extends createDto(
 export class SessionUserDto extends createDto(
     SessionUserSchema,
     'SessionUserDto',
+) {}
+
+export class UiSettingsRequestDto extends createDto(
+    UiSettingsSchema,
+    'UiSettingsRequestDto',
 ) {}
 
 export class SetUserBranchRequestDto extends createDto(

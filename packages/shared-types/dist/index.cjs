@@ -103,6 +103,7 @@ __export(index_exports, {
   ChangePasswordSchema: () => ChangePasswordSchema,
   ClientErrorReportBatchSchema: () => ClientErrorReportBatchSchema,
   ClientErrorReportSchema: () => ClientErrorReportSchema,
+  ColorModeEnum: () => ColorModeEnum,
   CreateBranchRequestSchema: () => CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema: () => CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema: () => CreateDiscrepancyRequestSchema,
@@ -434,6 +435,8 @@ __export(index_exports, {
   TradesheetImportResultSchema: () => TradesheetImportResultSchema,
   TradesheetTabSchema: () => TradesheetTabSchema,
   TransferLiveStockRequestSchema: () => TransferLiveStockRequestSchema,
+  UI_SETTINGS_MAX_BYTES: () => UI_SETTINGS_MAX_BYTES,
+  UiSettingsSchema: () => UiSettingsSchema,
   UnresolvedLotRowSchema: () => UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema: () => UnresolvedLotsResponseSchema,
   UpdateBarRequestSchema: () => UpdateBarRequestSchema,
@@ -1672,6 +1675,14 @@ var CreateBranchRequestSchema = import_zod8.z.object({
 
 // src/session.schema.ts
 var SessionUserRoleEnum = import_zod9.z.enum(["ADMIN", "MANAGER", "SALES", "ACCOUNTING", "AUDITOR"]);
+var UI_SETTINGS_MAX_BYTES = 16e3;
+var ColorModeEnum = import_zod9.z.enum(["dark", "light"]);
+var UiSettingsSchema = import_zod9.z.object({
+  mode: ColorModeEnum,
+  look: import_zod9.z.record(import_zod9.z.string(), import_zod9.z.unknown()).nullable()
+}).refine((v) => JSON.stringify(v).length <= UI_SETTINGS_MAX_BYTES, {
+  message: "Those display settings are too large to save."
+});
 var SessionUserSchema = import_zod9.z.object({
   id: import_zod9.z.string(),
   email: import_zod9.z.string(),
@@ -1680,7 +1691,9 @@ var SessionUserSchema = import_zod9.z.object({
   role: SessionUserRoleEnum,
   admin: import_zod9.z.boolean(),
   // Defaults to null so a web build deployed before the API still parses the old response shape.
-  branch: SessionBranchSchema.nullable().default(null)
+  branch: SessionBranchSchema.nullable().default(null),
+  /** Null until the person first changes their look; the app then uses its defaults (dark). */
+  uiSettings: UiSettingsSchema.nullable().default(null)
 });
 var LoginRequestSchema = import_zod9.z.object({
   email: import_zod9.z.string().email(),
@@ -9694,6 +9707,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   ChangePasswordSchema,
   ClientErrorReportBatchSchema,
   ClientErrorReportSchema,
+  ColorModeEnum,
   CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema,
@@ -10025,6 +10039,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   TradesheetImportResultSchema,
   TradesheetTabSchema,
   TransferLiveStockRequestSchema,
+  UI_SETTINGS_MAX_BYTES,
+  UiSettingsSchema,
   UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema,
   UpdateBarRequestSchema,

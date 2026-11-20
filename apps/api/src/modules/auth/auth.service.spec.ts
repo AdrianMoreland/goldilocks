@@ -26,7 +26,7 @@ function build() {
         deleteIdentity: jest.fn().mockResolvedValue(undefined),
     };
     const prisma = {
-        user: { create: jest.fn(), findUnique: jest.fn() },
+        user: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
         $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation((run: (tx: unknown) => unknown) =>
@@ -197,5 +197,57 @@ describe('AuthService.login', () => {
 
         expect(result.accessToken).toBe('a');
         expect(result.refreshToken).toBe('r');
+    });
+});
+
+describe('AuthService ui settings', () => {
+    const row = {
+        id: 'u1',
+        email: 'g@example.com',
+        firstName: 'G',
+        lastName: 'H',
+        role: 'SALES',
+        admin: false,
+        isActive: true,
+        branch: null,
+    };
+
+    it('returns the saved look with the session user', async () => {
+        const { service, prisma } = build();
+        prisma.user.findUnique.mockResolvedValue({
+            ...row,
+            uiSettings: { mode: 'light', look: { font: 'inter' } },
+        });
+        await expect(service.me('u1')).resolves.toMatchObject({
+            uiSettings: { mode: 'light', look: { font: 'inter' } },
+        });
+    });
+
+    it('reads a missing or malformed value as never chosen', async () => {
+        const { service, prisma } = build();
+        prisma.user.findUnique.mockResolvedValueOnce({
+            ...row,
+            uiSettings: null,
+        });
+        await expect(service.me('u1')).resolves.toMatchObject({
+            uiSettings: null,
+        });
+        prisma.user.findUnique.mockResolvedValueOnce({
+            ...row,
+            uiSettings: { mode: 'sepia' },
+        });
+        await expect(service.me('u1')).resolves.toMatchObject({
+            uiSettings: null,
+        });
+    });
+
+    it('saves the look on the signed-in account only', async () => {
+        const { service, prisma } = build();
+        prisma.user.update.mockResolvedValue({});
+        await service.saveUiSettings('u1', { mode: 'dark', look: null });
+        expect(prisma.user.update).toHaveBeenCalledWith({
+            where: { id: 'u1' },
+            data: { uiSettings: { mode: 'dark', look: null } },
+        });
     });
 });

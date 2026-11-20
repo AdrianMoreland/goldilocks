@@ -294,6 +294,8 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             'POST /errors/client',
             'POST /ai/ask',
             'POST /ai/ask/stream',
+            // Each person saves their own look; the route only ever writes the caller's own row.
+            'PUT /auth/me/ui-settings',
         ]);
 
         const writeRoutes = listRoutes().filter(
