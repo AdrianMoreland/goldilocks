@@ -6,6 +6,8 @@ import type { MetalType, Product } from "@/lib/types"
 import { useProductTable } from "@/hooks/use-product-table"
 import { ProductFilterBar } from "./product-filter-bar"
 import { ProductTableBody } from "./product-table-body"
+import { MobileProductList } from "./mobile-product-list"
+import { useMediaQuery } from "@/hooks/use-media-query.hook"
 import { METAL_TABS } from "./metal-tabs"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { useSpotPrices } from "../../context/spot-prices-context"
@@ -66,6 +68,8 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
     // selected metal, so the small tab buttons never leave them on a stale metal.
     // The redesign shows what is held for the metal on screen: a warm border round the table and the held price in the toolbar.
     const spot = useSpotPrices()
+    // A phone held upright: the wide table pans in every direction there, so it becomes a list (landscape keeps the table).
+    const narrow = useMediaQuery("(max-width: 639.98px)")
     const tab = METAL_TABS.find((t) => t.value === selectedTab)
     const heldPrice =
         features.redesign && tab && spot.overriddenMetals.includes(tab.metalType) && spot.displayPrices[tab.metalType] !== undefined
@@ -84,11 +88,11 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
         <Tabs
             value={selectedTab}
             onValueChange={handleTabChange}
-            className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
+            className="phone:h-auto phone:flex-none flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
             <TabsContent
                 value={selectedTab}
-                className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"
+                className="phone:flex-none phone:overflow-visible relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"
             >
                 <ProductFilterBar
                     table={table}
@@ -105,16 +109,28 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
                     onCopy={() => copyRowsToClipboard(selectedProducts, table.getVisibleLeafColumns().map((c) => c.id))}
                 />
 
-                <ProductTableBody
-                    table={table}
-                    columnCount={table.getVisibleLeafColumns().length}
-                    isLoading={isLoading && data.length === 0}
-                    hasError={hasError && data.length === 0}
-                    isFiltered={isFiltered}
-                    onResetFilters={resetFilters}
-                    held={heldPrice !== null}
-                    onRetry={onRetry}
-                />
+                {narrow ? (
+                    <MobileProductList
+                        table={table}
+                        isLoading={isLoading && data.length === 0}
+                        hasError={hasError && data.length === 0}
+                        isFiltered={isFiltered}
+                        onResetFilters={resetFilters}
+                        held={heldPrice !== null}
+                        onRetry={onRetry}
+                    />
+                ) : (
+                    <ProductTableBody
+                        table={table}
+                        columnCount={table.getVisibleLeafColumns().length}
+                        isLoading={isLoading && data.length === 0}
+                        hasError={hasError && data.length === 0}
+                        isFiltered={isFiltered}
+                        onResetFilters={resetFilters}
+                        held={heldPrice !== null}
+                        onRetry={onRetry}
+                    />
+                )}
 
                 {!features.redesign && (
                     <div className="flex shrink-0 items-center justify-between px-4">

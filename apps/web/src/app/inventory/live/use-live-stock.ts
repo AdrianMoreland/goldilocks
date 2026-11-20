@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { AdjustLiveStockRequest, LiveStockBoard } from "@goldilocks/shared-types"
 import { useLiveStockApi } from "@/api/live-stock.api"
@@ -9,15 +9,23 @@ export function useBranches() {
     return useQuery({ queryKey: queryKeys.liveStock.branches, queryFn: api.branches })
 }
 
+const boardQuery = (api: ReturnType<typeof useLiveStockApi>, branch: string | undefined, metal: string) => ({
+    queryKey: queryKeys.liveStock.board(branch ?? "", metal),
+    queryFn: () => api.board({ branch: branch as string, metal: metal as "GOLD" | "SILVER" | "PGM" }),
+    enabled: Boolean(branch),
+    // Another person at the counter changes the same numbers: look again when the tab is refocused.
+    refetchOnWindowFocus: true,
+})
+
 export function useBoard(branch: string | undefined, metal: string) {
     const api = useLiveStockApi()
-    return useQuery({
-        queryKey: queryKeys.liveStock.board(branch ?? "", metal),
-        queryFn: () => api.board({ branch: branch as string, metal: metal as "GOLD" | "SILVER" | "PGM" }),
-        enabled: Boolean(branch),
-        // Another person at the counter changes the same numbers: look again when the tab is refocused.
-        refetchOnWindowFocus: true,
-    })
+    return useQuery(boardQuery(api, branch, metal))
+}
+
+/** Every branch's board for one metal (the branch list and the all-branches grid). Same keys as useBoard, so one cache. */
+export function useAllBoards(codes: string[], metal: string) {
+    const api = useLiveStockApi()
+    return useQueries({ queries: codes.map((code) => boardQuery(api, code, metal)) })
 }
 
 /**
@@ -29,11 +37,13 @@ export function useBoardMutations(branch: string, metal: string) {
     const qc = useQueryClient()
     const key = queryKeys.liveStock.board(branch, metal)
     const refresh = () => qc.invalidateQueries({ queryKey: queryKeys.liveStock.all })
-    const fail = (e: Error) => toast.error(e.message)
+    // Toasts go to the top: the action and serial sheets rise from the bottom and a toast there would cover them.
+    const at = { position: "top-center" } as const
+    const fail = (e: Error) => toast.error(e.message, at)
 
     const undo = useMutation({
         mutationFn: (movementId: number) => api.undo(movementId),
-        onSuccess: () => toast.success("Change undone"),
+        onSuccess: () => toast.success("Change undone", at),
         onError: fail,
         onSettled: refresh,
     })
@@ -58,20 +68,20 @@ export function useBoardMutations(branch: string, metal: string) {
             fail(e)
         },
         onSuccess: (data, v) =>
-            toast(`${v.label}: now ${data.qty}`, { action: { label: "Undo", onClick: () => undo.mutate(data.movementId) }, duration: 6000 }),
+            toast(`${v.label}: now ${data.qty}`, { ...at, action: { label: "Undo", onClick: () => undo.mutate(data.movementId) }, duration: 6000 }),
         onSettled: refresh,
     })
 
-    const createLine = useMutation({ mutationFn: api.createLine, onSuccess: () => toast.success("Line added"), onError: fail, onSettled: refresh })
+    const createLine = useMutation({ mutationFn: api.createLine, onSuccess: () => toast.success("Line added", at), onError: fail, onSettled: refresh })
     const transfer = useMutation({
         mutationFn: ({ lineId, body }: { lineId: number; body: Parameters<typeof api.transfer>[1] }) => api.transfer(lineId, body),
-        onSuccess: () => toast.success("Transferred"),
+        onSuccess: () => toast.success("Transferred", at),
         onError: fail,
         onSettled: refresh,
     })
     const addBar = useMutation({
         mutationFn: ({ lineId, body }: { lineId: number; body: Parameters<typeof api.addBar>[1] }) => api.addBar(lineId, body),
-        onSuccess: () => toast.success("Serial added"),
+        onSuccess: () => toast.success("Serial added", at),
         onError: fail,
         onSettled: refresh,
     })

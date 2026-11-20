@@ -198,7 +198,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                 </>
             )}
         >
-            {/* ── Cards + chart — fixed in place, never scroll. ───────────── */}
+            {/* ── Cards + chart — fixed in place, never scroll (on a phone the whole page scrolls instead, see the phone variant). */}
             <div className="bg-background shrink-0 pt-4 pb-4">
                 <div className={cn("px-4 lg:px-6", features.redesign && "@container")}>
                     <div className={cn("grid grid-cols-2 gap-3", features.redesign ? "@xl:grid-cols-4" : "lg:grid-cols-4")}>
@@ -257,7 +257,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
                 header stays pinned to the top of that scroll area. A min
                 height keeps it from being fully crushed by the cards/chart
                 block above on a very short window. ────────────────────── */}
-            <div className="@container/main flex min-h-[180px] flex-1 flex-col overflow-hidden">
+            <div className="@container/main phone:min-h-0 phone:flex-none phone:overflow-visible flex min-h-[180px] flex-1 flex-col overflow-hidden">
                 <DataTable
                     data={productsArr}
                     activeMetal={selectedMetal}

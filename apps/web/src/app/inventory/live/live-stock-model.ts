@@ -42,6 +42,8 @@ function visible(lines: LiveStockLine[], { showAll, query }: GroupOptions): Live
     return lines.filter((l) => (showAll || l.qty > 0 || l.unassigned > 0) && matches(l, query.trim()))
 }
 
+const familyOrder = (a: string, b: string) => (a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b))
+
 /** Coins by family (Other last), each family's variants smallest weight first. */
 export function groupCoins(lines: LiveStockLine[], opts: GroupOptions): CoinFamily[] {
     const byFamily = new Map<string, LiveStockLine[]>()
@@ -54,7 +56,7 @@ export function groupCoins(lines: LiveStockLine[], opts: GroupOptions): CoinFami
             total: rows.reduce((n, r) => n + r.qty, 0),
             rows: [...rows].sort((a, b) => variantGrams(a.variant) - variantGrams(b.variant) || a.variant.localeCompare(b.variant)),
         }))
-        .sort((a, b) => (a.family === "Other" ? 1 : b.family === "Other" ? -1 : a.family.localeCompare(b.family)))
+        .sort((a, b) => familyOrder(a.family, b.family))
 }
 
 /** Bars by weight (smallest first), each with the refineries in stock. */
@@ -71,6 +73,108 @@ export function groupBars(lines: LiveStockLine[], opts: GroupOptions): BarWeight
             lines: [...rows].sort((a, b) => b.qty - a.qty || a.refinery.localeCompare(b.refinery)),
         }))
         .sort((a, b) => variantGrams(a.variant) - variantGrams(b.variant) || a.variant.localeCompare(b.variant))
+}
+
+/** What a summary tile filters the list to. */
+export type StockFilter = "coins" | "bars" | "low" | "pick"
+
+export interface BoardSummary {
+    coins: number
+    bars: number
+    /** Lines at or under their own low mark (empty lines are "none", not low). */
+    low: number
+    /** Bars sold from the sheet whose serial is not known yet. */
+    toPick: number
+}
+
+export function summarise(lines: LiveStockLine[]): BoardSummary {
+    let coins = 0
+    let bars = 0
+    let low = 0
+    let toPick = 0
+    for (const l of lines) {
+        if (l.kind === "COIN") coins += l.qty
+        else bars += l.qty
+        if (levelOf(l) === "low") low += 1
+        toPick += l.unassigned
+    }
+    return { coins, bars, low, toPick }
+}
+
+/** Keeps the lines a summary tile asks for; no filter keeps everything. */
+export function applyFilter(lines: LiveStockLine[], filter: StockFilter | null): LiveStockLine[] {
+    switch (filter) {
+        case "coins":
+            return lines.filter((l) => l.kind === "COIN")
+        case "bars":
+            return lines.filter((l) => l.kind === "BAR")
+        case "low":
+            return lines.filter((l) => levelOf(l) === "low")
+        case "pick":
+            return lines.filter((l) => l.unassigned > 0)
+        default:
+            return lines
+    }
+}
+
+/**
+ * The level of several lines counted together (all refineries of one bar weight). Low when the total is at or under
+ * the sum of the low marks that are set, so one line keeps exactly the meaning of levelOf.
+ */
+export function levelOfMany(lines: Pick<LiveStockLine, "qty" | "lowThreshold">[]): StockLevel {
+    const qty = lines.reduce((n, l) => n + l.qty, 0)
+    const marked = lines.filter((l) => l.lowThreshold !== null)
+    if (qty <= 0) return "zero"
+    if (marked.length > 0 && qty <= marked.reduce((n, l) => n + (l.lowThreshold ?? 0), 0)) return "low"
+    return "ok"
+}
+
+export interface GridCell {
+    qty: number
+    level: StockLevel
+}
+
+export interface GridRow {
+    key: string
+    label: string
+    /** By branch code; a branch without the line has no cell. */
+    cells: Record<string, GridCell>
+    total: number
+}
+
+export interface GridGroup {
+    kind: "BAR" | "COIN"
+    rows: GridRow[]
+}
+
+/**
+ * Every line across branches, for comparing counts: bars one row per weight (refineries added up), coins one row per
+ * family and variant. Rows that are empty everywhere are left out; they only push the useful rows off the screen.
+ */
+export function branchGrid(boards: { code: string; lines: LiveStockLine[] }[]): GridGroup[] {
+    const rows = new Map<string, { kind: "BAR" | "COIN"; family: string; variant: string; byBranch: Map<string, LiveStockLine[]> }>()
+    for (const { code, lines } of boards) {
+        for (const l of lines) {
+            const key = l.kind === "BAR" ? `BAR|${l.variant}` : `COIN|${l.family}|${l.variant}`
+            const row = rows.get(key) ?? { kind: l.kind, family: l.family, variant: l.variant, byBranch: new Map() }
+            row.byBranch.set(code, [...(row.byBranch.get(code) ?? []), l])
+            rows.set(key, row)
+        }
+    }
+    const built = [...rows.entries()]
+        .map(([key, r]) => {
+            const cells: Record<string, GridCell> = {}
+            for (const [code, ls] of r.byBranch) cells[code] = { qty: ls.reduce((n, l) => n + l.qty, 0), level: levelOfMany(ls) }
+            const total = Object.values(cells).reduce((n, c) => n + c.qty, 0)
+            return { ...r, key, label: r.kind === "BAR" ? `${r.variant} bar` : `${r.family} ${r.variant}`.trim(), cells, total }
+        })
+        .filter((r) => r.total > 0)
+    const bySize = (a: { variant: string }, b: { variant: string }) => variantGrams(a.variant) - variantGrams(b.variant) || a.variant.localeCompare(b.variant)
+    const strip = ({ key, label, cells, total }: GridRow) => ({ key, label, cells, total })
+    return [
+        { kind: "BAR" as const, rows: built.filter((r) => r.kind === "BAR").sort(bySize).map(strip) },
+        { kind: "COIN" as const, rows: built.filter((r) => r.kind === "COIN").sort((a, b) => familyOrder(a.family, b.family) || bySize(a, b)).map(strip) },
+    ].filter((g) => g.rows.length > 0)
 }
 
 /** Reasons offered as one-tap chips when typing a count. */

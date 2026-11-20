@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { NumberInput } from "@/components/number-input"
+import { keepKeyboardClosedOnTouch } from "@/lib/dialog-focus"
 import type { MetalType } from "@/lib/types"
 import { useSpotPrices } from "../../context/spot-prices-context"
 import { useToolSpot } from "../../context/tool-spots-context"
@@ -47,7 +48,7 @@ export function useStaleSpotGuard(metal: MetalType) {
     const red = freshness.state === "stale"
     const dialog = (
         <Dialog open={pending !== null} onOpenChange={(open) => !open && close()}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md" onOpenAutoFocus={keepKeyboardClosedOnTouch}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <AlertTriangle className={red ? "size-5 text-red-600 dark:text-red-400" : "size-5 text-amber-600 dark:text-amber-400"} aria-hidden />
@@ -70,7 +71,6 @@ export function useStaleSpotGuard(metal: MetalType) {
                     </label>
                     <NumberInput
                         id="stale-spot-input"
-                        autoFocus
                         inputMode="decimal"
                         placeholder={tradeSpot.spot ? String(Math.round(tradeSpot.spot)) : undefined}
                         value={typed}

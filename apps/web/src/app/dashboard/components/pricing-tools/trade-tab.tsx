@@ -17,6 +17,8 @@ import { useStaleSpotGuard } from "./stale-spot-guard"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
+import { GRAMS_PER_TROY_OUNCE } from "@goldilocks/shared-types"
+import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { NumberInput } from "@/components/number-input"
 import { isVariantProduct, variantChoices } from "../table/product-grouping"
 
@@ -124,6 +126,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                     </div>
                 )}
 
+                {/* In the phone sheet (900px and under) the row's controls grow to 44px, a thumb-sized target. Pixels, not spacing steps: the theme's spacing unit is compact. The pickers need `!` to beat the Select's own data-[size] height. */}
                 <div className="flex flex-col gap-1.5">
                     {trade.items.map((item, index) => {
                         // Products with variants (PAMP, CombiBar, US...) show the regular one in the product box and
@@ -144,7 +147,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 value={productValue ? String(productValue) : undefined}
                                 onValueChange={(value) => trade.updateItemProduct(item.id, Number(value))}
                             >
-                                <SelectTrigger className="bg-background h-8 min-w-0 flex-1 cursor-pointer rounded-lg border-0 text-xs shadow-none" title={item.product?.name}>
+                                <SelectTrigger className="bg-background h-8 min-w-0 flex-1 cursor-pointer rounded-lg border-0 text-xs shadow-none max-[900px]:h-[44px]! max-[900px]:text-sm" title={item.product?.name}>
                                     <SelectValue placeholder="Select a product" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -159,7 +162,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                             {hasVariants ? (
                                 <Select value={String(item.productId)} onValueChange={(value) => trade.updateItemVariant(item.id, Number(value))}>
                                     <SelectTrigger
-                                        className="bg-background h-8 w-[4.75rem] shrink-0 cursor-pointer rounded-lg border-0 px-2 text-xs shadow-none"
+                                        className="bg-background h-8 w-[4.75rem] shrink-0 cursor-pointer rounded-lg border-0 px-2 text-xs shadow-none max-[900px]:h-[44px]! max-[900px]:text-sm"
                                         aria-label={`Variant of ${item.product?.name ?? "item"}`}
                                     >
                                         <SelectValue />
@@ -181,7 +184,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 min={1}
                                 value={item.quantity}
                                 onValueChange={(n) => trade.updateItemQuantity(item.id, n)}
-                                className="bg-background h-8 w-11 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
+                                className="bg-background h-8 w-11 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none max-[900px]:h-[44px] max-[900px]:text-sm"
                                 title="Quantity"
                                 aria-label={`Quantity of ${item.product?.name ?? "item"}`}
                             />
@@ -189,7 +192,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                 step="0.01"
                                 value={item.percent}
                                 onValueChange={(n) => trade.updateItemPercent(item.id, n)}
-                                className="bg-background h-8 w-14 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none"
+                                className="bg-background h-8 w-14 shrink-0 rounded-lg border-0 px-1 text-center text-xs shadow-none max-[900px]:h-[44px] max-[900px]:text-sm"
                                 title={percentLabel}
                                 aria-label={`${percentLabel} for ${item.product?.name ?? "item"}`}
                             />
@@ -203,7 +206,7 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
                                     // to bring the item back, which is backwards from here.
                                     if (item.productId !== null) deselectProductId(item.productId)
                                 }}
-                                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors"
+                                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors max-[900px]:size-[44px]"
                             >
                                 <X className="size-3.5" />
                             </button>
@@ -299,21 +302,54 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
     )
 }
 
+type WeightUnit = "g" | "oz"
+
 function MeltPanel({ trade }: { trade: TradeTools }) {
     const meltMetal = trade.meltMetal
+    // Grams stay the source of truth (the API takes grams); the unit only changes how the field reads and parses.
+    const [unit, setUnit] = useUserPreference<WeightUnit>("melt-weight-unit", "g")
+    const inOunces = unit === "oz"
+    const grams = trade.meltWeight
+    const otherHint = Number.isFinite(grams) ? (inOunces ? `= ${grams.toFixed(2)} g` : `= ${(grams / GRAMS_PER_TROY_OUNCE).toFixed(4)} oz t`) : ""
     const meltError = trade.meltError ? describeApiError(trade.meltError, "calculate the melt value") : null
 
     return (
         <div className="flex flex-col gap-4">
             <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
-                <FieldLabel>Weight (g)</FieldLabel>
+                <div className="flex items-center justify-between gap-2">
+                    <FieldLabel>{inOunces ? "Weight (oz t)" : "Weight (g)"}</FieldLabel>
+                    <div className="bg-muted flex items-center gap-1 rounded-full p-1" role="group" aria-label="Weight unit">
+                        {(["g", "oz"] as const).map((option) => {
+                            const active = option === unit
+                            return (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setUnit(option)}
+                                    aria-pressed={active}
+                                    aria-label={option === "g" ? "Grams" : "Troy ounces"}
+                                    className={cn(
+                                        "h-[36px] min-w-[44px] cursor-pointer rounded-full px-3 text-xs font-bold transition-colors",
+                                        active ? "text-[var(--tab-accent-on)]" : "text-muted-foreground hover:text-foreground",
+                                    )}
+                                    style={active ? { background: "var(--tab-accent)" } : undefined}
+                                >
+                                    {option}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
                 <NumberInput
                     id="melt-weight"
-                    step="0.1"
+                    step={inOunces ? "0.01" : "0.1"}
                     value={trade.meltWeight}
                     onValueChange={trade.setMeltWeight}
+                    scale={inOunces ? 1 / GRAMS_PER_TROY_OUNCE : 1}
+                    decimals={inOunces ? 4 : 2}
                     className="h-10 rounded-xl"
                 />
+                {otherHint && <div className="text-muted-foreground -mt-1 text-xs tabular-nums">{otherHint}</div>}
 
                 <FieldLabel>Category</FieldLabel>
                 <Select value={trade.meltCategory} onValueChange={(v) => trade.setMeltCategory(v as typeof trade.meltCategory)}>
