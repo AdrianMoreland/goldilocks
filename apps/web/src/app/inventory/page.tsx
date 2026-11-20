@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CountTabs } from "@/components/ui/count-tabs"
+import { useAuth } from "@/contexts/auth-context"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import StocktakeListPage from "@/app/stocktake/page"
@@ -22,22 +23,25 @@ const BAR_STATUS: Record<string, string> = { UNCONFIRMED: "Not seen yet", CONFIR
 /**
  * Inventory. The main page is the live branch stock (what is in each branch now, edited after sales, loaded from the
  * stock sheet). The month-end stocktake views from the stocktake models (position, bars by serial, coins, the count)
- * sit behind a second tab: they are for the end of each month, not for every day.
+ * sit behind a second tab: they are for the end of each month, not for every day. Everyone signed in sees the live stock;
+ * the month-end tab and the editing controls are for admins and managers (the API enforces the same).
  */
 type View = "live" | "stocktake"
 
 export default function InventoryPage() {
     const api = useInventoryApi()
-    const [view, setView] = useState<View>("live")
+    const { isManager } = useAuth()
+    const [chosen, setView] = useState<View>("live")
+    const view: View = isManager ? chosen : "live"
     const [tab, setTab] = useState<Tab>("position")
     const [stocktakeId, setStocktakeId] = useState<number | undefined>(undefined)
     const position = useQuery({ queryKey: ["inventory", "position", stocktakeId], queryFn: () => api.position(stocktakeId), enabled: view === "stocktake" })
     const st = position.data?.stocktake
 
     return (
-        <BaseLayout title="Inventory" description="What each branch holds now, and the month-end stocktake">
+        <BaseLayout title="Inventory" description={isManager ? "What each branch holds now, and the month-end stocktake" : "What each branch holds now"}>
             <div className="space-y-4 px-4 lg:px-6">
-                <CountTabs
+                {isManager && <CountTabs
                     aria-label="Inventory sections"
                     value={view}
                     onValueChange={(v) => setView(v as View)}
@@ -45,7 +49,7 @@ export default function InventoryPage() {
                         { value: "live", label: "Live stock" },
                         { value: "stocktake", label: "Month-end stocktake" },
                     ]}
-                />
+                />}
                 {view === "live" && <LiveStockTab />}
                 {view === "stocktake" && (
                     <div className="space-y-4">

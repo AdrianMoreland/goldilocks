@@ -25,7 +25,7 @@ export interface NavItem {
   requires?: "pricingWorkbook"
   /** Shown to admins only, in its place in the group (the route enforces the same). */
   adminOnly?: boolean
-  /** Hidden from admins, who reach the same thing through a fuller admin page (Stock vs Inventory). */
+  /** Hidden from admins, who already have this page in their own Stock & orders group. */
   hideForAdmin?: boolean
   /** Its route only exists with the preview features on, so the link only shows then too. */
   preview?: boolean
@@ -58,8 +58,8 @@ const navGroups: NavGroup[] = [
         keywords: ["dashboard", "prices", "spot", "products"],
       },
       {
-        title: "Stock",
-        url: "/stock",
+        title: "Inventory",
+        url: "/inventory",
         icon: Boxes,
         hideForAdmin: true,
         preview: true,

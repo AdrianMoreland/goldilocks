@@ -18,7 +18,6 @@ const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
-const Stock = lazy(() => import('@/app/stock/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
 const Customers = lazy(() => import('@/app/customers/page'))
@@ -121,9 +120,10 @@ export const routes: RouteConfig[] = [
   // The redesign's stock and order pages: admins only for now (the API enforces the same).
   ...(features.redesign
     ? [
-        { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
-        // Live stock for every signed-in user; the server decides which branches each person may edit
-        { path: "/stock", element: <RequireAuth><Stock /></RequireAuth> },
+        // Inventory for every signed-in user; editing and the month-end tab are for admins and managers (the API enforces the same)
+        { path: "/inventory", element: <RequireAuth><Inventory /></RequireAuth> },
+        // The old read-only stock page, kept so saved links still land on Inventory
+        { path: "/stock", element: <Navigate to="/inventory" replace /> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
         { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
         { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
