@@ -84,11 +84,11 @@ export function DataTable({ data, activeMetal, onActiveMetalChange, isLoading, h
         <Tabs
             value={selectedTab}
             onValueChange={handleTabChange}
-            className="flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
+            className="phone:h-auto phone:flex-none flex h-full min-h-0 w-full flex-1 flex-col justify-start gap-3"
         >
             <TabsContent
                 value={selectedTab}
-                className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"
+                className="phone:flex-none phone:overflow-visible relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 lg:px-6"
             >
                 <ProductFilterBar
                     table={table}

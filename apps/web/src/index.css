@@ -3,6 +3,9 @@
 @source "../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
+/* A phone in either orientation: narrow, or short (landscape). The dashboard stops pinning its cards and chart there
+   and lets the whole page scroll, because a fixed block above the table leaves the table no room. */
+@custom-variant phone (@media (max-width: 639.98px), (max-height: 519.98px));
 
 @theme inline {
   --font-sans: var(--font-inter);

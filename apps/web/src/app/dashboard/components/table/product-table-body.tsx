@@ -38,7 +38,7 @@ export function ProductTableBody({
     let lastGroup: DisplayProduct["productType"] | null = null
 
     return (
-        <div data-product-table className={cn("flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border", features.redesign && held && "border-status-warn border-2")}>
+        <div data-product-table className={cn("phone:flex-none phone:overflow-x-auto flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border", features.redesign && held && "border-status-warn border-2")}>
             {/* flex-1 (not h-full) — this sits below the new ProductFilterBar
                 row now, so it needs to shrink to make room for that sibling
                 rather than claiming 100% of TabsContent's height regardless.
@@ -47,7 +47,7 @@ export function ProductTableBody({
                 overflow-y-auto child) never actually got a bounded height
                 once a sibling existed above it, so nothing here truly
                 scrolled - sticky had no real scroll container to lock to. */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="phone:flex-none phone:overflow-visible min-h-0 flex-1 overflow-y-auto">
                 {/* A plain <table>, not the shared <Table> wrapper: that wrapper is its own
                     overflow container, so the sticky header pinned to it instead of to the
                     scrolling div above and rows slid up past the header. Here the div above is
