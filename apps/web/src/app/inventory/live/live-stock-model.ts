@@ -179,6 +179,61 @@ export function branchGrid(boards: { code: string; lines: LiveStockLine[] }[]): 
     ].filter((g) => g.rows.length > 0)
 }
 
+/** One tile in the tiles layout: a bar weight (its refineries added up) or one coin line. */
+export interface TileItem {
+    key: string
+    kind: "BAR" | "COIN"
+    label: string
+    qty: number
+    /** The low mark: the line's own, or for a bar weight the sum of its refineries' marks; null when none is set. */
+    lowMark: number | null
+    level: StockLevel
+    /** Sold bars still waiting for their serial to be chosen. */
+    toPick: number
+    lines: LiveStockLine[]
+}
+
+/** Bars first (smallest weight first), then coins in their family order, as the groups already sort them. */
+export function tileItems(bars: BarWeight[], coins: CoinFamily[]): TileItem[] {
+    const barTiles = bars.map((w): TileItem => {
+        const marks = w.lines.filter((l) => l.lowThreshold !== null)
+        return {
+            key: `BAR|${w.variant}`,
+            kind: "BAR",
+            label: `${w.variant} bar`,
+            qty: w.total,
+            lowMark: marks.length ? marks.reduce((n, l) => n + (l.lowThreshold ?? 0), 0) : null,
+            level: levelOfMany(w.lines),
+            toPick: w.lines.reduce((n, l) => n + l.unassigned, 0),
+            lines: w.lines,
+        }
+    })
+    const coinTiles = coins.flatMap((f) =>
+        f.rows.map((l): TileItem => ({
+            key: `COIN|${l.id}`,
+            kind: "COIN",
+            label: `${f.family} ${l.variant}`.trim(),
+            qty: l.qty,
+            lowMark: l.lowThreshold,
+            level: levelOf(l),
+            toPick: l.unassigned,
+            lines: [l],
+        })),
+    )
+    return [...barTiles, ...coinTiles]
+}
+
+/**
+ * The level bar on a tile, in percent of its width: filled to the count, with a tick at the low mark. The scale is
+ * three times the low mark (or the count, if higher), so a healthy line reads as well past the tick. Without a mark
+ * there is nothing to compare to: the bar is full when there is any stock.
+ */
+export function gaugeOf(qty: number, lowMark: number | null): { fill: number; mark: number | null } {
+    if (lowMark === null) return { fill: qty > 0 ? 100 : 0, mark: null }
+    const scale = Math.max(lowMark * 3, qty, 1)
+    return { fill: Math.min(100, (Math.max(0, qty) / scale) * 100), mark: (lowMark / scale) * 100 }
+}
+
 /** Reasons offered as one-tap chips when typing a count. */
 export const REASONS = ["Recount", "Sold at counter", "Received", "Found", "Damaged", "Other"] as const
 

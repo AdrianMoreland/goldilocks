@@ -1,16 +1,18 @@
 import { useMemo, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { ChevronDown, FileSpreadsheet, Pencil, Plus, Search, Upload } from "lucide-react"
+import { ChevronDown, FileSpreadsheet, LayoutGrid, List, Pencil, Plus, Search, Upload } from "lucide-react"
 import { LIVE_BRANCH_NAMES, sortBranchCodes, type LiveMetal, type LiveStockLine } from "@goldilocks/shared-types"
 import { useAuth } from "@/contexts/auth-context"
+import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { AllBranchesGrid } from "./all-branches-grid"
 import { BaselineDialog } from "./baseline-dialog"
 import { AddLineDialog, EditCountDialog, HistoryDialog, TransferDialog } from "./dialogs"
-import { applyFilter, branchGrid, draftChanges, groupBars, groupCoins, lineName, stepDraft, summarise, withDraft, type BoardSummary, type CountDraft, type DraftChange, type StockFilter } from "./live-stock-model"
-import { BranchSheet, LineActionsSheet, SerialsSheet, type BranchChoice } from "./sheets"
+import { applyFilter, branchGrid, draftChanges, groupBars, groupCoins, lineName, stepDraft, summarise, tileItems, withDraft, type BoardSummary, type CountDraft, type DraftChange, type StockFilter } from "./live-stock-model"
+import { BranchSheet, LineActionsSheet, SerialsSheet, TileSheet, type BranchChoice } from "./sheets"
+import { StockTiles } from "./stock-tiles"
 import { LOW_PILL } from "./level-style"
 import { BarWeightBlock, StockBlock, StockRow, type RowActions, type SerialActions } from "./stock-row"
 import { useAllBoards, useBoard, useBoardMutations, useBranches } from "./use-live-stock"
@@ -22,8 +24,10 @@ const METALS: { value: LiveMetal; label: string; dot: string }[] = [
 ]
 
 type LineDialog = { kind: "edit" | "history" | "transfer" | "more" | "serials"; line: LiveStockLine }
-type Dialog = LineDialog | { kind: "add" } | { kind: "baseline" } | { kind: "branch" } | null
+type Dialog = LineDialog | { kind: "add" } | { kind: "baseline" } | { kind: "branch" } | { kind: "tile"; key: string } | null
 type View = "branch" | "all"
+/** How one branch is shown: tiles with a level bar each, or the list of blocks with every line. */
+type Layout = "tiles" | "list"
 
 /** The shared name table wins over the stored name, so a renamed location shows correctly before data catches up. */
 const branchName = (code: string, fallback: string) => LIVE_BRANCH_NAMES[code] ?? fallback
@@ -55,6 +59,7 @@ export function LiveStockTab() {
     const [editing, setEditing] = useState(false)
     const [draft, setDraft] = useState<CountDraft>({})
     const [review, setReview] = useState(false)
+    const [layout, setLayout] = useUserPreference<Layout>("inventory-layout", "tiles")
 
     const list = useMemo(
         () => sortBranchCodes(branches.data?.branches ?? []).map((b) => ({ ...b, name: branchName(b.code, b.name) })),
@@ -80,6 +85,7 @@ export function LiveStockTab() {
     const searching = query.trim() !== ""
     const coins = useMemo(() => groupCoins(filtered, { showAll, query }), [filtered, showAll, query])
     const bars = useMemo(() => groupBars(filtered, { showAll, query }), [filtered, showAll, query])
+    const tiles = useMemo(() => tileItems(filter === "coins" || filter === "proof" ? [] : bars, filter === "bars" ? [] : coins), [bars, coins, filter])
 
     // Cheap to rebuild (a few hundred lines at most), so no memo keyed on every board.
     const boardData = boards.map((q) => q.data)
@@ -226,6 +232,18 @@ export function LiveStockTab() {
                                 </button>
                             ))}
                         </div>
+                        {view === "branch" && (
+                            <div role="group" aria-label="Layout" className={cn(segment, "col-span-2 justify-self-start @min-[900px]/live:col-span-1")}>
+                                <button type="button" aria-pressed={layout === "tiles"} onClick={() => setLayout("tiles")} className={segmentButton(layout === "tiles")}>
+                                    <LayoutGrid aria-hidden className="size-[16px]" />
+                                    Tiles
+                                </button>
+                                <button type="button" aria-pressed={layout === "list"} onClick={() => setLayout("list")} className={segmentButton(layout === "list")}>
+                                    <List aria-hidden className="size-[16px]" />
+                                    List
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {view === "branch" && current && (current.cutoverDate || !canEdit) && (
@@ -294,6 +312,8 @@ export function LiveStockTab() {
                                     onClearFilter={() => setFilter(null)}
                                     onLoad={() => setDialog({ kind: "baseline" })}
                                 />
+                            ) : layout === "tiles" ? (
+                                <StockTiles items={tiles} onOpen={(item) => setDialog({ kind: "tile", key: item.key })} />
                             ) : (
                                 <div className="columns-1 gap-[14px] @min-[640px]/main:columns-2 @min-[1000px]/main:columns-3">
                                     {showBars && bars.map((w) => <BarWeightBlock key={w.variant} weight={w} actions={actions} />)}
@@ -326,6 +346,12 @@ export function LiveStockTab() {
                 />
             )}
 
+            {dialog?.kind === "tile" &&
+                (() => {
+                    // Rebuilt from the current tiles each render, so the sheet shows counts as they change.
+                    const item = tiles.find((t) => t.key === dialog.key)
+                    return item ? <TileSheet item={item} branchName={current?.name ?? ""} actions={actions} onClose={() => setDialog(null)} /> : null
+                })()}
             {dialog?.kind === "branch" && <BranchSheet branches={choices} current={branch} onPick={pickBranch} onClose={() => setDialog(null)} />}
             {dialog?.kind === "more" && (
                 <LineActionsSheet
