@@ -369,7 +369,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 
 - [ ] **Quote snapshot + price-lock log**: select products + quantities → locked-price snapshot with expiry timer, copyable to WhatsApp/email; log "quoted customer X €Y at HH:MM" for dispute resolution - L
 - [ ] **Basket calculator**: type "4 × 1oz bar" → running total, per-unit, VAT split - M
-- [ ] **Budget solver**: "€10k in gold" → best combinations (lowest premium / fewest units / mixed), leftover € - M
+- [x] **Budget solver**: "€10k in gold" → best combinations (lowest premium / fewest units / mixed), leftover € - M *(Portfolio tab in the tools panel, Builder: Maximum Value, Balanced and Maximum Flexibility, with what is left of the budget)*
 - [ ] **Upsell comparison**: 1oz vs 10×1g, €/g side by side; bar vs coin vs bonded silver incl. VAT and 1% storage - M
 - [ ] **Reverse calculator**: customer's target price → implied premium, clears margin floor? - S
 - [ ] **"Spot needed" calc**: at what spot does product hit €X (feeds limit orders) - S
@@ -385,7 +385,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Scheduled premium changes (effective date/time) - M
 - [ ] Premium presets per metal/category ("all Britannias +0.5%") - S
 - [ ] Margin floor guard (warn or block below minimum premium) - S
-- [ ] Stock/availability flag (in stock / low / out / on order) visible to sales - S
+- [ ] Stock/availability flag (in stock / low / out / on order) visible to sales - S *(in stock / low / out shipped 2026-11-20 (#168): a dot and count beside each gold and silver product in the dashboard, per-branch counts on hover, from live stock. Low shows once low-stock thresholds are set. Not yet: on order)*
 - [ ] Supplier cost reference (StoneX/CoinInvest) per product, margin visible in admin mode only - M
 - [ ] Competitor price notes (price + date checked) - S
 - [ ] Daily end-of-day price snapshot per product ("what did we charge on date X") - M
@@ -445,7 +445,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Phone quick-log form (< 10 s) - S
 - [ ] Outlook via Microsoft Graph - L
 - [ ] WhatsApp Business Platform (replaces WhatsApp Web) - L
-- [ ] `MessageTemplate` with `{{customerName}} {{product}} {{sellPrice}} {{spot}}`; live price injection + "valid at HH:MM" - M (extends 0.5)
+- [ ] `MessageTemplate` with `{{customerName}} {{product}} {{sellPrice}} {{spot}}`; live price injection + "valid at HH:MM" - M (extends 0.5) *(the everyday need is met by the Trade tab's "Message customer" button: WhatsApp or Email reply with live prices, in stock or not, one or both sides. Still missing: editable stored templates with placeholders, and the "valid at HH:MM" line)*
 - [ ] Copy button + WhatsApp deep link - S
 - [ ] AI draft: paste a customer email → reply with live prices (broker reviews) - M ← depends: 1.5 *(built into the assistant panel as the Email and WhatsApp modes, admin-only; the real-model evaluation passes its cases. Tick after real use on real emails; the inquiry-hub integration is the rest of this item)*
 - [ ] RFQ turnaround timer, conversion rate per broker, time-saved tracking - M
@@ -495,7 +495,7 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Monthly count sessions on iPad; barcode/serial scan for bars, quantity for coins - L
 - [ ] Compare to BC inventory; discrepancy log with two-person sign-off - M *(first slice built 2026-10-28, not yet applied to the database: month-end stocktake at `/stocktake` for admins and managers. Paste-in of the BC Physical Inventory Journal, count entry with the normal-safe and customer-safe columns, variance, serial check against Item Tracking Entries, discrepancy register, finalise, CSV and print/PDF export, and BC item to product links. Not yet: carry-forward of last month's bars, customer-order tracking, native `.xlsx`, iPad scanning, two-person sign-off beyond the lead and second-checker names)*
 - [ ] Generic checklist/form module to replace other ad-hoc sheets - M
-- [ ] Live branch stock (1.12b): editable counts per branch replacing the Google stock sheet. Slice 1 API (tables, movements, edit/undo/transfer/serials, baseline load) built 2026-11-18, migration applied; slice 2 board UI built; slice 3 tradesheet "Apply to stock" (Import hub tab, once-only reconciliation, ask-when-unsure) built 2026-11-19, not yet seen in a browser; slice 4 PGM/Melt - L
+- [ ] Live branch stock (1.12b): editable counts per branch replacing the Google stock sheet. Slice 1 API (tables, movements, edit/undo/transfer/serials, baseline load) built 2026-11-18, migration applied; slice 2 board UI built; slice 3 tradesheet "Apply to stock" (Import hub tab, once-only reconciliation, ask-when-unsure) built 2026-11-19 and in use from 2026-11-20; a read-only Stock page for every signed-in user and the rule that admins and managers edit any branch shipped 2026-11-20 (#168); slice 4 PGM/Melt - L
 - [ ] Inventory intelligence: reserved stock (quotes), stock reconciliation, low-stock signals - M
 
 ## 1.13 Teams integration 🟡
