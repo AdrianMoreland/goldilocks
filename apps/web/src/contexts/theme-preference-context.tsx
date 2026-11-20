@@ -2,6 +2,7 @@ import * as React from "react"
 import { features } from "@/config/features"
 import { useAuth } from "@/contexts/auth-context"
 import { useThemeManager } from "@/hooks/use-theme-manager"
+import { useMediaQuery } from "@/hooks/use-media-query.hook"
 import { colorThemes, tweakcnThemes } from "@/config/theme-data"
 import {
     DEFAULT_THEME_PREFERENCE,
@@ -58,6 +59,7 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
 
     const [preference, setPreference] = React.useState<ThemePreference>(DEFAULT_THEME_PREFERENCE)
     const userId = user?.id ?? null
+    const coarsePointer = useMediaQuery("(pointer: coarse)")
 
     // Load on sign-in / user switch; signed-out screens get the default.
     React.useEffect(() => {
@@ -90,9 +92,12 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
         root.style.fontSize = preference.fontScale === 1 ? "" : `${preference.fontScale * 100}%`
 
         const factor = DENSITY_FACTOR[preference.density]
-        if (factor !== 1) {
-            const base = presetStylesFor(preference, isDarkMode).spacing ?? "0.25rem"
-            root.style.setProperty("--spacing", `calc(${base} * ${factor})`)
+        const base = presetStylesFor(preference, isDarkMode).spacing ?? "0.25rem"
+        // On a touch screen a compact preset (Merrion Gold uses 0.18rem) shrinks every control below a finger's size,
+        // so the unit never goes under Tailwind's 0.25rem there. Mouse screens keep the preset's compact look.
+        const unit = coarsePointer ? `max(${base}, 0.25rem)` : base
+        if (factor !== 1 || coarsePointer) {
+            root.style.setProperty("--spacing", `calc(${unit} * ${factor})`)
         }
 
         root.style.letterSpacing = preference.letterSpacing ? `${preference.letterSpacing}em` : ""
@@ -101,7 +106,7 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
         // Structure that variables cannot carry (flat cards, corner tiers) keys off the active look.
         if (preference.source === "tweakcn" && preference.value === "sonar") root.dataset.look = "sonar"
         else delete root.dataset.look
-    }, [preference, isDarkMode, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme])
+    }, [preference, isDarkMode, coarsePointer, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme])
 
     const commit = React.useCallback(
         (next: ThemePreference) => {
