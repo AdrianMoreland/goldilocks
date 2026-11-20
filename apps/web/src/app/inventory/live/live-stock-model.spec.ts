@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { LiveStockLine } from "@goldilocks/shared-types"
-import { applyFilter, branchGrid, draftChanges, groupBars, groupCoins, levelOf, levelOfMany, stepDraft, summarise, withDraft } from "./live-stock-model"
+import { applyFilter, branchGrid, draftChanges, gaugeOf, groupBars, groupCoins, levelOf, levelOfMany, stepDraft, summarise, tileItems, withDraft } from "./live-stock-model"
 
 const line = (o: Partial<LiveStockLine>): LiveStockLine => ({
     id: 1, branchCode: "DU", metal: "GOLD", kind: "COIN", family: "Krugerrand", variant: "1oz", refinery: "",
@@ -149,5 +149,40 @@ describe("count draft", () => {
             { lineId: 1, label: "Krugerrand 1oz", from: 31, to: 29 },
             { lineId: 2, label: "1g bar · Umicore", from: 0, to: 3 },
         ])
+    })
+})
+
+describe("tileItems", () => {
+    const bars = groupBars(
+        [
+            line({ id: 10, kind: "BAR", family: "Bar", variant: "1oz", refinery: "PAMP", qty: 3, lowThreshold: 2 }),
+            line({ id: 11, kind: "BAR", family: "Bar", variant: "1oz", refinery: "Perth Mint", qty: 1, lowThreshold: 3, unassigned: 2 }),
+            line({ id: 12, kind: "BAR", family: "Bar", variant: "5g", refinery: "PAMP", qty: 9 }),
+        ],
+        all,
+    )
+    const coins = groupCoins([line({ id: 1, variant: "1oz", qty: 0, lowThreshold: 4 }), line({ id: 2, variant: "1/10oz", qty: 7 })], all)
+
+    it("makes one tile per bar weight (refineries added up) and one per coin", () => {
+        const t = tileItems(bars, coins)
+        expect(t.map((x) => x.label)).toEqual(["5g bar", "1oz bar", "Krugerrand 1/10oz", "Krugerrand 1oz"])
+        const oz = t.find((x) => x.label === "1oz bar")!
+        // 3 + 1 against low marks 2 + 3: at or under the summed mark is low.
+        expect(oz).toMatchObject({ kind: "BAR", qty: 4, lowMark: 5, level: "low", toPick: 2 })
+        expect(oz.lines.map((l) => l.id)).toEqual([10, 11])
+        expect(t.find((x) => x.label === "Krugerrand 1oz")).toMatchObject({ qty: 0, lowMark: 4, level: "zero" })
+        expect(t.find((x) => x.label === "5g bar")).toMatchObject({ lowMark: null, level: "ok" })
+    })
+})
+
+describe("gaugeOf", () => {
+    it("scales the bar to three times the low mark, with the mark's position", () => {
+        expect(gaugeOf(6, 4)).toEqual({ fill: 50, mark: (4 / 12) * 100 })
+        expect(gaugeOf(30, 4)).toEqual({ fill: 100, mark: (4 / 30) * 100 })
+        expect(gaugeOf(0, 4)).toEqual({ fill: 0, mark: (4 / 12) * 100 })
+    })
+    it("without a low mark fills by count with no mark", () => {
+        expect(gaugeOf(5, null)).toEqual({ fill: 100, mark: null })
+        expect(gaugeOf(0, null)).toEqual({ fill: 0, mark: null })
     })
 })
