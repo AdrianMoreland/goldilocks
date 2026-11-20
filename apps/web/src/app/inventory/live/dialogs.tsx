@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { keepKeyboardClosedOnTouch } from "@/lib/dialog-focus"
 import { lineName, REASONS } from "./live-stock-model"
 
 const field = "border-input bg-background h-11 w-full rounded-md border px-3 text-base"
@@ -162,7 +163,7 @@ export function TransferDialog({
     const valid = to !== "" && Number.isInteger(n) && n >= 1 && n <= line.qty && bars.length <= n
     return (
         <Dialog open onOpenChange={(o) => !o && onClose()}>
-            <DialogContent>
+            <DialogContent onOpenAutoFocus={keepKeyboardClosedOnTouch}>
                 <DialogHeader>
                     <DialogTitle>Move {lineName(line)}</DialogTitle>
                     <DialogDescription>
