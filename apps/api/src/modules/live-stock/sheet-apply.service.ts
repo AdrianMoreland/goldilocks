@@ -629,7 +629,7 @@ export class SheetApplyService {
         });
         if (!branch || !this.stock.canEditBranch(user, branch))
             throw new ForbiddenException(
-                'You can only settle rows for your own branch.',
+                'Only admins and managers settle rows.',
             );
         if (app.status !== 'NEEDS_DECISION')
             throw new BadRequestException(

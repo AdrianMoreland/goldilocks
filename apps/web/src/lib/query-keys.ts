@@ -28,6 +28,7 @@ export const queryKeys = {
     liveStock: {
         all: ['live-stock'] as const,
         branches: ['live-stock', 'branches'] as const,
+        productLevels: ['live-stock', 'product-levels'] as const,
         board: (branch: string, metal: string) => ['live-stock', 'board', branch, metal] as const,
         history: (lineId: number) => ['live-stock', 'history', lineId] as const,
     },

@@ -24,7 +24,8 @@ function pricesAsOfMessage(snapshotAt?: string | null): string | null {
  * One query, one snapshot - spotPrices and products always agree with
  * each other because they came from the same backend response.
  */
-export function useMarketData() {
+/** `quiet` skips the "prices as of" toast on first load, for screens that show the price time themselves (the price board). Warnings and errors still toast. */
+export function useMarketData({ quiet = false }: { quiet?: boolean } = {}) {
     const { getMarketData, getSpotStatus, recalculate, refreshMarketData } = useMarketDataApi();
     const queryClient = useQueryClient();
 
@@ -99,11 +100,11 @@ export function useMarketData() {
     // since that's a separate fetch outside this query's own lifecycle.
     const hasShownInitialFetchToast = useRef(false);
     useEffect(() => {
-        if (!data?.snapshotAt || hasShownInitialFetchToast.current) return;
+        if (quiet || !data?.snapshotAt || hasShownInitialFetchToast.current) return;
         hasShownInitialFetchToast.current = true;
         const message = pricesAsOfMessage(data.snapshotAt);
         if (message) toast(message);
-    }, [data?.snapshotAt]);
+    }, [data?.snapshotAt, quiet]);
 
     // Ages are computed from Date.now(), so without a tick they'd freeze at
     // whatever they were when the snapshot last changed - and with a short

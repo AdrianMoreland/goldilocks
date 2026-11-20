@@ -7,6 +7,7 @@ import {
     LiveStockBranchesResponseSchema,
     LiveStockBranchSchema,
     LiveStockMovementSchema,
+    ProductStockLevelsResponseSchema,
     SheetApplyPreviewSchema,
     SheetApplyResultSchema,
     type AddLiveStockBarRequest,
@@ -25,6 +26,7 @@ export function useLiveStockApi() {
     const qty = z.object({ qty: z.number().int() });
     return {
         branches: () => client.get('/live-stock/branches', LiveStockBranchesResponseSchema),
+        productLevels: () => client.get('/live-stock/product-levels', ProductStockLevelsResponseSchema),
         board: (q: Pick<LiveStockBoardQuery, 'branch' | 'metal'>) =>
             client.get(`/live-stock/board?branch=${encodeURIComponent(q.branch)}&metal=${q.metal}`, LiveStockBoardSchema),
         history: (lineId: number) => client.get(`/live-stock/lines/${lineId}/history`, z.array(LiveStockMovementSchema)),

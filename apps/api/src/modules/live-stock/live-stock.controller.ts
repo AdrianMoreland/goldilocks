@@ -21,6 +21,7 @@ import {
     type LiveStockBranch,
     type LiveStockBranchesResponse,
     type LiveStockMovement,
+    type ProductStockLevel,
 } from '@goldilocks/shared-types';
 import { LiveStockService } from './live-stock.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -38,8 +39,8 @@ import {
 } from '../../common/dto/dtos';
 
 /**
- * Live stock counts per branch. Any signed-in person reads every branch; the service decides who edits (own branch, or
- * an admin anywhere), because that rule depends on the line being changed.
+ * Live stock counts per branch. Any signed-in person reads every branch; the service decides who edits (admins and
+ * managers, at any branch).
  */
 @ApiTags('live-stock')
 @ApiBearerAuth()
@@ -52,6 +53,14 @@ export class LiveStockController {
     @ApiOperation({ summary: 'Stock locations and which the caller may edit' })
     branches(@Req() req: RequestWithUser): Promise<LiveStockBranchesResponse> {
         return this.service.branches(req.user);
+    }
+
+    @Get('product-levels')
+    @ApiOperation({
+        summary: 'Stock per priced product, for the dashboard flag',
+    })
+    productLevels(): Promise<ProductStockLevel[]> {
+        return this.service.productLevels();
     }
 
     @Get('board')

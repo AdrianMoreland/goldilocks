@@ -8,6 +8,7 @@ import { features } from '@/config/features'
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
+const Board = lazy(() => import('@/app/board/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
@@ -17,6 +18,7 @@ const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
+const Stock = lazy(() => import('@/app/stock/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
 const Customers = lazy(() => import('@/app/customers/page'))
@@ -93,6 +95,11 @@ export const routes: RouteConfig[] = [
     path: "/dashboard",
     element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
   },
+  // Price board: full-screen live prices for an iPad or a branch screen; same access as the dashboard
+  {
+    path: "/board",
+    element: <RequireCapability capability="pricingWorkbook"><Board /></RequireCapability>
+  },
   // Admin console — admins only; the API enforces the same on every call it makes
   {
     path: "/admin",
@@ -115,6 +122,8 @@ export const routes: RouteConfig[] = [
   ...(features.redesign
     ? [
         { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
+        // Live stock for every signed-in user; the server decides which branches each person may edit
+        { path: "/stock", element: <RequireAuth><Stock /></RequireAuth> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
         { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
         { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },

@@ -303,6 +303,8 @@ __export(index_exports, {
   ProductCategoryEnum: () => ProductCategoryEnum,
   ProductMapSchema: () => ProductMapSchema,
   ProductSchema: () => ProductSchema,
+  ProductStockLevelSchema: () => ProductStockLevelSchema,
+  ProductStockLevelsResponseSchema: () => ProductStockLevelsResponseSchema,
   ProductsSchema: () => ProductsSchema,
   ProfitAnalysisMissingFieldEnum: () => ProfitAnalysisMissingFieldEnum,
   ProfitAnalysisRequestSchema: () => ProfitAnalysisRequestSchema,
@@ -368,6 +370,9 @@ __export(index_exports, {
   SAFE_STATUSES: () => SAFE_STATUSES,
   SALE_FIELDS: () => SALE_FIELDS,
   SHEETS: () => SHEETS,
+  SPOT_FETCH_INTERVAL_MS: () => SPOT_FETCH_INTERVAL_MS,
+  SPOT_LATE_AFTER_MS: () => SPOT_LATE_AFTER_MS,
+  SPOT_RED_AFTER_MS: () => SPOT_RED_AFTER_MS,
   SPOT_STALE_AFTER_MS: () => SPOT_STALE_AFTER_MS,
   STEP_ROLE: () => STEP_ROLE,
   STOCK_METALS: () => STOCK_METALS,
@@ -400,6 +405,8 @@ __export(index_exports, {
   SpotPriceArraySchema: () => SpotPriceArraySchema,
   SpotPriceMapSchema: () => SpotPriceMapSchema,
   SpotPriceSchema: () => SpotPriceSchema,
+  SpotStatusResponseSchema: () => SpotStatusResponseSchema,
+  StockLevelStateSchema: () => StockLevelStateSchema,
   StockMetalEnum: () => StockMetalEnum,
   StockMetalSchema: () => StockMetalSchema,
   StocktakeBarSchema: () => StocktakeBarSchema,
@@ -525,12 +532,14 @@ __export(index_exports, {
   isPhysicallyHere: () => isPhysicallyHere,
   isRealSerial: () => isRealSerial,
   isReferenceCell: () => isReferenceCell,
+  isSpotMarketClosed: () => isSpotMarketClosed,
   isStopStep: () => isStopStep,
   itemStatusAfter: () => itemStatusAfter,
   kbArticlePath: () => kbArticlePath,
   kbReviewDueOn: () => kbReviewDueOn,
   kbReviewStatus: () => kbReviewStatus,
   limitQuery: () => limitQuery,
+  lineMatchesKey: () => lineMatchesKey,
   linkOrdersToTradesheet: () => linkOrdersToTradesheet,
   listedRefinery: () => listedRefinery,
   liveRefinery: () => liveRefinery,
@@ -599,6 +608,8 @@ __export(index_exports, {
   priceMetalEvidence: () => priceMetalEvidence,
   pricingSkuFor: () => pricingSkuFor,
   procedureFlow: () => procedureFlow,
+  productStockKey: () => productStockKey,
+  productStockLevels: () => productStockLevels,
   readCollected: () => readCollected,
   readForeignCoin: () => readForeignCoin,
   readImportWorkbook: () => readImportWorkbook,
@@ -625,6 +636,7 @@ __export(index_exports, {
   splitScopeBundle: () => splitScopeBundle,
   splitSections: () => splitSections,
   splitSerials: () => splitSerials,
+  spotFreshness: () => spotFreshness,
   spotLookup: () => spotLookup,
   stripHeader: () => stripHeader2,
   suggestProductForBcItem: () => suggestProductForBcItem,
@@ -868,8 +880,12 @@ var MarketDataResponseSchema = import_zod5.z.object({
   spotPrices: import_zod5.z.array(SpotPriceSchema),
   historicSpot: import_zod5.z.array(HistoricSpotSchema),
   products: import_zod5.z.array(ProductSchema),
-  /** The actual timestamp of the spot-price snapshot being shown - the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
-  fetchedAt: import_zod5.z.iso.datetime(),
+  /** When the market price shown was struck: the vendor's own time, the oldest across spotPrices. Null when there is no price. Not when we fetched it, and not when this request ran. */
+  snapshotAt: import_zod5.z.iso.datetime().nullable(),
+  /** When we last received these prices from the vendor: the oldest fetch time across spotPrices. The freshness dot follows this. Null when there is no price. */
+  lastFetchAt: import_zod5.z.iso.datetime().nullable(),
+  /** True while the price cron is paused: nothing refreshes the prices until someone clicks Refresh. */
+  autoRefreshPaused: import_zod5.z.boolean(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
    * live API without finding a usable (non-zero, non-stale) price, so the
@@ -881,10 +897,16 @@ var MarketDataResponseSchema = import_zod5.z.object({
   /** Same information as priceWarning, structured - lets the UI mark individual metal cards as failed rather than only showing one combined text warning. */
   degradedMetals: import_zod5.z.array(MetalTypeEnum)
 });
+var SpotStatusResponseSchema = MarketDataResponseSchema.pick({
+  snapshotAt: true,
+  lastFetchAt: true,
+  autoRefreshPaused: true,
+  degradedMetals: true
+});
 var RefreshResponseSchema = import_zod5.z.object({
   spot: SpotPriceSchema,
   products: import_zod5.z.array(ProductSchema),
-  fetchedAt: import_zod5.z.iso.datetime()
+  snapshotAt: import_zod5.z.iso.datetime().nullable()
 });
 var RecalculateOverridesSchema = import_zod5.z.object({
   GOLD: import_zod5.z.number().positive().optional(),
@@ -1140,6 +1162,44 @@ function computeRequiredSpotForTarget(purchasePrice, targetProfit, productMultip
   const requiredSpot = requiredDenominator > 0 ? requiredPrice / requiredDenominator : 0;
   const targetReturn = purchasePrice !== 0 ? targetProfit / purchasePrice * 100 : 0;
   return { requiredPrice, requiredSpot, targetReturn };
+}
+
+// src/spot-freshness.ts
+var SPOT_FETCH_INTERVAL_MS = 5 * 60 * 1e3;
+var SPOT_LATE_AFTER_MS = SPOT_FETCH_INTERVAL_MS + 60 * 1e3;
+var SPOT_RED_AFTER_MS = 25 * 60 * 1e3;
+var MAX_WEEKEND_GAP_MS = 50 * 60 * 60 * 1e3;
+var LONDON_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  weekday: "short",
+  hour: "2-digit",
+  hourCycle: "h23"
+});
+function isSpotMarketClosed(at) {
+  const parts = LONDON_PARTS.formatToParts(at);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  if (weekday === "Sat") return true;
+  if (weekday === "Fri") return hour >= 22;
+  if (weekday === "Sun") return hour < 23;
+  return false;
+}
+function ageMs(iso, now) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime();
+  return Number.isFinite(ms) ? Math.max(0, now.getTime() - ms) : null;
+}
+function spotFreshness(input) {
+  const { snapshotAt, now } = input;
+  const priceAgeMs = ageMs(snapshotAt, now);
+  if (priceAgeMs === null || !snapshotAt) {
+    return { state: "unknown", priceAgeMs: null, fetchAgeMs: null };
+  }
+  const fetchAgeMs = ageMs(input.lastFetchAt, now) ?? priceAgeMs;
+  if (fetchAgeMs <= SPOT_LATE_AFTER_MS) return { state: "fresh", priceAgeMs, fetchAgeMs };
+  const isClosingPrice = isSpotMarketClosed(now) && priceAgeMs < MAX_WEEKEND_GAP_MS && isSpotMarketClosed(new Date(new Date(snapshotAt).getTime() + SPOT_RED_AFTER_MS));
+  if (isClosingPrice) return { state: "closed", priceAgeMs, fetchAgeMs };
+  return { state: fetchAgeMs >= SPOT_RED_AFTER_MS ? "stale" : "late", priceAgeMs, fetchAgeMs };
 }
 
 // src/product-pricing.ts
@@ -6767,7 +6827,7 @@ var COIN_DESIGNS = [
     id: "lunar",
     label: "Lunar",
     words: ["lunar"],
-    match: (t) => t.has("year") && ZODIAC.some((z33) => t.has(z33)),
+    match: (t) => t.has("year") && ZODIAC.some((z34) => t.has(z34)),
     consume: ["the", "serie", "series", ...ZODIAC],
     metals: { GOLD: GOLD_SMALL, SILVER: SILVER_COIN_WEIGHTS },
     mints: ["PERTH MINT"],
@@ -9024,6 +9084,73 @@ var ResolveSheetApplicationRequestSchema = import_zod31.z.object({
   lineId: import_zod31.z.number().int().optional()
 });
 
+// src/product-stock.ts
+var import_zod32 = require("zod");
+var US_FAMILY = "Eagle";
+function productStockKey(product) {
+  const metal = product.metalType;
+  if (metal !== "GOLD" && metal !== "SILVER") return null;
+  const name = product.name;
+  if (/bonded/i.test(name)) return null;
+  if (/bar\b/i.test(name)) {
+    if (/combi/i.test(name)) return null;
+    const bar = parseBarWeight(name);
+    if (bar.grams === null) return null;
+    return { metal, kind: "BAR", variant: bar.variant, pampOnly: /pamp/i.test(name) };
+  }
+  const coin = parseCoinName(name);
+  const weight = parseWeight(name)?.label ?? null;
+  if (coin.family === "Sovereign") return { metal, kind: "COIN", family: "Sovereign", variant: coin.variant };
+  if (coin.family !== "Other") return weight ? { metal, kind: "COIN", family: coin.family, variant: weight } : null;
+  if (weight && /\bcoins?\b/i.test(name)) return { metal, kind: "COIN", family: null, variant: weight };
+  return null;
+}
+function lineMatchesKey(line, key) {
+  if (line.metal !== key.metal || line.kind !== key.kind) return false;
+  if (line.variant.toLowerCase() !== key.variant.toLowerCase()) return false;
+  if (key.kind === "BAR") return !key.pampOnly || /pamp/i.test(line.refinery);
+  if (key.family === null) return line.family !== US_FAMILY && line.family !== "Other";
+  return line.family.toLowerCase() === key.family.toLowerCase();
+}
+var StockLevelStateSchema = import_zod32.z.enum(["IN", "LOW", "OUT"]);
+var ProductStockLevelSchema = import_zod32.z.object({
+  productId: import_zod32.z.number(),
+  total: import_zod32.z.number(),
+  state: StockLevelStateSchema,
+  /** Count per stock location that has the product (or a threshold for it), largest first. */
+  branches: import_zod32.z.array(import_zod32.z.object({ code: import_zod32.z.string(), name: import_zod32.z.string(), qty: import_zod32.z.number() }))
+});
+var ProductStockLevelsResponseSchema = import_zod32.z.array(ProductStockLevelSchema);
+function productStockLevels(products, lines) {
+  const out = [];
+  for (const product of products) {
+    const key = productStockKey(product);
+    if (!key) continue;
+    const matched = lines.filter((l) => lineMatchesKey(l, key));
+    const perBranch = /* @__PURE__ */ new Map();
+    let threshold = 0;
+    let hasThreshold = false;
+    for (const l of matched) {
+      const b = perBranch.get(l.branchCode) ?? { code: l.branchCode, name: l.branchName, qty: 0 };
+      b.qty += l.qty;
+      perBranch.set(l.branchCode, b);
+      if (l.lowThreshold !== null) {
+        threshold += l.lowThreshold;
+        hasThreshold = true;
+      }
+    }
+    const total = [...perBranch.values()].reduce((s, b) => s + b.qty, 0);
+    const state = total <= 0 ? "OUT" : hasThreshold && total <= threshold ? "LOW" : "IN";
+    out.push({
+      productId: product.id,
+      total,
+      state,
+      branches: [...perBranch.values()].filter((b) => b.qty !== 0).sort((a, b) => b.qty - a.qty || a.code.localeCompare(b.code))
+    });
+  }
+  return out;
+}
+
 // src/sheet-apply.ts
 function readProduct(text4) {
   const isBar = /\bbars?\b/i.test(text4);
@@ -9112,13 +9239,13 @@ function bcItemNoFromSku(sku) {
 }
 
 // src/bc-history.ts
-var import_zod32 = require("zod");
+var import_zod33 = require("zod");
 var BC_HISTORY_KINDS = ["shipments", "shipment_lines", "receipts", "ledger"];
-var isoDate = import_zod32.z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-var text3 = (max) => import_zod32.z.string().max(max).nullable();
-var customerCode = import_zod32.z.string().regex(/^C\d{6}$/).nullable();
-var BcShipmentRowSchema = import_zod32.z.strictObject({
-  no: import_zod32.z.string().min(1).max(40),
+var isoDate = import_zod33.z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+var text3 = (max) => import_zod33.z.string().max(max).nullable();
+var customerCode = import_zod33.z.string().regex(/^C\d{6}$/).nullable();
+var BcShipmentRowSchema = import_zod33.z.strictObject({
+  no: import_zod33.z.string().min(1).max(40),
   customerNo: text3(40),
   /** Redaction code of the sell-to customer, looked up from the name in the browser. */
   customerCode,
@@ -9127,37 +9254,37 @@ var BcShipmentRowSchema = import_zod32.z.strictObject({
   externalDocNo: text3(100),
   locationCode: text3(40)
 });
-var BcShipmentLineRowSchema = import_zod32.z.strictObject({
-  documentNo: import_zod32.z.string().min(1).max(40),
+var BcShipmentLineRowSchema = import_zod33.z.strictObject({
+  documentNo: import_zod33.z.string().min(1).max(40),
   /** Position of the line within its shipment, from 1. The export has no line number of its own. */
-  lineNo: import_zod32.z.number().int().positive(),
+  lineNo: import_zod33.z.number().int().positive(),
   customerNo: text3(40),
   itemNo: text3(40),
   description: text3(200),
   locationCode: text3(40),
-  quantity: import_zod32.z.number().nullable()
+  quantity: import_zod33.z.number().nullable()
 });
-var BcReceiptRowSchema = import_zod32.z.strictObject({
-  no: import_zod32.z.string().min(1).max(40),
+var BcReceiptRowSchema = import_zod33.z.strictObject({
+  no: import_zod33.z.string().min(1).max(40),
   vendorNo: text3(40),
   /** Redaction code of a private seller (customer table), when the vendor name is in the map. */
   sellerCode: customerCode,
   documentDate: isoDate.nullable(),
   locationCode: text3(40)
 });
-var BcLedgerRowSchema = import_zod32.z.strictObject({
-  entryNo: import_zod32.z.number().int().positive(),
+var BcLedgerRowSchema = import_zod33.z.strictObject({
+  entryNo: import_zod33.z.number().int().positive(),
   postingDate: isoDate.nullable(),
-  entryType: import_zod32.z.string().min(1).max(40),
+  entryType: import_zod33.z.string().min(1).max(40),
   documentType: text3(40),
-  documentNo: import_zod32.z.string().max(40),
-  itemNo: import_zod32.z.string().min(1).max(40),
+  documentNo: import_zod33.z.string().max(40),
+  itemNo: import_zod33.z.string().min(1).max(40),
   locationCode: text3(40),
-  quantity: import_zod32.z.number(),
-  remainingQuantity: import_zod32.z.number().nullable(),
-  salesAmount: import_zod32.z.number().nullable(),
-  costAmount: import_zod32.z.number().nullable(),
-  open: import_zod32.z.boolean().nullable(),
+  quantity: import_zod33.z.number(),
+  remainingQuantity: import_zod33.z.number().nullable(),
+  salesAmount: import_zod33.z.number().nullable(),
+  costAmount: import_zod33.z.number().nullable(),
+  open: import_zod33.z.boolean().nullable(),
   /** Serial No. column, when the list shows it. Placeholders ("NOBARNO3", "BRINKS TBC") are dropped. */
   serialNo: text3(60).default(null),
   /** Customer or Vendor (Source Type) and its BC number (Source No.). */
@@ -9165,47 +9292,47 @@ var BcLedgerRowSchema = import_zod32.z.strictObject({
   sourceNo: text3(40).default(null)
 });
 var MAX_ROWS = 5e4;
-var BcHistoryRequestSchema = import_zod32.z.object({
-  fileNames: import_zod32.z.array(import_zod32.z.string().min(1).max(200)).max(10),
-  shipments: import_zod32.z.array(BcShipmentRowSchema).max(MAX_ROWS).default([]),
-  shipmentLines: import_zod32.z.array(BcShipmentLineRowSchema).max(MAX_ROWS).default([]),
-  receipts: import_zod32.z.array(BcReceiptRowSchema).max(MAX_ROWS).default([]),
-  ledger: import_zod32.z.array(BcLedgerRowSchema).max(MAX_ROWS).default([])
+var BcHistoryRequestSchema = import_zod33.z.object({
+  fileNames: import_zod33.z.array(import_zod33.z.string().min(1).max(200)).max(10),
+  shipments: import_zod33.z.array(BcShipmentRowSchema).max(MAX_ROWS).default([]),
+  shipmentLines: import_zod33.z.array(BcShipmentLineRowSchema).max(MAX_ROWS).default([]),
+  receipts: import_zod33.z.array(BcReceiptRowSchema).max(MAX_ROWS).default([]),
+  ledger: import_zod33.z.array(BcLedgerRowSchema).max(MAX_ROWS).default([])
 });
-var tableCounts = import_zod32.z.object({ added: import_zod32.z.number().int(), changed: import_zod32.z.number().int(), unchanged: import_zod32.z.number().int() });
-var BcHistoryResultSchema = import_zod32.z.object({
+var tableCounts = import_zod33.z.object({ added: import_zod33.z.number().int(), changed: import_zod33.z.number().int(), unchanged: import_zod33.z.number().int() });
+var BcHistoryResultSchema = import_zod33.z.object({
   /** 0 on a preview. */
-  batchId: import_zod32.z.number().int(),
+  batchId: import_zod33.z.number().int(),
   shipments: tableCounts,
   shipmentLines: tableCounts,
   receipts: tableCounts,
   ledger: tableCounts,
   /** Customers that got their BC customer or vendor number from this import. */
-  customersLinked: import_zod32.z.number().int(),
+  customersLinked: import_zod33.z.number().int(),
   /** A customer already holds a different BC number; nothing was overwritten. */
-  customerConflicts: import_zod32.z.number().int(),
+  customerConflicts: import_zod33.z.number().int(),
   /** Customer codes in the file that the app does not know. */
-  unknownCustomerCodes: import_zod32.z.number().int(),
+  unknownCustomerCodes: import_zod33.z.number().int(),
   /** Shipments whose External Document No. is a tradesheet reference found in the app. */
-  shipmentsToTrades: import_zod32.z.number().int(),
+  shipmentsToTrades: import_zod33.z.number().int(),
   /** Shipments whose External Document No. is a Zoho invoice found in the app. */
-  shipmentsToZohoInvoices: import_zod32.z.number().int(),
+  shipmentsToZohoInvoices: import_zod33.z.number().int(),
   /** Matched sales the tradesheet does not show as collected although BC shipped them. */
-  shippedNotCollected: import_zod32.z.number().int(),
-  itemsAdded: import_zod32.z.number().int(),
-  itemsUpdated: import_zod32.z.number().int(),
-  eventsAdded: import_zod32.z.number().int(),
+  shippedNotCollected: import_zod33.z.number().int(),
+  itemsAdded: import_zod33.z.number().int(),
+  itemsUpdated: import_zod33.z.number().int(),
+  eventsAdded: import_zod33.z.number().int(),
   /** Stored events this import corrected (a date, a customer learnt since). */
-  eventsUpdated: import_zod32.z.number().int(),
-  eventsUnchanged: import_zod32.z.number().int(),
+  eventsUpdated: import_zod33.z.number().int(),
+  eventsUnchanged: import_zod33.z.number().int(),
   /** Serial tracking entries whose ledger entry is not imported yet; they get events on a later import. */
-  trackingWithoutLedger: import_zod32.z.number().int(),
+  trackingWithoutLedger: import_zod33.z.number().int(),
   /** Shipment lines with no reference linked to a sale by customer, product, quantity and amount. */
-  shipmentLinesLinked: import_zod32.z.number().int(),
+  shipmentLinesLinked: import_zod33.z.number().int(),
   /** Shipment lines with sales suggested in the Review tab for a person to confirm. */
-  shipmentLinesSuggested: import_zod32.z.number().int(),
+  shipmentLinesSuggested: import_zod33.z.number().int(),
   /** Shipment lines no sale fits. */
-  shipmentLinesUnmatched: import_zod32.z.number().int()
+  shipmentLinesUnmatched: import_zod33.z.number().int()
 });
 var ITEM_EVENT_KINDS = [
   "RECEIVED",
@@ -9436,50 +9563,50 @@ function mapBcHistory(sheet, names) {
   }
   return out;
 }
-var ItemTraceEventSchema = import_zod32.z.object({
-  kind: import_zod32.z.enum(ITEM_EVENT_KINDS),
+var ItemTraceEventSchema = import_zod33.z.object({
+  kind: import_zod33.z.enum(ITEM_EVENT_KINDS),
   date: isoDate.nullable(),
-  source: import_zod32.z.string(),
-  sourceRef: import_zod32.z.string().nullable(),
-  locationCode: import_zod32.z.string().nullable(),
+  source: import_zod33.z.string(),
+  sourceRef: import_zod33.z.string().nullable(),
+  locationCode: import_zod33.z.string().nullable(),
   /** BC customer or vendor no. on the document. */
-  partyNo: import_zod32.z.string().nullable(),
+  partyNo: import_zod33.z.string().nullable(),
   /** Redaction code of the customer, when known. */
-  customerCode: import_zod32.z.string().nullable(),
+  customerCode: import_zod33.z.string().nullable(),
   /** Tradesheet reference of the matched sale, when known. */
-  tradeReference: import_zod32.z.string().nullable(),
-  quantity: import_zod32.z.number(),
-  amount: import_zod32.z.number().nullable()
+  tradeReference: import_zod33.z.string().nullable(),
+  quantity: import_zod33.z.number(),
+  amount: import_zod33.z.number().nullable()
 });
-var ItemTraceSchema = import_zod32.z.object({
-  serial: import_zod32.z.string(),
-  bcItemNo: import_zod32.z.string().nullable(),
-  product: import_zod32.z.string().nullable(),
-  status: import_zod32.z.enum(ITEM_STATUSES),
-  locationCode: import_zod32.z.string().nullable(),
-  events: import_zod32.z.array(ItemTraceEventSchema)
+var ItemTraceSchema = import_zod33.z.object({
+  serial: import_zod33.z.string(),
+  bcItemNo: import_zod33.z.string().nullable(),
+  product: import_zod33.z.string().nullable(),
+  status: import_zod33.z.enum(ITEM_STATUSES),
+  locationCode: import_zod33.z.string().nullable(),
+  events: import_zod33.z.array(ItemTraceEventSchema)
 });
-var ItemTraceQuerySchema = import_zod32.z.object({ serial: import_zod32.z.string().trim().min(3).max(60) });
-var ShippedNotCollectedRowSchema = import_zod32.z.object({
-  tradeId: import_zod32.z.number().int(),
-  reference: import_zod32.z.string(),
+var ItemTraceQuerySchema = import_zod33.z.object({ serial: import_zod33.z.string().trim().min(3).max(60) });
+var ShippedNotCollectedRowSchema = import_zod33.z.object({
+  tradeId: import_zod33.z.number().int(),
+  reference: import_zod33.z.string(),
   /** Redaction code of the customer, when the sale is linked to one. */
-  customerCode: import_zod32.z.string().nullable(),
-  product: import_zod32.z.string(),
-  qty: import_zod32.z.number().nullable(),
+  customerCode: import_zod33.z.string().nullable(),
+  product: import_zod33.z.string(),
+  qty: import_zod33.z.number().nullable(),
   saleDate: isoDate.nullable(),
-  shipmentNo: import_zod32.z.string(),
+  shipmentNo: import_zod33.z.string(),
   /** The day BC posted the shipment, which is when the customer collected. */
   shippedOn: isoDate.nullable(),
   /** A "tick Collected" sheet task is already open for this sale. */
-  taskOpen: import_zod32.z.boolean()
+  taskOpen: import_zod33.z.boolean()
 });
-var ShippedNotCollectedListSchema = import_zod32.z.array(ShippedNotCollectedRowSchema);
-var ShippedNotCollectedTasksResultSchema = import_zod32.z.object({
+var ShippedNotCollectedListSchema = import_zod33.z.array(ShippedNotCollectedRowSchema);
+var ShippedNotCollectedTasksResultSchema = import_zod33.z.object({
   /** Sheet tasks created now. */
-  created: import_zod32.z.number().int(),
+  created: import_zod33.z.number().int(),
   /** Sales that already had an open task. */
-  alreadyOpen: import_zod32.z.number().int()
+  alreadyOpen: import_zod33.z.number().int()
 });
 var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date)", value: "C", check: "TRADE_COLLECTED" };
 // Annotate the CommonJS export names for ESM import in node:
@@ -9767,6 +9894,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   ProductCategoryEnum,
   ProductMapSchema,
   ProductSchema,
+  ProductStockLevelSchema,
+  ProductStockLevelsResponseSchema,
   ProductsSchema,
   ProfitAnalysisMissingFieldEnum,
   ProfitAnalysisRequestSchema,
@@ -9832,6 +9961,9 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SAFE_STATUSES,
   SALE_FIELDS,
   SHEETS,
+  SPOT_FETCH_INTERVAL_MS,
+  SPOT_LATE_AFTER_MS,
+  SPOT_RED_AFTER_MS,
   SPOT_STALE_AFTER_MS,
   STEP_ROLE,
   STOCK_METALS,
@@ -9864,6 +9996,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
+  SpotStatusResponseSchema,
+  StockLevelStateSchema,
   StockMetalEnum,
   StockMetalSchema,
   StocktakeBarSchema,
@@ -9989,12 +10123,14 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   isPhysicallyHere,
   isRealSerial,
   isReferenceCell,
+  isSpotMarketClosed,
   isStopStep,
   itemStatusAfter,
   kbArticlePath,
   kbReviewDueOn,
   kbReviewStatus,
   limitQuery,
+  lineMatchesKey,
   linkOrdersToTradesheet,
   listedRefinery,
   liveRefinery,
@@ -10063,6 +10199,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   priceMetalEvidence,
   pricingSkuFor,
   procedureFlow,
+  productStockKey,
+  productStockLevels,
   readCollected,
   readForeignCoin,
   readImportWorkbook,
@@ -10089,6 +10227,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   splitScopeBundle,
   splitSections,
   splitSerials,
+  spotFreshness,
   spotLookup,
   stripHeader,
   suggestProductForBcItem,
