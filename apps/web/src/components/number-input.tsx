@@ -10,6 +10,8 @@ interface NumberFieldOptions {
   emptyValue?: number
   /** Shown value = stored value × scale, e.g. 100 to edit a 0.23 rate as 23 (%). */
   scale?: number
+  /** Most decimals the field shows when it is not being edited (default 6). Typed text is never cut short. */
+  decimals?: number
   onBlur?: React.FocusEventHandler<HTMLInputElement>
 }
 
@@ -22,11 +24,11 @@ interface NumberFieldOptions {
  * dot. Here the text is local while editing; the committed number is reported on every keystroke
  * (an empty field reports `emptyValue`), and the text is tidied to the number on blur.
  */
-export function useNumberField({ value, onValueChange, emptyValue = 0, scale = 1, onBlur }: NumberFieldOptions) {
+export function useNumberField({ value, onValueChange, emptyValue = 0, scale = 1, decimals = 6, onBlur }: NumberFieldOptions) {
   const format = React.useCallback(
     (n: number | null | undefined) =>
-      n === null || n === undefined || !Number.isFinite(n) ? "" : String(Number((n * scale).toFixed(6))),
-    [scale],
+      n === null || n === undefined || !Number.isFinite(n) ? "" : String(Number((n * scale).toFixed(decimals))),
+    [scale, decimals],
   )
   const [text, setText] = React.useState(() => format(value))
 
@@ -61,7 +63,7 @@ type NumberInputProps = Omit<React.ComponentProps<typeof Input>, "value" | "onCh
   Omit<NumberFieldOptions, "onBlur">
 
 /** The shared `Input` styled number field; see `useNumberField` for why it exists. */
-export function NumberInput({ value, onValueChange, emptyValue, scale, onBlur, ...props }: NumberInputProps) {
-  const field = useNumberField({ value, onValueChange, emptyValue, scale, onBlur })
+export function NumberInput({ value, onValueChange, emptyValue, scale, decimals, onBlur, ...props }: NumberInputProps) {
+  const field = useNumberField({ value, onValueChange, emptyValue, scale, decimals, onBlur })
   return <Input {...props} {...field} />
 }

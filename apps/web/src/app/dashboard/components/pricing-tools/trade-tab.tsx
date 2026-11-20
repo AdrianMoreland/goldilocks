@@ -17,6 +17,8 @@ import { useStaleSpotGuard } from "./stale-spot-guard"
 import { tabThemeStyle } from "./tab-theme"
 import { FieldLabel, SectionLabel, ErrorBanner, ResultHighlight } from "./tab-widgets"
 import { cn } from "@/lib/utils"
+import { GRAMS_PER_TROY_OUNCE } from "@goldilocks/shared-types"
+import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { NumberInput } from "@/components/number-input"
 import { isVariantProduct, variantChoices } from "../table/product-grouping"
 
@@ -300,21 +302,54 @@ function TradePanel({ trade, deselectProductId }: { trade: TradeTools; deselectP
     )
 }
 
+type WeightUnit = "g" | "oz"
+
 function MeltPanel({ trade }: { trade: TradeTools }) {
     const meltMetal = trade.meltMetal
+    // Grams stay the source of truth (the API takes grams); the unit only changes how the field reads and parses.
+    const [unit, setUnit] = useUserPreference<WeightUnit>("melt-weight-unit", "g")
+    const inOunces = unit === "oz"
+    const grams = trade.meltWeight
+    const otherHint = Number.isFinite(grams) ? (inOunces ? `= ${grams.toFixed(2)} g` : `= ${(grams / GRAMS_PER_TROY_OUNCE).toFixed(4)} oz t`) : ""
     const meltError = trade.meltError ? describeApiError(trade.meltError, "calculate the melt value") : null
 
     return (
         <div className="flex flex-col gap-4">
             <div className="bg-card flex flex-col gap-2.5 rounded-3xl border p-3.5">
-                <FieldLabel>Weight (g)</FieldLabel>
+                <div className="flex items-center justify-between gap-2">
+                    <FieldLabel>{inOunces ? "Weight (oz t)" : "Weight (g)"}</FieldLabel>
+                    <div className="bg-muted flex items-center gap-1 rounded-full p-1" role="group" aria-label="Weight unit">
+                        {(["g", "oz"] as const).map((option) => {
+                            const active = option === unit
+                            return (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setUnit(option)}
+                                    aria-pressed={active}
+                                    aria-label={option === "g" ? "Grams" : "Troy ounces"}
+                                    className={cn(
+                                        "h-[36px] min-w-[44px] cursor-pointer rounded-full px-3 text-xs font-bold transition-colors",
+                                        active ? "text-[var(--tab-accent-on)]" : "text-muted-foreground hover:text-foreground",
+                                    )}
+                                    style={active ? { background: "var(--tab-accent)" } : undefined}
+                                >
+                                    {option}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
                 <NumberInput
                     id="melt-weight"
-                    step="0.1"
+                    step={inOunces ? "0.01" : "0.1"}
                     value={trade.meltWeight}
                     onValueChange={trade.setMeltWeight}
+                    scale={inOunces ? 1 / GRAMS_PER_TROY_OUNCE : 1}
+                    decimals={inOunces ? 4 : 2}
                     className="h-10 rounded-xl"
                 />
+                {otherHint && <div className="text-muted-foreground -mt-1 text-xs tabular-nums">{otherHint}</div>}
 
                 <FieldLabel>Category</FieldLabel>
                 <Select value={trade.meltCategory} onValueChange={(v) => trade.setMeltCategory(v as typeof trade.meltCategory)}>
