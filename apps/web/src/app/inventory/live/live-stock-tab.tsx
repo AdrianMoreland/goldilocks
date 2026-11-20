@@ -213,7 +213,7 @@ export function LiveStockTab() {
                     {view === "branch" && current && (current.cutoverDate || !canEdit) && (
                         <div className="text-muted-foreground flex flex-wrap items-center gap-x-[12px] gap-y-[4px] text-[13px]">
                             {current.cutoverDate && <span>Counts loaded from the stock sheet of {current.cutoverDate}</span>}
-                            {!canEdit && <span className="bg-muted rounded-md px-[8px] py-[2px]">View only. Ask an admin to link your branch to edit {current.name}.</span>}
+                            {!canEdit && <span className="bg-muted rounded-md px-[8px] py-[2px]">View only. Stock is changed by admins and managers.</span>}
                         </div>
                     )}
 

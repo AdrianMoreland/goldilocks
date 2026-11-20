@@ -67,12 +67,12 @@ export class LiveStockService {
 
     // ------------------------------------------------------------ access
 
+    /** Admins and managers change stock at every branch; everyone else reads only. The branch is kept as a parameter so a per-branch rule can return without touching callers. */
     canEditBranch(
         user: AuthenticatedUser,
-        branch: { branchId: number | null },
+        _branch: { branchId: number | null },
     ): boolean {
-        if (user.admin) return true;
-        return branch.branchId !== null && branch.branchId === user.branchId;
+        return user.admin || user.role === 'MANAGER';
     }
 
     async assertCanEdit(
@@ -86,7 +86,7 @@ export class LiveStockService {
             throw new NotFoundException(`Unknown branch "${branchCode}".`);
         if (!this.canEditBranch(user, branch))
             throw new ForbiddenException(
-                `You can only change stock for your own branch.`,
+                'Only admins and managers change stock.',
             );
     }
 
@@ -152,7 +152,10 @@ export class LiveStockService {
         ]);
         return productStockLevels(
             products,
-            lines.map(({ branch, ...l }) => ({ ...l, branchName: branch.name })),
+            lines.map(({ branch, ...l }) => ({
+                ...l,
+                branchName: branch.name,
+            })),
         );
     }
 

@@ -198,8 +198,18 @@ function setup() {
     return { service, lines, bars, moves, audit };
 }
 
-const du = { email: 'du@x.ie', admin: false, branchId: 7 } as AuthenticatedUser;
-const co = { email: 'co@x.ie', admin: false, branchId: 8 } as AuthenticatedUser;
+const du = {
+    email: 'du@x.ie',
+    admin: false,
+    role: 'MANAGER',
+    branchId: 7,
+} as AuthenticatedUser;
+const co = {
+    email: 'co@x.ie',
+    admin: false,
+    role: 'SALES',
+    branchId: 8,
+} as AuthenticatedUser;
 const admin = {
     email: 'a@x.ie',
     admin: true,
@@ -234,14 +244,26 @@ describe('LiveStockService.adjust', () => {
         ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it("refuses another branch's staff but allows an admin", async () => {
+    it('refuses sales staff, even at their own branch', async () => {
         const { service } = setup();
+        const duSales = { ...co, branchId: 7 } as AuthenticatedUser;
+        await expect(
+            service.adjust(duSales, 2, { delta: 1, reason: 'Found one' }),
+        ).rejects.toBeInstanceOf(ForbiddenException);
         await expect(
             service.adjust(co, 2, { delta: 1, reason: 'Found one' }),
         ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('lets a manager of another branch and an admin change any branch', async () => {
+        const { service } = setup();
+        const corkManager = { ...du, branchId: 8 } as AuthenticatedUser;
+        await expect(
+            service.adjust(corkManager, 2, { delta: 1, reason: 'Found one' }),
+        ).resolves.toMatchObject({ qty: 4 });
         await expect(
             service.adjust(admin, 2, { delta: 1, reason: 'Found one' }),
-        ).resolves.toMatchObject({ qty: 4 });
+        ).resolves.toMatchObject({ qty: 5 });
     });
 });
 

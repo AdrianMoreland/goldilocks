@@ -39,8 +39,8 @@ import {
 } from '../../common/dto/dtos';
 
 /**
- * Live stock counts per branch. Any signed-in person reads every branch; the service decides who edits (own branch, or
- * an admin anywhere), because that rule depends on the line being changed.
+ * Live stock counts per branch. Any signed-in person reads every branch; the service decides who edits (admins and
+ * managers, at any branch).
  */
 @ApiTags('live-stock')
 @ApiBearerAuth()
@@ -56,7 +56,9 @@ export class LiveStockController {
     }
 
     @Get('product-levels')
-    @ApiOperation({ summary: 'Stock per priced product, for the dashboard flag' })
+    @ApiOperation({
+        summary: 'Stock per priced product, for the dashboard flag',
+    })
     productLevels(): Promise<ProductStockLevel[]> {
         return this.service.productLevels();
     }

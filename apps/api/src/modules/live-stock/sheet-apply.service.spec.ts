@@ -154,7 +154,12 @@ const admin = {
     admin: true,
     branchId: null,
 } as AuthenticatedUser;
-const du = { email: 'du@x.ie', admin: false, branchId: 7 } as AuthenticatedUser;
+const du = {
+    email: 'du@x.ie',
+    admin: false,
+    role: 'MANAGER',
+    branchId: 7,
+} as AuthenticatedUser;
 
 describe('SheetApplyService.apply', () => {
     it('subtracts a sale once; uploading it again changes nothing', async () => {
@@ -281,11 +286,16 @@ describe('SheetApplyService.apply', () => {
         await service.apply(admin);
         await expect(
             service.resolve(
-                { email: 'x', admin: false, branchId: 99 } as AuthenticatedUser,
+                {
+                    email: 'x',
+                    admin: false,
+                    role: 'SALES',
+                    branchId: 7,
+                } as AuthenticatedUser,
                 1,
                 { choice: 'COUNTED' },
             ),
-        ).rejects.toThrow('own branch');
+        ).rejects.toThrow('admins and managers');
     });
 
     it('only an admin applies', async () => {
