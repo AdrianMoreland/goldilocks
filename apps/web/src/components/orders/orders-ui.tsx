@@ -15,6 +15,7 @@ import {
 import { StatusDot, type StatusTone } from "@/components/status-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { keepKeyboardClosedOnTouch } from "@/lib/dialog-focus"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -189,7 +190,7 @@ export function StepDialog({ step, row, open, onClose, onConfirm, busy }: { step
     }
     return (
         <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md" onOpenAutoFocus={keepKeyboardClosedOnTouch}>
                 <DialogHeader>
                     <DialogTitle>{STEP_LABELS[step]}</DialogTitle>
                     <DialogDescription>
