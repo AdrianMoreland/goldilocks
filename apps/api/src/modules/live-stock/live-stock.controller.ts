@@ -21,6 +21,7 @@ import {
     type LiveStockBranch,
     type LiveStockBranchesResponse,
     type LiveStockMovement,
+    type ProductStockLevel,
 } from '@goldilocks/shared-types';
 import { LiveStockService } from './live-stock.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -52,6 +53,12 @@ export class LiveStockController {
     @ApiOperation({ summary: 'Stock locations and which the caller may edit' })
     branches(@Req() req: RequestWithUser): Promise<LiveStockBranchesResponse> {
         return this.service.branches(req.user);
+    }
+
+    @Get('product-levels')
+    @ApiOperation({ summary: 'Stock per priced product, for the dashboard flag' })
+    productLevels(): Promise<ProductStockLevel[]> {
+        return this.service.productLevels();
     }
 
     @Get('board')

@@ -20,6 +20,7 @@ import { EditProductDialog } from "./edit-product-dialog"
 import { DeleteProductDialog } from "./delete-product-dialog"
 import { HideProductDialog } from "./hide-product-dialog"
 import { DataTableColumnHeader } from "./data-table-column-header"
+import { StockFlag } from "./stock-flag"
 import type { DisplayProduct, ProductGroup } from "./product-grouping"
 import { formatPercent, formatPrice } from "../../utils/formatters"
 import { features } from "@/config/features"
@@ -81,8 +82,9 @@ function PriceCell({
 
 function NameCell({ item }: { item: DisplayProduct }) {
     return (
-        <div className="flex w-full justify-start pl-2">
+        <div className="flex w-full items-center justify-start gap-2 pl-2">
             <TableCellViewer item={item} />
+            <StockFlag productId={item.id} />
         </div>
     )
 }
