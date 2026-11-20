@@ -18,6 +18,7 @@ const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
+const Stock = lazy(() => import('@/app/stock/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
 const Customers = lazy(() => import('@/app/customers/page'))
@@ -121,6 +122,8 @@ export const routes: RouteConfig[] = [
   ...(features.redesign
     ? [
         { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
+        // Live stock for every signed-in user; the server decides which branches each person may edit
+        { path: "/stock", element: <RequireAuth><Stock /></RequireAuth> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
         { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
         { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
