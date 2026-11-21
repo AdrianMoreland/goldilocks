@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BookOpen,
   ClipboardCheck,
   Workflow,
@@ -64,6 +65,14 @@ const navGroups: NavGroup[] = [
         hideForAdmin: true,
         preview: true,
         keywords: ["stock", "inventory", "in stock", "branch", "bars", "coins"],
+      },
+      {
+        title: "Analytics",
+        url: "/analytics",
+        icon: BarChart3,
+        requires: "pricingWorkbook",
+        preview: true,
+        keywords: ["charts", "reports", "profit", "margin", "sales", "trends"],
       },
       {
         title: "SOP",
