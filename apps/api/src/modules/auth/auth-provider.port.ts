@@ -50,4 +50,22 @@ export interface AuthProviderPort {
     deleteIdentity(id: string): Promise<void>;
 }
 
+/** One signed-in device as the provider records it. */
+export interface ProviderSession {
+    id: string;
+    userAgent: string | null;
+    ip: string | null;
+    createdAt: Date;
+    lastActiveAt: Date;
+}
+
+/** Signed-in sessions, kept apart from the main port so a provider without them can leave them out. */
+export interface AuthSessionsPort {
+    listSessions(userId: string): Promise<ProviderSession[]>;
+    /** Ends one of the user's sessions; false when there was no such session. */
+    revokeSession(userId: string, sessionId: string): Promise<boolean>;
+    /** Ends every session of the user except `keepId`; returns how many ended. */
+    revokeOtherSessions(userId: string, keepId: string): Promise<number>;
+}
+
 export const AUTH_PROVIDER = Symbol('AUTH_PROVIDER');

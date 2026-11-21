@@ -33,6 +33,8 @@ model User {
   branchId            Int?
   branch              Branch?                  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   permissionOverrides UserPermissionOverride[]
+  preference          UserPreference?
+  notifications       Notification[]
 
   @@index([branchId])
   @@map("users")
@@ -1848,4 +1850,41 @@ model AiFeedback {
   @@unique([questionId, userId])
   @@index([createdAt])
   @@map("ai_feedback")
+}
+
+/// Each person's Settings (detail level, shortcuts, quote sign-off, price board, muted notifications), so they
+/// follow them to any browser. Shape: UserPreferencesSchema in shared-types; missing fields take its defaults.
+model UserPreference {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("user_preferences")
+}
+
+/// Company-wide settings edited by admins, one row per key (for now the quote template).
+model CompanySetting {
+  key       String   @id
+  value     Json
+  updatedBy String
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("company_settings")
+}
+
+/// An in-app notification for one person (the header bell). Kinds: NOTIFICATION_KINDS in shared-types.
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  body      String
+  link      String?
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  readAt    DateTime? @db.Timestamptz(6)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }

@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { NotificationsService } from '../settings/notifications.service';
 import type {
     FetchAttempt,
     FetchMetrics,
@@ -30,6 +31,7 @@ export class FetchAttemptService {
         private readonly prisma: PrismaService,
         private readonly cascadeMetrics: CascadeMetricsService,
         private readonly errorLog: ErrorLogService,
+        @Optional() private readonly notifications?: NotificationsService,
     ) {}
 
     async record(entry: RecordAttemptInput): Promise<void> {
@@ -46,6 +48,12 @@ export class FetchAttemptService {
             });
         }
         await this.prisma.fetchAttempt.create({ data: entry });
+        if (!entry.success) {
+            await this.notifications?.feedFailed(
+                new Date(),
+                entry.errorMessage ?? null,
+            );
+        }
     }
 
     async getRecent(limit: number): Promise<FetchAttempt[]> {
