@@ -25,6 +25,9 @@ model User {
   createdAt   DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
   lastLoginAt DateTime?
+  /// The look this person chose (light or dark, theme, font, text size, density), so it follows them to any browser.
+  /// Null until they first change it; the app then uses its defaults (dark). Shape: UiSettingsSchema in shared-types.
+  uiSettings  Json?
   /// The branch this person works from. Null behaves as an Irish branch (see branch-access.ts in
   /// shared-types), so accounts that predate branches keep what they had.
   branchId    Int?

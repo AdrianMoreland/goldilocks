@@ -24,6 +24,8 @@ import {
     type LiveStockMovement,
     type SetLiveStockBarStatusRequest,
     type TransferLiveStockRequest,
+    productStockLevels,
+    type ProductStockLevel,
 } from '@goldilocks/shared-types';
 import type { Prisma } from '../../../prisma/generated/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -65,12 +67,12 @@ export class LiveStockService {
 
     // ------------------------------------------------------------ access
 
+    /** Admins and managers change stock at every branch; everyone else reads only. The branch is kept as a parameter so a per-branch rule can return without touching callers. */
     canEditBranch(
         user: AuthenticatedUser,
-        branch: { branchId: number | null },
+        _branch: { branchId: number | null },
     ): boolean {
-        if (user.admin) return true;
-        return branch.branchId !== null && branch.branchId === user.branchId;
+        return user.admin || user.role === 'MANAGER';
     }
 
     async assertCanEdit(
@@ -84,7 +86,7 @@ export class LiveStockService {
             throw new NotFoundException(`Unknown branch "${branchCode}".`);
         if (!this.canEditBranch(user, branch))
             throw new ForbiddenException(
-                `You can only change stock for your own branch.`,
+                'Only admins and managers change stock.',
             );
     }
 
@@ -121,6 +123,40 @@ export class LiveStockService {
             branches: rows.map((r) => this.toBranch(r, user)),
             mine: mine?.code ?? null,
         };
+    }
+
+    /**
+     * Stock per priced product across every location, for the flag next to each price on the dashboard.
+     * Read-only and open to every signed-in user; the matching from product names to sheet lines is in shared-types.
+     */
+    async productLevels(): Promise<ProductStockLevel[]> {
+        const [products, lines] = await Promise.all([
+            this.prisma.product.findMany({
+                where: { isActive: true, deletedAt: null },
+                select: { id: true, name: true, metalType: true },
+            }),
+            this.prisma.liveStockLine.findMany({
+                where: { metal: { in: ['GOLD', 'SILVER'] } },
+                select: {
+                    metal: true,
+                    kind: true,
+                    family: true,
+                    variant: true,
+                    refinery: true,
+                    qty: true,
+                    lowThreshold: true,
+                    branchCode: true,
+                    branch: { select: { name: true } },
+                },
+            }),
+        ]);
+        return productStockLevels(
+            products,
+            lines.map(({ branch, ...l }) => ({
+                ...l,
+                branchName: branch.name,
+            })),
+        );
     }
 
     async board(

@@ -1,13 +1,16 @@
 import * as React from "react"
 import { features } from "@/config/features"
 import { useAuth } from "@/contexts/auth-context"
+import { useAuthApi } from "@/api/auth.api"
 import { useThemeManager } from "@/hooks/use-theme-manager"
 import { useMediaQuery } from "@/hooks/use-media-query.hook"
 import { colorThemes, tweakcnThemes } from "@/config/theme-data"
 import {
+    COLOR_MODE_STORAGE_KEY,
     DEFAULT_THEME_PREFERENCE,
     DENSITY_FACTOR,
     FONT_OPTIONS,
+    initialLook,
     loadThemePreference,
     saveThemePreference,
     type ThemePreference,
@@ -55,16 +58,60 @@ function ensureFontLoaded(googleFamily: string | null) {
  */
 export function ThemePreferenceProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth()
-    const { isDarkMode, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme } = useThemeManager()
+    const authApi = useAuthApi()
+    const { isDarkMode, setTheme, resetTheme, applyTheme, applyTweakcnTheme, applyImportedTheme } = useThemeManager()
 
     const [preference, setPreference] = React.useState<ThemePreference>(DEFAULT_THEME_PREFERENCE)
     const userId = user?.id ?? null
     const coarsePointer = useMediaQuery("(pointer: coarse)")
 
-    // Load on sign-in / user switch; signed-out screens get the default.
+    // What the account holds as of the last load or save, so an unchanged look is not saved again.
+    const savedSnapshot = React.useRef<string | null>(null)
+    const [hydratedFor, setHydratedFor] = React.useState<string | null>(null)
+
+    // On sign-in or user switch: the account's look wins (so it follows the person to any browser), else this
+    // browser's earlier choice, else dark with the default theme (see initialLook). Signed-out screens get the default.
+    // Only the user id triggers this: later saves update the account, not the session user held in memory.
     React.useEffect(() => {
-        setPreference(userId ? loadThemePreference(userId) ?? DEFAULT_THEME_PREFERENCE : DEFAULT_THEME_PREFERENCE)
+        if (!userId) {
+            setPreference(DEFAULT_THEME_PREFERENCE)
+            setHydratedFor(null)
+            return
+        }
+        let localMode: string | null = null
+        try {
+            localMode = localStorage.getItem(COLOR_MODE_STORAGE_KEY)
+        } catch {
+            localMode = null
+        }
+        const start = initialLook(user?.uiSettings ?? null, loadThemePreference(userId), localMode)
+        savedSnapshot.current = user?.uiSettings ? JSON.stringify(user.uiSettings) : null
+        setPreference(start.preference)
+        setTheme(start.mode)
+        setHydratedFor(userId)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId])
+
+    // Save the look to the account whenever it changes, a moment after the last change (a colour picker fires many).
+    // The first run after sign-in also saves when the account had nothing yet, so this browser's choice follows the
+    // person from then on. A failed save keeps the look on screen and in this browser; the next change tries again.
+    const mode = isDarkMode ? "dark" : "light"
+    React.useEffect(() => {
+        if (!userId || hydratedFor !== userId) return
+        const next = { mode, look: preference as unknown as Record<string, unknown> } as const
+        const json = JSON.stringify(next)
+        if (json === savedSnapshot.current) return
+        const timer = window.setTimeout(() => {
+            authApi
+                .saveUiSettings(next)
+                .then(() => {
+                    savedSnapshot.current = json
+                })
+                .catch(() => undefined)
+        }, 800)
+        return () => window.clearTimeout(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, hydratedFor, mode, preference])
 
     // Apply whenever the preference or light/dark mode changes.
     React.useEffect(() => {

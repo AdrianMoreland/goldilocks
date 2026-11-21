@@ -18,8 +18,10 @@ import type {
     LoginResponse,
     SessionBranch,
     SessionUser,
+    UiSettings,
 } from '@goldilocks/shared-types';
-import type { User } from '../../../prisma/generated/client';
+import { UiSettingsSchema } from '@goldilocks/shared-types';
+import type { Prisma, User } from '../../../prisma/generated/client';
 
 // Never select the password hash for anything that ends up on request.user -
 // it has no business leaving the DB query, let alone sitting in memory on
@@ -36,6 +38,7 @@ const SAFE_USER_SELECT = {
     updatedAt: true,
     lastLoginAt: true,
     branchId: true,
+    uiSettings: true,
     branch: { select: { id: true, name: true, region: true } },
 } as const;
 
@@ -232,6 +235,21 @@ export class AuthService {
             role: user.role,
             admin: user.admin,
             branch: user.branch,
+            uiSettings: readUiSettings(user.uiSettings),
         };
     }
+
+    /** Saves the look a person chose on their account, so it follows them to any browser. */
+    async saveUiSettings(userId: string, settings: UiSettings): Promise<void> {
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { uiSettings: settings as Prisma.InputJsonValue },
+        });
+    }
+}
+
+/** A stored value that no longer fits the schema (an older shape, a hand edit) reads as "never chosen", not an error. */
+function readUiSettings(raw: unknown): UiSettings | null {
+    const parsed = UiSettingsSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
 }

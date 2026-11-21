@@ -8,6 +8,7 @@ import { useUserPreference } from "@/hooks/use-user-preference.hook"
 import { cn } from "@/lib/utils"
 import { formatGrams, formatPercent, formatPrice } from "../../utils/formatters"
 import type { DisplayProduct } from "./product-grouping"
+import { StockFlag } from "./stock-flag"
 
 type Side = "price" | "buyback"
 
@@ -74,6 +75,7 @@ export function MobileProductList({ table, isLoading, hasError, isFiltered, onRe
                                             <span className="text-muted-foreground block text-xs tabular-nums">
                                                 {formatGrams(p.weight)}
                                                 {selected && " · in quote"}
+                                                <StockFlag productId={p.id} className="ml-2" />
                                             </span>
                                         </span>
                                         <span

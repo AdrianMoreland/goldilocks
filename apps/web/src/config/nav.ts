@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import type { Capabilities } from "@goldilocks/shared-types"
+import { features } from "@/config/features"
 
 export interface NavItem {
   title: string
@@ -24,6 +25,10 @@ export interface NavItem {
   requires?: "pricingWorkbook"
   /** Shown to admins only, in its place in the group (the route enforces the same). */
   adminOnly?: boolean
+  /** Hidden from admins, who already have this page in their own Stock & orders group. */
+  hideForAdmin?: boolean
+  /** Its route only exists with the preview features on, so the link only shows then too. */
+  preview?: boolean
   /** Extra words the command palette matches besides the title. */
   keywords?: string[]
 }
@@ -51,6 +56,14 @@ const navGroups: NavGroup[] = [
         icon: LayoutDashboard,
         requires: "pricingWorkbook",
         keywords: ["dashboard", "prices", "spot", "products"],
+      },
+      {
+        title: "Inventory",
+        url: "/inventory",
+        icon: Boxes,
+        hideForAdmin: true,
+        preview: true,
+        keywords: ["stock", "inventory", "in stock", "branch", "bars", "coins"],
       },
       {
         title: "SOP",
@@ -94,7 +107,7 @@ const adminItems: NavItem[] = [
 export function navGroupsFor({ isAdmin, isManager, grouped, capabilities }: NavAccess): NavGroup[] {
   const visible = navGroups.map((group) => ({
     ...group,
-    items: group.items.filter((item) => (!item.requires || capabilities[item.requires]) && (!item.adminOnly || isAdmin)),
+    items: group.items.filter((item) => (!item.requires || capabilities[item.requires]) && (!item.adminOnly || isAdmin) && !(item.hideForAdmin && isAdmin) && (!item.preview || features.redesign)),
   }))
   // Managers get the stocktake and customer orders without the rest of the admin group; admins see them inside it.
   if (isAdmin && grouped) {

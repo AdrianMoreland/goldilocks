@@ -1,5 +1,6 @@
 import { useApiClient } from '@/api/api-client';
-import { LoginResponseSchema, SessionUserSchema, type LoginRequest } from '@goldilocks/shared-types';
+import { z } from 'zod';
+import { LoginResponseSchema, SessionUserSchema, type LoginRequest, type UiSettings } from '@goldilocks/shared-types';
 
 /** Auth - login + session lookup. Talks only to our own backend; the actual identity provider (Supabase, for now) is entirely hidden behind it. */
 export function useAuthApi() {
@@ -8,5 +9,7 @@ export function useAuthApi() {
     return {
         login: (body: LoginRequest) => client.post('/auth/login', body, LoginResponseSchema),
         me: () => client.get('/auth/me', SessionUserSchema),
+        /** Saves the look the signed-in person chose on their account (204, no body). */
+        saveUiSettings: (body: UiSettings) => client.put('/auth/me/ui-settings', body, z.unknown()),
     };
 }

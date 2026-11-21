@@ -10,6 +10,24 @@ import { SessionBranchSchema } from './branch.schema';
 
 export const SessionUserRoleEnum = z.enum(['ADMIN', 'MANAGER', 'SALES', 'ACCOUNTING', 'AUDITOR']);
 
+/**
+ * The look a person chose, saved on their account so it follows them to any browser: light or dark, and the theme
+ * editor's settings (theme, colours, font, text size, density) as the web app stores them. The web app checks the look
+ * field by field when it reads it back, so the server only bounds its size.
+ */
+export const UI_SETTINGS_MAX_BYTES = 16_000;
+export const ColorModeEnum = z.enum(['dark', 'light']);
+export type ColorMode = z.infer<typeof ColorModeEnum>;
+export const UiSettingsSchema = z
+  .object({
+    mode: ColorModeEnum,
+    look: z.record(z.string(), z.unknown()).nullable(),
+  })
+  .refine((v) => JSON.stringify(v).length <= UI_SETTINGS_MAX_BYTES, {
+    message: 'Those display settings are too large to save.',
+  });
+export type UiSettings = z.infer<typeof UiSettingsSchema>;
+
 export const SessionUserSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -19,6 +37,8 @@ export const SessionUserSchema = z.object({
   admin: z.boolean(),
   // Defaults to null so a web build deployed before the API still parses the old response shape.
   branch: SessionBranchSchema.nullable().default(null),
+  /** Null until the person first changes their look; the app then uses its defaults (dark). */
+  uiSettings: UiSettingsSchema.nullable().default(null),
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 

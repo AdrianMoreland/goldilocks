@@ -4,9 +4,9 @@ import type { LiveStockLine } from "@goldilocks/shared-types"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { keepKeyboardClosedOnTouch } from "@/lib/dialog-focus"
 import { cn } from "@/lib/utils"
-import { lineName, type BoardSummary } from "./live-stock-model"
+import { lineName, titleCase, type BoardSummary, type TileItem } from "./live-stock-model"
 import { LOW_PILL } from "./level-style"
-import { SerialPanel, type SerialActions } from "./stock-row"
+import { SerialPanel, StockRow, type RowActions, type SerialActions } from "./stock-row"
 
 /** A sheet from the bottom edge, where a thumb already is. Capped in width so it does not stretch on a desk screen. */
 function BottomSheet({ title, sub, onClose, children, keepKeyboardClosed }: { title: string; sub?: string; onClose: () => void; children: ReactNode; keepKeyboardClosed?: boolean }) {
@@ -119,6 +119,20 @@ export function SerialsSheet({ line, actions, onClose }: { line: LiveStockLine; 
     return (
         <BottomSheet title={`Serials · ${lineName(line)}`} sub={`${line.qty} in stock, ${line.bars.length} with a serial`} onClose={onClose} keepKeyboardClosed>
             <SerialPanel line={line} actions={actions} />
+        </BottomSheet>
+    )
+}
+
+/** A tile's lines in the tiles layout: each refinery of a bar weight, or the one coin line, with the usual row actions. */
+export function TileSheet({ item, branchName, actions, onClose }: { item: TileItem; branchName: string; actions: RowActions; onClose: () => void }) {
+    const sub = [branchName, `${item.qty} in stock`, item.lowMark !== null ? `low at ${item.lowMark}` : null].filter(Boolean).join(" · ")
+    return (
+        <BottomSheet title={item.label} sub={sub} onClose={onClose}>
+            <div className="-mx-[16px] border-t">
+                {item.lines.map((l) => (
+                    <StockRow key={l.id} line={l} label={item.kind === "BAR" ? (l.refinery ? titleCase(l.refinery) : "No refinery noted") : l.variant} actions={actions} />
+                ))}
+            </div>
         </BottomSheet>
     )
 }

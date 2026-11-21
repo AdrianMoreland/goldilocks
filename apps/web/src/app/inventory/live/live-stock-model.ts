@@ -76,7 +76,7 @@ export function groupBars(lines: LiveStockLine[], opts: GroupOptions): BarWeight
 }
 
 /** What a summary tile filters the list to. */
-export type StockFilter = "coins" | "bars" | "low" | "pick"
+export type StockFilter = "coins" | "bars" | "low" | "pick" | "proof"
 
 export interface BoardSummary {
     coins: number
@@ -112,6 +112,8 @@ export function applyFilter(lines: LiveStockLine[], filter: StockFilter | null):
             return lines.filter((l) => levelOf(l) === "low")
         case "pick":
             return lines.filter((l) => l.unassigned > 0)
+        case "proof":
+            return lines.filter((l) => /\bproof\b/i.test(l.variant))
         default:
             return lines
     }
@@ -177,6 +179,61 @@ export function branchGrid(boards: { code: string; lines: LiveStockLine[] }[]): 
     ].filter((g) => g.rows.length > 0)
 }
 
+/** One tile in the tiles layout: a bar weight (its refineries added up) or one coin line. */
+export interface TileItem {
+    key: string
+    kind: "BAR" | "COIN"
+    label: string
+    qty: number
+    /** The low mark: the line's own, or for a bar weight the sum of its refineries' marks; null when none is set. */
+    lowMark: number | null
+    level: StockLevel
+    /** Sold bars still waiting for their serial to be chosen. */
+    toPick: number
+    lines: LiveStockLine[]
+}
+
+/** Bars first (smallest weight first), then coins in their family order, as the groups already sort them. */
+export function tileItems(bars: BarWeight[], coins: CoinFamily[]): TileItem[] {
+    const barTiles = bars.map((w): TileItem => {
+        const marks = w.lines.filter((l) => l.lowThreshold !== null)
+        return {
+            key: `BAR|${w.variant}`,
+            kind: "BAR",
+            label: `${w.variant} bar`,
+            qty: w.total,
+            lowMark: marks.length ? marks.reduce((n, l) => n + (l.lowThreshold ?? 0), 0) : null,
+            level: levelOfMany(w.lines),
+            toPick: w.lines.reduce((n, l) => n + l.unassigned, 0),
+            lines: w.lines,
+        }
+    })
+    const coinTiles = coins.flatMap((f) =>
+        f.rows.map((l): TileItem => ({
+            key: `COIN|${l.id}`,
+            kind: "COIN",
+            label: `${f.family} ${l.variant}`.trim(),
+            qty: l.qty,
+            lowMark: l.lowThreshold,
+            level: levelOf(l),
+            toPick: l.unassigned,
+            lines: [l],
+        })),
+    )
+    return [...barTiles, ...coinTiles]
+}
+
+/**
+ * The level bar on a tile, in percent of its width: filled to the count, with a tick at the low mark. The scale is
+ * three times the low mark (or the count, if higher), so a healthy line reads as well past the tick. Without a mark
+ * there is nothing to compare to: the bar is full when there is any stock.
+ */
+export function gaugeOf(qty: number, lowMark: number | null): { fill: number; mark: number | null } {
+    if (lowMark === null) return { fill: qty > 0 ? 100 : 0, mark: null }
+    const scale = Math.max(lowMark * 3, qty, 1)
+    return { fill: Math.min(100, (Math.max(0, qty) / scale) * 100), mark: (lowMark / scale) * 100 }
+}
+
 /** Reasons offered as one-tap chips when typing a count. */
 export const REASONS = ["Recount", "Sold at counter", "Received", "Found", "Damaged", "Other"] as const
 
@@ -185,3 +242,35 @@ export const titleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c)
 export const lineName = (l: Pick<LiveStockLine, "family" | "variant" | "refinery" | "kind">) =>
     l.kind === "BAR" ? `${l.variant} bar${l.refinery ? ` · ${titleCase(l.refinery)}` : ""}` : `${l.family} ${l.variant}`.trim()
 
+
+// ---------------------------------------------------------------- edit mode draft
+
+/** Counts changed in edit mode but not saved yet, by line id; each keeps its line so it can be saved from any board. */
+export type CountDraft = Record<number, { line: LiveStockLine; qty: number }>
+
+/** One step up or down on a line in the draft (never below 0); back at the saved count, the line leaves the draft. */
+export function stepDraft(draft: CountDraft, line: LiveStockLine, delta: number): CountDraft {
+    const from = draft[line.id]?.qty ?? line.qty
+    const qty = Math.max(0, from + delta)
+    const next = { ...draft }
+    if (qty === line.qty) delete next[line.id]
+    else next[line.id] = { line, qty }
+    return next
+}
+
+/** The lines as they would be after saving the draft, so totals and groups show the new counts while editing. */
+export function withDraft(lines: LiveStockLine[], draft: CountDraft): LiveStockLine[] {
+    return lines.map((l) => (draft[l.id] ? { ...l, qty: draft[l.id].qty } : l))
+}
+
+export interface DraftChange {
+    lineId: number
+    label: string
+    from: number
+    to: number
+}
+
+/** The draft as a list to review and save, in the order the lines were first changed. */
+export function draftChanges(draft: CountDraft): DraftChange[] {
+    return Object.values(draft).map(({ line, qty }) => ({ lineId: line.id, label: lineName(line), from: line.qty, to: qty }))
+}

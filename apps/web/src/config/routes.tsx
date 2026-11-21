@@ -8,6 +8,7 @@ import { features } from '@/config/features'
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
+const Board = lazy(() => import('@/app/board/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Admin = lazy(() => import('@/app/admin/page'))
 const Project = lazy(() => import('@/app/project/page'))
@@ -93,6 +94,11 @@ export const routes: RouteConfig[] = [
     path: "/dashboard",
     element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
   },
+  // Price board: full-screen live prices for an iPad or a branch screen; same access as the dashboard
+  {
+    path: "/board",
+    element: <RequireCapability capability="pricingWorkbook"><Board /></RequireCapability>
+  },
   // Admin console — admins only; the API enforces the same on every call it makes
   {
     path: "/admin",
@@ -114,7 +120,10 @@ export const routes: RouteConfig[] = [
   // The redesign's stock and order pages: admins only for now (the API enforces the same).
   ...(features.redesign
     ? [
-        { path: "/inventory", element: <RequireAdmin><Inventory /></RequireAdmin> },
+        // Inventory for every signed-in user; editing and the month-end tab are for admins and managers (the API enforces the same)
+        { path: "/inventory", element: <RequireAuth><Inventory /></RequireAuth> },
+        // The old read-only stock page, kept so saved links still land on Inventory
+        { path: "/stock", element: <Navigate to="/inventory" replace /> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
         { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
         { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
