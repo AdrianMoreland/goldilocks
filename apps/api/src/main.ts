@@ -2,6 +2,11 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import {
+    LLM_PROVIDER_KEY,
+    llmModelMismatch,
+    resolveLlmProvider,
+} from './infrastructure/llm/llm.module';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -33,11 +38,14 @@ function validateEnv(config: ConfigService): void {
         (key) => !config.get<string>(key),
     );
     // The assistant's key is only required once the assistant is switched on.
-    if (
-        config.get<string>('AI_ENABLED') === 'true' &&
-        !config.get<string>('OPENAI_API_KEY')
-    ) {
-        missing.push('OPENAI_API_KEY (required because AI_ENABLED=true)');
+    if (config.get<string>('AI_ENABLED') === 'true') {
+        const aiKey = LLM_PROVIDER_KEY[resolveLlmProvider(config)];
+        if (!config.get<string>(aiKey)) {
+            missing.push(`${aiKey} (required because AI_ENABLED=true)`);
+        }
+        // Not fatal (the rest of the app works), but every assistant question would fail.
+        const mismatch = llmModelMismatch(config);
+        if (mismatch) new Logger('Bootstrap').error(mismatch);
     }
     if (missing.length > 0) {
         throw new Error(

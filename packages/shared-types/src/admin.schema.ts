@@ -46,6 +46,10 @@ export const AdminOverviewSchema = z.object({
     nodeVersion: z.string(),
     environment: z.string(),
     aiEnabled: z.boolean(),
+    /** The assistant's spend today (Dublin day) against its daily limit, in USD; null when it can't be read. */
+    aiSpend: z
+        .object({ spentUsd: z.number(), dailyLimitUsd: z.number() })
+        .nullable(),
     health: z.array(HealthItemSchema),
     /** False when Redis is down: the traffic history below is then empty rather than wrong. */
     metricsAvailable: z.boolean(),

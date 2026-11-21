@@ -1100,6 +1100,8 @@ var AdminOverviewSchema = z10.object({
   nodeVersion: z10.string(),
   environment: z10.string(),
   aiEnabled: z10.boolean(),
+  /** The assistant's spend today (Dublin day) against its daily limit, in USD; null when it can't be read. */
+  aiSpend: z10.object({ spentUsd: z10.number(), dailyLimitUsd: z10.number() }).nullable(),
   health: z10.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
   metricsAvailable: z10.boolean(),
@@ -2608,8 +2610,10 @@ var AiCitationSchema = z16.object({
 });
 var AiUsageSchema = z16.object({
   inputTokens: z16.number().int(),
-  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  /** The part of the input served from the model vendor's prompt cache (billed at a fraction). */
   cachedInputTokens: z16.number().int(),
+  /** The part of the input written to the prompt cache (some vendors bill it above the normal input rate). */
+  cacheWriteInputTokens: z16.number().int().optional(),
   outputTokens: z16.number().int()
 });
 var AiSpotNoteSchema = z16.object({

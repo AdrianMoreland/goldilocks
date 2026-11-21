@@ -2310,6 +2310,7 @@ type AiCitation = z.infer<typeof AiCitationSchema>;
 declare const AiUsageSchema: z.ZodObject<{
     inputTokens: z.ZodNumber;
     cachedInputTokens: z.ZodNumber;
+    cacheWriteInputTokens: z.ZodOptional<z.ZodNumber>;
     outputTokens: z.ZodNumber;
 }, z.core.$strip>;
 type AiUsage = z.infer<typeof AiUsageSchema>;
@@ -2348,6 +2349,7 @@ declare const AskResponseSchema: z.ZodObject<{
     usage: z.ZodObject<{
         inputTokens: z.ZodNumber;
         cachedInputTokens: z.ZodNumber;
+        cacheWriteInputTokens: z.ZodOptional<z.ZodNumber>;
         outputTokens: z.ZodNumber;
     }, z.core.$strip>;
     latencyMs: z.ZodNumber;
@@ -2411,6 +2413,7 @@ declare const AskStreamEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         usage: z.ZodObject<{
             inputTokens: z.ZodNumber;
             cachedInputTokens: z.ZodNumber;
+            cacheWriteInputTokens: z.ZodOptional<z.ZodNumber>;
             outputTokens: z.ZodNumber;
         }, z.core.$strip>;
         latencyMs: z.ZodNumber;
@@ -2480,6 +2483,10 @@ declare const AdminOverviewSchema: z.ZodObject<{
     nodeVersion: z.ZodString;
     environment: z.ZodString;
     aiEnabled: z.ZodBoolean;
+    aiSpend: z.ZodNullable<z.ZodObject<{
+        spentUsd: z.ZodNumber;
+        dailyLimitUsd: z.ZodNumber;
+    }, z.core.$strip>>;
     health: z.ZodArray<z.ZodObject<{
         key: z.ZodString;
         label: z.ZodString;

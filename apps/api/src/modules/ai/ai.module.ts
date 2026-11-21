@@ -23,7 +23,7 @@ import { ToolRegistry } from './tools/tool.registry';
 /**
  * The internal AI assistant (roadmap 1.5; plan in docs/AI-AGENT-PLAN.md).
  * Depends on Knowledge (to read approved SOPs) and on the LLM port; nothing
- * depends on it. Owns the ai_question_logs and ai_answer_cache tables and the
+ * depends on it except the admin overview, which reads today's spend. Owns the ai_question_logs and ai_answer_cache tables and the
  * per-user limits; the price/branch tools join here in phase 3.
  */
 @Module({
@@ -37,6 +37,8 @@ import { ToolRegistry } from './tools/tool.registry';
         RedisModule,
     ],
     controllers: [AiController],
+    // The admin overview shows today's spend against the daily limit.
+    exports: [AiSettings, QuestionLogService],
     providers: [
         AskService,
         AskStreamResponder,

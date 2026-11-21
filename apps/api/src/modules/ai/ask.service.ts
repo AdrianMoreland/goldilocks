@@ -26,7 +26,7 @@ import { AnswerCacheService } from './answer-cache.service';
 import { interpretAnswer } from './answer-interpreter';
 import { costMicros, usdToMicros } from './cost.calculator';
 import { interpretDraft } from './draft-interpreter';
-import { startOfDublinDay } from './dublin-day';
+import { dublinDate, startOfDublinDay } from './dublin-day';
 import { normaliseQuestion, scrubPersonalData } from './privacy-scrubber';
 import { modeInstructions } from './prompt-builder';
 import { QuestionLogService } from './question-log.service';
@@ -45,12 +45,22 @@ const NO_DRAFT =
 const CITATION_REMINDER =
     'Reminder: cite the section you rely on as [[slug#section]], using only sections shown in the procedures. If no procedure covers this, reply with NO_ANSWER: and one short sentence.';
 
-/** A customer asking about four products needs four lookups, which the model may make in one round or several. */
-const MAX_TOOL_ROUNDS = 3;
-/** A drafted email is longer than a procedure answer. */
-const DRAFT_MIN_OUTPUT_TOKENS = 900;
+/**
+ * Hard cap on model calls for one message, counting tool rounds and the
+ * citation retry. A customer asking about four products needs four lookups,
+ * which the model may make in one round or several; the last allowed call
+ * withdraws the lookups so it has to answer. Nothing can loop.
+ */
+export const MAX_MODEL_CALLS = 4;
+/** Today's spend above this share of the daily limit is logged as a warning. */
+const BUDGET_WARNING_SHARE = 0.8;
 
-const NO_USAGE = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+const NO_USAGE: LlmResult['usage'] = {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    cacheWriteInputTokens: 0,
+    outputTokens: 0,
+};
 
 function addUsage(
     a: LlmResult['usage'],
@@ -59,6 +69,8 @@ function addUsage(
     return {
         inputTokens: a.inputTokens + b.inputTokens,
         cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
+        cacheWriteInputTokens:
+            (a.cacheWriteInputTokens ?? 0) + (b.cacheWriteInputTokens ?? 0),
         outputTokens: a.outputTokens + b.outputTokens,
     };
 }
@@ -97,6 +109,8 @@ export type AskEvent =
 @Injectable()
 export class AskService {
     private readonly logger = new Logger(AskService.name);
+    /** The Dublin day the 80%-of-budget warning was last logged. */
+    private budgetWarnedOn: string | null = null;
 
     constructor(
         @Inject(LLM_PROVIDER) private readonly llm: LlmPort,
@@ -145,6 +159,18 @@ export class AskService {
         // What is known so far, so a failure can still be logged with the right question and corpus.
         let loggedQuestion = '';
         let corpusHash = '';
+        // What the model calls have cost so far, priced call by call (a vendor's long-prompt rate applies per
+        // call, never to the sum), so a failure part-way through is still charged to the daily budget.
+        let spentUsage: LlmResult['usage'] = NO_USAGE;
+        let spentMicros = 0;
+        const charge = (model: string, usage: LlmResult['usage']) => {
+            spentUsage = addUsage(spentUsage, usage);
+            spentMicros += costMicros(
+                model,
+                usage,
+                this.settings.priceOverride,
+            );
+        };
 
         try {
             const prompt = await this.context.load(question);
@@ -181,13 +207,7 @@ export class AskService {
                 const cached = result.cached ?? false;
                 const retried = result.retried ?? false;
                 const toolsUsed = result.toolsUsed ?? [];
-                const cost = cached
-                    ? 0
-                    : costMicros(
-                          result.model,
-                          result.usage,
-                          this.settings.priceOverride,
-                      );
+                const cost = cached ? 0 : spentMicros;
                 await this.questionLog.record({
                     userId: actor.id,
                     question: loggedQuestion,
@@ -209,7 +229,7 @@ export class AskService {
                 });
                 // The question text is deliberately not logged: staff may type a customer's name into it.
                 this.logger.log(
-                    `[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`,
+                    `[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/written/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.cacheWriteInputTokens ?? 0}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`,
                 );
                 return {
                     answer: result.answer,
@@ -269,7 +289,7 @@ export class AskService {
             const maxOutputTokens = isDraft
                 ? Math.max(
                       this.settings.maxOutputTokens,
-                      DRAFT_MIN_OUTPUT_TOKENS,
+                      this.settings.draftMaxOutputTokens,
                   )
                 : this.settings.maxOutputTokens;
             const toolContext: AiToolContext = {
@@ -283,19 +303,22 @@ export class AskService {
             const toolsUsed: string[] = [];
             // A refusal starts with a marker that is an instruction to the server, so its first characters are held back.
             const gate = isDraft ? null : new RefusalGate();
-            let usage = NO_USAGE;
             let result: LlmResult | undefined;
+            let modelCalls = 0;
 
-            for (let round = 0; ; round++) {
-                // On the last round the lookups are withdrawn, so the model has to answer with what it has.
-                const lastRound = round >= MAX_TOOL_ROUNDS;
+            for (;;) {
+                // On the last allowed call the lookups are withdrawn (still declared, so the cached prefix is
+                // unchanged), and the model has to answer with what it has.
+                const lastRound = modelCalls >= MAX_MODEL_CALLS - 1;
                 let step: LlmResult | undefined;
 
+                modelCalls += 1;
                 for await (const event of this.llm.stream({
                     system,
                     user: question,
                     maxOutputTokens,
-                    tools: lastRound ? undefined : toolSpecs,
+                    tools: toolSpecs,
+                    toolChoice: lastRound ? 'none' : 'auto',
                     turns,
                     signal,
                 })) {
@@ -315,10 +338,10 @@ export class AskService {
                     );
                 }
 
-                usage = addUsage(usage, step.usage);
+                charge(step.model, step.usage);
                 const calls = step.toolCalls ?? [];
                 if (calls.length === 0 || lastRound) {
-                    result = { ...step, usage };
+                    result = { ...step, usage: spentUsage };
                     break;
                 }
 
@@ -326,6 +349,7 @@ export class AskService {
                     role: 'assistant',
                     content: step.text,
                     toolCalls: calls,
+                    replay: step.replay,
                 });
                 for (const call of calls) {
                     yield { type: 'tool', name: call.name };
@@ -392,19 +416,24 @@ export class AskService {
 
             // One retry, only for an answer that cited nothing valid: the model usually fixes it when reminded, and the prefix is cached so it is cheap.
             let retried = false;
-            if (interpreted.status === 'uncited') {
+            if (
+                interpreted.status === 'uncited' &&
+                modelCalls < MAX_MODEL_CALLS
+            ) {
                 retried = true;
+                modelCalls += 1;
                 const second = await this.llm.generate({
                     system,
                     user: `${question}\n\n${CITATION_REMINDER}`,
                     maxOutputTokens,
+                    // Declared but not callable: the same prefix as the first call, so it is read from the cache.
+                    tools: toolSpecs,
+                    toolChoice: 'none',
                     signal,
                 });
+                charge(second.model, second.usage);
                 const again = interpretAnswer(second.text, prompt);
-                result = {
-                    ...second,
-                    usage: addUsage(result.usage, second.usage),
-                };
+                result = { ...second, usage: spentUsage };
                 // Keep the retry only if it improved things; otherwise the first, uncited answer stands and still carries its warning.
                 if (again.status !== 'uncited') interpreted = again;
             }
@@ -447,6 +476,9 @@ export class AskService {
 
             yield { type: 'done', response };
         } catch (error) {
+            if (error instanceof LlmError && error.usage) {
+                charge(error.model ?? this.llm.model, error.usage);
+            }
             await this.logFailure(
                 actor,
                 mode,
@@ -454,6 +486,7 @@ export class AskService {
                 corpusHash,
                 started,
                 error,
+                { usage: spentUsage, micros: spentMicros },
                 signal,
             );
             throw this.toHttpError(error);
@@ -464,10 +497,34 @@ export class AskService {
 
     /** Pauses the assistant - not the app - once today's spend reaches the configured ceiling. */
     private async assertUnderBudget(): Promise<void> {
-        const spent = await this.questionLog.spentSince(
-            startOfDublinDay(new Date()),
-        );
-        if (spent >= usdToMicros(this.settings.dailyBudgetUsd)) {
+        let spent: number;
+        try {
+            spent = await this.questionLog.spentSince(
+                startOfDublinDay(new Date()),
+            );
+        } catch (error) {
+            // A breaker that cannot count must not guess "zero": refuse, as the per-user limits do without Redis.
+            this.logger.error(
+                `Today's assistant spend could not be read, so the assistant refused: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            throw new ServiceUnavailableException(
+                "The assistant is unavailable right now: its spending limit can't be checked. Try again shortly.",
+            );
+        }
+        const limit = usdToMicros(this.settings.dailyBudgetUsd);
+        const today = dublinDate(new Date());
+        if (
+            spent >= limit * BUDGET_WARNING_SHARE &&
+            spent < limit &&
+            this.budgetWarnedOn !== today
+        ) {
+            // Once a day per API process, not on every question.
+            this.budgetWarnedOn = today;
+            this.logger.warn(
+                `The assistant has spent $${(spent / 1_000_000).toFixed(2)} today, over ${BUDGET_WARNING_SHARE * 100}% of its $${this.settings.dailyBudgetUsd} daily limit.`,
+            );
+        }
+        if (spent >= limit) {
             this.logger.error(
                 `The assistant's daily budget of $${this.settings.dailyBudgetUsd} has been reached; it is paused until tomorrow.`,
             );
@@ -484,6 +541,7 @@ export class AskService {
         corpusHash: string,
         started: number,
         error: unknown,
+        spent: { usage: LlmResult['usage']; micros: number },
         signal?: AbortSignal,
     ): Promise<void> {
         // Refusals by the budget breaker and the like are already HTTP answers, not faults to record.
@@ -500,10 +558,11 @@ export class AskService {
             citations: [],
             model: this.llm.model,
             corpusHash,
-            inputTokens: 0,
-            cachedInputTokens: 0,
-            outputTokens: 0,
-            costMicros: 0,
+            // Calls that ran before the failure were billed, so they count towards the daily budget.
+            inputTokens: spent.usage.inputTokens,
+            cachedInputTokens: spent.usage.cachedInputTokens,
+            outputTokens: spent.usage.outputTokens,
+            costMicros: spent.micros,
             latencyMs: Date.now() - started,
             error: signal?.aborted
                 ? 'cancelled'
@@ -528,10 +587,10 @@ export class AskService {
                 );
             case 'out_of_credit':
                 this.logger.error(
-                    `The assistant's OpenAI account is out of credit: ${error.message}`,
+                    `The assistant's model account is out of credit: ${error.message}`,
                 );
                 return new ServiceUnavailableException(
-                    'The assistant is unavailable: its OpenAI account has no credit left. An admin needs to top it up.',
+                    'The assistant is unavailable: its model provider account has no credit left. An admin needs to top it up.',
                 );
             case 'rejected':
                 return new UnprocessableEntityException(
