@@ -97,18 +97,18 @@ export class TradeService {
             customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / GRAMS_PER_TROY_OUNCE;
 
-        // Each item's product lookup is independent of the others - fetch
-        // them all in parallel instead of one round-trip per cart line.
-        const products = await Promise.all(
-            items.map((item) => this.productsService.findById(item.productId)),
-        );
+        // One query for the distinct products of the cart, however many lines it has.
+        const found = await this.productsService.findByIds([
+            ...new Set(items.map((item) => item.productId)),
+        ]);
+        const productById = new Map(found.map((p) => [p.id, p]));
 
         let totalWeight = 0;
         let totalPrice = 0;
         const lines: TradeCartLine[] = [];
 
-        items.forEach((item, index) => {
-            const product = products[index];
+        items.forEach((item) => {
+            const product = productById.get(item.productId);
 
             if (!product) {
                 throw new NotFoundException(

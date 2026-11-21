@@ -20,7 +20,7 @@ describe('TradeService.calculateCart VAT', () => {
             {
                 getLatest: jest.fn().mockResolvedValue({ priceEur: SPOT }),
             } as never,
-            { findById: jest.fn().mockResolvedValue(found) } as never,
+            { findByIds: jest.fn().mockResolvedValue([found]) } as never,
         );
 
     const request = (
@@ -69,5 +69,54 @@ describe('TradeService.calculateMelt rounding', () => {
         });
         expect(melt.meltValue).toBe(Math.floor(melt.meltValue));
         expect(melt.meltValue).toBeGreaterThan(0);
+    });
+});
+
+describe('TradeService.calculateCart product lookup', () => {
+    const product = (id: number) => ({
+        id,
+        sku: `X${id}`,
+        name: `Silver Bar ${id}`,
+        metalType: 'SILVER',
+        weight: GRAMS_PER_TROY_OUNCE,
+        vatRate: 0.23,
+    });
+    const build = (found: ReturnType<typeof product>[]) => {
+        const findByIds = jest.fn().mockResolvedValue(found);
+        const service = new TradeService(
+            {
+                getLatest: jest.fn().mockResolvedValue({ priceEur: 50 }),
+            } as never,
+            { findByIds } as never,
+        );
+        return { service, findByIds };
+    };
+    const line = (productId: number) => ({
+        productId,
+        percent: 5,
+        quantity: 1,
+    });
+
+    it('loads the products of a cart in one lookup over distinct ids', async () => {
+        const { service, findByIds } = build([product(1), product(2)]);
+        const cart = await service.calculateCart({
+            metalType: 'SILVER',
+            transactionType: 'buying',
+            items: [line(1), line(2), line(1)],
+        });
+        expect(findByIds).toHaveBeenCalledTimes(1);
+        expect(findByIds).toHaveBeenCalledWith([1, 2]);
+        expect(cart.lines).toHaveLength(3);
+    });
+
+    it('still reports a product that was not found', async () => {
+        const { service } = build([product(1)]);
+        await expect(
+            service.calculateCart({
+                metalType: 'SILVER',
+                transactionType: 'buying',
+                items: [line(1), line(9)],
+            }),
+        ).rejects.toThrow('Product 9 not found.');
     });
 });
