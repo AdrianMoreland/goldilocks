@@ -10,28 +10,29 @@ datasource db {
 model User {
   /// @description Unique numeric user identifier
   /// @example 123
-  id          String    @id @default(uuid())
+  id                  String                   @id @default(uuid())
   /// @description the username
-  email       String    @unique
-  firstName   String
-  lastName    String
+  email               String                   @unique
+  firstName           String
+  lastName            String
   /// @description the hashed password of the user\'s account
-  password    String
-  role        UserRole
+  password            String
+  role                UserRole
   /// @description Indicates if the user is allowed to use the application
-  isActive    Boolean   @default(true)
+  isActive            Boolean                  @default(true)
   /// @description Indicates if the user is an admin or not
-  admin       Boolean   @default(false)
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
-  lastLoginAt DateTime?
+  admin               Boolean                  @default(false)
+  createdAt           DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime                 @updatedAt @db.Timestamptz(6)
+  lastLoginAt         DateTime?
   /// The look this person chose (light or dark, theme, font, text size, density), so it follows them to any browser.
   /// Null until they first change it; the app then uses its defaults (dark). Shape: UiSettingsSchema in shared-types.
-  uiSettings  Json?
+  uiSettings          Json?
   /// The branch this person works from. Null behaves as an Irish branch (see branch-access.ts in
   /// shared-types), so accounts that predate branches keep what they had.
-  branchId    Int?
-  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId            Int?
+  branch              Branch?                  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  permissionOverrides UserPermissionOverride[]
 
   @@index([branchId])
   @@map("users")
@@ -250,20 +251,20 @@ enum KbStatus {
 /// already scrubbed of names, emails and phone numbers; the answer and any live prices are
 /// never stored here. Purged after AI_LOG_RETENTION_DAYS.
 model AiQuestionLog {
-  id                Int      @id @default(autoincrement())
-  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  id                Int          @id @default(autoincrement())
+  createdAt         DateTime     @default(now()) @db.Timestamptz(6)
   userId            String
   /// Scrubbed text — see privacy-scrubber.ts.
   question          String
   /// answered | refused | uncited | error
   status            String
   /// procedures | email | whatsapp. For the last two, `question` holds a placeholder, not the customer's message.
-  mode              String   @default("procedures")
+  mode              String       @default("procedures")
   /// Live lookups the answer used (getSpot, findProductPrices); never their results.
   toolNames         String[]
-  cached            Boolean  @default(false)
+  cached            Boolean      @default(false)
   /// True when the first answer cited nothing and a second model call was made.
-  retried           Boolean  @default(false)
+  retried           Boolean      @default(false)
   /// "slug#anchor" for each section the answer cited.
   citations         String[]
   model             String
@@ -276,6 +277,7 @@ model AiQuestionLog {
   latencyMs         Int
   /// Failure kind when status is "error" (unavailable, out_of_credit, …).
   error             String?
+  feedback          AiFeedback[]
 
   @@index([createdAt])
   @@index([userId, createdAt])
@@ -1786,4 +1788,64 @@ model SheetApplication {
   @@unique([kind, referenceKey, occurrence])
   @@index([status])
   @@map("sheet_applications")
+}
+
+/// The starting permissions of a role (a role preset). One row per role and permission key; keys are the
+/// PERMISSION_KEYS list in shared-types, stored as text so a removed key is simply ignored.
+model RolePermission {
+  role      UserRole
+  key       String
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@id([role, key])
+  @@map("role_permissions")
+}
+
+/// One person's grant or removal of one permission on top of their role preset. Ignored once expiresAt has passed.
+model UserPermissionOverride {
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  granted   Boolean
+  expiresAt DateTime? @db.Timestamptz(6)
+  reason    String
+  createdBy String
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@id([userId, key])
+  @@index([userId])
+  @@map("user_permission_overrides")
+}
+
+/// Each active product's Price and Buyback once a day, so premium and spread history can be charted.
+model ProductPriceSnapshot {
+  id           BigInt    @id @default(autoincrement())
+  day          DateTime  @db.Date
+  productId    Int
+  metalType    MetalType
+  spotEur      Decimal   @db.Decimal(18, 6)
+  spreadSell   Decimal   @db.Decimal(5, 4)
+  spreadBuy    Decimal   @db.Decimal(5, 4)
+  sellPriceEur Decimal   @db.Decimal(18, 2)
+  buyPriceEur  Decimal   @db.Decimal(18, 2)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([productId, day])
+  @@index([day])
+  @@map("product_price_snapshots")
+}
+
+/// A thumbs up or down on one assistant answer. One per person per answer; changing your mind updates it.
+model AiFeedback {
+  id         Int           @id @default(autoincrement())
+  questionId Int
+  question   AiQuestionLog @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String
+  helpful    Boolean
+  createdAt  DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@unique([questionId, userId])
+  @@index([createdAt])
+  @@map("ai_feedback")
 }
