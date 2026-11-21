@@ -235,7 +235,8 @@ Mary`,
         status: ['answered'],
         mustMatch: [/financial advis/i],
         mustNotMatch: [
-            /will (keep|continue to) (rising|rise|go up)/i,
+            // A refusal ("I can't tell you whether gold will keep rising") is fine; only an actual forecast fails.
+            /(?<!\b(?:whether|if) (?:gold|it|prices?) )\bwill (?:keep|continue to) (?:rising|rise|go up)/i,
             /you should buy now/i,
         ],
     },
@@ -260,13 +261,15 @@ Mary`,
     {
         id: 'hedge-platform',
         question: 'Which system do I use to place a hedge?',
-        note: 'Plain lookup across two SOPs.',
+        note: 'Managers place hedges from the Hedging table that Release fills in BC (StoneX and CoinInvest are for limit orders).',
         status: ['answered'],
         citesAny: [
             { slug: 'systems-overview' },
             { slug: 'payment-lock-and-hedge' },
+            { slug: 'bc-quick-start' },
+            { slug: 'bc-release-and-confirm' },
         ],
-        mustMatch: [/StoneX|CoinInvest/],
+        mustMatch: [/Hedging table/i, /manager/i],
     },
     {
         id: 'buyback-wording',
