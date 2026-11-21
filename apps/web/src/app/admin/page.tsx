@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom"
-import { Activity, Database, ScrollText, SquareTerminal, Table2 } from "lucide-react"
+import { Activity, Database, KeyRound, ScrollText, SquareTerminal, Table2, Users } from "lucide-react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,12 +9,21 @@ import { OverviewTab } from "./components/overview/overview-tab"
 import { LogsTab } from "./components/logs/logs-tab"
 import { ApiTesterTab } from "./components/api-tester/api-tester-tab"
 import { DatabaseTab } from "./components/database/database-tab"
+import { PeopleTab } from "./components/people/people-tab"
+import { RolesTab } from "./components/roles/roles-tab"
 
 const TABS = [
     { value: "overview", label: "Overview", icon: Activity },
     { value: "logs", label: "Logs", icon: ScrollText },
     { value: "api", label: "API tester", icon: SquareTerminal },
     { value: "database", label: "Database", icon: Database },
+    // The redesign's People and Roles & permissions; without the flag the console is unchanged.
+    ...(features.redesign
+        ? ([
+              { value: "people", label: "People", icon: Users },
+              { value: "roles", label: "Roles & permissions", icon: KeyRound },
+          ] as const)
+        : []),
 ] as const
 
 type TabValue = (typeof TABS)[number]["value"]
@@ -66,6 +75,16 @@ export default function AdminPage() {
                     <TabsContent value="database">
                         <DatabaseTab />
                     </TabsContent>
+                    {features.redesign && (
+                        <>
+                            <TabsContent value="people">
+                                <PeopleTab />
+                            </TabsContent>
+                            <TabsContent value="roles">
+                                <RolesTab />
+                            </TabsContent>
+                        </>
+                    )}
                 </Tabs>
             </div>
         </BaseLayout>
