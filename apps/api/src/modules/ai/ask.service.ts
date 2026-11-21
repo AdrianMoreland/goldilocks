@@ -45,12 +45,22 @@ const NO_DRAFT =
 const CITATION_REMINDER =
     'Reminder: cite the section you rely on as [[slug#section]], using only sections shown in the procedures. If no procedure covers this, reply with NO_ANSWER: and one short sentence.';
 
-/** A customer asking about four products needs four lookups, which the model may make in one round or several. */
-const MAX_TOOL_ROUNDS = 3;
-/** A drafted email is longer than a procedure answer. */
-const DRAFT_MIN_OUTPUT_TOKENS = 900;
+/**
+ * Hard cap on model calls for one message, counting tool rounds and the
+ * citation retry. A customer asking about four products needs four lookups,
+ * which the model may make in one round or several; the last allowed call
+ * withdraws the lookups so it has to answer. Nothing can loop.
+ */
+export const MAX_MODEL_CALLS = 4;
+/** Today's spend above this share of the daily limit is logged as a warning. */
+const BUDGET_WARNING_SHARE = 0.8;
 
-const NO_USAGE = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+const NO_USAGE: LlmResult['usage'] = {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    cacheWriteInputTokens: 0,
+    outputTokens: 0,
+};
 
 function addUsage(
     a: LlmResult['usage'],
@@ -59,6 +69,8 @@ function addUsage(
     return {
         inputTokens: a.inputTokens + b.inputTokens,
         cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
+        cacheWriteInputTokens:
+            (a.cacheWriteInputTokens ?? 0) + (b.cacheWriteInputTokens ?? 0),
         outputTokens: a.outputTokens + b.outputTokens,
     };
 }
@@ -269,7 +281,7 @@ export class AskService {
             const maxOutputTokens = isDraft
                 ? Math.max(
                       this.settings.maxOutputTokens,
-                      DRAFT_MIN_OUTPUT_TOKENS,
+                      this.settings.draftMaxOutputTokens,
                   )
                 : this.settings.maxOutputTokens;
             const toolContext: AiToolContext = {
@@ -285,17 +297,21 @@ export class AskService {
             const gate = isDraft ? null : new RefusalGate();
             let usage = NO_USAGE;
             let result: LlmResult | undefined;
+            let modelCalls = 0;
 
-            for (let round = 0; ; round++) {
-                // On the last round the lookups are withdrawn, so the model has to answer with what it has.
-                const lastRound = round >= MAX_TOOL_ROUNDS;
+            for (;;) {
+                // On the last allowed call the lookups are withdrawn (still declared, so the cached prefix is
+                // unchanged), and the model has to answer with what it has.
+                const lastRound = modelCalls >= MAX_MODEL_CALLS - 1;
                 let step: LlmResult | undefined;
 
+                modelCalls += 1;
                 for await (const event of this.llm.stream({
                     system,
                     user: question,
                     maxOutputTokens,
-                    tools: lastRound ? undefined : toolSpecs,
+                    tools: toolSpecs,
+                    toolChoice: lastRound ? 'none' : 'auto',
                     turns,
                     signal,
                 })) {
@@ -326,6 +342,7 @@ export class AskService {
                     role: 'assistant',
                     content: step.text,
                     toolCalls: calls,
+                    replay: step.replay,
                 });
                 for (const call of calls) {
                     yield { type: 'tool', name: call.name };
@@ -392,12 +409,19 @@ export class AskService {
 
             // One retry, only for an answer that cited nothing valid: the model usually fixes it when reminded, and the prefix is cached so it is cheap.
             let retried = false;
-            if (interpreted.status === 'uncited') {
+            if (
+                interpreted.status === 'uncited' &&
+                modelCalls < MAX_MODEL_CALLS
+            ) {
                 retried = true;
+                modelCalls += 1;
                 const second = await this.llm.generate({
                     system,
                     user: `${question}\n\n${CITATION_REMINDER}`,
                     maxOutputTokens,
+                    // Declared but not callable: the same prefix as the first call, so it is read from the cache.
+                    tools: toolSpecs,
+                    toolChoice: 'none',
                     signal,
                 });
                 const again = interpretAnswer(second.text, prompt);
@@ -464,10 +488,27 @@ export class AskService {
 
     /** Pauses the assistant - not the app - once today's spend reaches the configured ceiling. */
     private async assertUnderBudget(): Promise<void> {
-        const spent = await this.questionLog.spentSince(
-            startOfDublinDay(new Date()),
-        );
-        if (spent >= usdToMicros(this.settings.dailyBudgetUsd)) {
+        let spent: number;
+        try {
+            spent = await this.questionLog.spentSince(
+                startOfDublinDay(new Date()),
+            );
+        } catch (error) {
+            // A breaker that cannot count must not guess "zero": refuse, as the per-user limits do without Redis.
+            this.logger.error(
+                `Today's assistant spend could not be read, so the assistant refused: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            throw new ServiceUnavailableException(
+                "The assistant is unavailable right now: its spending limit can't be checked. Try again shortly.",
+            );
+        }
+        const limit = usdToMicros(this.settings.dailyBudgetUsd);
+        if (spent >= limit * BUDGET_WARNING_SHARE && spent < limit) {
+            this.logger.warn(
+                `The assistant has spent $${(spent / 1_000_000).toFixed(2)} today, over ${BUDGET_WARNING_SHARE * 100}% of its $${this.settings.dailyBudgetUsd} daily limit.`,
+            );
+        }
+        if (spent >= limit) {
             this.logger.error(
                 `The assistant's daily budget of $${this.settings.dailyBudgetUsd} has been reached; it is paused until tomorrow.`,
             );
@@ -528,10 +569,10 @@ export class AskService {
                 );
             case 'out_of_credit':
                 this.logger.error(
-                    `The assistant's OpenAI account is out of credit: ${error.message}`,
+                    `The assistant's model account is out of credit: ${error.message}`,
                 );
                 return new ServiceUnavailableException(
-                    'The assistant is unavailable: its OpenAI account has no credit left. An admin needs to top it up.',
+                    'The assistant is unavailable: its model provider account has no credit left. An admin needs to top it up.',
                 );
             case 'rejected':
                 return new UnprocessableEntityException(

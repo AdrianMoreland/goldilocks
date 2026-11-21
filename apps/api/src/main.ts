@@ -33,11 +33,17 @@ function validateEnv(config: ConfigService): void {
         (key) => !config.get<string>(key),
     );
     // The assistant's key is only required once the assistant is switched on.
+    const aiKey =
+        (config.get<string>('AI_PROVIDER') || 'anthropic')
+            .trim()
+            .toLowerCase() === 'openai'
+            ? 'OPENAI_API_KEY'
+            : 'ANTHROPIC_API_KEY';
     if (
         config.get<string>('AI_ENABLED') === 'true' &&
-        !config.get<string>('OPENAI_API_KEY')
+        !config.get<string>(aiKey)
     ) {
-        missing.push('OPENAI_API_KEY (required because AI_ENABLED=true)');
+        missing.push(`${aiKey} (required because AI_ENABLED=true)`);
     }
     if (missing.length > 0) {
         throw new Error(

@@ -368,6 +368,9 @@ __export(index_exports, {
   SAFE_STATUSES: () => SAFE_STATUSES,
   SALE_FIELDS: () => SALE_FIELDS,
   SHEETS: () => SHEETS,
+  SPOT_FETCH_INTERVAL_MS: () => SPOT_FETCH_INTERVAL_MS,
+  SPOT_LATE_AFTER_MS: () => SPOT_LATE_AFTER_MS,
+  SPOT_RED_AFTER_MS: () => SPOT_RED_AFTER_MS,
   SPOT_STALE_AFTER_MS: () => SPOT_STALE_AFTER_MS,
   STEP_ROLE: () => STEP_ROLE,
   STOCK_METALS: () => STOCK_METALS,
@@ -400,6 +403,7 @@ __export(index_exports, {
   SpotPriceArraySchema: () => SpotPriceArraySchema,
   SpotPriceMapSchema: () => SpotPriceMapSchema,
   SpotPriceSchema: () => SpotPriceSchema,
+  SpotStatusResponseSchema: () => SpotStatusResponseSchema,
   StockMetalEnum: () => StockMetalEnum,
   StockMetalSchema: () => StockMetalSchema,
   StocktakeBarSchema: () => StocktakeBarSchema,
@@ -525,6 +529,7 @@ __export(index_exports, {
   isPhysicallyHere: () => isPhysicallyHere,
   isRealSerial: () => isRealSerial,
   isReferenceCell: () => isReferenceCell,
+  isSpotMarketClosed: () => isSpotMarketClosed,
   isStopStep: () => isStopStep,
   itemStatusAfter: () => itemStatusAfter,
   kbArticlePath: () => kbArticlePath,
@@ -625,6 +630,7 @@ __export(index_exports, {
   splitScopeBundle: () => splitScopeBundle,
   splitSections: () => splitSections,
   splitSerials: () => splitSerials,
+  spotFreshness: () => spotFreshness,
   spotLookup: () => spotLookup,
   stripHeader: () => stripHeader2,
   suggestProductForBcItem: () => suggestProductForBcItem,
@@ -868,8 +874,12 @@ var MarketDataResponseSchema = import_zod5.z.object({
   spotPrices: import_zod5.z.array(SpotPriceSchema),
   historicSpot: import_zod5.z.array(HistoricSpotSchema),
   products: import_zod5.z.array(ProductSchema),
-  /** The actual timestamp of the spot-price snapshot being shown - the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
-  fetchedAt: import_zod5.z.iso.datetime(),
+  /** When the market price shown was struck: the vendor's own time, the oldest across spotPrices. Null when there is no price. Not when we fetched it, and not when this request ran. */
+  snapshotAt: import_zod5.z.iso.datetime().nullable(),
+  /** When we last received these prices from the vendor: the oldest fetch time across spotPrices. The freshness dot follows this. Null when there is no price. */
+  lastFetchAt: import_zod5.z.iso.datetime().nullable(),
+  /** True while the price cron is paused: nothing refreshes the prices until someone clicks Refresh. */
+  autoRefreshPaused: import_zod5.z.boolean(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
    * live API without finding a usable (non-zero, non-stale) price, so the
@@ -881,10 +891,16 @@ var MarketDataResponseSchema = import_zod5.z.object({
   /** Same information as priceWarning, structured - lets the UI mark individual metal cards as failed rather than only showing one combined text warning. */
   degradedMetals: import_zod5.z.array(MetalTypeEnum)
 });
+var SpotStatusResponseSchema = MarketDataResponseSchema.pick({
+  snapshotAt: true,
+  lastFetchAt: true,
+  autoRefreshPaused: true,
+  degradedMetals: true
+});
 var RefreshResponseSchema = import_zod5.z.object({
   spot: SpotPriceSchema,
   products: import_zod5.z.array(ProductSchema),
-  fetchedAt: import_zod5.z.iso.datetime()
+  snapshotAt: import_zod5.z.iso.datetime().nullable()
 });
 var RecalculateOverridesSchema = import_zod5.z.object({
   GOLD: import_zod5.z.number().positive().optional(),
@@ -1140,6 +1156,44 @@ function computeRequiredSpotForTarget(purchasePrice, targetProfit, productMultip
   const requiredSpot = requiredDenominator > 0 ? requiredPrice / requiredDenominator : 0;
   const targetReturn = purchasePrice !== 0 ? targetProfit / purchasePrice * 100 : 0;
   return { requiredPrice, requiredSpot, targetReturn };
+}
+
+// src/spot-freshness.ts
+var SPOT_FETCH_INTERVAL_MS = 5 * 60 * 1e3;
+var SPOT_LATE_AFTER_MS = SPOT_FETCH_INTERVAL_MS + 60 * 1e3;
+var SPOT_RED_AFTER_MS = 25 * 60 * 1e3;
+var MAX_WEEKEND_GAP_MS = 50 * 60 * 60 * 1e3;
+var LONDON_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  weekday: "short",
+  hour: "2-digit",
+  hourCycle: "h23"
+});
+function isSpotMarketClosed(at) {
+  const parts = LONDON_PARTS.formatToParts(at);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  if (weekday === "Sat") return true;
+  if (weekday === "Fri") return hour >= 22;
+  if (weekday === "Sun") return hour < 23;
+  return false;
+}
+function ageMs(iso, now) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime();
+  return Number.isFinite(ms) ? Math.max(0, now.getTime() - ms) : null;
+}
+function spotFreshness(input) {
+  const { snapshotAt, now } = input;
+  const priceAgeMs = ageMs(snapshotAt, now);
+  if (priceAgeMs === null || !snapshotAt) {
+    return { state: "unknown", priceAgeMs: null, fetchAgeMs: null };
+  }
+  const fetchAgeMs = ageMs(input.lastFetchAt, now) ?? priceAgeMs;
+  if (fetchAgeMs <= SPOT_LATE_AFTER_MS) return { state: "fresh", priceAgeMs, fetchAgeMs };
+  const isClosingPrice = isSpotMarketClosed(now) && priceAgeMs < MAX_WEEKEND_GAP_MS && isSpotMarketClosed(new Date(new Date(snapshotAt).getTime() + SPOT_RED_AFTER_MS));
+  if (isClosingPrice) return { state: "closed", priceAgeMs, fetchAgeMs };
+  return { state: fetchAgeMs >= SPOT_RED_AFTER_MS ? "stale" : "late", priceAgeMs, fetchAgeMs };
 }
 
 // src/product-pricing.ts
@@ -1686,6 +1740,8 @@ var AdminOverviewSchema = import_zod10.z.object({
   nodeVersion: import_zod10.z.string(),
   environment: import_zod10.z.string(),
   aiEnabled: import_zod10.z.boolean(),
+  /** The assistant's spend today (Dublin day) against its daily limit, in USD; null when it can't be read. */
+  aiSpend: import_zod10.z.object({ spentUsd: import_zod10.z.number(), dailyLimitUsd: import_zod10.z.number() }).nullable(),
   health: import_zod10.z.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
   metricsAvailable: import_zod10.z.boolean(),
@@ -3194,8 +3250,10 @@ var AiCitationSchema = import_zod16.z.object({
 });
 var AiUsageSchema = import_zod16.z.object({
   inputTokens: import_zod16.z.number().int(),
-  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  /** The part of the input served from the model vendor's prompt cache (billed at a fraction). */
   cachedInputTokens: import_zod16.z.number().int(),
+  /** The part of the input written to the prompt cache (some vendors bill it above the normal input rate). */
+  cacheWriteInputTokens: import_zod16.z.number().int().optional(),
   outputTokens: import_zod16.z.number().int()
 });
 var AiSpotNoteSchema = import_zod16.z.object({
@@ -9832,6 +9890,9 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SAFE_STATUSES,
   SALE_FIELDS,
   SHEETS,
+  SPOT_FETCH_INTERVAL_MS,
+  SPOT_LATE_AFTER_MS,
+  SPOT_RED_AFTER_MS,
   SPOT_STALE_AFTER_MS,
   STEP_ROLE,
   STOCK_METALS,
@@ -9864,6 +9925,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
+  SpotStatusResponseSchema,
   StockMetalEnum,
   StockMetalSchema,
   StocktakeBarSchema,
@@ -9989,6 +10051,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   isPhysicallyHere,
   isRealSerial,
   isReferenceCell,
+  isSpotMarketClosed,
   isStopStep,
   itemStatusAfter,
   kbArticlePath,
@@ -10089,6 +10152,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   splitScopeBundle,
   splitSections,
   splitSerials,
+  spotFreshness,
   spotLookup,
   stripHeader,
   suggestProductForBcItem,

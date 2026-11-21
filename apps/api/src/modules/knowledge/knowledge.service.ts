@@ -138,7 +138,7 @@ export class KnowledgeService {
      * Only the SOPs a manager has approved, in a fixed order (by slug). This is what
      * the AI assistant may answer from (README: "approved: visible and used by the AI
      * assistant"; drafts are not). The order is deliberate: the assistant's prompt is
-     * built from it, and an identical prompt prefix is what lets OpenAI's prompt cache
+     * built from it, and an identical prompt prefix is what lets the model vendor's prompt cache
      * reuse it between questions.
      */
     async listApproved(): Promise<KbDocument[]> {

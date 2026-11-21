@@ -224,8 +224,12 @@ var MarketDataResponseSchema = z5.object({
   spotPrices: z5.array(SpotPriceSchema),
   historicSpot: z5.array(HistoricSpotSchema),
   products: z5.array(ProductSchema),
-  /** The actual timestamp of the spot-price snapshot being shown - the oldest `timestamp` across spotPrices, not "when the request happened". A cache/DB hit can be minutes old even though the request itself just ran. */
-  fetchedAt: z5.iso.datetime(),
+  /** When the market price shown was struck: the vendor's own time, the oldest across spotPrices. Null when there is no price. Not when we fetched it, and not when this request ran. */
+  snapshotAt: z5.iso.datetime().nullable(),
+  /** When we last received these prices from the vendor: the oldest fetch time across spotPrices. The freshness dot follows this. Null when there is no price. */
+  lastFetchAt: z5.iso.datetime().nullable(),
+  /** True while the price cron is paused: nothing refreshes the prices until someone clicks Refresh. */
+  autoRefreshPaused: z5.boolean(),
   /**
    * Set when one or more metals fell all the way through cache → DB → the
    * live API without finding a usable (non-zero, non-stale) price, so the
@@ -237,10 +241,16 @@ var MarketDataResponseSchema = z5.object({
   /** Same information as priceWarning, structured - lets the UI mark individual metal cards as failed rather than only showing one combined text warning. */
   degradedMetals: z5.array(MetalTypeEnum)
 });
+var SpotStatusResponseSchema = MarketDataResponseSchema.pick({
+  snapshotAt: true,
+  lastFetchAt: true,
+  autoRefreshPaused: true,
+  degradedMetals: true
+});
 var RefreshResponseSchema = z5.object({
   spot: SpotPriceSchema,
   products: z5.array(ProductSchema),
-  fetchedAt: z5.iso.datetime()
+  snapshotAt: z5.iso.datetime().nullable()
 });
 var RecalculateOverridesSchema = z5.object({
   GOLD: z5.number().positive().optional(),
@@ -496,6 +506,44 @@ function computeRequiredSpotForTarget(purchasePrice, targetProfit, productMultip
   const requiredSpot = requiredDenominator > 0 ? requiredPrice / requiredDenominator : 0;
   const targetReturn = purchasePrice !== 0 ? targetProfit / purchasePrice * 100 : 0;
   return { requiredPrice, requiredSpot, targetReturn };
+}
+
+// src/spot-freshness.ts
+var SPOT_FETCH_INTERVAL_MS = 5 * 60 * 1e3;
+var SPOT_LATE_AFTER_MS = SPOT_FETCH_INTERVAL_MS + 60 * 1e3;
+var SPOT_RED_AFTER_MS = 25 * 60 * 1e3;
+var MAX_WEEKEND_GAP_MS = 50 * 60 * 60 * 1e3;
+var LONDON_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  weekday: "short",
+  hour: "2-digit",
+  hourCycle: "h23"
+});
+function isSpotMarketClosed(at) {
+  const parts = LONDON_PARTS.formatToParts(at);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  if (weekday === "Sat") return true;
+  if (weekday === "Fri") return hour >= 22;
+  if (weekday === "Sun") return hour < 23;
+  return false;
+}
+function ageMs(iso, now) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime();
+  return Number.isFinite(ms) ? Math.max(0, now.getTime() - ms) : null;
+}
+function spotFreshness(input) {
+  const { snapshotAt, now } = input;
+  const priceAgeMs = ageMs(snapshotAt, now);
+  if (priceAgeMs === null || !snapshotAt) {
+    return { state: "unknown", priceAgeMs: null, fetchAgeMs: null };
+  }
+  const fetchAgeMs = ageMs(input.lastFetchAt, now) ?? priceAgeMs;
+  if (fetchAgeMs <= SPOT_LATE_AFTER_MS) return { state: "fresh", priceAgeMs, fetchAgeMs };
+  const isClosingPrice = isSpotMarketClosed(now) && priceAgeMs < MAX_WEEKEND_GAP_MS && isSpotMarketClosed(new Date(new Date(snapshotAt).getTime() + SPOT_RED_AFTER_MS));
+  if (isClosingPrice) return { state: "closed", priceAgeMs, fetchAgeMs };
+  return { state: fetchAgeMs >= SPOT_RED_AFTER_MS ? "stale" : "late", priceAgeMs, fetchAgeMs };
 }
 
 // src/product-pricing.ts
@@ -1042,6 +1090,8 @@ var AdminOverviewSchema = z10.object({
   nodeVersion: z10.string(),
   environment: z10.string(),
   aiEnabled: z10.boolean(),
+  /** The assistant's spend today (Dublin day) against its daily limit, in USD; null when it can't be read. */
+  aiSpend: z10.object({ spentUsd: z10.number(), dailyLimitUsd: z10.number() }).nullable(),
   health: z10.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
   metricsAvailable: z10.boolean(),
@@ -2550,8 +2600,10 @@ var AiCitationSchema = z16.object({
 });
 var AiUsageSchema = z16.object({
   inputTokens: z16.number().int(),
-  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  /** The part of the input served from the model vendor's prompt cache (billed at a fraction). */
   cachedInputTokens: z16.number().int(),
+  /** The part of the input written to the prompt cache (some vendors bill it above the normal input rate). */
+  cacheWriteInputTokens: z16.number().int().optional(),
   outputTokens: z16.number().int()
 });
 var AiSpotNoteSchema = z16.object({
@@ -9187,6 +9239,9 @@ export {
   SAFE_STATUSES,
   SALE_FIELDS,
   SHEETS,
+  SPOT_FETCH_INTERVAL_MS,
+  SPOT_LATE_AFTER_MS,
+  SPOT_RED_AFTER_MS,
   SPOT_STALE_AFTER_MS,
   STEP_ROLE,
   STOCK_METALS,
@@ -9219,6 +9274,7 @@ export {
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
+  SpotStatusResponseSchema,
   StockMetalEnum,
   StockMetalSchema,
   StocktakeBarSchema,
@@ -9344,6 +9400,7 @@ export {
   isPhysicallyHere,
   isRealSerial,
   isReferenceCell,
+  isSpotMarketClosed,
   isStopStep,
   itemStatusAfter,
   kbArticlePath,
@@ -9444,6 +9501,7 @@ export {
   splitScopeBundle,
   splitSections,
   splitSerials,
+  spotFreshness,
   spotLookup,
   stripHeader2 as stripHeader,
   suggestProductForBcItem,

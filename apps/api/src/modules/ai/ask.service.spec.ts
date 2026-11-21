@@ -13,7 +13,7 @@ import {
 } from '../../infrastructure/llm/llm.port';
 import { AiSettings } from './ai.settings';
 import type { AnswerCacheService, CachedAnswer } from './answer-cache.service';
-import { AskService, type AskEvent } from './ask.service';
+import { AskService, MAX_MODEL_CALLS, type AskEvent } from './ask.service';
 import type { ToolOutcome, ToolRegistry } from './tools/tool.registry';
 import type { AiMode } from '@goldilocks/shared-types';
 import { buildPrompt } from './prompt-builder';
@@ -68,6 +68,10 @@ function build(
         spentMicros?: number;
         /** What each lookup returns, by tool name. */
         toolData?: Record<string, unknown>;
+        /** Replaces the default quota (always lets the question through). */
+        quota?: QuotaService;
+        /** Replaces the default question log. */
+        questionLog?: QuestionLogService;
     } = {},
 ) {
     const replies = options.replies ?? [CITED];
@@ -103,6 +107,7 @@ function build(
     const settings = {
         enabled: options.enabled ?? true,
         maxOutputTokens: 321,
+        draftMaxOutputTokens: 4000,
         cacheTtlDays: 7,
         dailyBudgetUsd: 2,
         // Deterministic prices: 1000 uncached*1 + 6000 cached*0.5 + 40 out*2 = 4080 micro-dollars.
@@ -114,7 +119,7 @@ function build(
         if (options.quotaError) throw options.quotaError;
         return { release };
     });
-    const quota = { acquire } as unknown as QuotaService;
+    const quota = options.quota ?? ({ acquire } as unknown as QuotaService);
 
     const cached = new Map<string, CachedAnswer>();
     const cacheGet = jest.fn(
@@ -159,12 +164,14 @@ function build(
     } as unknown as ToolRegistry;
 
     const rows: QuestionLogEntry[] = [];
-    const questionLog = {
-        record: jest.fn(async (entry: QuestionLogEntry) => {
-            rows.push(entry);
-        }),
-        spentSince: jest.fn(async () => options.spentMicros ?? 0),
-    } as unknown as QuestionLogService;
+    const questionLog =
+        options.questionLog ??
+        ({
+            record: jest.fn(async (entry: QuestionLogEntry) => {
+                rows.push(entry);
+            }),
+            spentSince: jest.fn(async () => options.spentMicros ?? 0),
+        } as unknown as QuestionLogService);
 
     return {
         service: new AskService(
@@ -338,6 +345,120 @@ describe('AskService limits and cost', () => {
         expect((failure as Error).message).toMatch(/paused for today/);
         expect(requests).toHaveLength(0);
         expect(release).toHaveBeenCalledTimes(1);
+        jest.restoreAllMocks();
+    });
+
+    it("warns in the log once today's spend passes 80% of the daily limit", async () => {
+        const warn = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
+
+        await build({ spentMicros: 1_500_000 }).service.ask(
+            input(QUESTION),
+            ACTOR,
+        );
+        expect(
+            warn.mock.calls.some(([m]) =>
+                /over 80% of its \$2 daily limit/.test(String(m)),
+            ),
+        ).toBe(false);
+
+        await build({ spentMicros: 1_700_000 }).service.ask(
+            input(QUESTION),
+            ACTOR,
+        );
+        expect(
+            warn.mock.calls.some(([m]) =>
+                /over 80% of its \$2 daily limit/.test(String(m)),
+            ),
+        ).toBe(true);
+        jest.restoreAllMocks();
+    });
+
+    it("refuses, without a model call, when today's spend cannot be read", async () => {
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(
+            () => undefined,
+        );
+        const questionLog = {
+            record: jest.fn(async () => undefined),
+            spentSince: jest.fn(async () => {
+                throw new Error('database unreachable');
+            }),
+        } as unknown as QuestionLogService;
+        const { service, requests, release } = build({ questionLog });
+
+        const failure = await service
+            .ask(input(QUESTION), ACTOR)
+            .catch((e: Error) => e);
+
+        expect(failure).toBeInstanceOf(ServiceUnavailableException);
+        expect((failure as Error).message).toMatch(
+            /spending limit can't be checked/,
+        );
+        expect(requests).toHaveLength(0);
+        expect(release).toHaveBeenCalledTimes(1);
+        jest.restoreAllMocks();
+    });
+
+    it('lets simultaneous requests from different users near the limit overshoot it by at most one answer each', async () => {
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(
+            () => undefined,
+        );
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+        const limit = 2_000_000;
+        // Shared state, as the real question log and Redis counters are.
+        let spent = limit - 1;
+        const open = new Map<string, number>();
+        const quota = {
+            acquire: jest.fn(async (userId: string) => {
+                const count = (open.get(userId) ?? 0) + 1;
+                open.set(userId, count);
+                const release = async () =>
+                    void open.set(userId, (open.get(userId) ?? 1) - 1);
+                if (count > 1) {
+                    await release();
+                    throw new HttpException('in progress', 429);
+                }
+                return { release };
+            }),
+        } as unknown as QuotaService;
+        const questionLog = {
+            record: jest.fn(async (entry: QuestionLogEntry) => {
+                spent += entry.costMicros;
+            }),
+            spentSince: jest.fn(async () => spent),
+        } as unknown as QuestionLogService;
+        const { service } = build({ quota, questionLog });
+        const users = ['u1', 'u2', 'u3', 'u4', 'u5'];
+
+        // A different question each wave, so nothing is served free from the answer cache.
+        const wave = (n: number) =>
+            Promise.allSettled(
+                users.flatMap((id) =>
+                    [1, 2, 3].map(() =>
+                        service.ask(
+                            {
+                                question: `${QUESTION} wave ${n} ${id}`,
+                                mode: 'procedures',
+                            },
+                            { id, email: `${id}@example.com` },
+                        ),
+                    ),
+                ),
+            );
+
+        const first = await wave(1);
+        const answered = first.filter((r) => r.status === 'fulfilled').length;
+        expect(answered).toBeLessThanOrEqual(users.length);
+
+        // Each answer costs the same here: 1000 fresh input at 1 + 6000 cached at 0.5 + 40 output at 2.
+        const oneAnswer = 1000 * 1 + 6000 * 0.5 + 40 * 2;
+        expect(spent - limit).toBeLessThanOrEqual(users.length * oneAnswer);
+
+        const second = await wave(2);
+        expect(second.every((r) => r.status === 'rejected')).toBe(true);
         jest.restoreAllMocks();
     });
 
@@ -755,7 +876,7 @@ describe('AskService live lookups', () => {
         ]);
     });
 
-    it('stops looking things up after three rounds and withdraws the tools so the model must answer', async () => {
+    it('stops looking things up after three rounds: the tools stay declared (same cached prefix) but the model may not call them', async () => {
         const { service, requests } = build({
             replies: [
                 toolRound(CALL_PRICE),
@@ -769,8 +890,47 @@ describe('AskService live lookups', () => {
         const response = await service.ask(input('100g gold bar?'), ACTOR);
 
         expect(requests).toHaveLength(4);
-        expect(requests[3].request.tools).toBeUndefined();
+        expect(requests[3].request.tools).toEqual(requests[0].request.tools);
+        expect(requests[3].request.toolChoice).toBe('none');
+        expect(requests.slice(0, 3).map((r) => r.request.toolChoice)).toEqual([
+            'auto',
+            'auto',
+            'auto',
+        ]);
         expect(response.answer).toContain('€10,120');
+    });
+
+    it('makes at most four model calls for one message, even when the last answer is uncited and would earn a retry', async () => {
+        const { service, requests } = build({
+            replies: [
+                toolRound(CALL_PRICE),
+                toolRound(CALL_PRICE),
+                toolRound(CALL_PRICE),
+                result('No figures, no citation.'),
+            ],
+            toolData: { findProductPrices: { matchCount: 0 } },
+        });
+
+        await service.ask(input('100g gold bar?'), ACTOR);
+
+        expect(requests.length).toBeLessThanOrEqual(MAX_MODEL_CALLS);
+        expect(MAX_MODEL_CALLS).toBe(4);
+    });
+
+    it("hands the model's whole reply back, unchanged, on the next round", async () => {
+        const replay = [{ type: 'thinking', signature: 'sig' }];
+        const { service, requests } = build({
+            replies: [
+                result('', { toolCalls: [CALL_PRICE], replay }),
+                result('€10,120.'),
+            ],
+            toolData: { findProductPrices: PRICE_DATA },
+        });
+
+        await service.ask(input('100g gold bar?'), ACTOR);
+
+        const turns = requests[1].request.turns ?? [];
+        expect(turns[0]).toMatchObject({ role: 'assistant', replay });
     });
 
     it('passes the dashboard spot overrides through to the lookups, with the time', async () => {
@@ -970,7 +1130,7 @@ describe('AskService reply drafts', () => {
         expect(system.indexOf('Silver carries 23% VAT.')).toBeLessThan(
             system.indexOf('draft an EMAIL reply'),
         );
-        expect(maxOutputTokens).toBe(900);
+        expect(maxOutputTokens).toBe(4000);
     });
 
     it('returns the message to send and the staff notes separately', async () => {

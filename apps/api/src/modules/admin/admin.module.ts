@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from '../auth/auth.module';
+import { AiModule } from '../ai/ai.module';
 import { MetalsModule } from '../metals/metals.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RequestMetricsModule } from '../request-metrics/request-metrics.module';
@@ -17,6 +18,7 @@ import { SystemHealthService } from './system-health.service';
     imports: [
         TerminusModule,
         AuthModule, // JwtAuthGuard / RolesGuard
+        AiModule, // AiSettings + QuestionLogService - today's assistant spend
         MetalsModule, // FetchAttemptService - last good price fetch
         PrismaModule,
         AuditLogModule,

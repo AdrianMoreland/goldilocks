@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { ConfigService } from '@nestjs/config';
-import { OpenAiLlmClient } from '../src/infrastructure/llm/openai-llm.client';
+import { createLlmClient } from '../src/infrastructure/llm/llm.module';
 import { PrismaService } from '../src/infrastructure/prisma/prisma.service';
 import { AiSettings } from '../src/modules/ai/ai.settings';
 import type { AnswerCacheService } from '../src/modules/ai/answer-cache.service';
@@ -22,7 +22,7 @@ import { KnowledgeService } from '../src/modules/knowledge/knowledge.service';
 /**
  * Runs the golden questions through the REAL model and the approved SOPs in
  * the database, and reports which ones behave. It spends a few cents of the
- * OpenAI budget (about 14 short calls), so it only runs when asked:
+ * model budget (AI_PROVIDER, default Anthropic) (about 14 short calls), so it only runs when asked:
  *
  *   pnpm --filter api ai:eval             # every case
  *   pnpm --filter api ai:eval cash-over   # cases whose id contains the text
@@ -127,7 +127,7 @@ async function main() {
     await prisma.$connect();
 
     try {
-        const llm = new OpenAiLlmClient(config);
+        const llm = createLlmClient(config);
         const settings = new AiSettings(config);
         // The real price tools over a fixed catalogue: matching and totals are exercised, and the expected figures are known.
         const market = fixtureMarketData();
