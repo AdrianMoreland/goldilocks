@@ -40,6 +40,12 @@ export interface AuthProviderPort {
      */
     createIdentity(email: string, password: string): Promise<AuthIdentity>;
 
+    /**
+     * Provisions a login without a password and emails the person a link to set one.
+     * Throws ConflictException if the email is already registered.
+     */
+    inviteIdentity(email: string): Promise<AuthIdentity>;
+
     /** Undoes createIdentity when the app-side User row could not be written. */
     deleteIdentity(id: string): Promise<void>;
 }

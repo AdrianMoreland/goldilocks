@@ -8,6 +8,14 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { CapabilityGuard } from './capability.guard';
+import { PermissionGuard } from './permission.guard';
+import { PeopleController } from '../../modules/people/people.controller';
+import { PeopleService } from '../../modules/people/people.service';
+import { AnalyticsController } from '../../modules/analytics/analytics.controller';
+import { AnalyticsService } from '../../modules/analytics/analytics.service';
+import { PermissionsController } from '../../modules/permissions/permissions.controller';
+import { PermissionsService } from '../../modules/permissions/permissions.service';
+import { QuestionLogService } from '../../modules/ai/question-log.service';
 import { AppController } from '../../app.controller';
 import { AdminController } from '../../modules/admin/admin.controller';
 import { AdminOverviewService } from '../../modules/admin/admin-overview.service';
@@ -58,6 +66,7 @@ import { TradeService } from '../../modules/trade/trade.service';
 const CONTROLLERS: Type<unknown>[] = [
     AppController,
     AdminController,
+    AnalyticsController,
     AuthController,
     BranchesController,
     ErrorLogController,
@@ -66,6 +75,8 @@ const CONTROLLERS: Type<unknown>[] = [
     MarketDataController,
     MarketModeController,
     MetalsController,
+    PeopleController,
+    PermissionsController,
     PortfolioController,
     ProductsController,
     RoadmapController,
@@ -189,6 +200,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
                 { provide: APP_GUARD, useClass: RolesGuard },
                 { provide: APP_GUARD, useClass: CapabilityGuard },
+                { provide: APP_GUARD, useClass: PermissionGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 { provide: AuthService, useValue: authService },
                 {
@@ -209,6 +221,10 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: KnowledgeService, useValue: {} },
                 { provide: AskService, useValue: {} },
                 { provide: AskStreamResponder, useValue: {} },
+                { provide: QuestionLogService, useValue: {} },
+                { provide: AnalyticsService, useValue: {} },
+                { provide: PermissionsService, useValue: {} },
+                { provide: PeopleService, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
                 { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
@@ -294,6 +310,8 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             'POST /errors/client',
             'POST /ai/ask',
             'POST /ai/ask/stream',
+            // Rates the caller's own answer; the service refuses a question someone else asked.
+            'POST /ai/questions/:id/feedback',
             // Each person saves their own look; the route only ever writes the caller's own row.
             'PUT /auth/me/ui-settings',
         ]);
@@ -384,7 +402,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
 
         it('finds the pricing and assistant routes it is meant to check', () => {
             expect(gated('pricingWorkbook').length).toBeGreaterThan(8);
-            expect(gated('assistant').length).toBe(3);
+            expect(gated('assistant').length).toBe(4);
         });
 
         it.each(

@@ -35,6 +35,10 @@ import { ErrorLogModule } from './modules/error-log/error-log.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CapabilityGuard } from './common/guards/capability.guard';
+import { PermissionGuard } from './common/guards/permission.guard';
+import { PermissionsModule } from './modules/permissions/permissions.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PeopleModule } from './modules/people/people.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
@@ -113,6 +117,9 @@ function prettyStream() {
         LiveStockModule,
         OrdersModule,
         MarketModeModule,
+        PermissionsModule,
+        AnalyticsModule,
+        PeopleModule,
         RoadmapModule,
         PrismaModule,
         RedisModule,
@@ -130,6 +137,8 @@ function prettyStream() {
         { provide: APP_GUARD, useClass: RolesGuard },
         // After the user is known: refuses routes marked @RequiresCapability to branches without it.
         { provide: APP_GUARD, useClass: CapabilityGuard },
+        // Then the named permission (role preset plus the person's overrides) on routes marked @RequiresPermission.
+        { provide: APP_GUARD, useClass: PermissionGuard },
         // Last of the guards so the throttler can key on the signed-in user.
         { provide: APP_GUARD, useClass: UserThrottlerGuard },
         { provide: APP_PIPE, useClass: ZodValidationPipe },

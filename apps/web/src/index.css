@@ -144,6 +144,14 @@
   --stop-ink: #7f1d1d;
   --price: #1eb8a5;
   --buyback: #e0558f;
+  /* Metal identity in charts (Analytics). Checked as one categorical set for colour-blind separation in light and
+     dark; palladium is a dashed neutral line, since a fourth hue could not be told apart. Not for Price or Buyback. */
+  --metal-gold: #dda84b;
+  --metal-silver: #2a78d6;
+  --metal-platinum: #e87ba4;
+  --metal-palladium: color-mix(in oklab, var(--foreground) 45%, var(--card));
+  /* One hue, light to dark, for heatmaps: mixed with the card at the cell's share. */
+  --sequential: #2a78d6;
   --price-text: oklch(from var(--price) min(l, 0.45) c h);
   --buyback-text: oklch(from var(--buyback) min(l, 0.45) c h);
   --primary-text: oklch(from var(--primary) min(l, 0.45) c h);
@@ -207,6 +215,10 @@
   --stop-border: #7f1d1d;
   --stop-ink: #fecaca;
   --price-text: oklch(from var(--price) max(l, 0.78) c h);
+  --metal-gold: #b5893c;
+  --metal-silver: #3987e5;
+  --metal-platinum: #d55181;
+  --sequential: #3987e5;
   --buyback-text: oklch(from var(--buyback) max(l, 0.78) c h);
   --primary-text: oklch(from var(--primary) max(l, 0.78) c h);
   --card-raised: color-mix(in oklch, var(--card), var(--foreground) 6%);

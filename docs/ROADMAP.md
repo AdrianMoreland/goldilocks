@@ -522,8 +522,8 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 ## 1.16 Management dashboards and KPIs 🟡 ← depends: 1.0 `[BC]`, 1.6
 
 - [ ] KPIs: inquiries, conversion, response time, margin, volume by broker/product/branch - L
-- [ ] Margin leakage (sold below standard premium); quote analytics (most quoted, converting) - M
-- [ ] Sales analytics, revenue breakdown, metal performance, staff performance - L
+- [ ] Margin leakage (sold below standard premium); quote analytics (most quoted, converting) - M *(quote conversion and margin by month start in 1.22's Analytics page)*
+- [ ] Sales analytics, revenue breakdown, metal performance, staff performance - L *(profit by month, metal, branch and product start in 1.22's Analytics page)*
 - [ ] Monthly export for management meetings - S
 - [ ] Margin intelligence + smart price simulator - M
 
@@ -572,6 +572,15 @@ Follow any bar by serial from the vendor it was bought from to the customer who 
 - [ ] Slice 3: Zoho-era bars from invoice-line serials (purchase inferred through the sale's P line, marked inferred), stocktake bars as COUNTED events, Customer Orders serials as ALLOCATED events - M
 - [ ] Slice 4: serial page in `/dashboard` (search, timeline, where it is now) and a "shipped in BC, not collected in the tradesheet" list that raises sheet tasks - M *(the shipped-not-collected list and its sheet tasks are built, on the Import hub's BC tab, 2026-11-12; the serial page in `/dashboard` is not)*
 - [ ] Later: read the same documents from the BC API instead of exports - M ← depends: 1.0 `[BC]`
+
+## 1.22 Redesign v10: Analytics, People & permissions, Settings 🟠 ← depends: 0.6 audit log
+
+Behind the preview flag until the redesign ships. Access is a role preset plus per-person overrides, checked on the server.
+
+- [ ] Analytics page: seven tabs (Pricing, Sales & margin, Orders, Inventory, Customers & invoices, Chatbot, Ops), each behind its own permission, 90 days against the previous 90 by default, a visible note wherever data is missing; daily product price snapshot; thumbs up or down on assistant answers - L
+- [ ] People and Roles & permissions in Admin: staff directory, invite by email or temporary password, disable with sign-out everywhere, per-person overrides with an optional end date, roles × permissions matrix; every change needs a reason and is audit-logged - L
+- [ ] Settings page: profile and preferences, company quote template with a personal sign-off, keyboard shortcut list, branch and board preferences, in-app notifications for admins, sessions with sign-out per device, theme - L
+- [ ] Data fixes the Analytics notes point to: product names typed several ways on the tradesheet, silver rows missing for February to June 2026, the nightly price-feed gap between 00:00 and 02:00 - M
 
 ---
 

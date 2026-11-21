@@ -10,6 +10,8 @@ import {
     CircleHelp,
     Coins,
     Copy,
+    ThumbsDown,
+    ThumbsUp,
     Loader2,
     Mail,
     MessageCircle,
@@ -27,6 +29,7 @@ import { useAssistantDock } from '@/contexts/docks-context';
 import { useAiAssistant, type Exchange } from '@/hooks/use-ai-assistant.hook';
 import { useKnowledgeLibrary } from '@/hooks/use-knowledge.hook';
 import { cn } from '@/lib/utils';
+import { useAiApi } from '@/api/ai.api';
 import type { KnowledgeLibrary } from '../utils/library';
 import { MarkdownView } from './markdown-view';
 
@@ -363,8 +366,37 @@ function ExchangeView({ exchange, library, onNavigate }: { exchange: Exchange; l
                     )}
 
                     {response.citations.length > 0 && <Citations citations={response.citations} onNavigate={onNavigate} library={library} />}
+                    {features.redesign && response.questionId !== null && <Feedback questionId={response.questionId} />}
                 </div>
             )}
+        </div>
+    );
+}
+
+/** Was this answer helpful? One rating per answer, changeable; feeds the Chatbot tab in Analytics. */
+function Feedback({ questionId }: { questionId: number }) {
+    const ai = useAiApi();
+    const [rated, setRated] = useState<boolean | null>(null);
+    const [failed, setFailed] = useState(false);
+    const rate = async (helpful: boolean) => {
+        setFailed(false);
+        try {
+            await ai.rate(questionId, helpful);
+            setRated(helpful);
+        } catch {
+            setFailed(true);
+        }
+    };
+    return (
+        <div className="flex items-center gap-1 border-t pt-2 text-xs text-muted-foreground">
+            <span className="mr-1">{rated === null ? 'Was this helpful?' : 'Thanks for the feedback.'}</span>
+            <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Helpful" aria-pressed={rated === true} onClick={() => void rate(true)}>
+                <ThumbsUp className={cn(rated === true && 'fill-current')} aria-hidden />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Not helpful" aria-pressed={rated === false} onClick={() => void rate(false)}>
+                <ThumbsDown className={cn(rated === false && 'fill-current')} aria-hidden />
+            </Button>
+            {failed && <span role="alert" className="text-destructive">Couldn&apos;t save that. Try again.</span>}
         </div>
     );
 }

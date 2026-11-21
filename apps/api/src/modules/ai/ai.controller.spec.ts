@@ -12,6 +12,7 @@ import { AskStreamResponder } from './ask-stream.responder';
 import type { AskEvent, AskService } from './ask.service';
 
 const RESPONSE: AskResponse = {
+    questionId: null,
     answer: 'Yes [[pricing#vat]].',
     mode: 'procedures',
     notes: null,
@@ -67,6 +68,7 @@ function build(events: () => AsyncGenerator<AskEvent>) {
     const controller = new AiController(
         { askStream } as unknown as AskService,
         new AskStreamResponder(),
+        {} as never,
     );
     return { controller, askStream };
 }
@@ -211,6 +213,7 @@ describe('AiController.askQuestionStream', () => {
         const controller = new AiController(
             { askStream } as unknown as AskService,
             new AskStreamResponder(),
+            {} as never,
         );
         const { response, raw } = fakeResponse();
 
@@ -240,6 +243,7 @@ describe('AiController.askQuestionStream', () => {
         const controller = new AiController(
             { askStream } as unknown as AskService,
             new AskStreamResponder(),
+            {} as never,
         );
         const { response, raw } = fakeResponse();
 

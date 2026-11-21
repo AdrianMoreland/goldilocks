@@ -24,9 +24,17 @@ function build() {
             .fn()
             .mockResolvedValue({ id: 'id-1', email: dto.email }),
         deleteIdentity: jest.fn().mockResolvedValue(undefined),
+        inviteIdentity: jest
+            .fn()
+            .mockResolvedValue({ id: 'id-2', email: 'invited@example.com' }),
     };
     const prisma = {
-        user: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+        user: {
+            create: jest.fn(),
+            findUnique: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue(null),
+            update: jest.fn().mockResolvedValue({}),
+        },
         $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation((run: (tx: unknown) => unknown) =>
@@ -197,6 +205,124 @@ describe('AuthService.login', () => {
 
         expect(result.accessToken).toBe('a');
         expect(result.refreshToken).toBe('r');
+    });
+
+    it('records the sign-in time, and still signs in if that write fails', async () => {
+        const { service, provider, prisma } = build();
+        provider.signInWithPassword.mockResolvedValue({
+            accessToken: 'a',
+            refreshToken: 'r',
+            identity: { id: 'id-1', email: 'staff@example.com' },
+        });
+        prisma.user.findUnique.mockResolvedValue({
+            id: 'id-1',
+            email: 'staff@example.com',
+            firstName: 'S',
+            lastName: 'M',
+            role: 'SALES',
+            admin: false,
+            isActive: true,
+        });
+        prisma.user.update.mockRejectedValueOnce(new Error('db busy'));
+
+        await expect(
+            service.login('staff@example.com', 'pw'),
+        ).resolves.toMatchObject({ accessToken: 'a' });
+        expect(prisma.user.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'id-1' },
+                data: { lastLoginAt: expect.any(Date) },
+            }),
+        );
+    });
+});
+
+describe('AuthService.inviteUser', () => {
+    it('refuses an email that already has an account before touching the provider', async () => {
+        const { service, provider, prisma } = build();
+        prisma.user.findFirst.mockResolvedValue({ id: 'id-9' });
+        await expect(
+            service.inviteUser(
+                {
+                    email: 'Pending@Example.com',
+                    firstName: 'P',
+                    lastName: 'E',
+                    role: 'SALES',
+                    admin: false,
+                    branchId: null,
+                },
+                'boss@example.com',
+            ),
+        ).rejects.toThrow('already exists');
+        expect(provider.inviteIdentity).not.toHaveBeenCalled();
+        expect(provider.deleteIdentity).not.toHaveBeenCalled();
+        expect(prisma.user.findFirst).toHaveBeenCalledWith({
+            where: {
+                email: { equals: 'Pending@Example.com', mode: 'insensitive' },
+            },
+            select: { id: true },
+        });
+    });
+
+    it('never deletes an identity that already had an account when the row write fails', async () => {
+        const { service, provider, prisma } = build();
+        prisma.user.create.mockRejectedValue(new Error('P2002'));
+        prisma.user.findUnique.mockResolvedValue({ id: 'id-2' });
+        await expect(
+            service.inviteUser(
+                {
+                    email: 'invited@example.com',
+                    firstName: 'In',
+                    lastName: 'Vited',
+                    role: 'SALES',
+                    admin: false,
+                    branchId: null,
+                },
+                'boss@example.com',
+            ),
+        ).rejects.toThrow('P2002');
+        expect(provider.deleteIdentity).not.toHaveBeenCalled();
+    });
+
+    it('invites at the provider (no password) and audits it as invited', async () => {
+        const { service, provider, prisma, audit } = build();
+        prisma.user.create.mockResolvedValue({
+            id: 'id-2',
+            email: 'invited@example.com',
+            firstName: 'In',
+            lastName: 'Vited',
+            role: 'SALES',
+            admin: false,
+            isActive: true,
+        });
+
+        await service.inviteUser(
+            {
+                email: 'invited@example.com',
+                firstName: 'In',
+                lastName: 'Vited',
+                role: 'SALES',
+                admin: false,
+                branchId: null,
+            },
+            'boss@example.com',
+        );
+
+        expect(provider.inviteIdentity).toHaveBeenCalledWith(
+            'invited@example.com',
+        );
+        expect(provider.createIdentity).not.toHaveBeenCalled();
+        expect(prisma.user.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({ id: 'id-2', password: '' }),
+            }),
+        );
+        expect(audit.record).toHaveBeenCalledWith(
+            'boss@example.com',
+            'user',
+            'invited invited@example.com (SALES)',
+            prisma,
+        );
     });
 });
 
