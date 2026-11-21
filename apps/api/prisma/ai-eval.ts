@@ -1,5 +1,8 @@
 import 'dotenv/config';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
+import { parseKbDocument, type KbDocument } from '@goldilocks/shared-types';
 import { createLlmClient } from '../src/infrastructure/llm/llm.module';
 import { PrismaService } from '../src/infrastructure/prisma/prisma.service';
 import { AiSettings } from '../src/modules/ai/ai.settings';
@@ -13,7 +16,11 @@ import {
     type GoldenCase,
 } from '../src/modules/ai/eval/golden-questions';
 import { fixtureMarketData } from '../src/modules/ai/eval/price-fixture';
-import { FullCorpusContext } from '../src/modules/ai/sop-context.provider';
+import { buildPrompt } from '../src/modules/ai/prompt-builder';
+import {
+    FullCorpusContext,
+    type SopContextProvider,
+} from '../src/modules/ai/sop-context.provider';
 import { FindProductPricesTool } from '../src/modules/ai/tools/find-product-prices.tool';
 import { GetSpotTool } from '../src/modules/ai/tools/get-spot.tool';
 import { ToolRegistry } from '../src/modules/ai/tools/tool.registry';
@@ -26,6 +33,7 @@ import { KnowledgeService } from '../src/modules/knowledge/knowledge.service';
  *
  *   pnpm --filter api ai:eval             # every case
  *   pnpm --filter api ai:eval cash-over   # cases whose id contains the text
+ *   pnpm --filter api ai:eval --sops-from-files   # no database: the approved SOPs in docs/sops
  *
  * Built by hand rather than through Nest's container: it only needs Prisma,
  * the SOPs and the model. The quota, answer cache and question log are
@@ -108,12 +116,44 @@ function check(
     return problems;
 }
 
+/** The approved SOPs as the repository has them, for a run without database access. */
+async function approvedSopsFromFiles(): Promise<KbDocument[]> {
+    const dir = join(__dirname, '../../../docs/sops');
+    const names = (await readdir(dir)).filter((n) => n.endsWith('.md')).sort();
+    const docs: KbDocument[] = [];
+    for (const name of names) {
+        const parsed = parseKbDocument(await readFile(join(dir, name), 'utf8'));
+        if (!parsed.ok) {
+            console.warn(`Skipped ${name}: ${parsed.errors.join('; ')}`);
+            continue;
+        }
+        const { frontmatter: fm, body } = parsed.doc;
+        if (fm.status !== 'approved') continue;
+        docs.push({
+            slug: fm.slug,
+            title: fm.title,
+            category: fm.category,
+            jurisdiction: fm.jurisdiction,
+            owner: fm.owner,
+            status: fm.status,
+            visibility: 'ie_only',
+            version: fm.version,
+            contentUpdatedOn: fm.updatedAt,
+            markdown: body,
+        });
+    }
+    // The database serves them by slug, and the prompt must be built in the same order.
+    return docs.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 async function main() {
     // Running this script is the explicit opt-in to spend tokens.
     process.env.AI_ENABLED = 'true';
     process.env.NODE_ENV = 'production'; // PrismaService logs every query in development
 
-    const filter = process.argv[2];
+    const args = process.argv.slice(2);
+    const fromFiles = args.includes('--sops-from-files');
+    const filter = args.find((arg) => !arg.startsWith('--'));
     const cases = GOLDEN_QUESTIONS.filter(
         (golden) => !filter || golden.id.includes(filter),
     );
@@ -123,8 +163,13 @@ async function main() {
     }
 
     const config = new ConfigService();
-    const prisma = new PrismaService(config);
-    await prisma.$connect();
+    const prisma = fromFiles ? null : new PrismaService(config);
+    await prisma?.$connect();
+    const sops: SopContextProvider = prisma
+        ? new FullCorpusContext(new KnowledgeService(prisma))
+        : {
+              load: async () => buildPrompt(await approvedSopsFromFiles()),
+          };
 
     try {
         const llm = createLlmClient(config);
@@ -137,7 +182,7 @@ async function main() {
         ]);
         const service = new AskService(
             llm,
-            new FullCorpusContext(new KnowledgeService(prisma)),
+            sops,
             settings,
             noQuota,
             noCache,
@@ -152,7 +197,9 @@ async function main() {
         let micros = 0;
         let corpus = '';
 
-        console.log(`Model: ${llm.model}\n`);
+        console.log(
+            `Model: ${llm.model}${fromFiles ? ' (SOPs from docs/sops, not the database)' : ''}\n`,
+        );
 
         for (const golden of cases) {
             try {
@@ -209,7 +256,7 @@ async function main() {
         );
         process.exitCode = failed === 0 ? 0 : 1;
     } finally {
-        await prisma.$disconnect();
+        await prisma?.$disconnect();
     }
 }
 
