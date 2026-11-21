@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMarketData } from "@/hooks/use-market-data.hook"
 import { useUserPreference } from "@/hooks/use-user-preference.hook"
+import { useMyPreferences } from "@/api/settings.api"
+import { features } from "@/config/features"
 import { cn } from "@/lib/utils"
 import { formatEuro, formatGrams, formatMetalName, formatPrice, formatSnapshotTime, formatSpot } from "../dashboard/utils/formatters"
 import { FRESHNESS_DOT_CLASS, FRESHNESS_LABEL } from "../dashboard/utils/freshness"
@@ -34,10 +36,37 @@ const METAL_DOT: Record<MetalType, string> = {
  * the live market price: a spot someone typed or froze on the dashboard never shows here. Spot cards on top, then the
  * chosen metal's bars and coins as two lists with Price, Buyback and the move since the previous close.
  */
+/** Once, on the first flagged visit: if the account still has the default board, take this browser's choices. */
+function useCopyBoardToAccount(
+    onAccount: boolean,
+    account: ReturnType<typeof useMyPreferences>,
+    localView: string,
+    localPins: number[],
+) {
+    const done = React.useRef(false)
+    React.useEffect(() => {
+        if (!onAccount || done.current) return
+        done.current = true
+        const b = account.prefs.board
+        const accountIsDefault = b.view === "GOLD" && b.pins.length === 0
+        const localIsDefault = localView === "GOLD" && localPins.length === 0
+        if (accountIsDefault && !localIsDefault) account.save({ board: { view: localView, pins: localPins } })
+    }, [onAccount, account, localView, localPins])
+}
+
 export default function BoardPage() {
     const { products, spotPrices, historicSpot, freshness, snapshotAt, loading, error } = useMarketData({ quiet: true })
-    const [stored, setView] = useUserPreference<string>("board-view", "GOLD")
-    const [pins, setPins] = useUserPreference<number[]>("board-pins", [])
+    const [localView, setLocalView] = useUserPreference<string>("board-view", "GOLD")
+    const [localPins, setLocalPins] = useUserPreference<number[]>("board-pins", [])
+    // With the preview flag the choices live on the account (Settings), so every screen shows the same board.
+    const account = useMyPreferences()
+    const onAccount = features.redesign && account.loaded
+    useCopyBoardToAccount(onAccount, account, localView, localPins)
+    const stored = onAccount ? account.prefs.board.view : localView
+    const pins = onAccount ? account.prefs.board.pins : localPins
+    const setView = (v: string) => (onAccount ? account.save({ board: { ...account.prefs.board, view: v } }) : setLocalView(v))
+    const setPins = (update: (prev: number[]) => number[]) =>
+        onAccount ? account.save({ board: { ...account.prefs.board, pins: update(account.prefs.board.pins) } }) : setLocalPins(update)
     const [editingPins, setEditingPins] = React.useState(false)
     const [query, setQuery] = React.useState("")
     const now = useNow(1000)

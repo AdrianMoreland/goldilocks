@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { EllipsisVertical, LogOut, Moon, Paintbrush, Rows3, Sun } from "lucide-react"
+import { EllipsisVertical, LogOut, Moon, Paintbrush, Rows3, Settings, Sun } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { Logo } from "@/components/logo"
@@ -129,6 +129,12 @@ export function NavUser({
               <DropdownMenuItem onSelect={themeEditor.toggle} className="cursor-pointer">
                 <Paintbrush />
                 Theme editor
+              </DropdownMenuItem>
+            )}
+            {features.redesign && (
+              <DropdownMenuItem onSelect={() => navigate("/settings")} className="cursor-pointer">
+                <Settings />
+                Settings
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
