@@ -112,7 +112,8 @@ export function costMicros(
     return Math.ceil(
         uncached * price.input +
             cached * price.cachedInput +
-            written * (price.cacheWrite ?? price.input) +
+            // Not given (an AI_PRICE_PER_MILLION override, say): assume the usual 1.25x, so writes are never under-counted.
+            written * (price.cacheWrite ?? price.input * 1.25) +
             usage.outputTokens * price.output,
     );
 }

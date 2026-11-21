@@ -281,6 +281,14 @@ describe('AnthropicLlmClient.generate', () => {
         const error = await client.generate(request).catch((e) => e);
         expect(error).toBeInstanceOf(LlmError);
         expect(error.kind).toBe('rejected');
+        // The refused call was still billed, so its usage travels with the error.
+        expect(error.usage).toEqual({
+            inputTokens: 6500,
+            cachedInputTokens: 6000,
+            cacheWriteInputTokens: 0,
+            outputTokens: 300,
+        });
+        expect(error.model).toBe('claude-haiku-5-5');
     });
 
     it('creates the SDK client once, and only when first needed', async () => {
@@ -559,10 +567,14 @@ describe('AnthropicLlmClient tool calls', () => {
         });
         const { client } = build(undefined, cut);
 
-        const result = await client.generate({ ...request, tools });
+        const error = await client
+            .generate({ ...request, tools })
+            .catch((e: unknown) => e);
 
-        expect(result.toolCalls).toBeUndefined();
-        expect(result.truncated).toBe(true);
+        // Neither the half-written lookup nor the sentence before it may be used as the answer.
+        expect(error).toBeInstanceOf(LlmError);
+        expect((error as LlmError).kind).toBe('unavailable');
+        expect((error as LlmError).usage?.outputTokens).toBe(300);
     });
 
     it('replays a tool round: the reply exactly as it came back (reasoning included), then all its results in one user message', async () => {

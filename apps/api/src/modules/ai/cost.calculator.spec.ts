@@ -103,6 +103,23 @@ describe('costMicros for Claude Haiku 5.5', () => {
     });
 });
 
+describe('costMicros with a configured price', () => {
+    it('charges cache writes at 1.25x input when the override gives no write price, so they are never under-counted', () => {
+        expect(
+            costMicros(
+                'claude-new',
+                {
+                    inputTokens: 1000,
+                    cachedInputTokens: 0,
+                    cacheWriteInputTokens: 1000,
+                    outputTokens: 0,
+                },
+                { input: 0.1, cachedInput: 0.01, output: 0.5 },
+            ),
+        ).toBe(125);
+    });
+});
+
 describe('usdToMicros', () => {
     it('converts a dollar budget to whole micro-dollars', () => {
         expect(usdToMicros(2)).toBe(2_000_000);

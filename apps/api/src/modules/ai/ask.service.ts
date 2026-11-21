@@ -26,7 +26,7 @@ import { AnswerCacheService } from './answer-cache.service';
 import { interpretAnswer } from './answer-interpreter';
 import { costMicros, usdToMicros } from './cost.calculator';
 import { interpretDraft } from './draft-interpreter';
-import { startOfDublinDay } from './dublin-day';
+import { dublinDate, startOfDublinDay } from './dublin-day';
 import { normaliseQuestion, scrubPersonalData } from './privacy-scrubber';
 import { modeInstructions } from './prompt-builder';
 import { QuestionLogService } from './question-log.service';
@@ -109,6 +109,8 @@ export type AskEvent =
 @Injectable()
 export class AskService {
     private readonly logger = new Logger(AskService.name);
+    /** The Dublin day the 80%-of-budget warning was last logged. */
+    private budgetWarnedOn: string | null = null;
 
     constructor(
         @Inject(LLM_PROVIDER) private readonly llm: LlmPort,
@@ -157,6 +159,18 @@ export class AskService {
         // What is known so far, so a failure can still be logged with the right question and corpus.
         let loggedQuestion = '';
         let corpusHash = '';
+        // What the model calls have cost so far, priced call by call (a vendor's long-prompt rate applies per
+        // call, never to the sum), so a failure part-way through is still charged to the daily budget.
+        let spentUsage: LlmResult['usage'] = NO_USAGE;
+        let spentMicros = 0;
+        const charge = (model: string, usage: LlmResult['usage']) => {
+            spentUsage = addUsage(spentUsage, usage);
+            spentMicros += costMicros(
+                model,
+                usage,
+                this.settings.priceOverride,
+            );
+        };
 
         try {
             const prompt = await this.context.load(question);
@@ -193,13 +207,7 @@ export class AskService {
                 const cached = result.cached ?? false;
                 const retried = result.retried ?? false;
                 const toolsUsed = result.toolsUsed ?? [];
-                const cost = cached
-                    ? 0
-                    : costMicros(
-                          result.model,
-                          result.usage,
-                          this.settings.priceOverride,
-                      );
+                const cost = cached ? 0 : spentMicros;
                 await this.questionLog.record({
                     userId: actor.id,
                     question: loggedQuestion,
@@ -221,7 +229,7 @@ export class AskService {
                 });
                 // The question text is deliberately not logged: staff may type a customer's name into it.
                 this.logger.log(
-                    `[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`,
+                    `[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/written/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.cacheWriteInputTokens ?? 0}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`,
                 );
                 return {
                     answer: result.answer,
@@ -295,7 +303,6 @@ export class AskService {
             const toolsUsed: string[] = [];
             // A refusal starts with a marker that is an instruction to the server, so its first characters are held back.
             const gate = isDraft ? null : new RefusalGate();
-            let usage = NO_USAGE;
             let result: LlmResult | undefined;
             let modelCalls = 0;
 
@@ -331,10 +338,10 @@ export class AskService {
                     );
                 }
 
-                usage = addUsage(usage, step.usage);
+                charge(step.model, step.usage);
                 const calls = step.toolCalls ?? [];
                 if (calls.length === 0 || lastRound) {
-                    result = { ...step, usage };
+                    result = { ...step, usage: spentUsage };
                     break;
                 }
 
@@ -424,11 +431,9 @@ export class AskService {
                     toolChoice: 'none',
                     signal,
                 });
+                charge(second.model, second.usage);
                 const again = interpretAnswer(second.text, prompt);
-                result = {
-                    ...second,
-                    usage: addUsage(result.usage, second.usage),
-                };
+                result = { ...second, usage: spentUsage };
                 // Keep the retry only if it improved things; otherwise the first, uncited answer stands and still carries its warning.
                 if (again.status !== 'uncited') interpreted = again;
             }
@@ -471,6 +476,9 @@ export class AskService {
 
             yield { type: 'done', response };
         } catch (error) {
+            if (error instanceof LlmError && error.usage) {
+                charge(error.model ?? this.llm.model, error.usage);
+            }
             await this.logFailure(
                 actor,
                 mode,
@@ -478,6 +486,7 @@ export class AskService {
                 corpusHash,
                 started,
                 error,
+                { usage: spentUsage, micros: spentMicros },
                 signal,
             );
             throw this.toHttpError(error);
@@ -503,7 +512,14 @@ export class AskService {
             );
         }
         const limit = usdToMicros(this.settings.dailyBudgetUsd);
-        if (spent >= limit * BUDGET_WARNING_SHARE && spent < limit) {
+        const today = dublinDate(new Date());
+        if (
+            spent >= limit * BUDGET_WARNING_SHARE &&
+            spent < limit &&
+            this.budgetWarnedOn !== today
+        ) {
+            // Once a day per API process, not on every question.
+            this.budgetWarnedOn = today;
             this.logger.warn(
                 `The assistant has spent $${(spent / 1_000_000).toFixed(2)} today, over ${BUDGET_WARNING_SHARE * 100}% of its $${this.settings.dailyBudgetUsd} daily limit.`,
             );
@@ -525,6 +541,7 @@ export class AskService {
         corpusHash: string,
         started: number,
         error: unknown,
+        spent: { usage: LlmResult['usage']; micros: number },
         signal?: AbortSignal,
     ): Promise<void> {
         // Refusals by the budget breaker and the like are already HTTP answers, not faults to record.
@@ -541,10 +558,11 @@ export class AskService {
             citations: [],
             model: this.llm.model,
             corpusHash,
-            inputTokens: 0,
-            cachedInputTokens: 0,
-            outputTokens: 0,
-            costMicros: 0,
+            // Calls that ran before the failure were billed, so they count towards the daily budget.
+            inputTokens: spent.usage.inputTokens,
+            cachedInputTokens: spent.usage.cachedInputTokens,
+            outputTokens: spent.usage.outputTokens,
+            costMicros: spent.micros,
             latencyMs: Date.now() - started,
             error: signal?.aborted
                 ? 'cancelled'

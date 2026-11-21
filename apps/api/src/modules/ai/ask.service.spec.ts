@@ -375,6 +375,68 @@ describe('AskService limits and cost', () => {
         jest.restoreAllMocks();
     });
 
+    it('prices each model call on its own, so several calls never add up to the long-prompt rate', async () => {
+        const big = {
+            inputTokens: 60_000,
+            cachedInputTokens: 0,
+            outputTokens: 0,
+        };
+        const longPricePerCall = 60_000 * 1;
+        const { service, rows } = build({
+            replies: [
+                result('', { toolCalls: [CALL_PRICE], usage: big }),
+                result('€10,120.', { usage: big }),
+            ],
+            toolData: { findProductPrices: PRICE_DATA },
+        });
+        // A test price with a long-prompt card above 100k: only a single call over it would use it.
+        (
+            service as unknown as { settings: { priceOverride: unknown } }
+        ).settings.priceOverride = {
+            input: 1,
+            cachedInput: 0.5,
+            output: 2,
+            longPrompt: {
+                overInputTokens: 100_000,
+                price: { input: 5, cachedInput: 2.5, output: 10 },
+            },
+        };
+
+        await service.ask(input('100g gold bar?'), ACTOR);
+
+        expect(rows[0].inputTokens).toBe(120_000);
+        expect(rows[0].costMicros).toBe(2 * longPricePerCall);
+    });
+
+    it('charges the calls that ran before a failure, and a refused call, to the daily budget', async () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+        const refused = new LlmError('rejected', 'declined', {
+            usage: {
+                inputTokens: 1000,
+                cachedInputTokens: 0,
+                outputTokens: 50,
+            },
+            model: 'fake-model-2026',
+        });
+        const { service, rows } = build({
+            replies: [toolRound(CALL_PRICE), refused],
+            toolData: { findProductPrices: PRICE_DATA },
+        });
+
+        await service
+            .ask(input('100g gold bar?'), ACTOR)
+            .catch(() => undefined);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0].status).toBe('error');
+        // First call: 1000 fresh at 1 + 6000 cached at 0.5 + 40 out at 2; refused call: 1000 at 1 + 50 at 2.
+        expect(rows[0].costMicros).toBe(4080 + 1100);
+        expect(rows[0].inputTokens).toBe(8000);
+        jest.restoreAllMocks();
+    });
+
     it("refuses, without a model call, when today's spend cannot be read", async () => {
         jest.spyOn(Logger.prototype, 'error').mockImplementation(
             () => undefined,

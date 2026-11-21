@@ -104,13 +104,20 @@ export type LlmFailureKind =
     | 'rejected';
 
 export class LlmError extends Error {
+    /** Tokens the failed call still used and was billed for (a refusal after output began, say); counted towards the daily budget. */
+    readonly usage?: LlmUsage;
+    /** The model that used them. */
+    readonly model?: string;
+
     constructor(
         readonly kind: LlmFailureKind,
         message: string,
-        options?: { cause?: unknown },
+        options?: { cause?: unknown; usage?: LlmUsage; model?: string },
     ) {
-        super(message, options);
+        super(message, { cause: options?.cause });
         this.name = 'LlmError';
+        this.usage = options?.usage;
+        this.model = options?.model;
     }
 }
 

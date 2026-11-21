@@ -116,10 +116,13 @@ export class AnthropicLlmClient implements LlmPort {
 
     /** One finished reply → LlmResult. Tool inputs come from the assembled message, never from hand-joined fragments. */
     private toResult(message: Anthropic.Message): LlmResult {
+        const usage = toUsage(message.usage);
+        const billed = { usage, model: message.model };
         if (message.stop_reason === 'refusal') {
             throw new LlmError(
                 'rejected',
                 `The model declined to answer this request${message.stop_details?.category ? ` (${message.stop_details.category})` : ''}.`,
+                billed,
             );
         }
 
@@ -136,24 +139,32 @@ export class AnthropicLlmClient implements LlmPort {
                 });
             }
         }
-        // A tool call cut off by the output cap may carry half its input: never run it.
-        const calls = truncated ? [] : toolCalls;
+        // A tool call cut off by the output cap may carry half its input: never run it, and never pass off
+        // the sentence before it ("Let me check the prices...") as the answer.
+        if (truncated && toolCalls.length > 0) {
+            throw new LlmError(
+                'unavailable',
+                'The model ran out of output allowance while asking for a lookup.',
+                billed,
+            );
+        }
 
         text = text.trim();
-        if (!text && calls.length === 0) {
+        if (!text && toolCalls.length === 0) {
             throw new LlmError(
                 'unavailable',
                 truncated
                     ? 'The model used its whole output allowance before answering.'
                     : 'The model returned an empty answer.',
+                billed,
             );
         }
 
         return {
             text,
-            ...(calls.length > 0 ? { toolCalls: calls } : {}),
+            ...(toolCalls.length > 0 ? { toolCalls } : {}),
             model: message.model,
-            usage: toUsage(message.usage),
+            usage,
             truncated,
             replay: message.content,
         };
