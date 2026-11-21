@@ -2,7 +2,10 @@ import {
     BadRequestException,
     Injectable,
     NotFoundException,
+    Optional,
 } from '@nestjs/common';
+import { NotificationsService } from '../settings/notifications.service';
+
 import {
     PERMISSION_KEYS,
     diffOverrides,
@@ -74,7 +77,22 @@ export class PeopleService {
         private readonly audit: AuditLogService,
         private readonly redis: RedisService,
         private readonly permissions: PermissionsService,
+        @Optional() private readonly notifications?: NotificationsService,
     ) {}
+
+    private changed(
+        subject: string,
+        what: string,
+        reason: string,
+        actor: Actor,
+    ) {
+        return this.notifications?.notifyAdmins({
+            kind: 'permission_changed',
+            title: `${subject}: ${what}`,
+            body: `Changed by ${actor.email}. Reason: ${reason}`,
+            link: '/admin?tab=people',
+        });
+    }
 
     async list(): Promise<AdminUser[]> {
         const [users, presets] = await Promise.all([
@@ -122,7 +140,7 @@ export class PeopleService {
         actor: Actor,
     ): Promise<void> {
         const { reason, ...patch } = body;
-        await this.prisma.$transaction(
+        const done = await this.prisma.$transaction(
             async (tx) => {
                 const before = await tx.user.findUnique({
                     where: { id },
@@ -161,7 +179,7 @@ export class PeopleService {
                 }
 
                 const changes = diffUserChanges(before, patch);
-                if (changes.length === 0) return;
+                if (changes.length === 0) return null;
                 await tx.user.update({
                     where: { id },
                     data: Object.fromEntries(
@@ -176,11 +194,20 @@ export class PeopleService {
                         tx,
                     );
                 }
+                return {
+                    email: before.email,
+                    what: changes
+                        .map(
+                            (c) => `${c.field} ${show(c.from)} → ${show(c.to)}`,
+                        )
+                        .join(', '),
+                };
                 // Serializable: two admins removing each other at the same moment must not both pass the
                 // "last active admin" count; one of them fails and can retry.
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
+        if (done) await this.changed(done.email, done.what, reason, actor);
     }
 
     async setOverrides(
@@ -188,7 +215,7 @@ export class PeopleService {
         body: SetOverridesRequest,
         actor: Actor,
     ): Promise<void> {
-        await this.prisma.$transaction(async (tx) => {
+        const done = await this.prisma.$transaction(async (tx) => {
             const before = await tx.user.findUnique({
                 where: { id },
                 select: USER_SELECT,
@@ -203,7 +230,7 @@ export class PeopleService {
                 })),
                 body.overrides,
             );
-            if (changes.length === 0) return;
+            if (changes.length === 0) return null;
 
             // Only the keys that changed are written, so untouched overrides keep who set them and why.
             const next = new Map(body.overrides.map((o) => [o.key, o]));
@@ -236,7 +263,17 @@ export class PeopleService {
                     tx,
                 );
             }
+            return {
+                email: before.email,
+                what: changes
+                    .map(
+                        (c) =>
+                            `${c.key} ${c.from ?? 'none'} → ${c.to ?? 'none'}`,
+                    )
+                    .join(', '),
+            };
         });
+        if (done) await this.changed(done.email, done.what, body.reason, actor);
     }
 
     async matrix(): Promise<PermissionMatrix> {
@@ -249,7 +286,8 @@ export class PeopleService {
         actor: Actor,
     ): Promise<void> {
         const changes = body.changes.filter((c) => c.role !== 'ADMIN');
-        await this.prisma.$transaction(async (tx) => {
+        const applied = await this.prisma.$transaction(async (tx) => {
+            const made: string[] = [];
             for (const c of changes) {
                 const existing = await tx.rolePermission.findUnique({
                     where: { role_key: { role: c.role, key: c.key } },
@@ -271,9 +309,20 @@ export class PeopleService {
                     `${c.role}: ${c.key} ${c.granted ? 'granted' : 'removed'} (reason: ${body.reason})`,
                     tx,
                 );
+                made.push(
+                    `${c.role} ${c.key} ${c.granted ? 'granted' : 'removed'}`,
+                );
             }
+            return made;
         });
         await this.redis.del(ROLE_PRESETS_CACHE_KEY);
+        if (applied.length)
+            await this.changed(
+                'Role presets',
+                applied.join(', '),
+                body.reason,
+                actor,
+            );
     }
 
     private toMatrix(rows: { role: string; key: string }[]): PermissionMatrix {

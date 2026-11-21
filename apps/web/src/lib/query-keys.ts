@@ -12,6 +12,12 @@ export const queryKeys = {
     permissions: { all: ['permissions'] as const, me: (userId: string) => ['permissions', 'me', userId] as const },
     analytics: (userId: string, tab: string, preset: string) => ['analytics', userId, tab, preset] as const,
     people: { list: ['people', 'list'] as const, matrix: ['people', 'matrix'] as const },
+    settings: {
+        me: (userId: string) => ['settings', 'me', userId] as const,
+        quoteTemplate: ['settings', 'quote-template'] as const,
+        sessions: (userId: string) => ['settings', 'sessions', userId] as const,
+    },
+    notifications: (userId: string) => ['notifications', userId] as const,
     customerOrders: {
         list: ['customer-orders', 'list'] as const,
         expected: ['customer-orders', 'expected'] as const,

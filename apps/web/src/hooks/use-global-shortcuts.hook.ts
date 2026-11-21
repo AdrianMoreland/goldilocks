@@ -14,6 +14,8 @@ interface GlobalShortcutsOptions {
     onFocusQuantity: () => void
     /** Ctrl+Z - unfreeze every metal and untick every selected row. */
     onResetAll: () => void
+    /** False turns off the single-key shortcuts (a person's Settings); Ctrl+Z still works. Default on. */
+    singleKeys?: boolean
 }
 
 const SEARCH_INPUT_ID = "product-search-input"
@@ -65,6 +67,7 @@ export function useGlobalShortcuts({
     onFlipTransaction,
     onFocusQuantity,
     onResetAll,
+    singleKeys = true,
 }: GlobalShortcutsOptions) {
     React.useEffect(() => {
         function handleKeyDown(event: KeyboardEvent) {
@@ -76,6 +79,7 @@ export function useGlobalShortcuts({
             }
 
             if (event.ctrlKey || event.metaKey || event.altKey) return
+            if (!singleKeys) return
             if (isTypingTarget(event.target) || isDialogOpen()) return
 
             if (event.key === "/") {
@@ -113,5 +117,5 @@ export function useGlobalShortcuts({
 
         window.addEventListener("keydown", handleKeyDown)
         return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [onToggleTools, onToggleChart, onOpenAdmin, onSelectMetal, onFlipTransaction, onFocusQuantity, onResetAll])
+    }, [onToggleTools, onToggleChart, onOpenAdmin, onSelectMetal, onFlipTransaction, onFocusQuantity, onResetAll, singleKeys])
 }

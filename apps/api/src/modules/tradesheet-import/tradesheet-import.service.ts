@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    Logger,
+    Optional,
+} from '@nestjs/common';
+import { NotificationsService } from '../settings/notifications.service';
+
 import { aliasOk, metalAwareAlias } from '@goldilocks/shared-types';
 import type {
     AllocationSummary,
@@ -60,6 +67,7 @@ export class TradesheetImportService {
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
         private readonly names: ProductNamesService,
+        @Optional() private readonly notifications?: NotificationsService,
     ) {}
 
     /** What an import would do. Writes nothing. */
@@ -126,6 +134,13 @@ export class TradesheetImportService {
         );
         // The names were saved with the import; matching them is best effort and never fails it.
         await this.settleNames(newNames, actor, result.batchId);
+        const t = result.plan.totals;
+        await this.notifications?.notifyAdmins({
+            kind: 'import_review',
+            title: `Tradesheet ${dto.sheetMonth} imported`,
+            body: `${t.added} added, ${t.changed + t.restored} updated, ${t.flagged} need a look${newNames.length ? `; ${newNames.length} new product name(s) to confirm` : ''} (by ${actor}).`,
+            link: '/import',
+        });
         return result;
     }
 

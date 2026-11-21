@@ -88,14 +88,41 @@ function setup(
     const permissions = {
         presets: jest.fn().mockResolvedValue(opts.presets ?? []),
     };
+    const notifications = {
+        notifyAdmins: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new PeopleService(
         prisma as never,
         audit as never,
         redis as never,
         permissions as never,
+        notifications as never,
     );
-    return { service, tx, audit, redis };
+    return { service, tx, audit, redis, notifications };
 }
+
+describe('PeopleService notifications', () => {
+    it('tells admins what changed and why, after the change is saved', async () => {
+        const { service, notifications } = setup();
+        await service.update(
+            'u1',
+            { role: 'MANAGER', reason: 'promoted' },
+            ADMIN,
+        );
+        expect(notifications.notifyAdmins).toHaveBeenCalledWith({
+            kind: 'permission_changed',
+            title: 'sam@merrion.ie: role SALES → MANAGER',
+            body: 'Changed by boss@merrion.ie. Reason: promoted',
+            link: '/admin?tab=people',
+        });
+    });
+
+    it('stays quiet when nothing changed', async () => {
+        const { service, notifications } = setup();
+        await service.update('u1', { role: 'SALES', reason: 'no-op' }, ADMIN);
+        expect(notifications.notifyAdmins).not.toHaveBeenCalled();
+    });
+});
 
 describe('PeopleService.update', () => {
     it('changes only what differs and writes one audit row per field, with the reason', async () => {

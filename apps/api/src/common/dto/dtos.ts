@@ -1,5 +1,8 @@
 import {
     AnalyticsQuerySchema,
+    CompanyQuoteTemplateSchema,
+    MarkNotificationsReadSchema,
+    UserPreferencesSchema,
     InviteUserRequestSchema,
     SetOverridesRequestSchema,
     UpdatePermissionMatrixRequestSchema,
@@ -784,4 +787,19 @@ export class UpdatePermissionMatrixRequestDto extends createDto(
 export class InviteUserRequestDto extends createDto(
     InviteUserRequestSchema,
     'InviteUserRequestDto',
+) {}
+
+export class UserPreferencesDto extends createDto(
+    UserPreferencesSchema,
+    'UserPreferencesDto',
+) {}
+
+export class CompanyQuoteTemplateDto extends createDto(
+    CompanyQuoteTemplateSchema,
+    'CompanyQuoteTemplateDto',
+) {}
+
+export class MarkNotificationsReadDto extends createDto(
+    MarkNotificationsReadSchema,
+    'MarkNotificationsReadDto',
 ) {}

@@ -10,6 +10,10 @@ import { RolesGuard } from './roles.guard';
 import { CapabilityGuard } from './capability.guard';
 import { PermissionGuard } from './permission.guard';
 import { PeopleController } from '../../modules/people/people.controller';
+import { SettingsController } from '../../modules/settings/settings.controller';
+import { SettingsService } from '../../modules/settings/settings.service';
+import { SessionsService } from '../../modules/settings/sessions.service';
+import { NotificationsService } from '../../modules/settings/notifications.service';
 import { PeopleService } from '../../modules/people/people.service';
 import { AnalyticsController } from '../../modules/analytics/analytics.controller';
 import { AnalyticsService } from '../../modules/analytics/analytics.service';
@@ -78,6 +82,7 @@ const CONTROLLERS: Type<unknown>[] = [
     PeopleController,
     PermissionsController,
     PortfolioController,
+    SettingsController,
     ProductsController,
     RoadmapController,
     RoadmapWebhookController,
@@ -225,6 +230,9 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: AnalyticsService, useValue: {} },
                 { provide: PermissionsService, useValue: {} },
                 { provide: PeopleService, useValue: {} },
+                { provide: SettingsService, useValue: {} },
+                { provide: SessionsService, useValue: {} },
+                { provide: NotificationsService, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
                 { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
@@ -312,6 +320,11 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
             'POST /ai/ask/stream',
             // Rates the caller's own answer; the service refuses a question someone else asked.
             'POST /ai/questions/:id/feedback',
+            // Settings: each writes only the caller's own preferences, sessions or notifications.
+            'PUT /settings/me',
+            'DELETE /settings/sessions/:id',
+            'POST /settings/sessions/sign-out-others',
+            'POST /notifications/read',
             // Each person saves their own look; the route only ever writes the caller's own row.
             'PUT /auth/me/ui-settings',
         ]);

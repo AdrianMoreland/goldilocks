@@ -13,6 +13,7 @@ import {usePricingWorkbook} from '@/hooks/use-pricing-workbook.hook.ts';
 import {useRetryMetalSpot} from '@/hooks/use-market-data.hook';
 import {useAssistantDock} from '@/contexts/docks-context';
 import {useGlobalShortcuts} from '@/hooks/use-global-shortcuts.hook';
+import {useMyPreferences} from '@/api/settings.api';
 import {useAuth} from '@/contexts/auth-context';
 import {useUserPreference} from '@/hooks/use-user-preference.hook';
 import {PricingToolsProvider, usePricingTools} from './context/pricing-tools-context';
@@ -142,6 +143,7 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         } else toggleTools();
     };
 
+    const { prefs } = useMyPreferences();
     useGlobalShortcuts({
         onToggleTools: toggleToolsPanel,
         onToggleChart: () => setGraphVisible((v) => !v),
@@ -150,6 +152,8 @@ function PricingWorkbookPage({workbook}: { workbook: ReturnType<typeof usePricin
         onFlipTransaction: flipTransactionType,
         onFocusQuantity: focusTradeQuantity,
         onResetAll: resetAll,
+        // A person's Settings; true (as before) without the preview flag, where preferences are never loaded.
+        singleKeys: prefs.singleKeyShortcuts,
     });
 
     const productsArr = Array.isArray(products) ? products : [];
