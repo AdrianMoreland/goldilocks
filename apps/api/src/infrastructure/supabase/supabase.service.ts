@@ -4,6 +4,18 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 
 /**
+ * The server never keeps a session in a client: one client serves every request, so a stored session would let
+ * a request without a token be answered as whoever signed in last. Each call carries the token it is about.
+ */
+const STATELESS_AUTH = {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+    },
+} as const;
+
+/**
  * Thin wrapper over the Supabase SDK. Only SupabaseAuthProvider should call
  * it - everything else goes through AuthProviderPort. Methods throw the SDK's
  * own error (with `status`/`code`) so the provider can tell "wrong password"
@@ -29,7 +41,7 @@ export class SupabaseService {
 
         // The SDK's untyped-schema client is generic over `any`; we use none of the typed-table API.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.supabase = createClient(supabaseUrl, supabaseKey, STATELESS_AUTH);
     }
 
     // Lazily created - the service-role key is only ever needed for the
@@ -48,7 +60,11 @@ export class SupabaseService {
                 );
             }
 
-            this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+            this.supabaseAdmin = createClient(
+                supabaseUrl,
+                serviceRoleKey,
+                STATELESS_AUTH,
+            );
         }
 
         return this.supabaseAdmin;
@@ -86,9 +102,11 @@ export class SupabaseService {
      * lingers inside a client shared with other users.
      */
     async refreshSession(refreshToken: string) {
-        const client = createClient(this.supabaseUrl, this.supabaseKey, {
-            auth: { persistSession: false, autoRefreshToken: false },
-        });
+        const client = createClient(
+            this.supabaseUrl,
+            this.supabaseKey,
+            STATELESS_AUTH,
+        );
         const { data, error } = await client.auth.refreshSession({
             refresh_token: refreshToken,
         });
@@ -97,6 +115,8 @@ export class SupabaseService {
     }
 
     async getUserFromToken(token: string): Promise<User | null> {
+        // The SDK reads an empty token as "use the stored session", so an empty token never reaches it.
+        if (!token?.trim()) return null;
         const { data, error } = await this.supabase.auth.getUser(token);
         if (error) return null;
         return data.user;
