@@ -114,3 +114,4 @@ export * from './product-names';
 export * from './bc-history';
 export * from './permissions';
 export * from './analytics.schema';
+export * from './people.schema';
