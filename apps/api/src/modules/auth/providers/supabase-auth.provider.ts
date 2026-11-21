@@ -127,6 +127,27 @@ export class SupabaseAuthProvider implements AuthProviderPort {
         }
     }
 
+    async inviteIdentity(email: string): Promise<AuthIdentity> {
+        try {
+            const user = await this.supabase.adminInviteUser(email);
+            return { id: user.id, email: user.email ?? email };
+        } catch (error) {
+            const { status, code } = errorDetails(error);
+            if (status === 422 || code === 'email_exists') {
+                throw new ConflictException(
+                    'A user with this email already exists.',
+                );
+            }
+            this.logger.error(
+                'Supabase inviteUserByEmail failed',
+                error instanceof Error ? error.stack : String(error),
+            );
+            throw new InternalServerErrorException(
+                'Could not create the account.',
+            );
+        }
+    }
+
     async deleteIdentity(id: string): Promise<void> {
         await this.supabase.adminDeleteUser(id);
     }

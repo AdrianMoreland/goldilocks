@@ -26,6 +26,7 @@ import {
     LoginResponseDto,
     RefreshRequestDto,
     SessionUserDto,
+    InviteUserRequestDto,
     SetUserBranchRequestDto,
     UiSettingsRequestDto,
 } from '../../common/dto/dtos';
@@ -103,6 +104,22 @@ export class AuthController {
         @Req() req: RequestWithUser,
     ): Promise<SessionUserDto> {
         return this.authService.createUser(body, req.user.email);
+    }
+
+    @Post('admin/users/invite')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: 'Invite a new staff member by email (admin)',
+        description:
+            'Creates the account and emails a link to set a password. Needs the invite email template and site URL set in Supabase.',
+    })
+    async inviteUser(
+        @Body() body: InviteUserRequestDto,
+        @Req() req: RequestWithUser,
+    ): Promise<SessionUserDto> {
+        return this.authService.inviteUser(body, req.user.email);
     }
 
     @Patch('admin/users/:id/branch')

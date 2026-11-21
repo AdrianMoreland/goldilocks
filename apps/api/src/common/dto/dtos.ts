@@ -1,5 +1,9 @@
 import {
     AnalyticsQuerySchema,
+    InviteUserRequestSchema,
+    SetOverridesRequestSchema,
+    UpdatePermissionMatrixRequestSchema,
+    UpdateUserRequestSchema,
     AiFeedbackRequestSchema,
     MessageResponseSchema,
     RawSpotPriceSchema,
@@ -760,4 +764,24 @@ export class AnalyticsQueryDto extends createDto(
 export class AiFeedbackRequestDto extends createDto(
     AiFeedbackRequestSchema,
     'AiFeedbackRequestDto',
+) {}
+
+export class UpdateUserRequestDto extends createDto(
+    UpdateUserRequestSchema,
+    'UpdateUserRequestDto',
+) {}
+
+export class SetOverridesRequestDto extends createDto(
+    SetOverridesRequestSchema,
+    'SetOverridesRequestDto',
+) {}
+
+export class UpdatePermissionMatrixRequestDto extends createDto(
+    UpdatePermissionMatrixRequestSchema,
+    'UpdatePermissionMatrixRequestDto',
+) {}
+
+export class InviteUserRequestDto extends createDto(
+    InviteUserRequestSchema,
+    'InviteUserRequestDto',
 ) {}

@@ -1,5 +1,6 @@
 import {
     BadRequestException,
+    ConflictException,
     Inject,
     Injectable,
     Logger,
@@ -18,6 +19,7 @@ import type {
     LoginResponse,
     SessionBranch,
     SessionUser,
+    InviteUserRequest,
     UiSettings,
 } from '@goldilocks/shared-types';
 import { UiSettingsSchema } from '@goldilocks/shared-types';
@@ -73,6 +75,18 @@ export class AuthService {
             password,
         );
         const user = await this.loadActiveUser(session.identity);
+        // For the People directory's "last sign-in". Never blocks a sign-in.
+        await this.prisma.user
+            .update({
+                where: { id: user.id },
+                data: { lastLoginAt: new Date() },
+                select: { id: true },
+            })
+            .catch((error: unknown) =>
+                this.logger.warn(
+                    `Could not record the sign-in time: ${error instanceof Error ? error.message : String(error)}`,
+                ),
+            );
 
         return {
             accessToken: session.accessToken,
@@ -109,12 +123,40 @@ export class AuthService {
     ): Promise<SessionUser> {
         // Checked first so a bad branch can't leave an identity at the provider to roll back.
         if (dto.branchId !== null) await this.requireBranch(dto.branchId);
-
         const identity = await this.authProvider.createIdentity(
             dto.email,
             dto.password,
         );
+        return this.provisionUser(identity, dto, actor, 'created');
+    }
 
+    /** Admin-only: like createUser, but the person sets their own password from an emailed link. */
+    async inviteUser(
+        dto: InviteUserRequest,
+        actor: string,
+    ): Promise<SessionUser> {
+        if (dto.branchId !== null) await this.requireBranch(dto.branchId);
+        // Checked first: for an email whose invite is still pending the provider re-sends it and returns the
+        // existing identity, and the rollback below would then delete that person's login.
+        const existing = await this.prisma.user.findFirst({
+            where: { email: { equals: dto.email, mode: 'insensitive' } },
+            select: { id: true },
+        });
+        if (existing)
+            throw new ConflictException(
+                'A user with this email already exists.',
+            );
+        const identity = await this.authProvider.inviteIdentity(dto.email);
+        return this.provisionUser(identity, dto, actor, 'invited');
+    }
+
+    /** The app-side User row for a new identity, rolled back at the provider if the row cannot be written. */
+    private async provisionUser(
+        identity: AuthIdentity,
+        dto: Omit<CreateUserRequest, 'password'>,
+        actor: string,
+        verb: 'created' | 'invited',
+    ): Promise<SessionUser> {
         try {
             // The row and its audit entry share a transaction; the identity above cannot, which is
             // why a failure here deletes it again below.
@@ -136,7 +178,7 @@ export class AuthService {
                 await this.audit.record(
                     actor,
                     'user',
-                    `created ${dto.email} (${dto.role}${dto.admin ? ', admin' : ''})`,
+                    `${verb} ${dto.email} (${dto.role}${dto.admin ? ', admin' : ''})`,
                     tx,
                 );
                 return created;
@@ -147,6 +189,18 @@ export class AuthService {
             // The two writes can't share a transaction. Without this the
             // identity would be orphaned and the same email could never be
             // provisioned again.
+            // An identity that already had an account (a re-sent invite, or two invites at once) is not ours
+            // to delete; only roll back a login this call created.
+            let owned: { id: string } | null = null;
+            try {
+                owned = await this.prisma.user.findUnique({
+                    where: { id: identity.id },
+                    select: { id: true },
+                });
+            } catch {
+                owned = null;
+            }
+            if (owned) throw error;
             await this.authProvider
                 .deleteIdentity(identity.id)
                 .catch((cleanupError: unknown) => {

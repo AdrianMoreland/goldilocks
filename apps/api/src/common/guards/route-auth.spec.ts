@@ -9,6 +9,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { CapabilityGuard } from './capability.guard';
 import { PermissionGuard } from './permission.guard';
+import { PeopleController } from '../../modules/people/people.controller';
+import { PeopleService } from '../../modules/people/people.service';
 import { AnalyticsController } from '../../modules/analytics/analytics.controller';
 import { AnalyticsService } from '../../modules/analytics/analytics.service';
 import { PermissionsController } from '../../modules/permissions/permissions.controller';
@@ -73,6 +75,7 @@ const CONTROLLERS: Type<unknown>[] = [
     MarketDataController,
     MarketModeController,
     MetalsController,
+    PeopleController,
     PermissionsController,
     PortfolioController,
     ProductsController,
@@ -221,6 +224,7 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: QuestionLogService, useValue: {} },
                 { provide: AnalyticsService, useValue: {} },
                 { provide: PermissionsService, useValue: {} },
+                { provide: PeopleService, useValue: {} },
                 { provide: MarketDataService, useValue: marketData },
                 { provide: MarketModeService, useValue: {} },
                 { provide: MetalsProvider, useValue: {} },
