@@ -8,6 +8,9 @@ export const queryKeys = {
     // GET /market-data/spot-status: the light 2-minute poll behind the price status.
     spotStatus: ['spot-status'] as const,
     marketMode: ['market-mode'] as const,
+    // Keyed by user: signing in as someone else in the same browser must never show the previous person's tabs.
+    permissions: { me: (userId: string) => ['permissions', 'me', userId] as const },
+    analytics: (userId: string, tab: string, preset: string) => ['analytics', userId, tab, preset] as const,
     customerOrders: {
         list: ['customer-orders', 'list'] as const,
         expected: ['customer-orders', 'expected'] as const,
