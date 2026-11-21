@@ -79,6 +79,8 @@ export const AiSpotNoteSchema = z.object({
 export type AiSpotNote = z.infer<typeof AiSpotNoteSchema>;
 
 export const AskResponseSchema = z.object({
+  /** The logged question's id, used to rate the answer. Null when the log row could not be written. */
+  questionId: z.number().int().nullable().default(null),
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
   answer: z.string(),
   mode: AiModeEnum,

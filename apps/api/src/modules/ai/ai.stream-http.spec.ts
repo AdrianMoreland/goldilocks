@@ -13,9 +13,11 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { AiController } from './ai.controller';
 import { AskStreamResponder } from './ask-stream.responder';
+import { QuestionLogService } from './question-log.service';
 import { AskService, type AskEvent } from './ask.service';
 
 const RESPONSE: AskResponse = {
+    questionId: null,
     answer: 'Yes [[pricing#vat]].',
     mode: 'procedures',
     notes: null,
@@ -50,6 +52,7 @@ describe('POST /ai/ask/stream over real HTTP', () => {
             controllers: [AiController],
             providers: [
                 AskStreamResponder,
+                { provide: QuestionLogService, useValue: {} },
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
                 { provide: APP_PIPE, useClass: ZodValidationPipe },
                 {

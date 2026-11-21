@@ -18,6 +18,7 @@ const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
+const Analytics = lazy(() => import('@/app/analytics/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
 const Customers = lazy(() => import('@/app/customers/page'))
@@ -122,6 +123,8 @@ export const routes: RouteConfig[] = [
     ? [
         // Inventory for every signed-in user; editing and the month-end tab are for admins and managers (the API enforces the same)
         { path: "/inventory", element: <RequireAuth><Inventory /></RequireAuth> },
+        // Each tab inside checks its own permission; the API refuses the rest.
+        { path: "/analytics", element: <RequireCapability capability="pricingWorkbook"><Analytics /></RequireCapability> },
         // The old read-only stock page, kept so saved links still land on Inventory
         { path: "/stock", element: <Navigate to="/inventory" replace /> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
