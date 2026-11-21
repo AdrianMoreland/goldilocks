@@ -65,6 +65,14 @@ export class SupabaseService {
         return data.user;
     }
 
+    /** Admin-only: creates an identity and emails an invite link (uses the project's invite template and site URL). */
+    async adminInviteUser(email: string): Promise<User> {
+        const { data, error } =
+            await this.admin.auth.admin.inviteUserByEmail(email);
+        if (error) throw error;
+        return data.user;
+    }
+
     /** Admin-only: removes an identity, used to roll back a half-finished createUser. */
     async adminDeleteUser(id: string): Promise<void> {
         const { error } = await this.admin.auth.admin.deleteUser(id);

@@ -38,6 +38,7 @@ import { CapabilityGuard } from './common/guards/capability.guard';
 import { PermissionGuard } from './common/guards/permission.guard';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PeopleModule } from './modules/people/people.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
@@ -118,6 +119,7 @@ function prettyStream() {
         MarketModeModule,
         PermissionsModule,
         AnalyticsModule,
+        PeopleModule,
         RoadmapModule,
         PrismaModule,
         RedisModule,
