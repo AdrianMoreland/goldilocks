@@ -298,6 +298,23 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
         },
     );
 
+    it.each([
+        'Bearer  x',
+        'Bearer ',
+        'Bearer a b',
+        'bearer staff',
+        'Bearer\tstaff',
+    ])(
+        'rejects an empty or malformed bearer header (%j) with 401 without checking a token',
+        async (header) => {
+            await request(app.getHttpServer() as Server)
+                .get('/auth/me')
+                .set('Authorization', header)
+                .expect(401);
+            expect(authService.validateToken).not.toHaveBeenCalled();
+        },
+    );
+
     it('verifies a token once per request even when a route also declares @UseGuards(JwtAuthGuard)', async () => {
         // GET /branches has both the global guard and a route-level JwtAuthGuard.
         const res = await send({ method: 'GET', url: '/branches' }, 'staff');
