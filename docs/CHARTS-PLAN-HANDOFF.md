@@ -86,17 +86,17 @@ Next session builds the **Goldilocks Redesign Final** artifact: a faithful copy 
 
 ### How we work
 
-1. Build Redesign Final as an exact copy of the deployed UI (pages below), with realistic example data.
-2. Write the change plan against it (this doc's plan, turned into tasks per page).
+1. Build Redesign Final as a pixel-perfect, fully navigable replica of the whole deployed app, with real data (pages below).
+2. Grill session: settle every open question and candidate with Adrian, then write the change plan against the replica (this doc's plan, turned into tasks per page).
 3. Edit the artifact until Adrian is happy, then implement in the repo.
 
 ### Requirements for Redesign Final
 
-- **Pages in scope:** Pricing dashboard (with tools panel and metal cards), Analytics (all 7 current tabs), Admin overview, and an empty slot for the new Assistant page. Other pages only as sidebar entries.
+- **Pages in scope:** every page in the deployed sidebar and its tabs, sheets and dialogs (Pricing with tools panel and metal cards, Price board, Inventory, Orders, Customer orders, Stocktake, Import, Customers, Invoices, SOP, Analytics with all 7 tabs, Rules, Admin, Project, Settings), fully navigable, plus an empty slot for the new Assistant page.
 - **Exact look:** same Sonar tokens, sidebar, header, cards, charts and spacing as main at c2ab593. Read the real components rather than guessing; compare against screenshots of the live app where possible.
 - **Charts drawn as the app draws them:** Recharts area chart on Pricing; the hand-made SVG kit in apps/web/src/app/analytics/components/charts.tsx (TimeLine, Columns, RankedBars, Donut, Slope, TreeMap, WeekHourHeatmap, CalendarHeatmap, StepFlow); Recharts bars on Admin.
 - **Works on Adrian's iPhone:** one self-contained HTML file. Separate files loaded in iframes do not load in the iOS app (learned in the Master Redesign).
-- **Data:** realistic example figures in the shapes the API returns (apps/api/src/modules/analytics/analytics.service.ts). Real names never; made-up customers only.
+- **Data:** real data read from the database where the session can (Supabase MCP, read-only): the full product catalogue with premiums and discounts, branches, stock, spot prices and spot history, trades, orders and invoice figures. Customer and staff names and contact details are swapped for made-up ones. Where the database cannot be reached, use the repo's seed and import fixtures, and say so.
 - **Light and dark**, phone, iPad and desktop widths.
 - **Toggle to show Before / After** per page once changes start, so each change can be compared.
 
