@@ -1,8 +1,10 @@
 import {
     BadRequestException,
+    Optional,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
+import { NotificationsService } from '../settings/notifications.service';
 import {
     ORDER_LIFECYCLE_LABELS,
     allowedSteps,
@@ -72,6 +74,7 @@ export class OrdersService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditLogService,
+        @Optional() private readonly notifications?: NotificationsService,
     ) {}
 
     private facts(t: TradeWithSteps) {
@@ -232,6 +235,12 @@ export class OrdersService {
                 `${t.reference}: ${step} (${drafts.length} sheet task${drafts.length === 1 ? '' : 's'})`,
                 tx,
             );
+        });
+        await this.notifications?.notifyAdmins({
+            kind: 'order_step',
+            title: `${t.reference} reached ${step.charAt(0)}${step.slice(1).toLowerCase()}`,
+            body: `${t.client} · ${t.productText}${t.qty ? ` × ${t.qty}` : ''} (recorded by ${actor})`,
+            link: '/orders',
         });
         return this.get(id);
     }

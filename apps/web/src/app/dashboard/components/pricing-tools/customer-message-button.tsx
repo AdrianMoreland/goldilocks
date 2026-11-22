@@ -3,6 +3,13 @@ import { ArrowLeft, ArrowLeftRight, Mail, MessageCircle, MessageSquareText, Pack
 import { toast } from "sonner"
 import type { TradeCartResponse, TradeTransactionType } from "@goldilocks/shared-types"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useQuery } from "@tanstack/react-query"
+import { renderQuoteText } from "@goldilocks/shared-types"
+import { useMyPreferences, useSettingsApi } from "@/api/settings.api"
+import { features } from "@/config/features"
+import { useAuth } from "@/contexts/auth-context"
+import { queryKeys } from "@/lib/query-keys"
+import { useSpotPrices } from "../../context/spot-prices-context"
 import { buildCustomerMessage, type MessageChannel } from "../../utils/customer-message"
 
 interface CustomerMessageButtonProps {
@@ -27,6 +34,13 @@ const CHANNEL_LABEL: Record<MessageChannel, string> = { whatsapp: "WhatsApp", em
 export function CustomerMessageButton({ cart, transactionType, fetchOtherSide, quotedSpot, beforeOpen }: CustomerMessageButtonProps) {
     const [open, setOpen] = useState(false)
     const [busy, setBusy] = useState(false)
+    // Settings (preview flag only): a default channel skips the first question; company wording and sign-off.
+    const { prefs } = useMyPreferences()
+    const { user } = useAuth()
+    const settingsApi = useSettingsApi()
+    const template = useQuery({ queryKey: queryKeys.settings.quoteTemplate, queryFn: settingsApi.quoteTemplate, enabled: features.redesign, staleTime: 5 * 60_000 })
+    const defaultChannel = features.redesign ? prefs.quote.defaultChannel : null
+    const { snapshotAt } = useSpotPrices()
     const [channel, setChannel] = useState<MessageChannel | null>(null)
     const [inStock, setInStock] = useState<boolean | null>(null)
     const isPrice = transactionType === "buying"
@@ -52,7 +66,12 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide, q
 
         try {
             const otherCart = both ? await fetchOtherSide(cart.spot) : undefined
-            const { text, html } = buildCustomerMessage({ channel, transactionType, inStock: inStock ?? true, cart, otherCart })
+            const fill = (t: string | null) =>
+                t ? renderQuoteText(t, { name: user?.firstName ?? "", spot_time: new Date(snapshotAt ?? Date.now()).toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit" }) }) : null
+            const wording = features.redesign
+                ? { opening: fill(template.data?.opening ?? null), closingNote: fill(template.data?.closingNote ?? null), signOff: prefs.quote.signOff }
+                : undefined
+            const { text, html } = buildCustomerMessage({ channel, transactionType, inStock: inStock ?? true, cart, otherCart, wording })
 
             if (html && typeof ClipboardItem !== "undefined") {
                 await navigator.clipboard.write([
@@ -87,12 +106,20 @@ export function CustomerMessageButton({ cart, transactionType, fetchOtherSide, q
         <Popover
             open={open}
             onOpenChange={(next) => {
+                // A default channel from Settings skips the first question each time it opens; Back still offers it.
+                const openNow = () => {
+                    setChannel(defaultChannel)
+                    setOpen(true)
+                }
                 if (next && beforeOpen) {
-                    beforeOpen(() => setOpen(true))
+                    beforeOpen(openNow)
                     return
                 }
-                setOpen(next)
-                if (!next) reset()
+                if (next) openNow()
+                else {
+                    setOpen(false)
+                    reset()
+                }
             }}
         >
             <PopoverTrigger asChild>

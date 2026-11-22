@@ -18,6 +18,8 @@ const StocktakeDetail = lazy(() => import('@/app/stocktake/detail/page'))
 const CustomerOrders = lazy(() => import('@/app/customer-orders/page'))
 const Tradesheets = lazy(() => import('@/app/tradesheets/page'))
 const Inventory = lazy(() => import('@/app/inventory/page'))
+const Analytics = lazy(() => import('@/app/analytics/page'))
+const Settings = lazy(() => import('@/app/settings/page'))
 const Orders = lazy(() => import('@/app/orders/page'))
 const ImportHub = lazy(() => import('@/app/import/page'))
 const Customers = lazy(() => import('@/app/customers/page'))
@@ -122,6 +124,10 @@ export const routes: RouteConfig[] = [
     ? [
         // Inventory for every signed-in user; editing and the month-end tab are for admins and managers (the API enforces the same)
         { path: "/inventory", element: <RequireAuth><Inventory /></RequireAuth> },
+        // Each tab inside checks its own permission; the API refuses the rest.
+        { path: "/analytics", element: <RequireCapability capability="pricingWorkbook"><Analytics /></RequireCapability> },
+        // Settings replaces the unused template pages; their old addresses land on it.
+        { path: "/settings", element: <RequireAuth><Settings /></RequireAuth> },
         // The old read-only stock page, kept so saved links still land on Inventory
         { path: "/stock", element: <Navigate to="/inventory" replace /> },
         { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
@@ -276,27 +282,27 @@ export const routes: RouteConfig[] = [
   // Settings Routes
   {
     path: "/settings/user",
-    element: <UserSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <UserSettings />
   },
   {
     path: "/settings/account",
-    element: <AccountSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <AccountSettings />
   },
   {
     path: "/settings/billing",
-    element: <BillingSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <BillingSettings />
   },
   {
     path: "/settings/appearance",
-    element: <AppearanceSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <AppearanceSettings />
   },
   {
     path: "/settings/notifications",
-    element: <NotificationSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <NotificationSettings />
   },
   {
     path: "/settings/connections",
-    element: <ConnectionSettings />
+    element: features.redesign ? <Navigate to="/settings" replace /> : <ConnectionSettings />
   },
 
   // Catch-all route for 404

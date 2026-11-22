@@ -128,6 +128,8 @@ interface ChartTooltipContentProps
   nameKey?: string;
   labelKey?: string;
   labelFormatter?: (label: any, payload?: any) => React.ReactNode;
+  /** Formats the number shown for each item, keeping the indicator and label. */
+  valueFormatter?: (value: number | string) => React.ReactNode;
   labelClassName?: string;
 }
 
@@ -141,6 +143,7 @@ function ChartTooltipContent({
                                       hideIndicator = false,
                                       label,
                                       labelFormatter,
+                                      valueFormatter,
                                       labelClassName,
                                       formatter,
                                       color,
@@ -255,7 +258,7 @@ function ChartTooltipContent({
                           </div>
                           {item.value && (
                               <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
+                        {valueFormatter ? valueFormatter(item.value) : item.value.toLocaleString()}
                       </span>
                           )}
                         </div>

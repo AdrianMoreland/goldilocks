@@ -24,6 +24,7 @@ __export(index_exports, {
   AI_QUESTION_MAX_LENGTH: () => AI_QUESTION_MAX_LENGTH,
   ALIAS_USAGE_SOURCES: () => ALIAS_USAGE_SOURCES,
   ALIAS_VIEWS: () => ALIAS_VIEWS,
+  ANALYTICS_PRESETS: () => ANALYTICS_PRESETS,
   AddBarRequestSchema: () => AddBarRequestSchema,
   AddCoinRequestSchema: () => AddCoinRequestSchema,
   AddEvidenceRequestSchema: () => AddEvidenceRequestSchema,
@@ -33,8 +34,11 @@ __export(index_exports, {
   AdminLogsQuerySchema: () => AdminLogsQuerySchema,
   AdminLogsResponseSchema: () => AdminLogsResponseSchema,
   AdminOverviewSchema: () => AdminOverviewSchema,
+  AdminUserListSchema: () => AdminUserListSchema,
+  AdminUserSchema: () => AdminUserSchema,
   AiAnswerStatusEnum: () => AiAnswerStatusEnum,
   AiCitationSchema: () => AiCitationSchema,
+  AiFeedbackRequestSchema: () => AiFeedbackRequestSchema,
   AiModeEnum: () => AiModeEnum,
   AiSpotNoteSchema: () => AiSpotNoteSchema,
   AiStatusSchema: () => AiStatusSchema,
@@ -50,6 +54,8 @@ __export(index_exports, {
   AliasesQuerySchema: () => AliasesQuerySchema,
   AliasesResponseSchema: () => AliasesResponseSchema,
   AllocationSummarySchema: () => AllocationSummarySchema,
+  AnalyticsPresetSchema: () => AnalyticsPresetSchema,
+  AnalyticsQuerySchema: () => AnalyticsQuerySchema,
   ApiCatalogueSchema: () => ApiCatalogueSchema,
   ApiEndpointParameterSchema: () => ApiEndpointParameterSchema,
   ApiEndpointSchema: () => ApiEndpointSchema,
@@ -104,6 +110,7 @@ __export(index_exports, {
   ClientErrorReportBatchSchema: () => ClientErrorReportBatchSchema,
   ClientErrorReportSchema: () => ClientErrorReportSchema,
   ColorModeEnum: () => ColorModeEnum,
+  CompanyQuoteTemplateSchema: () => CompanyQuoteTemplateSchema,
   CreateBranchRequestSchema: () => CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema: () => CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema: () => CreateDiscrepancyRequestSchema,
@@ -122,6 +129,7 @@ __export(index_exports, {
   CustomerOrderSchema: () => CustomerOrderSchema,
   CustomerOrderStatusEnum: () => CustomerOrderStatusEnum,
   CustomerProfileSchema: () => CustomerProfileSchema,
+  DEFAULT_ROLE_PERMISSIONS: () => DEFAULT_ROLE_PERMISSIONS,
   DISCREPANCY_ISSUE_TYPES: () => DISCREPANCY_ISSUE_TYPES,
   DbColumnSchema: () => DbColumnSchema,
   DbDeleteRequestSchema: () => DbDeleteRequestSchema,
@@ -190,6 +198,7 @@ __export(index_exports, {
   InventoryCoinsResponseSchema: () => InventoryCoinsResponseSchema,
   InventoryPositionSchema: () => InventoryPositionSchema,
   InventoryStocktakeRefSchema: () => InventoryStocktakeRefSchema,
+  InviteUserRequestSchema: () => InviteUserRequestSchema,
   InvoiceCollectedSchema: () => InvoiceCollectedSchema,
   InvoiceDetailSchema: () => InvoiceDetailSchema,
   InvoiceLineRowSchema: () => InvoiceLineRowSchema,
@@ -250,6 +259,7 @@ __export(index_exports, {
   MAX_LISTED_ISSUES: () => MAX_LISTED_ISSUES,
   MELT_CATEGORIES: () => MELT_CATEGORIES,
   MapAliasRequestSchema: () => MapAliasRequestSchema,
+  MarkNotificationsReadSchema: () => MarkNotificationsReadSchema,
   MarketDataResponseSchema: () => MarketDataResponseSchema,
   MarketModeStateSchema: () => MarketModeStateSchema,
   MeltCalculatorRequestSchema: () => MeltCalculatorRequestSchema,
@@ -259,11 +269,16 @@ __export(index_exports, {
   MessageResponseSchema: () => MessageResponseSchema,
   MetalSymbolSchema: () => MetalSymbolSchema,
   MetalTypeEnum: () => MetalTypeEnum,
+  NOTIFICATION_KINDS: () => NOTIFICATION_KINDS,
+  NOTIFICATION_LABELS: () => NOTIFICATION_LABELS,
   NameSuggestionAcceptRequestSchema: () => NameSuggestionAcceptRequestSchema,
   NameSuggestionAcceptResultSchema: () => NameSuggestionAcceptResultSchema,
   NameSuggestionDecisionRequestSchema: () => NameSuggestionDecisionRequestSchema,
   NameSuggestionDecisionResultSchema: () => NameSuggestionDecisionResultSchema,
   NameSuggestionTargetSchema: () => NameSuggestionTargetSchema,
+  NotificationKindSchema: () => NotificationKindSchema,
+  NotificationListSchema: () => NotificationListSchema,
+  NotificationSchema: () => NotificationSchema,
   OPTIONAL_COLUMNS: () => OPTIONAL_COLUMNS,
   ORDER_LIFECYCLE: () => ORDER_LIFECYCLE,
   ORDER_LIFECYCLE_LABELS: () => ORDER_LIFECYCLE_LABELS,
@@ -279,6 +294,8 @@ __export(index_exports, {
   OrderStepEnum: () => OrderStepEnum,
   OverAllocatedLotSchema: () => OverAllocatedLotSchema,
   OverAllocatedResponseSchema: () => OverAllocatedResponseSchema,
+  PERMISSION_KEYS: () => PERMISSION_KEYS,
+  PERMISSION_LABELS: () => PERMISSION_LABELS,
   PLAN_ROW_STATUSES: () => PLAN_ROW_STATUSES,
   PORTFOLIO_MAX_QTY: () => PORTFOLIO_MAX_QTY,
   PORTFOLIO_SMALL_INVESTOR_LIMIT: () => PORTFOLIO_SMALL_INVESTOR_LIMIT,
@@ -287,6 +304,10 @@ __export(index_exports, {
   PaginationSchema: () => PaginationSchema,
   PaymentRowSchema: () => PaymentRowSchema,
   PerMetalChoiceSchema: () => PerMetalChoiceSchema,
+  PermissionKeySchema: () => PermissionKeySchema,
+  PermissionListSchema: () => PermissionListSchema,
+  PermissionMatrixSchema: () => PermissionMatrixSchema,
+  PermissionOverrideSchema: () => PermissionOverrideSchema,
   PhysicalRegisterSchema: () => PhysicalRegisterSchema,
   PlanCountsSchema: () => PlanCountsSchema,
   PlanRowSchema: () => PlanRowSchema,
@@ -310,6 +331,7 @@ __export(index_exports, {
   ProfitAnalysisMissingFieldEnum: () => ProfitAnalysisMissingFieldEnum,
   ProfitAnalysisRequestSchema: () => ProfitAnalysisRequestSchema,
   ProfitAnalysisResponseSchema: () => ProfitAnalysisResponseSchema,
+  QUOTE_PLACEHOLDERS: () => QUOTE_PLACEHOLDERS,
   QuoteRowSchema: () => QuoteRowSchema,
   RECORD_PAGE_MAX: () => RECORD_PAGE_MAX,
   REDACTED_CODE_COLUMNS: () => REDACTED_CODE_COLUMNS,
@@ -388,6 +410,7 @@ __export(index_exports, {
   SetKbStatusRequestSchema: () => SetKbStatusRequestSchema,
   SetKbVisibilityRequestSchema: () => SetKbVisibilityRequestSchema,
   SetLiveStockBarStatusRequestSchema: () => SetLiveStockBarStatusRequestSchema,
+  SetOverridesRequestSchema: () => SetOverridesRequestSchema,
   SetUserBranchRequestSchema: () => SetUserBranchRequestSchema,
   SettleNamesRequestSchema: () => SettleNamesRequestSchema,
   SettleNamesResultSchema: () => SettleNamesResultSchema,
@@ -403,6 +426,8 @@ __export(index_exports, {
   ShippedNotCollectedListSchema: () => ShippedNotCollectedListSchema,
   ShippedNotCollectedRowSchema: () => ShippedNotCollectedRowSchema,
   ShippedNotCollectedTasksResultSchema: () => ShippedNotCollectedTasksResultSchema,
+  SignedInSessionListSchema: () => SignedInSessionListSchema,
+  SignedInSessionSchema: () => SignedInSessionSchema,
   SpotPriceArraySchema: () => SpotPriceArraySchema,
   SpotPriceMapSchema: () => SpotPriceMapSchema,
   SpotPriceSchema: () => SpotPriceSchema,
@@ -436,6 +461,7 @@ __export(index_exports, {
   TradesheetTabSchema: () => TradesheetTabSchema,
   TransferLiveStockRequestSchema: () => TransferLiveStockRequestSchema,
   UI_SETTINGS_MAX_BYTES: () => UI_SETTINGS_MAX_BYTES,
+  USER_PREFERENCES_MAX_BYTES: () => USER_PREFERENCES_MAX_BYTES,
   UiSettingsSchema: () => UiSettingsSchema,
   UnresolvedLotRowSchema: () => UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema: () => UnresolvedLotsResponseSchema,
@@ -445,10 +471,13 @@ __export(index_exports, {
   UpdateDiscrepancyRequestSchema: () => UpdateDiscrepancyRequestSchema,
   UpdateKbDocumentRequestSchema: () => UpdateKbDocumentRequestSchema,
   UpdateMarketModeRequestSchema: () => UpdateMarketModeRequestSchema,
+  UpdatePermissionMatrixRequestSchema: () => UpdatePermissionMatrixRequestSchema,
   UpdateProductFullDtoSchema: () => UpdateProductFullDtoSchema,
   UpdateStockRequestSchema: () => UpdateStockRequestSchema,
   UpdateStocktakeLineRequestSchema: () => UpdateStocktakeLineRequestSchema,
   UpdateStocktakeRequestSchema: () => UpdateStocktakeRequestSchema,
+  UpdateUserRequestSchema: () => UpdateUserRequestSchema,
+  UserPreferencesSchema: () => UserPreferencesSchema,
   UserProfileSchema: () => UserProfileSchema,
   UserRole: () => UserRole,
   UserSchema: () => UserSchema,
@@ -506,6 +535,10 @@ __export(index_exports, {
   detectDateOrder: () => detectDateOrder,
   detectFileType: () => detectFileType,
   detectTabType: () => detectTabType,
+  diffOverrides: () => diffOverrides,
+  diffPermissionMatrix: () => diffPermissionMatrix,
+  diffUserChanges: () => diffUserChanges,
+  effectivePermissions: () => effectivePermissions,
   effectiveVatRate: () => effectiveVatRate,
   expectedCustomerStock: () => expectedCustomerStock,
   extractQtyAndProduct: () => extractQtyAndProduct,
@@ -531,6 +564,7 @@ __export(index_exports, {
   isBondedProduct: () => isBondedProduct,
   isCashOverThreshold: () => isCashOverThreshold,
   isClosingBar: () => isClosingBar,
+  isMuted: () => isMuted,
   isOpenOrder: () => isOpenOrder,
   isPhysicallyHere: () => isPhysicallyHere,
   isRealSerial: () => isRealSerial,
@@ -600,6 +634,7 @@ __export(index_exports, {
   parseTrackingPaste: () => parseTrackingPaste,
   parseTradesheetPaste: () => parseTradesheetPaste,
   parseTsv: () => parseTsv,
+  parseUserAgent: () => parseUserAgent,
   parseWeight: () => parseWeight,
   parseWeightGrams: () => parseWeightGrams,
   planAutolinks: () => planAutolinks,
@@ -621,6 +656,8 @@ __export(index_exports, {
   refineryInText: () => refineryInText,
   refineryMatch: () => refineryMatch,
   refineryWords: () => refineryWords,
+  renderQuoteText: () => renderQuoteText,
+  resolveAnalyticsPeriod: () => resolveAnalyticsPeriod,
   resolveProduct: () => resolveProduct,
   resolveRowProduct: () => resolveRowProduct,
   rewriteKbLinks: () => rewriteKbLinks,
@@ -3280,6 +3317,8 @@ var AiSpotNoteSchema = import_zod16.z.object({
   message: import_zod16.z.string()
 });
 var AskResponseSchema = import_zod16.z.object({
+  /** The logged question's id, used to rate the answer. Null when the log row could not be written. */
+  questionId: import_zod16.z.number().int().nullable().default(null),
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
   answer: import_zod16.z.string(),
   mode: AiModeEnum,
@@ -6844,7 +6883,7 @@ var COIN_DESIGNS = [
     id: "lunar",
     label: "Lunar",
     words: ["lunar"],
-    match: (t) => t.has("year") && ZODIAC.some((z34) => t.has(z34)),
+    match: (t) => t.has("year") && ZODIAC.some((z38) => t.has(z38)),
     consume: ["the", "serie", "series", ...ZODIAC],
     metals: { GOLD: GOLD_SMALL, SILVER: SILVER_COIN_WEIGHTS },
     mints: ["PERTH MINT"],
@@ -9626,12 +9665,238 @@ var ShippedNotCollectedTasksResultSchema = import_zod33.z.object({
   alreadyOpen: import_zod33.z.number().int()
 });
 var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date)", value: "C", check: "TRADE_COLLECTED" };
+
+// src/permissions.ts
+var import_zod34 = require("zod");
+var PERMISSION_KEYS = [
+  "analytics.pricing",
+  "analytics.sales",
+  "analytics.orders",
+  "analytics.inventory",
+  "analytics.customers",
+  "analytics.chatbot",
+  "analytics.ops",
+  "admin.audit"
+];
+var PermissionKeySchema = import_zod34.z.enum(PERMISSION_KEYS);
+var PERMISSION_LABELS = {
+  "analytics.pricing": { group: "Analytics", label: "Pricing" },
+  "analytics.sales": { group: "Analytics", label: "Sales & margin" },
+  "analytics.orders": { group: "Analytics", label: "Orders" },
+  "analytics.inventory": { group: "Analytics", label: "Inventory" },
+  "analytics.customers": { group: "Analytics", label: "Customers & invoices" },
+  "analytics.chatbot": { group: "Analytics", label: "Chatbot" },
+  "analytics.ops": { group: "Analytics", label: "Ops" },
+  "admin.audit": { group: "Admin", label: "Audit log (read)" }
+};
+var ALL_ANALYTICS = PERMISSION_KEYS.filter((k) => k.startsWith("analytics."));
+var DEFAULT_ROLE_PERMISSIONS = {
+  ADMIN: PERMISSION_KEYS,
+  MANAGER: ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers"],
+  SALES: ["analytics.pricing", "analytics.orders", "analytics.inventory"],
+  ACCOUNTING: ["analytics.sales", "analytics.customers"],
+  AUDITOR: [...ALL_ANALYTICS, "admin.audit"]
+};
+var KNOWN = new Set(PERMISSION_KEYS);
+function effectivePermissions(subject, presets, overrides, now) {
+  if (subject.admin) return [...PERMISSION_KEYS].sort();
+  const held = new Set(presets.filter((p) => p.role === subject.role).map((p) => p.key));
+  for (const o of overrides) {
+    if (o.expiresAt && o.expiresAt.getTime() <= now.getTime()) continue;
+    if (o.granted) held.add(o.key);
+    else held.delete(o.key);
+  }
+  return [...held].filter((k) => KNOWN.has(k)).sort();
+}
+var PermissionListSchema = import_zod34.z.array(PermissionKeySchema);
+
+// src/analytics.schema.ts
+var import_zod35 = require("zod");
+var ANALYTICS_PRESETS = ["30d", "90d", "12m", "ytd"];
+var AnalyticsPresetSchema = import_zod35.z.enum(ANALYTICS_PRESETS);
+var AnalyticsQuerySchema = import_zod35.z.object({
+  preset: AnalyticsPresetSchema.default("90d")
+});
+function resolveAnalyticsPeriod(preset, today) {
+  const end = /* @__PURE__ */ new Date(`${today}T00:00:00Z`);
+  const start = new Date(end);
+  if (preset === "30d") start.setUTCDate(start.getUTCDate() - 29);
+  else if (preset === "90d") start.setUTCDate(start.getUTCDate() - 89);
+  else if (preset === "12m") {
+    const yearAgo = new Date(Date.UTC(end.getUTCFullYear() - 1, end.getUTCMonth(), 1));
+    const lastDay = new Date(Date.UTC(yearAgo.getUTCFullYear(), yearAgo.getUTCMonth() + 1, 0)).getUTCDate();
+    yearAgo.setUTCDate(Math.min(end.getUTCDate(), lastDay) + 1);
+    start.setTime(yearAgo.getTime());
+  } else start.setUTCMonth(0, 1);
+  const days = Math.round((end.getTime() - start.getTime()) / 864e5) + 1;
+  const prevEnd = new Date(start);
+  prevEnd.setUTCDate(prevEnd.getUTCDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setUTCDate(prevStart.getUTCDate() - (days - 1));
+  const iso = (d) => d.toISOString().slice(0, 10);
+  return {
+    preset,
+    current: { from: iso(start), to: iso(end) },
+    previous: { from: iso(prevStart), to: iso(prevEnd) }
+  };
+}
+var AiFeedbackRequestSchema = import_zod35.z.object({ helpful: import_zod35.z.boolean() });
+
+// src/people.schema.ts
+var import_zod36 = require("zod");
+var Reason2 = import_zod36.z.string().trim().min(3, "Say why, in a few words").max(300);
+var ROLES = SessionUserRoleEnum.options;
+var PermissionOverrideSchema = import_zod36.z.object({
+  key: PermissionKeySchema,
+  granted: import_zod36.z.boolean(),
+  /** ISO date-time; null means no end date. */
+  expiresAt: import_zod36.z.string().datetime().nullable()
+});
+var AdminUserSchema = import_zod36.z.object({
+  id: import_zod36.z.string(),
+  email: import_zod36.z.string(),
+  firstName: import_zod36.z.string(),
+  lastName: import_zod36.z.string(),
+  role: SessionUserRoleEnum,
+  admin: import_zod36.z.boolean(),
+  isActive: import_zod36.z.boolean(),
+  branch: SessionBranchSchema.nullable(),
+  lastLoginAt: import_zod36.z.string().nullable(),
+  overrides: import_zod36.z.array(
+    PermissionOverrideSchema.extend({ reason: import_zod36.z.string(), createdBy: import_zod36.z.string(), createdAt: import_zod36.z.string() })
+  ),
+  /** What the person can use right now: role preset plus live overrides (admins hold everything). */
+  permissions: import_zod36.z.array(PermissionKeySchema)
+});
+var AdminUserListSchema = import_zod36.z.array(AdminUserSchema);
+var UpdateUserRequestSchema = import_zod36.z.object({
+  role: SessionUserRoleEnum.optional(),
+  admin: import_zod36.z.boolean().optional(),
+  isActive: import_zod36.z.boolean().optional(),
+  branchId: import_zod36.z.number().int().positive().nullable().optional(),
+  reason: Reason2
+}).refine((v) => v.role !== void 0 || v.admin !== void 0 || v.isActive !== void 0 || v.branchId !== void 0, {
+  message: "Nothing to change"
+});
+var SetOverridesRequestSchema = import_zod36.z.object({
+  /** The person's full set of overrides after the change (replaces what they had). */
+  overrides: import_zod36.z.array(PermissionOverrideSchema).refine((o) => new Set(o.map((x) => x.key)).size === o.length, {
+    message: "One override per permission"
+  }),
+  reason: Reason2
+});
+var PermissionMatrixSchema = import_zod36.z.object(
+  Object.fromEntries(ROLES.map((r) => [r, import_zod36.z.array(PermissionKeySchema)]))
+);
+var UpdatePermissionMatrixRequestSchema = import_zod36.z.object({
+  changes: import_zod36.z.array(import_zod36.z.object({ role: SessionUserRoleEnum, key: PermissionKeySchema, granted: import_zod36.z.boolean() })).min(1, "Nothing to change"),
+  reason: Reason2
+});
+var InviteUserRequestSchema = import_zod36.z.object({
+  email: import_zod36.z.string().trim().toLowerCase().email(),
+  firstName: import_zod36.z.string().min(1, "First name is required"),
+  lastName: import_zod36.z.string().min(1, "Last name is required"),
+  role: SessionUserRoleEnum,
+  admin: import_zod36.z.boolean().default(false),
+  branchId: import_zod36.z.number().int().positive().nullable().default(null)
+});
+function diffPermissionMatrix(before, after) {
+  const out = [];
+  for (const role of ROLES) {
+    const was = new Set(before[role]);
+    const now = new Set(after[role]);
+    for (const key of PERMISSION_KEYS) {
+      if (was.has(key) !== now.has(key)) out.push({ role, key, granted: now.has(key) });
+    }
+  }
+  return out;
+}
+function diffUserChanges(before, patch) {
+  return ["role", "admin", "isActive", "branchId"].filter((f) => patch[f] !== void 0 && patch[f] !== before[f]).map((field2) => ({ field: field2, from: before[field2], to: patch[field2] }));
+}
+var describeOverride = (o) => `${o.granted ? "grant" : "remove"}${o.expiresAt ? ` until ${o.expiresAt.slice(0, 10)}` : ""}`;
+var overrideIdentity = (o) => `${o.granted}|${o.expiresAt ? new Date(o.expiresAt).toISOString() : ""}`;
+function diffOverrides(before, after) {
+  const a = new Map(before.map((o) => [o.key, o]));
+  const b = new Map(after.map((o) => [o.key, o]));
+  const id = (o) => o ? overrideIdentity(o) : null;
+  const text4 = (o) => o ? describeOverride(o) : null;
+  return [.../* @__PURE__ */ new Set([...a.keys(), ...b.keys()])].sort().filter((k) => id(a.get(k)) !== id(b.get(k))).map((key) => ({ key, from: text4(a.get(key)), to: text4(b.get(key)) }));
+}
+
+// src/settings.schema.ts
+var import_zod37 = require("zod");
+var NOTIFICATION_KINDS = ["feed_down", "order_step", "import_review", "permission_changed"];
+var NotificationKindSchema = import_zod37.z.enum(NOTIFICATION_KINDS);
+var NOTIFICATION_LABELS = {
+  feed_down: "Price feed failing or prices stale",
+  order_step: "An order reached a new step",
+  import_review: "An import finished or items wait for review",
+  permission_changed: "Someone\u2019s role or permissions changed"
+};
+var USER_PREFERENCES_MAX_BYTES = 8e3;
+var UserPreferencesSchema = import_zod37.z.object({
+  /** The page-wide Simple / Detailed switch. */
+  detail: import_zod37.z.enum(["simple", "detailed"]).default("detailed"),
+  /** Single-key shortcuts (1–4, T, G, A, P, Q, /). Ctrl+K and arrows always work. */
+  singleKeyShortcuts: import_zod37.z.boolean().default(true),
+  quote: import_zod37.z.object({
+    signOff: import_zod37.z.string().max(300).default(""),
+    defaultChannel: import_zod37.z.enum(["whatsapp", "email"]).nullable().default(null)
+  }).default({ signOff: "", defaultChannel: null }),
+  board: import_zod37.z.object({
+    view: import_zod37.z.string().max(40).default("GOLD"),
+    pins: import_zod37.z.array(import_zod37.z.number().int().positive()).max(60).default([])
+  }).default({ view: "GOLD", pins: [] }),
+  notifications: import_zod37.z.object({ muted: import_zod37.z.array(NotificationKindSchema).default([]) }).default({ muted: [] })
+}).refine((v) => JSON.stringify(v).length <= USER_PREFERENCES_MAX_BYTES, { message: "Those settings are too large to save." });
+var CompanyQuoteTemplateSchema = import_zod37.z.object({
+  opening: import_zod37.z.string().trim().max(500).nullable(),
+  closingNote: import_zod37.z.string().trim().max(1e3).nullable()
+});
+var QUOTE_PLACEHOLDERS = ["name", "spot_time"];
+function renderQuoteText(template, values) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (whole, key) => QUOTE_PLACEHOLDERS.includes(key) ? values[key] : whole
+  );
+}
+var NotificationSchema = import_zod37.z.object({
+  id: import_zod37.z.number().int(),
+  kind: NotificationKindSchema,
+  title: import_zod37.z.string(),
+  body: import_zod37.z.string(),
+  link: import_zod37.z.string().nullable(),
+  createdAt: import_zod37.z.string(),
+  readAt: import_zod37.z.string().nullable()
+});
+var NotificationListSchema = import_zod37.z.object({ items: import_zod37.z.array(NotificationSchema), unread: import_zod37.z.number().int() });
+function isMuted(prefs, kind) {
+  return prefs.muted.includes(kind);
+}
+var SignedInSessionSchema = import_zod37.z.object({
+  id: import_zod37.z.string(),
+  device: import_zod37.z.string(),
+  ip: import_zod37.z.string().nullable(),
+  createdAt: import_zod37.z.string(),
+  lastActiveAt: import_zod37.z.string(),
+  current: import_zod37.z.boolean()
+});
+var SignedInSessionListSchema = import_zod37.z.array(SignedInSessionSchema);
+function parseUserAgent(ua) {
+  if (!ua) return "Unknown device";
+  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser";
+  const system = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "unknown system";
+  return `${browser} on ${system}`;
+}
+var MarkNotificationsReadSchema = import_zod37.z.object({ ids: import_zod37.z.array(import_zod37.z.number().int().positive()).max(200).optional() });
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AI_MESSAGE_MAX_LENGTH,
   AI_QUESTION_MAX_LENGTH,
   ALIAS_USAGE_SOURCES,
   ALIAS_VIEWS,
+  ANALYTICS_PRESETS,
   AddBarRequestSchema,
   AddCoinRequestSchema,
   AddEvidenceRequestSchema,
@@ -9641,8 +9906,11 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   AdminLogsQuerySchema,
   AdminLogsResponseSchema,
   AdminOverviewSchema,
+  AdminUserListSchema,
+  AdminUserSchema,
   AiAnswerStatusEnum,
   AiCitationSchema,
+  AiFeedbackRequestSchema,
   AiModeEnum,
   AiSpotNoteSchema,
   AiStatusSchema,
@@ -9658,6 +9926,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   AliasesQuerySchema,
   AliasesResponseSchema,
   AllocationSummarySchema,
+  AnalyticsPresetSchema,
+  AnalyticsQuerySchema,
   ApiCatalogueSchema,
   ApiEndpointParameterSchema,
   ApiEndpointSchema,
@@ -9712,6 +9982,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   ClientErrorReportBatchSchema,
   ClientErrorReportSchema,
   ColorModeEnum,
+  CompanyQuoteTemplateSchema,
   CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema,
@@ -9730,6 +10001,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   CustomerOrderSchema,
   CustomerOrderStatusEnum,
   CustomerProfileSchema,
+  DEFAULT_ROLE_PERMISSIONS,
   DISCREPANCY_ISSUE_TYPES,
   DbColumnSchema,
   DbDeleteRequestSchema,
@@ -9798,6 +10070,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   InventoryCoinsResponseSchema,
   InventoryPositionSchema,
   InventoryStocktakeRefSchema,
+  InviteUserRequestSchema,
   InvoiceCollectedSchema,
   InvoiceDetailSchema,
   InvoiceLineRowSchema,
@@ -9858,6 +10131,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   MAX_LISTED_ISSUES,
   MELT_CATEGORIES,
   MapAliasRequestSchema,
+  MarkNotificationsReadSchema,
   MarketDataResponseSchema,
   MarketModeStateSchema,
   MeltCalculatorRequestSchema,
@@ -9867,11 +10141,16 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   MessageResponseSchema,
   MetalSymbolSchema,
   MetalTypeEnum,
+  NOTIFICATION_KINDS,
+  NOTIFICATION_LABELS,
   NameSuggestionAcceptRequestSchema,
   NameSuggestionAcceptResultSchema,
   NameSuggestionDecisionRequestSchema,
   NameSuggestionDecisionResultSchema,
   NameSuggestionTargetSchema,
+  NotificationKindSchema,
+  NotificationListSchema,
+  NotificationSchema,
   OPTIONAL_COLUMNS,
   ORDER_LIFECYCLE,
   ORDER_LIFECYCLE_LABELS,
@@ -9887,6 +10166,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   OrderStepEnum,
   OverAllocatedLotSchema,
   OverAllocatedResponseSchema,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
   PLAN_ROW_STATUSES,
   PORTFOLIO_MAX_QTY,
   PORTFOLIO_SMALL_INVESTOR_LIMIT,
@@ -9895,6 +10176,10 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   PaginationSchema,
   PaymentRowSchema,
   PerMetalChoiceSchema,
+  PermissionKeySchema,
+  PermissionListSchema,
+  PermissionMatrixSchema,
+  PermissionOverrideSchema,
   PhysicalRegisterSchema,
   PlanCountsSchema,
   PlanRowSchema,
@@ -9918,6 +10203,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   ProfitAnalysisMissingFieldEnum,
   ProfitAnalysisRequestSchema,
   ProfitAnalysisResponseSchema,
+  QUOTE_PLACEHOLDERS,
   QuoteRowSchema,
   RECORD_PAGE_MAX,
   REDACTED_CODE_COLUMNS,
@@ -9996,6 +10282,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   SetKbStatusRequestSchema,
   SetKbVisibilityRequestSchema,
   SetLiveStockBarStatusRequestSchema,
+  SetOverridesRequestSchema,
   SetUserBranchRequestSchema,
   SettleNamesRequestSchema,
   SettleNamesResultSchema,
@@ -10011,6 +10298,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   ShippedNotCollectedListSchema,
   ShippedNotCollectedRowSchema,
   ShippedNotCollectedTasksResultSchema,
+  SignedInSessionListSchema,
+  SignedInSessionSchema,
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
@@ -10044,6 +10333,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   TradesheetTabSchema,
   TransferLiveStockRequestSchema,
   UI_SETTINGS_MAX_BYTES,
+  USER_PREFERENCES_MAX_BYTES,
   UiSettingsSchema,
   UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema,
@@ -10053,10 +10343,13 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   UpdateDiscrepancyRequestSchema,
   UpdateKbDocumentRequestSchema,
   UpdateMarketModeRequestSchema,
+  UpdatePermissionMatrixRequestSchema,
   UpdateProductFullDtoSchema,
   UpdateStockRequestSchema,
   UpdateStocktakeLineRequestSchema,
   UpdateStocktakeRequestSchema,
+  UpdateUserRequestSchema,
+  UserPreferencesSchema,
   UserProfileSchema,
   UserRole,
   UserSchema,
@@ -10114,6 +10407,10 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   detectDateOrder,
   detectFileType,
   detectTabType,
+  diffOverrides,
+  diffPermissionMatrix,
+  diffUserChanges,
+  effectivePermissions,
   effectiveVatRate,
   expectedCustomerStock,
   extractQtyAndProduct,
@@ -10139,6 +10436,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   isBondedProduct,
   isCashOverThreshold,
   isClosingBar,
+  isMuted,
   isOpenOrder,
   isPhysicallyHere,
   isRealSerial,
@@ -10208,6 +10506,7 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   parseTrackingPaste,
   parseTradesheetPaste,
   parseTsv,
+  parseUserAgent,
   parseWeight,
   parseWeightGrams,
   planAutolinks,
@@ -10229,6 +10528,8 @@ var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date
   refineryInText,
   refineryMatch,
   refineryWords,
+  renderQuoteText,
+  resolveAnalyticsPeriod,
   resolveProduct,
   resolveRowProduct,
   rewriteKbLinks,

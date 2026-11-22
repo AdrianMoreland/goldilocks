@@ -6,6 +6,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandSearch, SearchTrigger } from "@/components/command-search"
 import { OPEN_SEARCH_EVENT } from "@/lib/command-search"
 import { features } from "@/config/features"
+import { useAuth } from "@/contexts/auth-context"
+import { NotificationBell } from "@/components/notification-bell"
 import { Logo } from "@/components/logo"
 
 interface SiteHeaderProps {
@@ -22,6 +24,7 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ title, description, showLogo, actions, showSidebarTrigger = true, showSearch = true }: SiteHeaderProps) {
+  const { isAdmin } = useAuth()
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -81,6 +84,7 @@ export function SiteHeader({ title, description, showLogo, actions, showSidebarT
           )}
           <div className={features.redesign ? "flex shrink-0 items-center gap-1 sm:gap-2" : "ml-auto flex shrink-0 items-center gap-1 sm:gap-2"}>
             {actions}
+            {features.redesign && isAdmin && <NotificationBell />}
           </div>
         </div>
       </header>

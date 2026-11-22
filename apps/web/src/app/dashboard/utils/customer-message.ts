@@ -13,7 +13,16 @@ interface MessageInput {
     cart: TradeCartResponse
     /** The same items priced from the other side; when present, both Price and Buyback are shown. */
     otherCart?: TradeCartResponse
+    /**
+     * The company wording and the clerk's sign-off from Settings, placeholders already filled. Absent (or null
+     * parts) keeps the built-in text exactly as before.
+     */
+    wording?: { opening: string | null; closingNote: string | null; signOff: string }
 }
+
+const GREETING = "Hello, thank you for your interest in Merrion Gold."
+const EMAIL_THANKS = "Thank you for your interest in Merrion Gold."
+
 
 type Line = TradeCartResponse["lines"][number]
 
@@ -71,7 +80,9 @@ function whatsappBullet(row: Row): string {
  * so those should be read once by the owner before staff rely on them.
  */
 export function buildCustomerMessage(input: MessageInput): { text: string; html?: string } {
-    const { channel, transactionType, inStock, cart, otherCart } = input
+    const { channel, transactionType, inStock, cart, otherCart, wording } = input
+    const signOff = wording?.signOff.trim() || null
+    const closingNote = wording?.closingNote?.trim() || null
     const many = cart.lines.length > 1
     const isPrice = transactionType === "buying"
     const rows = buildRows(input)
@@ -96,11 +107,13 @@ export function buildCustomerMessage(input: MessageInput): { text: string; html?
 
         return {
             text: [
-                `Hello, thank you for your interest in Merrion Gold. ${opening}, ${spotSentence(cart, bold)}:`,
+                `${wording?.opening?.trim() || GREETING} ${opening}, ${spotSentence(cart, bold)}:`,
                 "",
                 ...rows.map(whatsappBullet),
                 "",
                 closing,
+                ...(closingNote ? ["", closingNote] : []),
+                ...(signOff ? ["", signOff] : []),
             ].join("\n"),
         }
     }
@@ -132,7 +145,7 @@ export function buildCustomerMessage(input: MessageInput): { text: string; html?
         return cells
     })
 
-    const intro = `Thank you for your interest in Merrion Gold. Please find below the prices for the items you asked about, ${spotSentence(cart)}. Prices move with the market and are shown in euro.`
+    const intro = `${wording?.opening?.trim() || EMAIL_THANKS} Please find below the prices for the items you asked about, ${spotSentence(cart)}. Prices move with the market and are shown in euro.`
     const introHtml = escapeHtml(intro).replace(
         escapeHtml(spotFigure(cart)),
         `<strong>${escapeHtml(spotFigure(cart))}</strong>`,
@@ -147,9 +160,9 @@ export function buildCustomerMessage(input: MessageInput): { text: string; html?
         [headers, ...tableRows].map((cells) => cells.join("\t")).join("\n"),
         "",
         closing,
+        ...(closingNote ? ["", closingNote] : []),
         "",
-        "Kind regards,",
-        "Merrion Gold",
+        ...(signOff ? signOff.split("\n") : ["Kind regards,", "Merrion Gold"]),
     ].join("\n")
 
     const paragraph = (value: string) => `<p style="margin:0 0 12px;">${escapeHtml(value)}</p>`
@@ -159,8 +172,11 @@ ${paragraph("Dear Customer,")}
 <p style="margin:0 0 12px;">${introHtml}</p>
 ${renderHtmlTable(headers, tableRows, (i) => i > 0 && !(showQty && i === 1))}
 ${paragraph(closing)}
-${paragraph("Kind regards,")}
-<p style="margin:0;">Merrion Gold</p>
+${closingNote ? `<p style="margin:0 0 12px;">${closingNote.split("\n").map(escapeHtml).join("<br>")}</p>` : ""}${
+        signOff
+            ? `<p style="margin:0;">${signOff.split("\n").map(escapeHtml).join("<br>")}</p>`
+            : `${paragraph("Kind regards,")}\n<p style="margin:0;">Merrion Gold</p>`
+    }
 </div>`
 
     return { text, html }

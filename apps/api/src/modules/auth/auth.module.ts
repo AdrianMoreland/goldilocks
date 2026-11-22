@@ -25,6 +25,7 @@ import { SupabaseAuthProvider } from './providers/supabase-auth.provider';
         // else in the app references Supabase directly for auth.
         { provide: AUTH_PROVIDER, useClass: SupabaseAuthProvider },
     ],
-    exports: [AuthService],
+    // AUTH_PROVIDER is exported for Settings (signed-in sessions); it is still the only door to the provider.
+    exports: [AuthService, AUTH_PROVIDER],
 })
 export class AuthModule {}
