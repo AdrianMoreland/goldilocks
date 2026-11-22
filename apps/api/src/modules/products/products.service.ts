@@ -33,6 +33,11 @@ export class ProductsService {
         return this.productsProvider.getById(id);
     }
 
+    /** The live products among these ids, fetched in one query. Callers match them back by id. */
+    async findByIds(ids: number[]): Promise<RawProduct[]> {
+        return this.productsProvider.getByIds(ids);
+    }
+
     /**
      * One product as stored. Pricing needs live spot, which this module is
      * deliberately not allowed to know about (see ProductsModule) - the

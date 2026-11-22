@@ -13,6 +13,13 @@ exports.SupabaseService = void 0;
 const common_1 = require("@nestjs/common");
 const supabase_js_1 = require("@supabase/supabase-js");
 const config_1 = require("@nestjs/config");
+const STATELESS_AUTH = {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+    },
+};
 let SupabaseService = class SupabaseService {
     configService;
     supabase;
@@ -28,7 +35,7 @@ let SupabaseService = class SupabaseService {
         }
         this.supabaseUrl = supabaseUrl;
         this.supabaseKey = supabaseKey;
-        this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+        this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, STATELESS_AUTH);
     }
     get admin() {
         if (!this.supabaseAdmin) {
@@ -37,7 +44,7 @@ let SupabaseService = class SupabaseService {
             if (!supabaseUrl || !serviceRoleKey) {
                 throw new common_1.InternalServerErrorException('SUPABASE_SERVICE_ROLE_KEY not set');
             }
-            this.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, serviceRoleKey);
+            this.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, serviceRoleKey, STATELESS_AUTH);
         }
         return this.supabaseAdmin;
     }
@@ -72,9 +79,7 @@ let SupabaseService = class SupabaseService {
         return data;
     }
     async refreshSession(refreshToken) {
-        const client = (0, supabase_js_1.createClient)(this.supabaseUrl, this.supabaseKey, {
-            auth: { persistSession: false, autoRefreshToken: false },
-        });
+        const client = (0, supabase_js_1.createClient)(this.supabaseUrl, this.supabaseKey, STATELESS_AUTH);
         const { data, error } = await client.auth.refreshSession({
             refresh_token: refreshToken,
         });
@@ -83,6 +88,8 @@ let SupabaseService = class SupabaseService {
         return data;
     }
     async getUserFromToken(token) {
+        if (!token?.trim())
+            return null;
         const { data, error } = await this.supabase.auth.getUser(token);
         if (error)
             return null;

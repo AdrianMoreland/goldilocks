@@ -42,6 +42,12 @@ export function toIsoDate(v: SheetValue): string | null {
   return parseSheetDate(String(v));
 }
 
+/** No trade on the sheets is older than this; an earlier year is a typo ("206" for "2026"). */
+export const FIRST_TRADE_YEAR = 2000;
+
+/** True when an ISO date (yyyy-mm-dd) falls in a year a trade can have. */
+export const isRealTradeYear = (iso: string): boolean => Number(iso.slice(0, 4)) >= FIRST_TRADE_YEAR;
+
 // --- cell colours ------------------------------------------------------------------
 
 export type FillKind = 'GREEN' | 'BLUE' | 'YELLOW' | 'NONE';
@@ -618,8 +624,11 @@ export function parseSaleRow(row: SheetRow, map: HeaderMap<SaleField>, sourceRow
   const { state, fromColour } = deriveTradeState(cpty, cptyCell?.fill);
   if (state === 'UNKNOWN') issues.push(cpty.kind === 'OTHER' ? `CPTY "${cpty.raw}" is not recognised.` : 'CPTY is empty and not marked as awaiting a hedge.');
 
-  const date = toIsoDate(valueAt(row, m, 'date'));
-  if (!date) issues.push('No date.');
+  const sheetDate = toIsoDate(valueAt(row, m, 'date'));
+  // "26/03/206" reads as the year 206. Such a row is kept and flagged, with no date, never stored on a date no period can show.
+  const date = sheetDate && isRealTradeYear(sheetDate) ? sheetDate : null;
+  if (sheetDate && !date) issues.push(`Date ${sheetDate} is not a real trade date (year before ${FIRST_TRADE_YEAR}); fix it in the sheet.`);
+  else if (!date) issues.push('No date.');
 
   const notes = orNull(text(valueAt(row, m, 'notes')));
   const hedgingNotes = orNull(text(valueAt(row, m, 'hedgingNotes')));

@@ -148,7 +148,9 @@ export class SupabaseAuthProvider
     }
 
     async verifyToken(token: string): Promise<AuthIdentity> {
-        const user = await this.supabase.getUserFromToken(token);
+        const user = token.trim()
+            ? await this.supabase.getUserFromToken(token)
+            : null;
         if (!user?.email) {
             throw new UnauthorizedException('Invalid or expired token');
         }

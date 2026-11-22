@@ -38,6 +38,14 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         });
         return product ? (0, prisma_mappers_1.toRawProduct)(product) : null;
     }
+    async getByIds(ids) {
+        if (ids.length === 0)
+            return [];
+        const rows = await this.prisma.product.findMany({
+            where: { id: { in: ids }, deletedAt: null },
+        });
+        return rows.map(prisma_mappers_1.toRawProduct);
+    }
     async findBySku(sku) {
         return this.prisma.product.findFirst({
             where: { sku: { equals: sku, mode: 'insensitive' } },

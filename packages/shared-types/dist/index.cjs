@@ -156,6 +156,7 @@ __export(index_exports, {
   EvidenceKindEnum: () => EvidenceKindEnum,
   ExpectedCustomerStockSchema: () => ExpectedCustomerStockSchema,
   FAKE_CUSTOMERS: () => FAKE_CUSTOMERS,
+  FIRST_TRADE_YEAR: () => FIRST_TRADE_YEAR,
   FIT_HIGH: () => FIT_HIGH,
   FIT_HIGH_SILVER: () => FIT_HIGH_SILVER,
   FIT_LOW: () => FIT_LOW,
@@ -442,6 +443,7 @@ __export(index_exports, {
   StocktakeLineSchema: () => StocktakeLineSchema,
   StocktakeSchema: () => StocktakeSchema,
   StocktakeStatusEnum: () => StocktakeStatusEnum,
+  TRADE_CART_MAX_ITEMS: () => TRADE_CART_MAX_ITEMS,
   TRADE_METAL_SLIDER_BOUNDS: () => TRADE_METAL_SLIDER_BOUNDS,
   TRADE_STATES: () => TRADE_STATES,
   TabPlanSchema: () => TabPlanSchema,
@@ -571,6 +573,7 @@ __export(index_exports, {
   isOpenOrder: () => isOpenOrder,
   isPhysicallyHere: () => isPhysicallyHere,
   isRealSerial: () => isRealSerial,
+  isRealTradeYear: () => isRealTradeYear,
   isReferenceCell: () => isReferenceCell,
   isSpotMarketClosed: () => isSpotMarketClosed,
   isStopStep: () => isStopStep,
@@ -989,11 +992,12 @@ var TradeCartItemRequestSchema = import_zod6.z.object({
   quantity: import_zod6.z.coerce.number().int().min(1).default(1),
   percent: import_zod6.z.coerce.number().min(0)
 });
+var TRADE_CART_MAX_ITEMS = 100;
 var TradeCartRequestSchema = import_zod6.z.object({
   metalType: MetalTypeEnum,
   transactionType: TradeTransactionTypeEnum,
   customSpot: import_zod6.z.coerce.number().positive().optional(),
-  items: import_zod6.z.array(TradeCartItemRequestSchema).min(1)
+  items: import_zod6.z.array(TradeCartItemRequestSchema).min(1).max(TRADE_CART_MAX_ITEMS)
 });
 var TradeCartLineSchema = import_zod6.z.object({
   productId: import_zod6.z.number(),
@@ -5482,6 +5486,8 @@ function toIsoDate(v) {
   if (v === null || v === void 0 || v === "") return null;
   return parseSheetDate(String(v));
 }
+var FIRST_TRADE_YEAR = 2e3;
+var isRealTradeYear = (iso) => Number(iso.slice(0, 4)) >= FIRST_TRADE_YEAR;
 function fillKind(fill) {
   const f = (fill ?? "").replace("#", "").toUpperCase();
   const rgb = f.length === 8 ? f.slice(2) : f;
@@ -5802,8 +5808,10 @@ function parseSaleRow(row, map, sourceRow) {
   const cpty = classifyCpty(cptyCell?.value);
   const { state, fromColour } = deriveTradeState(cpty, cptyCell?.fill);
   if (state === "UNKNOWN") issues.push(cpty.kind === "OTHER" ? `CPTY "${cpty.raw}" is not recognised.` : "CPTY is empty and not marked as awaiting a hedge.");
-  const date = toIsoDate(valueAt(row, m, "date"));
-  if (!date) issues.push("No date.");
+  const sheetDate = toIsoDate(valueAt(row, m, "date"));
+  const date = sheetDate && isRealTradeYear(sheetDate) ? sheetDate : null;
+  if (sheetDate && !date) issues.push(`Date ${sheetDate} is not a real trade date (year before ${FIRST_TRADE_YEAR}); fix it in the sheet.`);
+  else if (!date) issues.push("No date.");
   const notes = orNull(text2(valueAt(row, m, "notes")));
   const hedgingNotes = orNull(text2(valueAt(row, m, "hedgingNotes")));
   const collected = readCollected(cellAt(row, m, "collected"));
@@ -10080,6 +10088,7 @@ function parseViewAs(raw) {
   EvidenceKindEnum,
   ExpectedCustomerStockSchema,
   FAKE_CUSTOMERS,
+  FIRST_TRADE_YEAR,
   FIT_HIGH,
   FIT_HIGH_SILVER,
   FIT_LOW,
@@ -10366,6 +10375,7 @@ function parseViewAs(raw) {
   StocktakeLineSchema,
   StocktakeSchema,
   StocktakeStatusEnum,
+  TRADE_CART_MAX_ITEMS,
   TRADE_METAL_SLIDER_BOUNDS,
   TRADE_STATES,
   TabPlanSchema,
@@ -10495,6 +10505,7 @@ function parseViewAs(raw) {
   isOpenOrder,
   isPhysicallyHere,
   isRealSerial,
+  isRealTradeYear,
   isReferenceCell,
   isSpotMarketClosed,
   isStopStep,

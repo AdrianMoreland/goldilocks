@@ -58,12 +58,15 @@ let TradeService = class TradeService {
         }
         const spot = customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / shared_types_1.GRAMS_PER_TROY_OUNCE;
-        const products = await Promise.all(items.map((item) => this.productsService.findById(item.productId)));
+        const found = await this.productsService.findByIds([
+            ...new Set(items.map((item) => item.productId)),
+        ]);
+        const productById = new Map(found.map((p) => [p.id, p]));
         let totalWeight = 0;
         let totalPrice = 0;
         const lines = [];
-        items.forEach((item, index) => {
-            const product = products[index];
+        items.forEach((item) => {
+            const product = productById.get(item.productId);
             if (!product) {
                 throw new common_1.NotFoundException(`Product ${item.productId} not found.`);
             }

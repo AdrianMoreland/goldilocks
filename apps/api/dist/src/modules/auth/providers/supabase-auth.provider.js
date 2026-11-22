@@ -97,7 +97,9 @@ let SupabaseAuthProvider = SupabaseAuthProvider_1 = class SupabaseAuthProvider {
         };
     }
     async verifyToken(token) {
-        const user = await this.supabase.getUserFromToken(token);
+        const user = token.trim()
+            ? await this.supabase.getUserFromToken(token)
+            : null;
         if (!user?.email) {
             throw new common_1.UnauthorizedException('Invalid or expired token');
         }

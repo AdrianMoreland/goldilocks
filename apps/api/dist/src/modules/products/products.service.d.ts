@@ -7,6 +7,7 @@ export declare class ProductsService {
     getRawProducts(): Promise<RawProduct[]>;
     getRawProductsIncludingInactive(): Promise<RawProduct[]>;
     findById(id: number): Promise<RawProduct | null>;
+    findByIds(ids: number[]): Promise<RawProduct[]>;
     getById(id: number): Promise<RawProduct>;
     create(dto: CreateProductDto, actor: string): Promise<{
         id: number;

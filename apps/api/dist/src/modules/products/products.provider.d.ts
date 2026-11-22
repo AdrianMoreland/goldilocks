@@ -10,6 +10,7 @@ export declare class ProductsProvider {
     constructor(prisma: PrismaService, productCache: ProductCacheStore, audit: AuditLogService);
     getAll(): Promise<RawProduct[]>;
     getById(id: number): Promise<RawProduct | null>;
+    getByIds(ids: number[]): Promise<RawProduct[]>;
     findBySku(sku: string): Promise<{
         id: number;
         deletedAt: Date | null;

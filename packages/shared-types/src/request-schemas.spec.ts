@@ -3,6 +3,7 @@ import { HistoricCloseQuerySchema, RecalculateOverridesSchema } from './market-d
 import { MapAliasRequestSchema } from './review.schema';
 import { UpdateStockRequestSchema } from './product.schema';
 import { CreateUserRequestSchema } from './session.schema';
+import { TRADE_CART_MAX_ITEMS, TradeCartRequestSchema } from './trade.schema';
 
 describe('RecalculateOverridesSchema', () => {
   it('accepts a partial map of positive numbers', () => {
@@ -84,5 +85,20 @@ describe('MapAliasRequestSchema', () => {
     expect(MapAliasRequestSchema.safeParse({ salesProductId: 3, productId: 4 }).success).toBe(false);
     expect(MapAliasRequestSchema.safeParse({ productId: 4, noProduct: true }).success).toBe(false);
     expect(MapAliasRequestSchema.safeParse({ noProduct: false }).success).toBe(false);
+  });
+});
+
+describe('TradeCartRequestSchema', () => {
+  const cart = (count: number) => ({
+    metalType: 'GOLD',
+    transactionType: 'buying',
+    items: Array.from({ length: count }, () => ({ productId: 1, percent: 0, quantity: 1 })),
+  });
+  it('accepts a cart at the line cap and rejects one over it', () => {
+    expect(TradeCartRequestSchema.safeParse(cart(TRADE_CART_MAX_ITEMS)).success).toBe(true);
+    expect(TradeCartRequestSchema.safeParse(cart(TRADE_CART_MAX_ITEMS + 1)).success).toBe(false);
+  });
+  it('still rejects an empty cart', () => {
+    expect(TradeCartRequestSchema.safeParse(cart(0)).success).toBe(false);
   });
 });

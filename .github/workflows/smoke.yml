@@ -54,8 +54,8 @@ jobs:
           fi
           fail=""
           for i in $(seq 1 10); do
-            api="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${API_URL%/}/health" || true)"
-            web="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${WEB_URL%/}/" || true)"
+            api="$(curl -sL -o /dev/null -w '%{http_code}' --max-time 20 "${API_URL%/}/health" || true)"
+            web="$(curl -sL -o /dev/null -w '%{http_code}' --max-time 20 "${WEB_URL%/}/" || true)"
             if [ "$api" = "200" ] && [ "$web" = "200" ]; then fail=""; break; fi
             fail="API /health: $api, web /: $web"
             sleep 30

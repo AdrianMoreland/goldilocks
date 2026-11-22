@@ -26,6 +26,9 @@ let ProductsService = class ProductsService {
     async findById(id) {
         return this.productsProvider.getById(id);
     }
+    async findByIds(ids) {
+        return this.productsProvider.getByIds(ids);
+    }
     async getById(id) {
         const raw = await this.productsProvider.getById(id);
         if (!raw) {
