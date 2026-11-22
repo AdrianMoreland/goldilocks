@@ -4779,6 +4779,8 @@ function toIsoDate(v) {
   if (v === null || v === void 0 || v === "") return null;
   return parseSheetDate(String(v));
 }
+var FIRST_TRADE_YEAR = 2e3;
+var isRealTradeYear = (iso) => Number(iso.slice(0, 4)) >= FIRST_TRADE_YEAR;
 function fillKind(fill) {
   const f = (fill ?? "").replace("#", "").toUpperCase();
   const rgb = f.length === 8 ? f.slice(2) : f;
@@ -5099,8 +5101,10 @@ function parseSaleRow(row, map, sourceRow) {
   const cpty = classifyCpty(cptyCell?.value);
   const { state, fromColour } = deriveTradeState(cpty, cptyCell?.fill);
   if (state === "UNKNOWN") issues.push(cpty.kind === "OTHER" ? `CPTY "${cpty.raw}" is not recognised.` : "CPTY is empty and not marked as awaiting a hedge.");
-  const date = toIsoDate(valueAt(row, m, "date"));
-  if (!date) issues.push("No date.");
+  const sheetDate = toIsoDate(valueAt(row, m, "date"));
+  const date = sheetDate && isRealTradeYear(sheetDate) ? sheetDate : null;
+  if (sheetDate && !date) issues.push(`Date ${sheetDate} is not a real trade date (year before ${FIRST_TRADE_YEAR}); fix it in the sheet.`);
+  else if (!date) issues.push("No date.");
   const notes = orNull(text2(valueAt(row, m, "notes")));
   const hedgingNotes = orNull(text2(valueAt(row, m, "hedgingNotes")));
   const collected = readCollected(cellAt(row, m, "collected"));
@@ -9331,6 +9335,7 @@ export {
   EvidenceKindEnum,
   ExpectedCustomerStockSchema,
   FAKE_CUSTOMERS,
+  FIRST_TRADE_YEAR,
   FIT_HIGH,
   FIT_HIGH_SILVER,
   FIT_LOW,
@@ -9745,6 +9750,7 @@ export {
   isOpenOrder,
   isPhysicallyHere,
   isRealSerial,
+  isRealTradeYear,
   isReferenceCell,
   isSpotMarketClosed,
   isStopStep,

@@ -326,6 +326,14 @@ describe('sale rows', () => {
     expect(sale.issues).toEqual(expect.arrayContaining(['No quantity.', 'No product.', 'No date.', 'CPTY "see Tom" is not recognised.']));
   });
 
+  it('flags a date with an impossible year instead of storing it', () => {
+    const r = row('DU', 'AM', 'Cara', 1, '250g bar', '26/03/206', 3700, 'StoneX 505844', 74104.57, 75920, 1736.9, 0.0228, 'N/A', 'AIB', null, null, null, null, -78.5, 73361, 73282.4, 'DU-G20260326');
+    const sale = parseSaleRow(r, map, 9)!;
+    expect(sale.date).toBeNull();
+    expect(sale.issues).toContain('Date 0206-03-26 is not a real trade date (year before 2000); fix it in the sheet.');
+    expect(sale.issues).not.toContain('No date.');
+  });
+
   it('skips a row with no reference and flags a reference that is not a sale', () => {
     expect(parseSaleRow(row('DU', 'AM', 'Ed', 1), map, 8)).toBeNull();
     const r = row('DU', 'AM', 'Fay', 1, '1oz bar', new Date('2026-10-05T00:00:00Z'), 1, 'Quote Only', null, null, null, null, null, null, null, null, null, null, null, null, null, 'DU-GP20261002');
