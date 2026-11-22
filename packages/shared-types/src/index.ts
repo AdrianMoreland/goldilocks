@@ -112,3 +112,7 @@ export * from './product-stock';
 export * from './sheet-apply';
 export * from './product-names';
 export * from './bc-history';
+export * from './permissions';
+export * from './analytics.schema';
+export * from './people.schema';
+export * from './settings.schema';

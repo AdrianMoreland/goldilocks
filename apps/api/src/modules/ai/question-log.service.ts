@@ -35,14 +35,39 @@ export class QuestionLogService {
 
     constructor(private readonly prisma: PrismaService) {}
 
-    async record(entry: QuestionLogEntry): Promise<void> {
+    /** Returns the new row's id so the answer can be rated, or null when the row could not be written. */
+    async record(entry: QuestionLogEntry): Promise<number | null> {
         try {
-            await this.prisma.aiQuestionLog.create({ data: entry });
+            const row = await this.prisma.aiQuestionLog.create({
+                data: entry,
+                select: { id: true },
+            });
+            return row.id;
         } catch (error) {
             this.logger.warn(
                 `Could not write the question log: ${error instanceof Error ? error.message : String(error)}`,
             );
+            return null;
         }
+    }
+
+    /** One rating per person per answer; rating again replaces it. Only the person who asked may rate. */
+    async rate(
+        questionId: number,
+        userId: string,
+        helpful: boolean,
+    ): Promise<boolean> {
+        const question = await this.prisma.aiQuestionLog.findFirst({
+            where: { id: questionId, userId },
+            select: { id: true },
+        });
+        if (!question) return false;
+        await this.prisma.aiFeedback.upsert({
+            where: { questionId_userId: { questionId, userId } },
+            create: { questionId, userId, helpful },
+            update: { helpful },
+        });
+        return true;
     }
 
     /** Total spend since `start`, in micro-dollars. Throws if the database is unreachable: a breaker that cannot count must not guess "zero". */

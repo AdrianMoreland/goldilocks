@@ -3,14 +3,18 @@ import {
     Injectable,
     InternalServerErrorException,
     Logger,
+    Optional,
     ServiceUnavailableException,
     UnauthorizedException,
 } from '@nestjs/common';
+import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { SupabaseService } from '../../../infrastructure/supabase/supabase.service';
 import type {
     AuthIdentity,
     AuthProviderPort,
     AuthSession,
+    AuthSessionsPort,
+    ProviderSession,
 } from '../auth-provider.port';
 
 /**
@@ -22,10 +26,58 @@ import type {
  * actually happens.
  */
 @Injectable()
-export class SupabaseAuthProvider implements AuthProviderPort {
+export class SupabaseAuthProvider
+    implements AuthProviderPort, AuthSessionsPort
+{
     private readonly logger = new Logger(SupabaseAuthProvider.name);
 
-    constructor(private readonly supabase: SupabaseService) {}
+    constructor(
+        private readonly supabase: SupabaseService,
+        // Sessions live in Supabase's auth schema, which the API's database role can read; optional so the
+        // login-only tests need no database.
+        @Optional() private readonly prisma?: PrismaService,
+    ) {}
+
+    private db(): PrismaService {
+        if (!this.prisma) throw new Error('Sessions need the database');
+        return this.prisma;
+    }
+
+    async listSessions(userId: string): Promise<ProviderSession[]> {
+        const rows = await this.db().$queryRaw<
+            {
+                id: string;
+                user_agent: string | null;
+                ip: string | null;
+                created_at: Date;
+                last_active: Date;
+            }[]
+        >`
+            SELECT id::text, user_agent, host(ip) AS ip, created_at,
+                   coalesce(refreshed_at AT TIME ZONE 'UTC', updated_at, created_at) AS last_active
+            FROM auth.sessions
+            WHERE user_id = ${userId}::uuid AND (not_after IS NULL OR not_after > now())
+            ORDER BY 5 DESC`;
+        return rows.map((r) => ({
+            id: r.id,
+            userAgent: r.user_agent,
+            ip: r.ip,
+            createdAt: r.created_at,
+            lastActiveAt: r.last_active,
+        }));
+    }
+
+    /** Deleting the session row also removes its refresh tokens; Supabase then refuses its access token. */
+    async revokeSession(userId: string, sessionId: string): Promise<boolean> {
+        const n = await this.db().$executeRaw`
+            DELETE FROM auth.sessions WHERE id = ${sessionId}::uuid AND user_id = ${userId}::uuid`;
+        return n > 0;
+    }
+
+    async revokeOtherSessions(userId: string, keepId: string): Promise<number> {
+        return this.db().$executeRaw`
+            DELETE FROM auth.sessions WHERE user_id = ${userId}::uuid AND id <> ${keepId}::uuid`;
+    }
 
     async signInWithPassword(
         email: string,
@@ -96,7 +148,9 @@ export class SupabaseAuthProvider implements AuthProviderPort {
     }
 
     async verifyToken(token: string): Promise<AuthIdentity> {
-        const user = await this.supabase.getUserFromToken(token);
+        const user = token.trim()
+            ? await this.supabase.getUserFromToken(token)
+            : null;
         if (!user?.email) {
             throw new UnauthorizedException('Invalid or expired token');
         }
@@ -119,6 +173,27 @@ export class SupabaseAuthProvider implements AuthProviderPort {
             }
             this.logger.error(
                 'Supabase createUser failed',
+                error instanceof Error ? error.stack : String(error),
+            );
+            throw new InternalServerErrorException(
+                'Could not create the account.',
+            );
+        }
+    }
+
+    async inviteIdentity(email: string): Promise<AuthIdentity> {
+        try {
+            const user = await this.supabase.adminInviteUser(email);
+            return { id: user.id, email: user.email ?? email };
+        } catch (error) {
+            const { status, code } = errorDetails(error);
+            if (status === 422 || code === 'email_exists') {
+                throw new ConflictException(
+                    'A user with this email already exists.',
+                );
+            }
+            this.logger.error(
+                'Supabase inviteUserByEmail failed',
                 error instanceof Error ? error.stack : String(error),
             );
             throw new InternalServerErrorException(

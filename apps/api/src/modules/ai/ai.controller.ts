@@ -4,6 +4,9 @@ import {
     Controller,
     Get,
     HttpCode,
+    NotFoundException,
+    Param,
+    ParseIntPipe,
     Post,
     Req,
     Res,
@@ -21,11 +24,13 @@ import {
     type RequestWithUser,
 } from '../../common/guards/jwt-auth.guard';
 import {
+    AiFeedbackRequestDto,
     AiStatusDto,
     AskRequestDto,
     AskResponseDto,
 } from '../../common/dto/dtos';
 import { AskService, type Actor } from './ask.service';
+import { QuestionLogService } from './question-log.service';
 import { AskStreamResponder } from './ask-stream.responder';
 
 const actorOf = (request: RequestWithUser): Actor => ({
@@ -53,7 +58,28 @@ export class AiController {
     constructor(
         private readonly ask: AskService,
         private readonly streams: AskStreamResponder,
+        private readonly questionLog: QuestionLogService,
     ) {}
+
+    @Post('questions/:id/feedback')
+    @HttpCode(204)
+    @ApiOperation({
+        summary: 'Rate an answer as helpful or not',
+        description:
+            'Only the person who asked can rate it; rating again replaces the earlier rating.',
+    })
+    async rate(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: AiFeedbackRequestDto,
+        @Req() request: RequestWithUser,
+    ): Promise<void> {
+        const saved = await this.questionLog.rate(
+            id,
+            request.user.id,
+            body.helpful,
+        );
+        if (!saved) throw new NotFoundException('Question not found');
+    }
 
     @Get('status')
     @ApiOperation({

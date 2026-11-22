@@ -2330,6 +2330,7 @@ declare const AiSpotNoteSchema: z.ZodObject<{
 }, z.core.$strip>;
 type AiSpotNote = z.infer<typeof AiSpotNoteSchema>;
 declare const AskResponseSchema: z.ZodObject<{
+    questionId: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
     answer: z.ZodString;
     mode: z.ZodEnum<{
         email: "email";
@@ -2394,6 +2395,7 @@ declare const AskStreamEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"done">;
     response: z.ZodObject<{
+        questionId: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
         answer: z.ZodString;
         mode: z.ZodEnum<{
             email: "email";
@@ -8756,4 +8758,666 @@ declare const COLLECTED_TASK: {
     readonly check: "TRADE_COLLECTED";
 };
 
-export { AI_MESSAGE_MAX_LENGTH, AI_QUESTION_MAX_LENGTH, ALIAS_USAGE_SOURCES, ALIAS_VIEWS, type AddBarRequest, AddBarRequestSchema, type AddCoinRequest, AddCoinRequestSchema, type AddEvidenceRequest, AddEvidenceRequestSchema, type AddLiveStockBarRequest, AddLiveStockBarRequestSchema, type AdjustLiveStockRequest, AdjustLiveStockRequestSchema, type AdminLogEntry, AdminLogEntrySchema, type AdminLogsQuery, AdminLogsQuerySchema, AdminLogsResponseSchema, type AdminOverview, AdminOverviewSchema, type AiAnswerStatus, AiAnswerStatusEnum, type AiCitation, AiCitationSchema, type AiMode, AiModeEnum, type AiSpotNote, AiSpotNoteSchema, type AiStatus, AiStatusSchema, type AiUsage, AiUsageSchema, type AliasCounts, AliasCountsSchema, type AliasRow, AliasRowSchema, type AliasSeenIn, AliasSeenInSchema, type AliasTarget, AliasTargetSchema, type AliasUsageExample, AliasUsageExampleSchema, type AliasUsageMetal, AliasUsageMetalSchema, type AliasUsageResponse, AliasUsageResponseSchema, type AliasUsageSource, AliasUsageSourceSchema, type AliasesQuery, AliasesQuerySchema, type AliasesResponse, AliasesResponseSchema, type AllocationSummary, AllocationSummarySchema, ApiCatalogueSchema, type ApiEndpoint, type ApiEndpointParameter, ApiEndpointParameterSchema, ApiEndpointSchema, type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AppOnlyTasks, type ApplicationStatus, type ApplyPerMetalRequest, ApplyPerMetalRequestSchema, type ApplyPerMetalResult, ApplyPerMetalResultSchema, type ApplyRow, type AskRequest, type AskRequestInput, AskRequestSchema, type AskResponse, AskResponseSchema, type AskStreamEvent, AskStreamEventSchema, type AuditEntry, AuditEntrySchema, AuditLogResponseSchema, AuditQuerySchema, type AuthResponse, AuthResponseSchema, BAR_EXPORT_HEADERS, BAR_STATUSES, BC_HISTORY_KINDS, type BackfillHistoryQuery, BackfillHistoryQuerySchema, type BarImportRow, type BarStatus, BarStatusEnum, type BarSummary, type BarsImportResult, type BaselineBar, type BaselineBarRow, BaselineBarRowSchema, type BaselineCoinRow, BaselineCoinRowSchema, type BaselineFix, type BaselineIssue, type BaselineLine, type BaselinePlan, type BcAwaitingRequest, BcAwaitingRequestSchema, type BcAwaitingResult, BcAwaitingResultSchema, type BcHistoryKind, type BcHistoryMapped, type BcHistoryRequest, BcHistoryRequestSchema, type BcHistoryResult, BcHistoryResultSchema, type BcItem, BcItemProductOptionSchema, BcItemSchema, type BcItemsResponse, BcItemsResponseSchema, type BcLedgerRow, BcLedgerRowSchema, type BcReceiptRow, BcReceiptRowSchema, type BcReportResult, type BcSalesProductAction, BcSalesProductActionSchema, type BcSalesProductRow, BcSalesProductRowSchema, type BcSalesProductsApplyRequest, BcSalesProductsApplyRequestSchema, type BcSalesProductsApplyResult, BcSalesProductsApplyResultSchema, type BcSalesProductsPreview, BcSalesProductsPreviewSchema, type BcShipmentLineRow, BcShipmentLineRowSchema, type BcShipmentRow, BcShipmentRowSchema, type Branch, type BranchRegion, BranchRegionEnum, BranchSchema, type BrokenKbLink, CASH_AML_THRESHOLD, COIN_DESIGNS, COIN_EXPORT_HEADERS, COLLAPSE_ABOVE_CHARACTERS, COLLECTED_FLAGS, COLLECTED_TASK, CPTY_KINDS, CUSTOMER_ORDER_STATUSES, CUSTOMER_ORDER_STATUS_LABELS, type Capabilities, type CapabilitySubject, type CarryForwardRequest, CarryForwardRequestSchema, type CarryForwardResult, CarryForwardResultSchema, type CatalogueProductRef, type ChangePasswordInput, ChangePasswordSchema, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type Coerced, type CoinDesign, type CoinImportRow, type CollectedInfo, type ColorMode, ColorModeEnum, type ColumnKind, type CountLine, type CptyInfo, type CptyKind, type CreateBranchRequest, CreateBranchRequestSchema, type CreateCustomerOrderRequest, CreateCustomerOrderRequestSchema, type CreateDiscrepancyRequest, CreateDiscrepancyRequestSchema, type CreateLiveStockLineRequest, CreateLiveStockLineRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSalesProductRequest, CreateSalesProductRequestSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateStocktakeRequest, CreateStocktakeRequestSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, CustomerInvoiceRowSchema, type CustomerListResponse, CustomerListResponseSchema, type CustomerListRow, CustomerListRowSchema, type CustomerOrder, type CustomerOrderChanges, type CustomerOrderEvidence, CustomerOrderEvidenceSchema, type CustomerOrderImportRow, type CustomerOrderPlanOptions, CustomerOrderRowSchema, CustomerOrderSchema, type CustomerOrderStatus, CustomerOrderStatusEnum, type CustomerProfile, CustomerProfileSchema, type CustomerSafeLine, DISCREPANCY_ISSUE_TYPES, type DateOrder, type DbColumn, DbColumnSchema, type DbDeleteRequest, DbDeleteRequestSchema, type DbInsertRequest, DbInsertRequestSchema, DbRowResponseSchema, type DbRowsQuery, DbRowsQuerySchema, type DbRowsResponse, DbRowsResponseSchema, type DbTableSummary, DbTableSummarySchema, DbTablesResponseSchema, type DbUpdateRequest, DbUpdateRequestSchema, type DeferredLinks, type DerivedOrder, type DesignDoc, type DesignRule, type DesignTokens, type DetectedFile, type Discrepancy, type DiscrepancyIssueType, DiscrepancyIssueTypeEnum, DiscrepancySchema, type DocSection, type DuplicateRow, DuplicateRowSchema, type DuplicatesResponse, DuplicatesResponseSchema, EMPTY_SCOPE_VIEW, EVIDENCE_KINDS, EVIDENCE_KIND_LABELS, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, ErrorLogQuerySchema, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type EvidenceKind, EvidenceKindEnum, type ExistingCustomerOrder, type ExpectedCustomerStockResponse, ExpectedCustomerStockSchema, FAKE_CUSTOMERS, FIT_HIGH, FIT_HIGH_SILVER, FIT_LOW, FOREIGN_COINS, type FetchAttempt, FetchAttemptSchema, FetchLogQuerySchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, type FileKind, type FillKind, type ForeignCoin, GRAMS_PER_TROY_OUNCE, type Handover, HandoverSchema, type HeaderMap, type HealthCheck, HealthCheckSchema, type HealthItem, HealthItemSchema, type HealthStatus, HealthStatusEnum, type HistoricCloseQuery, HistoricCloseQuerySchema, type HistoricSpot, HistoricSpotSchema, type HourlyStats, HourlyStatsSchema, IMPORT_SCHEMA_VERSION, IMPORT_TABLE_NAMES, IMPORT_TABLE_SPECS, ISSUE_TYPE_LABELS, ITEM_EVENT_KINDS, ITEM_STATUSES, ImportBatchListSchema, type ImportBatchSummary, ImportBatchSummarySchema, type ImportCustomerOrdersRequest, ImportCustomerOrdersRequestSchema, type ImportCustomerOrdersResult, ImportCustomerOrdersResultSchema, type ImportJournalRequest, ImportJournalRequestSchema, type ImportJournalResult, ImportJournalResultSchema, ImportMetaSchema, type ImportPhysicalRequest, ImportPhysicalRequestSchema, type ImportPhysicalResult, ImportPhysicalResultSchema, type ImportReadResult, type ImportRow, type ImportRowIssue, type ImportRowIssueCode, ImportRowIssueCodeSchema, ImportRowIssueSchema, type ImportSource, type ImportTableName, ImportTableSchemas, type InventoryBarRow, InventoryBarRowSchema, type InventoryBarsQuery, InventoryBarsQuerySchema, type InventoryBarsResponse, InventoryBarsResponseSchema, type InventoryCoinRow, InventoryCoinRowSchema, type InventoryCoinsQuery, InventoryCoinsQuerySchema, type InventoryCoinsResponse, InventoryCoinsResponseSchema, type InventoryPosition, InventoryPositionSchema, type InventoryStocktakeRef, InventoryStocktakeRefSchema, InvoiceCollectedSchema, type InvoiceDetail, InvoiceDetailSchema, InvoiceLineRowSchema, InvoiceLinkRowSchema, type InvoiceListResponse, InvoiceListResponseSchema, type InvoiceListRow, InvoiceListRowSchema, type ItemEventKind, type ItemStatus, type ItemTrace, type ItemTraceEvent, ItemTraceEventSchema, type ItemTraceQuery, ItemTraceQuerySchema, ItemTraceSchema, JOURNAL_EXPORT_HEADERS, type JournalImportResult, type JournalImportRow, KB_BC_HUB, KB_BC_HUB_PATH, KB_CATEGORIES, KB_CATEGORY_INFO, KB_FLOW_BARS, KB_GUIDE, KB_REVIEW_MONTHS, KB_REVIEW_WARNING_DAYS, KB_TERMS, KB_UNRESOLVED_HREF_PREFIX, type KbArticleLayout, type KbBcChainLink, type KbBcHub, type KbBcHubFlow, type KbBcHubItem, type KbBcScreen, type KbBcTrap, type KbBlock, type KbCategory, KbCategoryEnum, type KbDocument, type KbDocumentListResponse, KbDocumentListResponseSchema, KbDocumentSchema, type KbFlowBar, type KbFlowTone, type KbFormRow, type KbFrontmatter, KbFrontmatterSchema, type KbGuide, type KbGuideBc, type KbGuideBranch, type KbGuideGate, type KbGuideIcon, type KbGuideLibraryTarget, type KbGuideLink, type KbGuideNode, type KbGuidePhase, type KbGuideShortcut, type KbGuideTarget, type KbIndexedDocument, type KbIndexedSection, type KbJurisdiction, KbJurisdictionEnum, type KbLayoutEntry, type KbLinkRef, type KbListItem, type KbMarkdownVariant, type KbRenderBlock, type KbReviewState, type KbReviewStatus, type KbSearchHit, type KbSection, type KbSectionKind, KbSlugSchema, type KbSnippetPart, type KbStatus, KbStatusEnum, type KbTerm, type KbVisibility, KbVisibilityEnum, LINK_CONFIDENCES, LINK_TYPES, LIVE_BRANCH_CODES, LIVE_BRANCH_NAMES, type LatestHandover, LatestHandoverSchema, type LineCandidate, type LinkBcItemRequest, LinkBcItemRequestSchema, type LinkDecisionRequest, LinkDecisionRequestSchema, type LinkDecisionResult, LinkDecisionResultSchema, LinkDecisionSchema, type LinkLiveStockBranchRequest, LinkLiveStockBranchRequestSchema, type LinkStatus, LiveBarStatusSchema, type LiveBaselinePreview, LiveBaselinePreviewSchema, type LiveBaselineRequest, LiveBaselineRequestSchema, type LiveBaselineResult, LiveBaselineResultSchema, type LiveKind, LiveKindSchema, type LiveMetal, LiveMetalSchema, LiveMovementSourceSchema, type LiveStockBar, LiveStockBarSchema, type LiveStockBoard, type LiveStockBoardQuery, LiveStockBoardQuerySchema, LiveStockBoardSchema, type LiveStockBranch, LiveStockBranchSchema, type LiveStockBranchesResponse, LiveStockBranchesResponseSchema, type LiveStockLine, LiveStockLineSchema, type LiveStockMovement, LiveStockMovementSchema, type LogLevel, LogLevelEnum, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, type LowThresholdRequest, LowThresholdRequestSchema, MAX_LISTED_ISSUES, MELT_CATEGORIES, type MapAliasRequest, MapAliasRequestSchema, type MappingSuggestion, type MarketDataResponse, MarketDataResponseSchema, type MarketModeState, MarketModeStateSchema, type MatchCatalogue, type MatchConfidence, type MatchInput, type MatchMetal, type MatchOutcome, type MatchPricingProduct, type MatchSpecificProduct, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalFrom, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, type NameSuggestionAcceptRequest, NameSuggestionAcceptRequestSchema, type NameSuggestionAcceptResult, NameSuggestionAcceptResultSchema, type NameSuggestionDecisionRequest, NameSuggestionDecisionRequestSchema, type NameSuggestionDecisionResult, NameSuggestionDecisionResultSchema, type NameSuggestionTarget, NameSuggestionTargetSchema, type NewLine, type NextAction, OPTIONAL_COLUMNS, ORDER_LIFECYCLE, ORDER_LIFECYCLE_LABELS, ORDER_STEPS, type OrderDetail, OrderDetailSchema, type OrderEvent, OrderEventSchema, type OrderFacts, type OrderLifecycle, OrderLifecycleEnum, type OrderLink, type OrderListQuery, OrderListQuerySchema, type OrderListResponse, OrderListResponseSchema, type OrderQueue, OrderQueueEnum, type OrderRole, type OrderRow, OrderRowSchema, type OrderSource, OrderSourceEnum, type OrderStep, OrderStepEnum, type OrderableProduct, type OverAllocatedLot, OverAllocatedLotSchema, type OverAllocatedResponse, OverAllocatedResponseSchema, PLAN_ROW_STATUSES, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, PRODUCT_NORM_EXAMPLES, PURCHASE_FIELDS, type Pagination, PaginationSchema, type ParseIssue, type ParseKbResult, type ParsedBarWeight, type ParsedCoin, type ParsedKbDocument, type ParsedPurchase, type ParsedReference, type ParsedSale, type ParsedWeight, PaymentRowSchema, type PerMetalChoice, PerMetalChoiceSchema, type PhysicalRegister, PhysicalRegisterSchema, type PlanContext, type PlanCounts, PlanCountsSchema, type PlanRow, PlanRowSchema, type PlanRowStatus, PlanRowStatusEnum, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriceRow, type PricingProductOption, PricingProductOptionListSchema, PricingProductOptionSchema, type PricingSkuGuess, type PriorApplication, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductDecision, type ProductMapDTO, ProductMapSchema, type ProductMatch, ProductSchema, type ProductStockKey, type ProductStockLevel, ProductStockLevelSchema, ProductStockLevelsResponseSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type PurchaseField, type QtyAndProduct, QuoteRowSchema, RECORD_PAGE_MAX, REDACTED_CODE_COLUMNS, REDACTED_NAME_TABLES, REDACTED_TEXT_COLUMNS, REFINERIES, REGISTER_EXPORT_HEADERS, RELINK_TABLES, ROADMAP_QUEUE_MAX_TEXT, ROADMAP_SCOPE_FILES, type RawKbFile, type RawProduct, RawProductSchema, type RawSheets, type RawSpotPrice, RawSpotPriceSchema, type RecalculateOverrides, RecalculateOverridesSchema, type ReconcileResult, ReconcileResultSchema, type RecordSearchRequest, RecordSearchRequestSchema, type RecordStepRequest, RecordStepRequestSchema, type RedactionMapRow, type ReferenceType, type RefineryAliasEntry, type RefreshRequest, RefreshRequestSchema, type RefreshResponse, RefreshResponseSchema, type RegisterEntry, type RegisterInput, RegisterSchema, type RelinkRequest, RelinkRequestSchema, type RelinkResult, RelinkResultSchema, type RelinkTable, type RelinkTableResult, RelinkTableResultSchema, type ResolveInput, type ResolveMethod, type ResolveResult, type ResolveSheetApplicationRequest, ResolveSheetApplicationRequestSchema, type ResolvedKbLink, type ResolverData, type ReviewLinkRow, ReviewLinkRowSchema, ReviewLinkTypeSchema, type ReviewLinksQuery, ReviewLinksQuerySchema, type ReviewLinksResponse, ReviewLinksResponseSchema, type ReviewPageQuery, ReviewPageQuerySchema, type ReviewReason, type ReviewSummary, ReviewSummarySchema, type RoadmapDocument, RoadmapDocumentSchema, type RoadmapEdit, RoadmapEditError, type RoadmapEditRequest, RoadmapEditRequestSchema, RoadmapEditSchema, type RoadmapInbox, type RoadmapInboxItem, RoadmapInboxItemSchema, type RoadmapInboxPromote, RoadmapInboxPromoteSchema, type RoadmapInboxRefresh, RoadmapInboxRefreshSchema, RoadmapInboxSchema, type RoadmapMergeEntry, type RoadmapMergeKind, type RoadmapMergeResult, type RoadmapProgress, type RoadmapPullRequest, RoadmapPullRequestSchema, type RoadmapPullResult, RoadmapPullResultSchema, type RoadmapPushRequest, RoadmapPushRequestSchema, type RoadmapPushResult, RoadmapPushResultSchema, type RoadmapQueueAppended, RoadmapQueueAppendedSchema, type RoadmapQueueEntry, RoadmapQueueEntrySchema, type RoadmapQueueFiledRequest, RoadmapQueueFiledRequestSchema, type RoadmapQueueFiledResult, RoadmapQueueFiledResultSchema, type RoadmapQueueList, RoadmapQueueListSchema, type RoadmapQueueRequest, RoadmapQueueRequestSchema, type RoadmapQueueSource, RoadmapQueueSourceSchema, type RoadmapScope, type RoadmapScopeDecision, RoadmapScopeDecisionSchema, type RoadmapScopeDone, RoadmapScopeDoneSchema, type RoadmapScopeItem, RoadmapScopeItemSchema, type RoadmapScopeKey, RoadmapScopeKeySchema, type RoadmapScopeRefresh, RoadmapScopeRefreshSchema, RoadmapScopeSchema, type RoadmapScopeTask, RoadmapScopeTaskSchema, type RoadmapScopeView, RoadmapScopeViewSchema, type RoadmapSection, type RoadmapSyncStatus, RoadmapSyncStatusSchema, type RoadmapTask, type RouteStats, RouteStatsSchema, type RowPlan, type RowResolveInput, type RowResolveMethod, type RowResolveResult, type RowResolverData, SAFE_STATUSES, SALE_FIELDS, SHEETS, SPOT_FETCH_INTERVAL_MS, SPOT_LATE_AFTER_MS, SPOT_RED_AFTER_MS, SPOT_STALE_AFTER_MS, STEP_ROLE, STOCK_METALS, SYSTEMS, type SaleField, type SalesProduct, type SalesProductId, SalesProductListSchema, type SalesProductRef, SalesProductSchema, type SaveHandoverRequest, SaveHandoverRequestSchema, type SerialComparison, type SerialHolder, SerialsCheckedEnum, type SessionBranch, SessionBranchSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SetKbStatusRequest, SetKbStatusRequestSchema, type SetKbVisibilityRequest, SetKbVisibilityRequestSchema, type SetLiveStockBarStatusRequest, SetLiveStockBarStatusRequestSchema, type SetUserBranchRequest, SetUserBranchRequestSchema, type SettleNamesRequest, SettleNamesRequestSchema, type SettleNamesResult, SettleNamesResultSchema, type SettleResult, SettleResultSchema, type SheetApplyItem, SheetApplyItemSchema, type SheetApplyPreview, SheetApplyPreviewSchema, type SheetApplyResult, SheetApplyResultSchema, type SheetCell, type SheetKind, SheetKindSchema, SheetLineOptionSchema, type SheetName, SheetNameEnum, type SheetRow, type SheetTask, type SheetTaskDraft, type SheetTaskListQuery, SheetTaskListQuerySchema, SheetTaskSchema, type SheetValue, ShippedNotCollectedListSchema, type ShippedNotCollectedRow, ShippedNotCollectedRowSchema, type ShippedNotCollectedTasksResult, ShippedNotCollectedTasksResultSchema, type SkipReason, type SoldInfo, type SpotFreshness, type SpotFreshnessState, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, type SpotRow, type SpotStatusResponse, SpotStatusResponseSchema, type StepContext, type StockLevelState, StockLevelStateSchema, type StockLineForMatch, type StockMetal, StockMetalEnum, StockMetalSchema, type StockOrderMetal, type Stocktake, type StocktakeBar, StocktakeBarSchema, type StocktakeCoin, StocktakeCoinSchema, type StocktakeDetail, StocktakeDetailSchema, type StocktakeLine, StocktakeLineSchema, StocktakeSchema, type StocktakeStatus, StocktakeStatusEnum, type StocktakeSummary, type SuggestableProduct, TRADE_CART_MAX_ITEMS, TRADE_METAL_SLIDER_BOUNDS, TRADE_STATES, type TabClassification, type TabHeaders, type TabKind, type TabPlan, TabPlanSchema, type TabType, TableSizeSchema, type TaskCheck, TaskCheckEnum, type TaskQueryParams, TaskQueryParamsSchema, type TaskRef, type TaskStatus, TaskStatusSchema, type TrackingEntry, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeLineKey, type TradeMatch, type TradeProduct, TradeProductSchema, type TradeState, type TradeStateResult, type TradeTransactionType, TradeTransactionTypeEnum, type TradesheetImportPlan, TradesheetImportPlanSchema, type TradesheetImportRequest, TradesheetImportRequestSchema, type TradesheetImportResult, TradesheetImportResultSchema, type TradesheetLine, type TradesheetTab, TradesheetTabSchema, type TransferLiveStockRequest, TransferLiveStockRequestSchema, UI_SETTINGS_MAX_BYTES, type UiSettings, UiSettingsSchema, type UnredactResult, type UnresolvedLotRow, UnresolvedLotRowSchema, type UnresolvedLotsResponse, UnresolvedLotsResponseSchema, type UpdateBarRequest, UpdateBarRequestSchema, type UpdateCoinRequest, UpdateCoinRequestSchema, type UpdateCustomerOrderRequest, UpdateCustomerOrderRequestSchema, type UpdateDiscrepancyRequest, UpdateDiscrepancyRequestSchema, type UpdateKbDocumentRequest, UpdateKbDocumentRequestSchema, type UpdateMarketModeRequest, UpdateMarketModeRequestSchema, type UpdateProductFullDto, UpdateProductFullDtoSchema, type UpdateStockRequest, UpdateStockRequestSchema, type UpdateStocktakeLineRequest, UpdateStocktakeLineRequestSchema, type UpdateStocktakeRequest, UpdateStocktakeRequestSchema, type User, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, WORKBOOK_CHUNK_MAX_ROWS, WORKBOOK_LOAD_ORDER, type WorkbookChunkRequest, WorkbookChunkRequestSchema, type WorkbookChunkResult, WorkbookChunkResultSchema, type WorkbookLoadTable, absorbFile, aiInputLimit, aliasKey, aliasOk, allowedSteps, applyRoadmapEdit, assignOccurrences, bcDate, bcEventKind, bcItemNoFromSku, buildArticleLayout, buildBarExportRows, buildBlocks, buildCoinExportRows, buildJournalExportRows, buildNameLookup, buildPortfolioStrategies, buildRegisterExportRows, bundleScopeFiles, calculateProductPrice, canSeeKbVisibility, capabilitiesFor, classifyCpty, classifySection, classifyTab, coerceCell, coinTokens, compareProcedures, compareProducts, compareSerials, compareStockLabels, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, computeVariance, coreRef, countTasks, createErrorReference, customerOrderChanges, customerSafeRow, deriveMetalHint, deriveOrder, deriveTradeState, detectBcHistoryKind, detectDateOrder, detectFileType, detectTabType, effectiveVatRate, expectedCustomerStock, extractQtyAndProduct, extractSources, fakeRedactionMap, fakeWorkbookSheets, fillKind, findAppOnlyTasks, findBrokenLinks, findDuplicateSerials, findHeaderRow, findLinks, findTodos, fingerprint, flowBarFor, flowNextSlug, guessSheetMonth, guessSheetMonthFromTabs, guideLibraryTargets, headingAnchor, homePathFor, indexKbDocument, isBondedProduct, isCashOverThreshold, isClosingBar, isOpenOrder, isPhysicallyHere, isRealSerial, isReferenceCell, isSpotMarketClosed, isStopStep, itemStatusAfter, kbArticlePath, kbReviewDueOn, kbReviewStatus, limitQuery, lineMatchesKey, linkOrdersToTradesheet, listedRefinery, liveRefinery, liveSerialKey, mapBcHistory, mapBcReport, mapOutsideCode, mapPurchaseHeaders, mapSaleHeaders, matchLines, matchProductName, matchTradeLine, meltLabel, mergeMetalPrices, mergeRoadmap, metalAwareAlias, metalInText, metalsFitting, nextAction, normaliseBackfillHeaders, normaliseName, normaliseProductText, normaliseRefinery, normalizeClient, normalizeProductName, normalizeReference, normalizeSerial, onHandSerials, orderLifecycle, orderSource, parseBarWeight, parseBarsPaste, parseBlocks, parseCoinName, parseCoinsPaste, parseCustomerOrdersPaste, parseDecisions, parseDeferredLinks, parseDesignDoc, parseJournalPaste, parseKbDocument, parseMetal, parsePastedTable, parseProductName, parsePurchaseRow, parseQuantity, parseReference, parseRoadmap, parseSaleRow, parseScopeBundle, parseScopeFile, parseSheetDate, parseSheetNumber, parseSoldComment, parseTrackingPaste, parseTradesheetPaste, parseTsv, parseWeight, parseWeightGrams, planAutolinks, planBarImport, planBaseline, planCustomerOrderImport, planRow, planUpload, priceMetalEvidence, pricingSkuFor, procedureFlow, productStockKey, productStockLevels, readCollected, readForeignCoin, readImportWorkbook, readProduct, referenceMatchKey, refineryInText, refineryMatch, refineryWords, resolveProduct, resolveRowProduct, rewriteKbLinks, roundBuyPrice, roundSellPrice, rowIsBlank, ruleTone, searchKb, serialKey, shareTermsAcrossBlocks, sheetTasksForStep, solveMissingPurchaseField, sortBranchCodes, splitDocSections, splitFrontmatter, splitScopeBundle, splitSections, splitSerials, spotFreshness, spotLookup, stripHeader, suggestProductForBcItem, summarizeBars, summarizeLines, taskShowsDone, termRegExp, toCsv, toIsoDate, toPlainText, totalCounted, unredactTables, variantGrams, withoutOptionalColumns };
+/**
+ * Named things a person may see or do, checked on the server for every request. A person's set is their role
+ * preset, adjusted by their own overrides (grant or remove, optionally until a date). The admin flag holds every
+ * permission. Add a page by adding its key here and to the presets it belongs to; the database stores keys as text,
+ * so a removed key is simply ignored.
+ */
+declare const PERMISSION_KEYS: readonly ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers", "analytics.chatbot", "analytics.ops", "admin.audit"];
+declare const PermissionKeySchema: z.ZodEnum<{
+    "analytics.pricing": "analytics.pricing";
+    "analytics.sales": "analytics.sales";
+    "analytics.orders": "analytics.orders";
+    "analytics.inventory": "analytics.inventory";
+    "analytics.customers": "analytics.customers";
+    "analytics.chatbot": "analytics.chatbot";
+    "analytics.ops": "analytics.ops";
+    "admin.audit": "admin.audit";
+}>;
+type PermissionKey = z.infer<typeof PermissionKeySchema>;
+type PermissionRole = z.infer<typeof SessionUserRoleEnum>;
+/** What each key means, for the roles matrix and the user sheet. */
+declare const PERMISSION_LABELS: Record<PermissionKey, {
+    group: string;
+    label: string;
+}>;
+/** The starting presets, seeded once by the migration. Admins change them later in Roles & permissions. */
+declare const DEFAULT_ROLE_PERMISSIONS: Record<PermissionRole, readonly PermissionKey[]>;
+interface RolePermissionRow {
+    role: PermissionRole;
+    key: string;
+}
+interface PermissionOverrideRow {
+    key: string;
+    granted: boolean;
+    /** Null means the override has no end date. */
+    expiresAt: Date | null;
+}
+interface PermissionSubject {
+    role: PermissionRole;
+    admin: boolean;
+}
+/** A person's permissions, sorted. Expired overrides and keys no longer in the list are ignored. */
+declare function effectivePermissions(subject: PermissionSubject, presets: readonly RolePermissionRow[], overrides: readonly PermissionOverrideRow[], now: Date): PermissionKey[];
+declare const PermissionListSchema: z.ZodArray<z.ZodEnum<{
+    "analytics.pricing": "analytics.pricing";
+    "analytics.sales": "analytics.sales";
+    "analytics.orders": "analytics.orders";
+    "analytics.inventory": "analytics.inventory";
+    "analytics.customers": "analytics.customers";
+    "analytics.chatbot": "analytics.chatbot";
+    "analytics.ops": "analytics.ops";
+    "admin.audit": "admin.audit";
+}>>;
+
+/**
+ * Analytics: one route per tab, each behind its own permission. Every route takes the same period and returns
+ * the period it used plus the previous period of the same length, so KPI tiles can show the change.
+ */
+declare const ANALYTICS_PRESETS: readonly ["30d", "90d", "12m", "ytd"];
+declare const AnalyticsPresetSchema: z.ZodEnum<{
+    "30d": "30d";
+    "90d": "90d";
+    "12m": "12m";
+    ytd: "ytd";
+}>;
+type AnalyticsPreset = z.infer<typeof AnalyticsPresetSchema>;
+declare const AnalyticsQuerySchema: z.ZodObject<{
+    preset: z.ZodDefault<z.ZodEnum<{
+        "30d": "30d";
+        "90d": "90d";
+        "12m": "12m";
+        ytd: "ytd";
+    }>>;
+}, z.core.$strip>;
+type AnalyticsQuery = z.infer<typeof AnalyticsQuerySchema>;
+interface AnalyticsRange {
+    from: string;
+    to: string;
+}
+interface AnalyticsPeriod {
+    preset: AnalyticsPreset;
+    current: AnalyticsRange;
+    previous: AnalyticsRange;
+}
+/** Days are counted in Dublin time; `today` is passed in so the rule is testable. Ranges are inclusive. */
+declare function resolveAnalyticsPeriod(preset: AnalyticsPreset, today: string): AnalyticsPeriod;
+type KpiUnit = 'eur' | 'pct' | 'count' | 'seconds' | 'ms' | 'hours';
+interface AnalyticsKpi {
+    key: string;
+    label: string;
+    unit: KpiUnit;
+    /** Null when there is no data for the period. */
+    value: number | null;
+    /** Same figure for the previous period; null when it cannot be compared (no data, or not a period figure). */
+    previous: number | null;
+    hint?: string;
+}
+/** A visible warning about the data behind a chart, shown under it. */
+interface AnalyticsNote {
+    chart: string;
+    text: string;
+}
+interface LabelValue {
+    label: string;
+    value: number;
+}
+interface HeatCell {
+    /** 0 = Monday ... 6 = Sunday. */
+    weekday: number;
+    hour: number;
+    value: number;
+}
+interface DayValue {
+    day: string;
+    value: number;
+}
+interface FlowLink {
+    from: string;
+    to: string;
+    value: number;
+}
+interface AnalyticsBase {
+    period: AnalyticsPeriod;
+    kpis: AnalyticsKpi[];
+    notes: AnalyticsNote[];
+}
+type AnalyticsMetal = 'GOLD' | 'SILVER' | 'PLATINUM' | 'PALLADIUM';
+interface PricingAnalytics extends AnalyticsBase {
+    /** Daily close per metal, EUR/oz. */
+    spot: {
+        day: string;
+        GOLD: number | null;
+        SILVER: number | null;
+        PLATINUM: number | null;
+        PALLADIUM: number | null;
+    }[];
+    /** First and last close of the period per metal, for the slope chart. */
+    change: {
+        metal: AnalyticsMetal;
+        start: number;
+        end: number;
+    }[];
+    /** Each active product's Price premium (spreadSell) by metal and category. */
+    premiums: {
+        productId: number;
+        name: string;
+        metal: AnalyticsMetal;
+        category: string | null;
+        premium: number;
+        buyback: number;
+    }[];
+    /** Average Price premium per metal per day from the daily snapshot; empty until the snapshot has run. */
+    premiumHistory: {
+        day: string;
+        metal: AnalyticsMetal;
+        premium: number;
+    }[];
+    snapshotSince: string | null;
+    marketMode: {
+        weekend: boolean;
+        volatile: boolean;
+        shortage: boolean;
+        updatedBy: string | null;
+        updatedAt: string | null;
+    };
+}
+interface SalesAnalytics extends AnalyticsBase {
+    /** Gross profit and margin per month (invoiced trades), split by metal. */
+    byMonth: {
+        month: string;
+        goldProfit: number;
+        silverProfit: number;
+        margin: number | null;
+        trades: number;
+    }[];
+    byBranch: LabelValue[];
+    /** Profit per day for the calendar heatmap. */
+    byDay: DayValue[];
+    topProducts: {
+        product: string;
+        trades: number;
+        qty: number;
+        revenue: number;
+        margin: number | null;
+    }[];
+    /** When trades are written, Monday to Sunday by hour. */
+    tradeHours: HeatCell[];
+}
+interface OrdersAnalytics extends AnalyticsBase {
+    tradeStates: LabelValue[];
+    orderItemStatus: LabelValue[];
+    /** Average hours spent going from one recorded step to the next. */
+    stepHours: {
+        from: string;
+        to: string;
+        hours: number;
+        orders: number;
+    }[];
+    /** Orders moving between steps, for the flow chart. */
+    flow: FlowLink[];
+    /** Open orders by the latest step they reached, with how many days they have been waiting there. */
+    waiting: {
+        step: string;
+        orders: {
+            reference: string;
+            days: number;
+        }[];
+    }[];
+}
+interface InventoryAnalytics extends AnalyticsBase {
+    byBranch: {
+        branch: string;
+        gold: number;
+        silver: number;
+    }[];
+    /** Metal, then product family, by pieces: for the treemap. */
+    tree: {
+        metal: string;
+        family: string;
+        qty: number;
+    }[];
+    low: {
+        branch: string;
+        product: string;
+        qty: number;
+        threshold: number;
+    }[];
+    movementsByDay: {
+        day: string;
+        in: number;
+        out: number;
+    }[];
+    movementsSince: string | null;
+}
+interface CustomersAnalytics extends AnalyticsBase {
+    byMonth: {
+        month: string;
+        total: number;
+        invoices: number;
+    }[];
+    status: LabelValue[];
+    topCustomers: LabelValue[];
+    byDay: DayValue[];
+    invoicesUntil: string | null;
+}
+interface ChatbotAnalytics extends AnalyticsBase {
+    byDay: DayValue[];
+    outcome: LabelValue[];
+    byMode: LabelValue[];
+    latencyByMode: LabelValue[];
+    hours: HeatCell[];
+    feedback: {
+        helpful: number;
+        notHelpful: number;
+        since: string | null;
+    };
+    /** Procedure questions show their text; reply requests show only their length, since they hold customer messages. */
+    recent: {
+        at: string;
+        text: string;
+        status: string;
+        seconds: number;
+    }[];
+}
+interface OpsAnalytics extends AnalyticsBase {
+    /** Failed price-feed fetches, Monday to Sunday by hour (Dublin time). */
+    feedFailures: HeatCell[];
+    feedByDay: {
+        day: string;
+        ok: number;
+        failed: number;
+    }[];
+    imports: {
+        at: string;
+        kind: string;
+        file: string;
+        by: string;
+        status: string;
+    }[];
+    importsByKind: LabelValue[];
+}
+declare const AiFeedbackRequestSchema: z.ZodObject<{
+    helpful: z.ZodBoolean;
+}, z.core.$strip>;
+type AiFeedbackRequest = z.infer<typeof AiFeedbackRequestSchema>;
+
+declare const PermissionOverrideSchema: z.ZodObject<{
+    key: z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>;
+    granted: z.ZodBoolean;
+    expiresAt: z.ZodNullable<z.ZodString>;
+}, z.core.$strip>;
+type PermissionOverride = z.infer<typeof PermissionOverrideSchema>;
+declare const AdminUserSchema: z.ZodObject<{
+    id: z.ZodString;
+    email: z.ZodString;
+    firstName: z.ZodString;
+    lastName: z.ZodString;
+    role: z.ZodEnum<{
+        ADMIN: "ADMIN";
+        MANAGER: "MANAGER";
+        SALES: "SALES";
+        ACCOUNTING: "ACCOUNTING";
+        AUDITOR: "AUDITOR";
+    }>;
+    admin: z.ZodBoolean;
+    isActive: z.ZodBoolean;
+    branch: z.ZodNullable<z.ZodObject<{
+        id: z.ZodNumber;
+        name: z.ZodString;
+        region: z.ZodEnum<{
+            IE: "IE";
+            UK: "UK";
+            ES: "ES";
+        }>;
+    }, z.core.$strip>>;
+    lastLoginAt: z.ZodNullable<z.ZodString>;
+    overrides: z.ZodArray<z.ZodObject<{
+        key: z.ZodEnum<{
+            "analytics.pricing": "analytics.pricing";
+            "analytics.sales": "analytics.sales";
+            "analytics.orders": "analytics.orders";
+            "analytics.inventory": "analytics.inventory";
+            "analytics.customers": "analytics.customers";
+            "analytics.chatbot": "analytics.chatbot";
+            "analytics.ops": "analytics.ops";
+            "admin.audit": "admin.audit";
+        }>;
+        granted: z.ZodBoolean;
+        expiresAt: z.ZodNullable<z.ZodString>;
+        reason: z.ZodString;
+        createdBy: z.ZodString;
+        createdAt: z.ZodString;
+    }, z.core.$strip>>;
+    permissions: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+}, z.core.$strip>;
+type AdminUser = z.infer<typeof AdminUserSchema>;
+declare const AdminUserListSchema: z.ZodArray<z.ZodObject<{
+    id: z.ZodString;
+    email: z.ZodString;
+    firstName: z.ZodString;
+    lastName: z.ZodString;
+    role: z.ZodEnum<{
+        ADMIN: "ADMIN";
+        MANAGER: "MANAGER";
+        SALES: "SALES";
+        ACCOUNTING: "ACCOUNTING";
+        AUDITOR: "AUDITOR";
+    }>;
+    admin: z.ZodBoolean;
+    isActive: z.ZodBoolean;
+    branch: z.ZodNullable<z.ZodObject<{
+        id: z.ZodNumber;
+        name: z.ZodString;
+        region: z.ZodEnum<{
+            IE: "IE";
+            UK: "UK";
+            ES: "ES";
+        }>;
+    }, z.core.$strip>>;
+    lastLoginAt: z.ZodNullable<z.ZodString>;
+    overrides: z.ZodArray<z.ZodObject<{
+        key: z.ZodEnum<{
+            "analytics.pricing": "analytics.pricing";
+            "analytics.sales": "analytics.sales";
+            "analytics.orders": "analytics.orders";
+            "analytics.inventory": "analytics.inventory";
+            "analytics.customers": "analytics.customers";
+            "analytics.chatbot": "analytics.chatbot";
+            "analytics.ops": "analytics.ops";
+            "admin.audit": "admin.audit";
+        }>;
+        granted: z.ZodBoolean;
+        expiresAt: z.ZodNullable<z.ZodString>;
+        reason: z.ZodString;
+        createdBy: z.ZodString;
+        createdAt: z.ZodString;
+    }, z.core.$strip>>;
+    permissions: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+}, z.core.$strip>>;
+declare const UpdateUserRequestSchema: z.ZodObject<{
+    role: z.ZodOptional<z.ZodEnum<{
+        ADMIN: "ADMIN";
+        MANAGER: "MANAGER";
+        SALES: "SALES";
+        ACCOUNTING: "ACCOUNTING";
+        AUDITOR: "AUDITOR";
+    }>>;
+    admin: z.ZodOptional<z.ZodBoolean>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+    branchId: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    reason: z.ZodString;
+}, z.core.$strip>;
+type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>;
+declare const SetOverridesRequestSchema: z.ZodObject<{
+    overrides: z.ZodArray<z.ZodObject<{
+        key: z.ZodEnum<{
+            "analytics.pricing": "analytics.pricing";
+            "analytics.sales": "analytics.sales";
+            "analytics.orders": "analytics.orders";
+            "analytics.inventory": "analytics.inventory";
+            "analytics.customers": "analytics.customers";
+            "analytics.chatbot": "analytics.chatbot";
+            "analytics.ops": "analytics.ops";
+            "admin.audit": "admin.audit";
+        }>;
+        granted: z.ZodBoolean;
+        expiresAt: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>>;
+    reason: z.ZodString;
+}, z.core.$strip>;
+type SetOverridesRequest = z.infer<typeof SetOverridesRequestSchema>;
+declare const PermissionMatrixSchema: z.ZodObject<{
+    ADMIN: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+    MANAGER: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+    SALES: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+    ACCOUNTING: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+    AUDITOR: z.ZodArray<z.ZodEnum<{
+        "analytics.pricing": "analytics.pricing";
+        "analytics.sales": "analytics.sales";
+        "analytics.orders": "analytics.orders";
+        "analytics.inventory": "analytics.inventory";
+        "analytics.customers": "analytics.customers";
+        "analytics.chatbot": "analytics.chatbot";
+        "analytics.ops": "analytics.ops";
+        "admin.audit": "admin.audit";
+    }>>;
+}, z.core.$strip>;
+type PermissionMatrix = Record<PermissionRole, readonly PermissionKey[]>;
+/** Only the cells the admin toggled, so two admins editing at once never undo each other's work. */
+declare const UpdatePermissionMatrixRequestSchema: z.ZodObject<{
+    changes: z.ZodArray<z.ZodObject<{
+        role: z.ZodEnum<{
+            ADMIN: "ADMIN";
+            MANAGER: "MANAGER";
+            SALES: "SALES";
+            ACCOUNTING: "ACCOUNTING";
+            AUDITOR: "AUDITOR";
+        }>;
+        key: z.ZodEnum<{
+            "analytics.pricing": "analytics.pricing";
+            "analytics.sales": "analytics.sales";
+            "analytics.orders": "analytics.orders";
+            "analytics.inventory": "analytics.inventory";
+            "analytics.customers": "analytics.customers";
+            "analytics.chatbot": "analytics.chatbot";
+            "analytics.ops": "analytics.ops";
+            "admin.audit": "admin.audit";
+        }>;
+        granted: z.ZodBoolean;
+    }, z.core.$strip>>;
+    reason: z.ZodString;
+}, z.core.$strip>;
+type UpdatePermissionMatrixRequest = z.infer<typeof UpdatePermissionMatrixRequestSchema>;
+/** Admin: create an account and email the person a link to set their own password. */
+declare const InviteUserRequestSchema: z.ZodObject<{
+    email: z.ZodString;
+    firstName: z.ZodString;
+    lastName: z.ZodString;
+    role: z.ZodEnum<{
+        ADMIN: "ADMIN";
+        MANAGER: "MANAGER";
+        SALES: "SALES";
+        ACCOUNTING: "ACCOUNTING";
+        AUDITOR: "AUDITOR";
+    }>;
+    admin: z.ZodDefault<z.ZodBoolean>;
+    branchId: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+}, z.core.$strip>;
+type InviteUserRequest = z.infer<typeof InviteUserRequestSchema>;
+declare function diffPermissionMatrix(before: PermissionMatrix, after: PermissionMatrix): {
+    role: PermissionRole;
+    key: PermissionKey;
+    granted: boolean;
+}[];
+type UserFields = {
+    role: PermissionRole;
+    admin: boolean;
+    isActive: boolean;
+    branchId: number | null;
+};
+declare function diffUserChanges(before: UserFields, patch: Partial<UserFields>): {
+    field: keyof UserFields;
+    from: UserFields[keyof UserFields];
+    to: UserFields[keyof UserFields];
+}[];
+/** Each permission whose override was added, changed or removed, sorted by key, for the audit log. */
+declare function diffOverrides(before: PermissionOverride[], after: PermissionOverride[]): {
+    key: PermissionKey;
+    from: string | null;
+    to: string | null;
+}[];
+
+/**
+ * Settings: each person's preferences (saved on their account so they follow them to any browser), the company's
+ * quote wording (admins), in-app notifications (admins only for now) and signed-in sessions.
+ */
+declare const NOTIFICATION_KINDS: readonly ["feed_down", "order_step", "import_review", "permission_changed"];
+declare const NotificationKindSchema: z.ZodEnum<{
+    feed_down: "feed_down";
+    order_step: "order_step";
+    import_review: "import_review";
+    permission_changed: "permission_changed";
+}>;
+type NotificationKind = z.infer<typeof NotificationKindSchema>;
+declare const NOTIFICATION_LABELS: Record<NotificationKind, string>;
+declare const USER_PREFERENCES_MAX_BYTES = 8000;
+declare const UserPreferencesSchema: z.ZodObject<{
+    detail: z.ZodDefault<z.ZodEnum<{
+        simple: "simple";
+        detailed: "detailed";
+    }>>;
+    singleKeyShortcuts: z.ZodDefault<z.ZodBoolean>;
+    quote: z.ZodDefault<z.ZodObject<{
+        signOff: z.ZodDefault<z.ZodString>;
+        defaultChannel: z.ZodDefault<z.ZodNullable<z.ZodEnum<{
+            email: "email";
+            whatsapp: "whatsapp";
+        }>>>;
+    }, z.core.$strip>>;
+    board: z.ZodDefault<z.ZodObject<{
+        view: z.ZodDefault<z.ZodString>;
+        pins: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
+    }, z.core.$strip>>;
+    notifications: z.ZodDefault<z.ZodObject<{
+        muted: z.ZodDefault<z.ZodArray<z.ZodEnum<{
+            feed_down: "feed_down";
+            order_step: "order_step";
+            import_review: "import_review";
+            permission_changed: "permission_changed";
+        }>>>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+type UserPreferences = z.infer<typeof UserPreferencesSchema>;
+/** Company wording around the generated price lines. Null keeps the built-in text. Placeholders: {name}, {spot_time}. */
+declare const CompanyQuoteTemplateSchema: z.ZodObject<{
+    opening: z.ZodNullable<z.ZodString>;
+    closingNote: z.ZodNullable<z.ZodString>;
+}, z.core.$strip>;
+type CompanyQuoteTemplate = z.infer<typeof CompanyQuoteTemplateSchema>;
+declare const QUOTE_PLACEHOLDERS: readonly ["name", "spot_time"];
+declare function renderQuoteText(template: string, values: Record<(typeof QUOTE_PLACEHOLDERS)[number], string>): string;
+declare const NotificationSchema: z.ZodObject<{
+    id: z.ZodNumber;
+    kind: z.ZodEnum<{
+        feed_down: "feed_down";
+        order_step: "order_step";
+        import_review: "import_review";
+        permission_changed: "permission_changed";
+    }>;
+    title: z.ZodString;
+    body: z.ZodString;
+    link: z.ZodNullable<z.ZodString>;
+    createdAt: z.ZodString;
+    readAt: z.ZodNullable<z.ZodString>;
+}, z.core.$strip>;
+type AppNotification = z.infer<typeof NotificationSchema>;
+declare const NotificationListSchema: z.ZodObject<{
+    items: z.ZodArray<z.ZodObject<{
+        id: z.ZodNumber;
+        kind: z.ZodEnum<{
+            feed_down: "feed_down";
+            order_step: "order_step";
+            import_review: "import_review";
+            permission_changed: "permission_changed";
+        }>;
+        title: z.ZodString;
+        body: z.ZodString;
+        link: z.ZodNullable<z.ZodString>;
+        createdAt: z.ZodString;
+        readAt: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>>;
+    unread: z.ZodNumber;
+}, z.core.$strip>;
+declare function isMuted(prefs: {
+    muted: readonly NotificationKind[];
+}, kind: NotificationKind): boolean;
+declare const SignedInSessionSchema: z.ZodObject<{
+    id: z.ZodString;
+    device: z.ZodString;
+    ip: z.ZodNullable<z.ZodString>;
+    createdAt: z.ZodString;
+    lastActiveAt: z.ZodString;
+    current: z.ZodBoolean;
+}, z.core.$strip>;
+type SignedInSession = z.infer<typeof SignedInSessionSchema>;
+declare const SignedInSessionListSchema: z.ZodArray<z.ZodObject<{
+    id: z.ZodString;
+    device: z.ZodString;
+    ip: z.ZodNullable<z.ZodString>;
+    createdAt: z.ZodString;
+    lastActiveAt: z.ZodString;
+    current: z.ZodBoolean;
+}, z.core.$strip>>;
+/** "Chrome on Windows" from a user-agent string; good enough to recognise your own devices. */
+declare function parseUserAgent(ua: string | null | undefined): string;
+declare const MarkNotificationsReadSchema: z.ZodObject<{
+    ids: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+}, z.core.$strip>;
+type MarkNotificationsRead = z.infer<typeof MarkNotificationsReadSchema>;
+
+export { AI_MESSAGE_MAX_LENGTH, AI_QUESTION_MAX_LENGTH, ALIAS_USAGE_SOURCES, ALIAS_VIEWS, ANALYTICS_PRESETS, type AddBarRequest, AddBarRequestSchema, type AddCoinRequest, AddCoinRequestSchema, type AddEvidenceRequest, AddEvidenceRequestSchema, type AddLiveStockBarRequest, AddLiveStockBarRequestSchema, type AdjustLiveStockRequest, AdjustLiveStockRequestSchema, type AdminLogEntry, AdminLogEntrySchema, type AdminLogsQuery, AdminLogsQuerySchema, AdminLogsResponseSchema, type AdminOverview, AdminOverviewSchema, type AdminUser, AdminUserListSchema, AdminUserSchema, type AiAnswerStatus, AiAnswerStatusEnum, type AiCitation, AiCitationSchema, type AiFeedbackRequest, AiFeedbackRequestSchema, type AiMode, AiModeEnum, type AiSpotNote, AiSpotNoteSchema, type AiStatus, AiStatusSchema, type AiUsage, AiUsageSchema, type AliasCounts, AliasCountsSchema, type AliasRow, AliasRowSchema, type AliasSeenIn, AliasSeenInSchema, type AliasTarget, AliasTargetSchema, type AliasUsageExample, AliasUsageExampleSchema, type AliasUsageMetal, AliasUsageMetalSchema, type AliasUsageResponse, AliasUsageResponseSchema, type AliasUsageSource, AliasUsageSourceSchema, type AliasesQuery, AliasesQuerySchema, type AliasesResponse, AliasesResponseSchema, type AllocationSummary, AllocationSummarySchema, type AnalyticsKpi, type AnalyticsMetal, type AnalyticsNote, type AnalyticsPeriod, type AnalyticsPreset, AnalyticsPresetSchema, type AnalyticsQuery, AnalyticsQuerySchema, type AnalyticsRange, ApiCatalogueSchema, type ApiEndpoint, type ApiEndpointParameter, ApiEndpointParameterSchema, ApiEndpointSchema, type ApiErrorResponse, ApiErrorResponseSchema, type ApiSuccessResponse, ApiSuccessResponseSchema, type AppNotification, type AppOnlyTasks, type ApplicationStatus, type ApplyPerMetalRequest, ApplyPerMetalRequestSchema, type ApplyPerMetalResult, ApplyPerMetalResultSchema, type ApplyRow, type AskRequest, type AskRequestInput, AskRequestSchema, type AskResponse, AskResponseSchema, type AskStreamEvent, AskStreamEventSchema, type AuditEntry, AuditEntrySchema, AuditLogResponseSchema, AuditQuerySchema, type AuthResponse, AuthResponseSchema, BAR_EXPORT_HEADERS, BAR_STATUSES, BC_HISTORY_KINDS, type BackfillHistoryQuery, BackfillHistoryQuerySchema, type BarImportRow, type BarStatus, BarStatusEnum, type BarSummary, type BarsImportResult, type BaselineBar, type BaselineBarRow, BaselineBarRowSchema, type BaselineCoinRow, BaselineCoinRowSchema, type BaselineFix, type BaselineIssue, type BaselineLine, type BaselinePlan, type BcAwaitingRequest, BcAwaitingRequestSchema, type BcAwaitingResult, BcAwaitingResultSchema, type BcHistoryKind, type BcHistoryMapped, type BcHistoryRequest, BcHistoryRequestSchema, type BcHistoryResult, BcHistoryResultSchema, type BcItem, BcItemProductOptionSchema, BcItemSchema, type BcItemsResponse, BcItemsResponseSchema, type BcLedgerRow, BcLedgerRowSchema, type BcReceiptRow, BcReceiptRowSchema, type BcReportResult, type BcSalesProductAction, BcSalesProductActionSchema, type BcSalesProductRow, BcSalesProductRowSchema, type BcSalesProductsApplyRequest, BcSalesProductsApplyRequestSchema, type BcSalesProductsApplyResult, BcSalesProductsApplyResultSchema, type BcSalesProductsPreview, BcSalesProductsPreviewSchema, type BcShipmentLineRow, BcShipmentLineRowSchema, type BcShipmentRow, BcShipmentRowSchema, type Branch, type BranchRegion, BranchRegionEnum, BranchSchema, type BrokenKbLink, CASH_AML_THRESHOLD, COIN_DESIGNS, COIN_EXPORT_HEADERS, COLLAPSE_ABOVE_CHARACTERS, COLLECTED_FLAGS, COLLECTED_TASK, CPTY_KINDS, CUSTOMER_ORDER_STATUSES, CUSTOMER_ORDER_STATUS_LABELS, type Capabilities, type CapabilitySubject, type CarryForwardRequest, CarryForwardRequestSchema, type CarryForwardResult, CarryForwardResultSchema, type CatalogueProductRef, type ChangePasswordInput, ChangePasswordSchema, type ChatbotAnalytics, type ClientErrorReport, type ClientErrorReportBatch, ClientErrorReportBatchSchema, ClientErrorReportSchema, type Coerced, type CoinDesign, type CoinImportRow, type CollectedInfo, type ColorMode, ColorModeEnum, type ColumnKind, type CompanyQuoteTemplate, CompanyQuoteTemplateSchema, type CountLine, type CptyInfo, type CptyKind, type CreateBranchRequest, CreateBranchRequestSchema, type CreateCustomerOrderRequest, CreateCustomerOrderRequestSchema, type CreateDiscrepancyRequest, CreateDiscrepancyRequestSchema, type CreateLiveStockLineRequest, CreateLiveStockLineRequestSchema, type CreateProductDto, CreateProductDtoSchema, type CreateSalesProductRequest, CreateSalesProductRequestSchema, type CreateSpotPriceDto, CreateSpotPriceDtoSchema, type CreateStocktakeRequest, CreateStocktakeRequestSchema, type CreateUserRequest, CreateUserRequestSchema, CurrencyEnum, CustomerInvoiceRowSchema, type CustomerListResponse, CustomerListResponseSchema, type CustomerListRow, CustomerListRowSchema, type CustomerOrder, type CustomerOrderChanges, type CustomerOrderEvidence, CustomerOrderEvidenceSchema, type CustomerOrderImportRow, type CustomerOrderPlanOptions, CustomerOrderRowSchema, CustomerOrderSchema, type CustomerOrderStatus, CustomerOrderStatusEnum, type CustomerProfile, CustomerProfileSchema, type CustomerSafeLine, type CustomersAnalytics, DEFAULT_ROLE_PERMISSIONS, DISCREPANCY_ISSUE_TYPES, type DateOrder, type DayValue, type DbColumn, DbColumnSchema, type DbDeleteRequest, DbDeleteRequestSchema, type DbInsertRequest, DbInsertRequestSchema, DbRowResponseSchema, type DbRowsQuery, DbRowsQuerySchema, type DbRowsResponse, DbRowsResponseSchema, type DbTableSummary, DbTableSummarySchema, DbTablesResponseSchema, type DbUpdateRequest, DbUpdateRequestSchema, type DeferredLinks, type DerivedOrder, type DesignDoc, type DesignRule, type DesignTokens, type DetectedFile, type Discrepancy, type DiscrepancyIssueType, DiscrepancyIssueTypeEnum, DiscrepancySchema, type DocSection, type DuplicateRow, DuplicateRowSchema, type DuplicatesResponse, DuplicatesResponseSchema, EMPTY_SCOPE_VIEW, EVIDENCE_KINDS, EVIDENCE_KIND_LABELS, type ErrorLogEntry, ErrorLogEntrySchema, type ErrorLogKind, ErrorLogKindEnum, ErrorLogQuerySchema, type ErrorLogSeverity, ErrorLogSeverityEnum, type ErrorLogSource, ErrorLogSourceEnum, type EvidenceKind, EvidenceKindEnum, type ExistingCustomerOrder, type ExpectedCustomerStockResponse, ExpectedCustomerStockSchema, FAKE_CUSTOMERS, FIT_HIGH, FIT_HIGH_SILVER, FIT_LOW, FOREIGN_COINS, type FetchAttempt, FetchAttemptSchema, FetchLogQuerySchema, type FetchMetrics, FetchMetricsSchema, type FetchSource, FetchSourceEnum, type FetchTrigger, FetchTriggerEnum, type FileKind, type FillKind, type FlowLink, type ForeignCoin, GRAMS_PER_TROY_OUNCE, type Handover, HandoverSchema, type HeaderMap, type HealthCheck, HealthCheckSchema, type HealthItem, HealthItemSchema, type HealthStatus, HealthStatusEnum, type HeatCell, type HistoricCloseQuery, HistoricCloseQuerySchema, type HistoricSpot, HistoricSpotSchema, type HourlyStats, HourlyStatsSchema, IMPORT_SCHEMA_VERSION, IMPORT_TABLE_NAMES, IMPORT_TABLE_SPECS, ISSUE_TYPE_LABELS, ITEM_EVENT_KINDS, ITEM_STATUSES, ImportBatchListSchema, type ImportBatchSummary, ImportBatchSummarySchema, type ImportCustomerOrdersRequest, ImportCustomerOrdersRequestSchema, type ImportCustomerOrdersResult, ImportCustomerOrdersResultSchema, type ImportJournalRequest, ImportJournalRequestSchema, type ImportJournalResult, ImportJournalResultSchema, ImportMetaSchema, type ImportPhysicalRequest, ImportPhysicalRequestSchema, type ImportPhysicalResult, ImportPhysicalResultSchema, type ImportReadResult, type ImportRow, type ImportRowIssue, type ImportRowIssueCode, ImportRowIssueCodeSchema, ImportRowIssueSchema, type ImportSource, type ImportTableName, ImportTableSchemas, type InventoryAnalytics, type InventoryBarRow, InventoryBarRowSchema, type InventoryBarsQuery, InventoryBarsQuerySchema, type InventoryBarsResponse, InventoryBarsResponseSchema, type InventoryCoinRow, InventoryCoinRowSchema, type InventoryCoinsQuery, InventoryCoinsQuerySchema, type InventoryCoinsResponse, InventoryCoinsResponseSchema, type InventoryPosition, InventoryPositionSchema, type InventoryStocktakeRef, InventoryStocktakeRefSchema, type InviteUserRequest, InviteUserRequestSchema, InvoiceCollectedSchema, type InvoiceDetail, InvoiceDetailSchema, InvoiceLineRowSchema, InvoiceLinkRowSchema, type InvoiceListResponse, InvoiceListResponseSchema, type InvoiceListRow, InvoiceListRowSchema, type ItemEventKind, type ItemStatus, type ItemTrace, type ItemTraceEvent, ItemTraceEventSchema, type ItemTraceQuery, ItemTraceQuerySchema, ItemTraceSchema, JOURNAL_EXPORT_HEADERS, type JournalImportResult, type JournalImportRow, KB_BC_HUB, KB_BC_HUB_PATH, KB_CATEGORIES, KB_CATEGORY_INFO, KB_FLOW_BARS, KB_GUIDE, KB_REVIEW_MONTHS, KB_REVIEW_WARNING_DAYS, KB_TERMS, KB_UNRESOLVED_HREF_PREFIX, type KbArticleLayout, type KbBcChainLink, type KbBcHub, type KbBcHubFlow, type KbBcHubItem, type KbBcScreen, type KbBcTrap, type KbBlock, type KbCategory, KbCategoryEnum, type KbDocument, type KbDocumentListResponse, KbDocumentListResponseSchema, KbDocumentSchema, type KbFlowBar, type KbFlowTone, type KbFormRow, type KbFrontmatter, KbFrontmatterSchema, type KbGuide, type KbGuideBc, type KbGuideBranch, type KbGuideGate, type KbGuideIcon, type KbGuideLibraryTarget, type KbGuideLink, type KbGuideNode, type KbGuidePhase, type KbGuideShortcut, type KbGuideTarget, type KbIndexedDocument, type KbIndexedSection, type KbJurisdiction, KbJurisdictionEnum, type KbLayoutEntry, type KbLinkRef, type KbListItem, type KbMarkdownVariant, type KbRenderBlock, type KbReviewState, type KbReviewStatus, type KbSearchHit, type KbSection, type KbSectionKind, KbSlugSchema, type KbSnippetPart, type KbStatus, KbStatusEnum, type KbTerm, type KbVisibility, KbVisibilityEnum, type KpiUnit, LINK_CONFIDENCES, LINK_TYPES, LIVE_BRANCH_CODES, LIVE_BRANCH_NAMES, type LabelValue, type LatestHandover, LatestHandoverSchema, type LineCandidate, type LinkBcItemRequest, LinkBcItemRequestSchema, type LinkDecisionRequest, LinkDecisionRequestSchema, type LinkDecisionResult, LinkDecisionResultSchema, LinkDecisionSchema, type LinkLiveStockBranchRequest, LinkLiveStockBranchRequestSchema, type LinkStatus, LiveBarStatusSchema, type LiveBaselinePreview, LiveBaselinePreviewSchema, type LiveBaselineRequest, LiveBaselineRequestSchema, type LiveBaselineResult, LiveBaselineResultSchema, type LiveKind, LiveKindSchema, type LiveMetal, LiveMetalSchema, LiveMovementSourceSchema, type LiveStockBar, LiveStockBarSchema, type LiveStockBoard, type LiveStockBoardQuery, LiveStockBoardQuerySchema, LiveStockBoardSchema, type LiveStockBranch, LiveStockBranchSchema, type LiveStockBranchesResponse, LiveStockBranchesResponseSchema, type LiveStockLine, LiveStockLineSchema, type LiveStockMovement, LiveStockMovementSchema, type LogLevel, LogLevelEnum, type LoginInput, type LoginRequest, LoginRequestSchema, type LoginResponse, LoginResponseSchema, LoginSchema, type LowThresholdRequest, LowThresholdRequestSchema, MAX_LISTED_ISSUES, MELT_CATEGORIES, type MapAliasRequest, MapAliasRequestSchema, type MappingSuggestion, type MarkNotificationsRead, MarkNotificationsReadSchema, type MarketDataResponse, MarketDataResponseSchema, type MarketModeState, MarketModeStateSchema, type MatchCatalogue, type MatchConfidence, type MatchInput, type MatchMetal, type MatchOutcome, type MatchPricingProduct, type MatchSpecificProduct, type MeltCalculatorRequest, MeltCalculatorRequestSchema, type MeltCalculatorResponse, MeltCalculatorResponseSchema, type MeltCategoryData, MeltCategoryDataSchema, type MeltCategoryKey, MeltCategoryKeyEnum, type MessageResponse, MessageResponseSchema, type MetalFrom, type MetalSymbol, MetalSymbolSchema, type MetalType, MetalTypeEnum, NOTIFICATION_KINDS, NOTIFICATION_LABELS, type NameSuggestionAcceptRequest, NameSuggestionAcceptRequestSchema, type NameSuggestionAcceptResult, NameSuggestionAcceptResultSchema, type NameSuggestionDecisionRequest, NameSuggestionDecisionRequestSchema, type NameSuggestionDecisionResult, NameSuggestionDecisionResultSchema, type NameSuggestionTarget, NameSuggestionTargetSchema, type NewLine, type NextAction, type NotificationKind, NotificationKindSchema, NotificationListSchema, NotificationSchema, OPTIONAL_COLUMNS, ORDER_LIFECYCLE, ORDER_LIFECYCLE_LABELS, ORDER_STEPS, type OpsAnalytics, type OrderDetail, OrderDetailSchema, type OrderEvent, OrderEventSchema, type OrderFacts, type OrderLifecycle, OrderLifecycleEnum, type OrderLink, type OrderListQuery, OrderListQuerySchema, type OrderListResponse, OrderListResponseSchema, type OrderQueue, OrderQueueEnum, type OrderRole, type OrderRow, OrderRowSchema, type OrderSource, OrderSourceEnum, type OrderStep, OrderStepEnum, type OrderableProduct, type OrdersAnalytics, type OverAllocatedLot, OverAllocatedLotSchema, type OverAllocatedResponse, OverAllocatedResponseSchema, PERMISSION_KEYS, PERMISSION_LABELS, PLAN_ROW_STATUSES, PORTFOLIO_MAX_QTY, PORTFOLIO_SMALL_INVESTOR_LIMIT, PRODUCT_NORM_EXAMPLES, PURCHASE_FIELDS, type Pagination, PaginationSchema, type ParseIssue, type ParseKbResult, type ParsedBarWeight, type ParsedCoin, type ParsedKbDocument, type ParsedPurchase, type ParsedReference, type ParsedSale, type ParsedWeight, PaymentRowSchema, type PerMetalChoice, PerMetalChoiceSchema, type PermissionKey, PermissionKeySchema, PermissionListSchema, type PermissionMatrix, PermissionMatrixSchema, type PermissionOverride, type PermissionOverrideRow, PermissionOverrideSchema, type PermissionRole, type PermissionSubject, type PhysicalRegister, PhysicalRegisterSchema, type PlanContext, type PlanCounts, PlanCountsSchema, type PlanRow, PlanRowSchema, type PlanRowStatus, PlanRowStatusEnum, Platform, type PlatformType, type PortfolioBuildRequest, PortfolioBuildRequestSchema, type PortfolioBuildResponse, PortfolioBuildResponseSchema, type PortfolioCandidateProduct, type PortfolioCandidateResult, type PortfolioLineItem, type PortfolioLineItemDto, PortfolioLineItemSchema, type PortfolioProductType, type PortfolioProductTypeFilter, PortfolioProductTypeFilterEnum, type PortfolioStrategyId, type PortfolioStrategyResult, type PortfolioStrategyResultDto, PortfolioStrategyResultSchema, type PriceRow, type PricingAnalytics, type PricingProductOption, PricingProductOptionListSchema, PricingProductOptionSchema, type PricingSkuGuess, type PriorApplication, type PriorityStrength, PriorityStrengthEnum, type Product, ProductArraySchema, type ProductCategory, ProductCategoryEnum, type ProductDecision, type ProductMapDTO, ProductMapSchema, type ProductMatch, ProductSchema, type ProductStockKey, type ProductStockLevel, ProductStockLevelSchema, ProductStockLevelsResponseSchema, type Products, ProductsSchema, type ProfitAnalysisMissingField, type ProfitAnalysisMissingFieldDto, ProfitAnalysisMissingFieldEnum, type ProfitAnalysisRequest, ProfitAnalysisRequestSchema, type ProfitAnalysisResponse, ProfitAnalysisResponseSchema, type PurchaseField, QUOTE_PLACEHOLDERS, type QtyAndProduct, QuoteRowSchema, RECORD_PAGE_MAX, REDACTED_CODE_COLUMNS, REDACTED_NAME_TABLES, REDACTED_TEXT_COLUMNS, REFINERIES, REGISTER_EXPORT_HEADERS, RELINK_TABLES, ROADMAP_QUEUE_MAX_TEXT, ROADMAP_SCOPE_FILES, type RawKbFile, type RawProduct, RawProductSchema, type RawSheets, type RawSpotPrice, RawSpotPriceSchema, type RecalculateOverrides, RecalculateOverridesSchema, type ReconcileResult, ReconcileResultSchema, type RecordSearchRequest, RecordSearchRequestSchema, type RecordStepRequest, RecordStepRequestSchema, type RedactionMapRow, type ReferenceType, type RefineryAliasEntry, type RefreshRequest, RefreshRequestSchema, type RefreshResponse, RefreshResponseSchema, type RegisterEntry, type RegisterInput, RegisterSchema, type RelinkRequest, RelinkRequestSchema, type RelinkResult, RelinkResultSchema, type RelinkTable, type RelinkTableResult, RelinkTableResultSchema, type ResolveInput, type ResolveMethod, type ResolveResult, type ResolveSheetApplicationRequest, ResolveSheetApplicationRequestSchema, type ResolvedKbLink, type ResolverData, type ReviewLinkRow, ReviewLinkRowSchema, ReviewLinkTypeSchema, type ReviewLinksQuery, ReviewLinksQuerySchema, type ReviewLinksResponse, ReviewLinksResponseSchema, type ReviewPageQuery, ReviewPageQuerySchema, type ReviewReason, type ReviewSummary, ReviewSummarySchema, type RoadmapDocument, RoadmapDocumentSchema, type RoadmapEdit, RoadmapEditError, type RoadmapEditRequest, RoadmapEditRequestSchema, RoadmapEditSchema, type RoadmapInbox, type RoadmapInboxItem, RoadmapInboxItemSchema, type RoadmapInboxPromote, RoadmapInboxPromoteSchema, type RoadmapInboxRefresh, RoadmapInboxRefreshSchema, RoadmapInboxSchema, type RoadmapMergeEntry, type RoadmapMergeKind, type RoadmapMergeResult, type RoadmapProgress, type RoadmapPullRequest, RoadmapPullRequestSchema, type RoadmapPullResult, RoadmapPullResultSchema, type RoadmapPushRequest, RoadmapPushRequestSchema, type RoadmapPushResult, RoadmapPushResultSchema, type RoadmapQueueAppended, RoadmapQueueAppendedSchema, type RoadmapQueueEntry, RoadmapQueueEntrySchema, type RoadmapQueueFiledRequest, RoadmapQueueFiledRequestSchema, type RoadmapQueueFiledResult, RoadmapQueueFiledResultSchema, type RoadmapQueueList, RoadmapQueueListSchema, type RoadmapQueueRequest, RoadmapQueueRequestSchema, type RoadmapQueueSource, RoadmapQueueSourceSchema, type RoadmapScope, type RoadmapScopeDecision, RoadmapScopeDecisionSchema, type RoadmapScopeDone, RoadmapScopeDoneSchema, type RoadmapScopeItem, RoadmapScopeItemSchema, type RoadmapScopeKey, RoadmapScopeKeySchema, type RoadmapScopeRefresh, RoadmapScopeRefreshSchema, RoadmapScopeSchema, type RoadmapScopeTask, RoadmapScopeTaskSchema, type RoadmapScopeView, RoadmapScopeViewSchema, type RoadmapSection, type RoadmapSyncStatus, RoadmapSyncStatusSchema, type RoadmapTask, type RolePermissionRow, type RouteStats, RouteStatsSchema, type RowPlan, type RowResolveInput, type RowResolveMethod, type RowResolveResult, type RowResolverData, SAFE_STATUSES, SALE_FIELDS, SHEETS, SPOT_FETCH_INTERVAL_MS, SPOT_LATE_AFTER_MS, SPOT_RED_AFTER_MS, SPOT_STALE_AFTER_MS, STEP_ROLE, STOCK_METALS, SYSTEMS, type SaleField, type SalesAnalytics, type SalesProduct, type SalesProductId, SalesProductListSchema, type SalesProductRef, SalesProductSchema, type SaveHandoverRequest, SaveHandoverRequestSchema, type SerialComparison, type SerialHolder, SerialsCheckedEnum, type SessionBranch, SessionBranchSchema, type SessionUser, SessionUserRoleEnum, SessionUserSchema, type SetKbStatusRequest, SetKbStatusRequestSchema, type SetKbVisibilityRequest, SetKbVisibilityRequestSchema, type SetLiveStockBarStatusRequest, SetLiveStockBarStatusRequestSchema, type SetOverridesRequest, SetOverridesRequestSchema, type SetUserBranchRequest, SetUserBranchRequestSchema, type SettleNamesRequest, SettleNamesRequestSchema, type SettleNamesResult, SettleNamesResultSchema, type SettleResult, SettleResultSchema, type SheetApplyItem, SheetApplyItemSchema, type SheetApplyPreview, SheetApplyPreviewSchema, type SheetApplyResult, SheetApplyResultSchema, type SheetCell, type SheetKind, SheetKindSchema, SheetLineOptionSchema, type SheetName, SheetNameEnum, type SheetRow, type SheetTask, type SheetTaskDraft, type SheetTaskListQuery, SheetTaskListQuerySchema, SheetTaskSchema, type SheetValue, ShippedNotCollectedListSchema, type ShippedNotCollectedRow, ShippedNotCollectedRowSchema, type ShippedNotCollectedTasksResult, ShippedNotCollectedTasksResultSchema, type SignedInSession, SignedInSessionListSchema, SignedInSessionSchema, type SkipReason, type SoldInfo, type SpotFreshness, type SpotFreshnessState, type SpotPrice, SpotPriceArraySchema, type SpotPriceMapDTO, SpotPriceMapSchema, SpotPriceSchema, type SpotRow, type SpotStatusResponse, SpotStatusResponseSchema, type StepContext, type StockLevelState, StockLevelStateSchema, type StockLineForMatch, type StockMetal, StockMetalEnum, StockMetalSchema, type StockOrderMetal, type Stocktake, type StocktakeBar, StocktakeBarSchema, type StocktakeCoin, StocktakeCoinSchema, type StocktakeDetail, StocktakeDetailSchema, type StocktakeLine, StocktakeLineSchema, StocktakeSchema, type StocktakeStatus, StocktakeStatusEnum, type StocktakeSummary, type SuggestableProduct, TRADE_CART_MAX_ITEMS, TRADE_METAL_SLIDER_BOUNDS, TRADE_STATES, type TabClassification, type TabHeaders, type TabKind, type TabPlan, TabPlanSchema, type TabType, TableSizeSchema, type TaskCheck, TaskCheckEnum, type TaskQueryParams, TaskQueryParamsSchema, type TaskRef, type TaskStatus, TaskStatusSchema, type TrackingEntry, type TradeBootstrapResponse, TradeBootstrapResponseSchema, type TradeCartItemRequest, TradeCartItemRequestSchema, type TradeCartLine, TradeCartLineSchema, type TradeCartRequest, TradeCartRequestSchema, type TradeCartResponse, TradeCartResponseSchema, type TradeLineKey, type TradeMatch, type TradeProduct, TradeProductSchema, type TradeState, type TradeStateResult, type TradeTransactionType, TradeTransactionTypeEnum, type TradesheetImportPlan, TradesheetImportPlanSchema, type TradesheetImportRequest, TradesheetImportRequestSchema, type TradesheetImportResult, TradesheetImportResultSchema, type TradesheetLine, type TradesheetTab, TradesheetTabSchema, type TransferLiveStockRequest, TransferLiveStockRequestSchema, UI_SETTINGS_MAX_BYTES, USER_PREFERENCES_MAX_BYTES, type UiSettings, UiSettingsSchema, type UnredactResult, type UnresolvedLotRow, UnresolvedLotRowSchema, type UnresolvedLotsResponse, UnresolvedLotsResponseSchema, type UpdateBarRequest, UpdateBarRequestSchema, type UpdateCoinRequest, UpdateCoinRequestSchema, type UpdateCustomerOrderRequest, UpdateCustomerOrderRequestSchema, type UpdateDiscrepancyRequest, UpdateDiscrepancyRequestSchema, type UpdateKbDocumentRequest, UpdateKbDocumentRequestSchema, type UpdateMarketModeRequest, UpdateMarketModeRequestSchema, type UpdatePermissionMatrixRequest, UpdatePermissionMatrixRequestSchema, type UpdateProductFullDto, UpdateProductFullDtoSchema, type UpdateStockRequest, UpdateStockRequestSchema, type UpdateStocktakeLineRequest, UpdateStocktakeLineRequestSchema, type UpdateStocktakeRequest, UpdateStocktakeRequestSchema, type UpdateUserRequest, UpdateUserRequestSchema, type User, type UserPreferences, UserPreferencesSchema, type UserProfile, UserProfileSchema, UserRole, type UserRoleType, UserSchema, UserStatus, type UserStatusType, WORKBOOK_CHUNK_MAX_ROWS, WORKBOOK_LOAD_ORDER, type WorkbookChunkRequest, WorkbookChunkRequestSchema, type WorkbookChunkResult, WorkbookChunkResultSchema, type WorkbookLoadTable, absorbFile, aiInputLimit, aliasKey, aliasOk, allowedSteps, applyRoadmapEdit, assignOccurrences, bcDate, bcEventKind, bcItemNoFromSku, buildArticleLayout, buildBarExportRows, buildBlocks, buildCoinExportRows, buildJournalExportRows, buildNameLookup, buildPortfolioStrategies, buildRegisterExportRows, bundleScopeFiles, calculateProductPrice, canSeeKbVisibility, capabilitiesFor, classifyCpty, classifySection, classifyTab, coerceCell, coinTokens, compareProcedures, compareProducts, compareSerials, compareStockLabels, computeCurrentBuybackValue, computeMeltValue, computeProfit, computeRequiredSpotForTarget, computeTransactionPrice, computeVariance, coreRef, countTasks, createErrorReference, customerOrderChanges, customerSafeRow, deriveMetalHint, deriveOrder, deriveTradeState, detectBcHistoryKind, detectDateOrder, detectFileType, detectTabType, diffOverrides, diffPermissionMatrix, diffUserChanges, effectivePermissions, effectiveVatRate, expectedCustomerStock, extractQtyAndProduct, extractSources, fakeRedactionMap, fakeWorkbookSheets, fillKind, findAppOnlyTasks, findBrokenLinks, findDuplicateSerials, findHeaderRow, findLinks, findTodos, fingerprint, flowBarFor, flowNextSlug, guessSheetMonth, guessSheetMonthFromTabs, guideLibraryTargets, headingAnchor, homePathFor, indexKbDocument, isBondedProduct, isCashOverThreshold, isClosingBar, isMuted, isOpenOrder, isPhysicallyHere, isRealSerial, isReferenceCell, isSpotMarketClosed, isStopStep, itemStatusAfter, kbArticlePath, kbReviewDueOn, kbReviewStatus, limitQuery, lineMatchesKey, linkOrdersToTradesheet, listedRefinery, liveRefinery, liveSerialKey, mapBcHistory, mapBcReport, mapOutsideCode, mapPurchaseHeaders, mapSaleHeaders, matchLines, matchProductName, matchTradeLine, meltLabel, mergeMetalPrices, mergeRoadmap, metalAwareAlias, metalInText, metalsFitting, nextAction, normaliseBackfillHeaders, normaliseName, normaliseProductText, normaliseRefinery, normalizeClient, normalizeProductName, normalizeReference, normalizeSerial, onHandSerials, orderLifecycle, orderSource, parseBarWeight, parseBarsPaste, parseBlocks, parseCoinName, parseCoinsPaste, parseCustomerOrdersPaste, parseDecisions, parseDeferredLinks, parseDesignDoc, parseJournalPaste, parseKbDocument, parseMetal, parsePastedTable, parseProductName, parsePurchaseRow, parseQuantity, parseReference, parseRoadmap, parseSaleRow, parseScopeBundle, parseScopeFile, parseSheetDate, parseSheetNumber, parseSoldComment, parseTrackingPaste, parseTradesheetPaste, parseTsv, parseUserAgent, parseWeight, parseWeightGrams, planAutolinks, planBarImport, planBaseline, planCustomerOrderImport, planRow, planUpload, priceMetalEvidence, pricingSkuFor, procedureFlow, productStockKey, productStockLevels, readCollected, readForeignCoin, readImportWorkbook, readProduct, referenceMatchKey, refineryInText, refineryMatch, refineryWords, renderQuoteText, resolveAnalyticsPeriod, resolveProduct, resolveRowProduct, rewriteKbLinks, roundBuyPrice, roundSellPrice, rowIsBlank, ruleTone, searchKb, serialKey, shareTermsAcrossBlocks, sheetTasksForStep, solveMissingPurchaseField, sortBranchCodes, splitDocSections, splitFrontmatter, splitScopeBundle, splitSections, splitSerials, spotFreshness, spotLookup, stripHeader, suggestProductForBcItem, summarizeBars, summarizeLines, taskShowsDone, termRegExp, toCsv, toIsoDate, toPlainText, totalCounted, unredactTables, variantGrams, withoutOptionalColumns };

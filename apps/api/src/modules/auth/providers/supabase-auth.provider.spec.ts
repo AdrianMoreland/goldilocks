@@ -160,3 +160,16 @@ describe('SupabaseAuthProvider.refreshSession', () => {
         );
     });
 });
+
+describe('SupabaseAuthProvider.verifyToken', () => {
+    it.each(['', '  '])(
+        'rejects an empty token (%j) without asking Supabase',
+        async (token) => {
+            const { provider, supabase } = build();
+            await expect(provider.verifyToken(token)).rejects.toBeInstanceOf(
+                UnauthorizedException,
+            );
+            expect(supabase.getUserFromToken).not.toHaveBeenCalled();
+        },
+    );
+});

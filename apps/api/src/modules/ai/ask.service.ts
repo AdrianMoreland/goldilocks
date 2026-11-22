@@ -208,7 +208,7 @@ export class AskService {
                 const retried = result.retried ?? false;
                 const toolsUsed = result.toolsUsed ?? [];
                 const cost = cached ? 0 : spentMicros;
-                await this.questionLog.record({
+                const questionId = await this.questionLog.record({
                     userId: actor.id,
                     question: loggedQuestion,
                     mode,
@@ -232,6 +232,7 @@ export class AskService {
                     `[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/written/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.cacheWriteInputTokens ?? 0}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`,
                 );
                 return {
+                    questionId,
                     answer: result.answer,
                     mode,
                     status: result.status,

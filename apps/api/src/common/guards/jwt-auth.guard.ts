@@ -10,6 +10,8 @@ import { AuthService } from '../../modules/auth/auth.service';
 import type { AuthenticatedUser } from '../../modules/auth/auth.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
+const BEARER = /^Bearer (\S+)$/;
+
 export interface RequestWithUser extends Request {
     user: AuthenticatedUser;
 }
@@ -38,16 +40,15 @@ export class JwtAuthGuard implements CanActivate {
         const request = context.switchToHttp().getRequest<RequestWithUser>();
         if (request.user) return true;
 
-        const authHeader = request.headers.authorization;
-
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        // Exactly "Bearer <token>": an empty or split token must never reach the provider.
+        const match = BEARER.exec(request.headers.authorization ?? '');
+        if (!match) {
             throw new UnauthorizedException(
                 'Missing or invalid authorization header',
             );
         }
 
-        const token = authHeader.split(' ')[1];
-        request.user = await this.authService.validateToken(token);
+        request.user = await this.authService.validateToken(match[1]);
         return true;
     }
 }
