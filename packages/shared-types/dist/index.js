@@ -1100,6 +1100,8 @@ var AdminOverviewSchema = z10.object({
   nodeVersion: z10.string(),
   environment: z10.string(),
   aiEnabled: z10.boolean(),
+  /** The assistant's spend today (Dublin day) against its daily limit, in USD; null when it can't be read. */
+  aiSpend: z10.object({ spentUsd: z10.number(), dailyLimitUsd: z10.number() }).nullable(),
   health: z10.array(HealthItemSchema),
   /** False when Redis is down: the traffic history below is then empty rather than wrong. */
   metricsAvailable: z10.boolean(),
@@ -2608,8 +2610,10 @@ var AiCitationSchema = z16.object({
 });
 var AiUsageSchema = z16.object({
   inputTokens: z16.number().int(),
-  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  /** The part of the input served from the model vendor's prompt cache (billed at a fraction). */
   cachedInputTokens: z16.number().int(),
+  /** The part of the input written to the prompt cache (some vendors bill it above the normal input rate). */
+  cacheWriteInputTokens: z16.number().int().optional(),
   outputTokens: z16.number().int()
 });
 var AiSpotNoteSchema = z16.object({
@@ -2617,6 +2621,8 @@ var AiSpotNoteSchema = z16.object({
   message: z16.string()
 });
 var AskResponseSchema = z16.object({
+  /** The logged question's id, used to rate the answer. Null when the log row could not be written. */
+  questionId: z16.number().int().nullable().default(null),
   /** Markdown. Citations are left in as `[[slug#section]]`, which the reader turns into links. */
   answer: z16.string(),
   mode: AiModeEnum,
@@ -6181,7 +6187,7 @@ var COIN_DESIGNS = [
     id: "lunar",
     label: "Lunar",
     words: ["lunar"],
-    match: (t) => t.has("year") && ZODIAC.some((z34) => t.has(z34)),
+    match: (t) => t.has("year") && ZODIAC.some((z38) => t.has(z38)),
     consume: ["the", "serie", "series", ...ZODIAC],
     metals: { GOLD: GOLD_SMALL, SILVER: SILVER_COIN_WEIGHTS },
     mints: ["PERTH MINT"],
@@ -8963,11 +8969,237 @@ var ShippedNotCollectedTasksResultSchema = z33.object({
   alreadyOpen: z33.number().int()
 });
 var COLLECTED_TASK = { sheet: "Tradesheet", what: "Tick Collected (C or the date)", value: "C", check: "TRADE_COLLECTED" };
+
+// src/permissions.ts
+import { z as z34 } from "zod";
+var PERMISSION_KEYS = [
+  "analytics.pricing",
+  "analytics.sales",
+  "analytics.orders",
+  "analytics.inventory",
+  "analytics.customers",
+  "analytics.chatbot",
+  "analytics.ops",
+  "admin.audit"
+];
+var PermissionKeySchema = z34.enum(PERMISSION_KEYS);
+var PERMISSION_LABELS = {
+  "analytics.pricing": { group: "Analytics", label: "Pricing" },
+  "analytics.sales": { group: "Analytics", label: "Sales & margin" },
+  "analytics.orders": { group: "Analytics", label: "Orders" },
+  "analytics.inventory": { group: "Analytics", label: "Inventory" },
+  "analytics.customers": { group: "Analytics", label: "Customers & invoices" },
+  "analytics.chatbot": { group: "Analytics", label: "Chatbot" },
+  "analytics.ops": { group: "Analytics", label: "Ops" },
+  "admin.audit": { group: "Admin", label: "Audit log (read)" }
+};
+var ALL_ANALYTICS = PERMISSION_KEYS.filter((k) => k.startsWith("analytics."));
+var DEFAULT_ROLE_PERMISSIONS = {
+  ADMIN: PERMISSION_KEYS,
+  MANAGER: ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers"],
+  SALES: ["analytics.pricing", "analytics.orders", "analytics.inventory"],
+  ACCOUNTING: ["analytics.sales", "analytics.customers"],
+  AUDITOR: [...ALL_ANALYTICS, "admin.audit"]
+};
+var KNOWN = new Set(PERMISSION_KEYS);
+function effectivePermissions(subject, presets, overrides, now) {
+  if (subject.admin) return [...PERMISSION_KEYS].sort();
+  const held = new Set(presets.filter((p) => p.role === subject.role).map((p) => p.key));
+  for (const o of overrides) {
+    if (o.expiresAt && o.expiresAt.getTime() <= now.getTime()) continue;
+    if (o.granted) held.add(o.key);
+    else held.delete(o.key);
+  }
+  return [...held].filter((k) => KNOWN.has(k)).sort();
+}
+var PermissionListSchema = z34.array(PermissionKeySchema);
+
+// src/analytics.schema.ts
+import { z as z35 } from "zod";
+var ANALYTICS_PRESETS = ["30d", "90d", "12m", "ytd"];
+var AnalyticsPresetSchema = z35.enum(ANALYTICS_PRESETS);
+var AnalyticsQuerySchema = z35.object({
+  preset: AnalyticsPresetSchema.default("90d")
+});
+function resolveAnalyticsPeriod(preset, today) {
+  const end = /* @__PURE__ */ new Date(`${today}T00:00:00Z`);
+  const start = new Date(end);
+  if (preset === "30d") start.setUTCDate(start.getUTCDate() - 29);
+  else if (preset === "90d") start.setUTCDate(start.getUTCDate() - 89);
+  else if (preset === "12m") {
+    const yearAgo = new Date(Date.UTC(end.getUTCFullYear() - 1, end.getUTCMonth(), 1));
+    const lastDay = new Date(Date.UTC(yearAgo.getUTCFullYear(), yearAgo.getUTCMonth() + 1, 0)).getUTCDate();
+    yearAgo.setUTCDate(Math.min(end.getUTCDate(), lastDay) + 1);
+    start.setTime(yearAgo.getTime());
+  } else start.setUTCMonth(0, 1);
+  const days = Math.round((end.getTime() - start.getTime()) / 864e5) + 1;
+  const prevEnd = new Date(start);
+  prevEnd.setUTCDate(prevEnd.getUTCDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setUTCDate(prevStart.getUTCDate() - (days - 1));
+  const iso = (d) => d.toISOString().slice(0, 10);
+  return {
+    preset,
+    current: { from: iso(start), to: iso(end) },
+    previous: { from: iso(prevStart), to: iso(prevEnd) }
+  };
+}
+var AiFeedbackRequestSchema = z35.object({ helpful: z35.boolean() });
+
+// src/people.schema.ts
+import { z as z36 } from "zod";
+var Reason2 = z36.string().trim().min(3, "Say why, in a few words").max(300);
+var ROLES = SessionUserRoleEnum.options;
+var PermissionOverrideSchema = z36.object({
+  key: PermissionKeySchema,
+  granted: z36.boolean(),
+  /** ISO date-time; null means no end date. */
+  expiresAt: z36.string().datetime().nullable()
+});
+var AdminUserSchema = z36.object({
+  id: z36.string(),
+  email: z36.string(),
+  firstName: z36.string(),
+  lastName: z36.string(),
+  role: SessionUserRoleEnum,
+  admin: z36.boolean(),
+  isActive: z36.boolean(),
+  branch: SessionBranchSchema.nullable(),
+  lastLoginAt: z36.string().nullable(),
+  overrides: z36.array(
+    PermissionOverrideSchema.extend({ reason: z36.string(), createdBy: z36.string(), createdAt: z36.string() })
+  ),
+  /** What the person can use right now: role preset plus live overrides (admins hold everything). */
+  permissions: z36.array(PermissionKeySchema)
+});
+var AdminUserListSchema = z36.array(AdminUserSchema);
+var UpdateUserRequestSchema = z36.object({
+  role: SessionUserRoleEnum.optional(),
+  admin: z36.boolean().optional(),
+  isActive: z36.boolean().optional(),
+  branchId: z36.number().int().positive().nullable().optional(),
+  reason: Reason2
+}).refine((v) => v.role !== void 0 || v.admin !== void 0 || v.isActive !== void 0 || v.branchId !== void 0, {
+  message: "Nothing to change"
+});
+var SetOverridesRequestSchema = z36.object({
+  /** The person's full set of overrides after the change (replaces what they had). */
+  overrides: z36.array(PermissionOverrideSchema).refine((o) => new Set(o.map((x) => x.key)).size === o.length, {
+    message: "One override per permission"
+  }),
+  reason: Reason2
+});
+var PermissionMatrixSchema = z36.object(
+  Object.fromEntries(ROLES.map((r) => [r, z36.array(PermissionKeySchema)]))
+);
+var UpdatePermissionMatrixRequestSchema = z36.object({
+  changes: z36.array(z36.object({ role: SessionUserRoleEnum, key: PermissionKeySchema, granted: z36.boolean() })).min(1, "Nothing to change"),
+  reason: Reason2
+});
+var InviteUserRequestSchema = z36.object({
+  email: z36.string().trim().toLowerCase().email(),
+  firstName: z36.string().min(1, "First name is required"),
+  lastName: z36.string().min(1, "Last name is required"),
+  role: SessionUserRoleEnum,
+  admin: z36.boolean().default(false),
+  branchId: z36.number().int().positive().nullable().default(null)
+});
+function diffPermissionMatrix(before, after) {
+  const out = [];
+  for (const role of ROLES) {
+    const was = new Set(before[role]);
+    const now = new Set(after[role]);
+    for (const key of PERMISSION_KEYS) {
+      if (was.has(key) !== now.has(key)) out.push({ role, key, granted: now.has(key) });
+    }
+  }
+  return out;
+}
+function diffUserChanges(before, patch) {
+  return ["role", "admin", "isActive", "branchId"].filter((f) => patch[f] !== void 0 && patch[f] !== before[f]).map((field2) => ({ field: field2, from: before[field2], to: patch[field2] }));
+}
+var describeOverride = (o) => `${o.granted ? "grant" : "remove"}${o.expiresAt ? ` until ${o.expiresAt.slice(0, 10)}` : ""}`;
+var overrideIdentity = (o) => `${o.granted}|${o.expiresAt ? new Date(o.expiresAt).toISOString() : ""}`;
+function diffOverrides(before, after) {
+  const a = new Map(before.map((o) => [o.key, o]));
+  const b = new Map(after.map((o) => [o.key, o]));
+  const id = (o) => o ? overrideIdentity(o) : null;
+  const text4 = (o) => o ? describeOverride(o) : null;
+  return [.../* @__PURE__ */ new Set([...a.keys(), ...b.keys()])].sort().filter((k) => id(a.get(k)) !== id(b.get(k))).map((key) => ({ key, from: text4(a.get(key)), to: text4(b.get(key)) }));
+}
+
+// src/settings.schema.ts
+import { z as z37 } from "zod";
+var NOTIFICATION_KINDS = ["feed_down", "order_step", "import_review", "permission_changed"];
+var NotificationKindSchema = z37.enum(NOTIFICATION_KINDS);
+var NOTIFICATION_LABELS = {
+  feed_down: "Price feed failing or prices stale",
+  order_step: "An order reached a new step",
+  import_review: "An import finished or items wait for review",
+  permission_changed: "Someone\u2019s role or permissions changed"
+};
+var USER_PREFERENCES_MAX_BYTES = 8e3;
+var UserPreferencesSchema = z37.object({
+  /** The page-wide Simple / Detailed switch. */
+  detail: z37.enum(["simple", "detailed"]).default("detailed"),
+  /** Single-key shortcuts (1–4, T, G, A, P, Q, /). Ctrl+K and arrows always work. */
+  singleKeyShortcuts: z37.boolean().default(true),
+  quote: z37.object({
+    signOff: z37.string().max(300).default(""),
+    defaultChannel: z37.enum(["whatsapp", "email"]).nullable().default(null)
+  }).default({ signOff: "", defaultChannel: null }),
+  board: z37.object({
+    view: z37.string().max(40).default("GOLD"),
+    pins: z37.array(z37.number().int().positive()).max(60).default([])
+  }).default({ view: "GOLD", pins: [] }),
+  notifications: z37.object({ muted: z37.array(NotificationKindSchema).default([]) }).default({ muted: [] })
+}).refine((v) => JSON.stringify(v).length <= USER_PREFERENCES_MAX_BYTES, { message: "Those settings are too large to save." });
+var CompanyQuoteTemplateSchema = z37.object({
+  opening: z37.string().trim().max(500).nullable(),
+  closingNote: z37.string().trim().max(1e3).nullable()
+});
+var QUOTE_PLACEHOLDERS = ["name", "spot_time"];
+function renderQuoteText(template, values) {
+  return template.replace(
+    /\{(\w+)\}/g,
+    (whole, key) => QUOTE_PLACEHOLDERS.includes(key) ? values[key] : whole
+  );
+}
+var NotificationSchema = z37.object({
+  id: z37.number().int(),
+  kind: NotificationKindSchema,
+  title: z37.string(),
+  body: z37.string(),
+  link: z37.string().nullable(),
+  createdAt: z37.string(),
+  readAt: z37.string().nullable()
+});
+var NotificationListSchema = z37.object({ items: z37.array(NotificationSchema), unread: z37.number().int() });
+function isMuted(prefs, kind) {
+  return prefs.muted.includes(kind);
+}
+var SignedInSessionSchema = z37.object({
+  id: z37.string(),
+  device: z37.string(),
+  ip: z37.string().nullable(),
+  createdAt: z37.string(),
+  lastActiveAt: z37.string(),
+  current: z37.boolean()
+});
+var SignedInSessionListSchema = z37.array(SignedInSessionSchema);
+function parseUserAgent(ua) {
+  if (!ua) return "Unknown device";
+  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser";
+  const system = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "unknown system";
+  return `${browser} on ${system}`;
+}
+var MarkNotificationsReadSchema = z37.object({ ids: z37.array(z37.number().int().positive()).max(200).optional() });
 export {
   AI_MESSAGE_MAX_LENGTH,
   AI_QUESTION_MAX_LENGTH,
   ALIAS_USAGE_SOURCES,
   ALIAS_VIEWS,
+  ANALYTICS_PRESETS,
   AddBarRequestSchema,
   AddCoinRequestSchema,
   AddEvidenceRequestSchema,
@@ -8977,8 +9209,11 @@ export {
   AdminLogsQuerySchema,
   AdminLogsResponseSchema,
   AdminOverviewSchema,
+  AdminUserListSchema,
+  AdminUserSchema,
   AiAnswerStatusEnum,
   AiCitationSchema,
+  AiFeedbackRequestSchema,
   AiModeEnum,
   AiSpotNoteSchema,
   AiStatusSchema,
@@ -8994,6 +9229,8 @@ export {
   AliasesQuerySchema,
   AliasesResponseSchema,
   AllocationSummarySchema,
+  AnalyticsPresetSchema,
+  AnalyticsQuerySchema,
   ApiCatalogueSchema,
   ApiEndpointParameterSchema,
   ApiEndpointSchema,
@@ -9048,6 +9285,7 @@ export {
   ClientErrorReportBatchSchema,
   ClientErrorReportSchema,
   ColorModeEnum,
+  CompanyQuoteTemplateSchema,
   CreateBranchRequestSchema,
   CreateCustomerOrderRequestSchema,
   CreateDiscrepancyRequestSchema,
@@ -9066,6 +9304,7 @@ export {
   CustomerOrderSchema,
   CustomerOrderStatusEnum,
   CustomerProfileSchema,
+  DEFAULT_ROLE_PERMISSIONS,
   DISCREPANCY_ISSUE_TYPES,
   DbColumnSchema,
   DbDeleteRequestSchema,
@@ -9134,6 +9373,7 @@ export {
   InventoryCoinsResponseSchema,
   InventoryPositionSchema,
   InventoryStocktakeRefSchema,
+  InviteUserRequestSchema,
   InvoiceCollectedSchema,
   InvoiceDetailSchema,
   InvoiceLineRowSchema,
@@ -9194,6 +9434,7 @@ export {
   MAX_LISTED_ISSUES,
   MELT_CATEGORIES,
   MapAliasRequestSchema,
+  MarkNotificationsReadSchema,
   MarketDataResponseSchema,
   MarketModeStateSchema,
   MeltCalculatorRequestSchema,
@@ -9203,11 +9444,16 @@ export {
   MessageResponseSchema,
   MetalSymbolSchema,
   MetalTypeEnum,
+  NOTIFICATION_KINDS,
+  NOTIFICATION_LABELS,
   NameSuggestionAcceptRequestSchema,
   NameSuggestionAcceptResultSchema,
   NameSuggestionDecisionRequestSchema,
   NameSuggestionDecisionResultSchema,
   NameSuggestionTargetSchema,
+  NotificationKindSchema,
+  NotificationListSchema,
+  NotificationSchema,
   OPTIONAL_COLUMNS,
   ORDER_LIFECYCLE,
   ORDER_LIFECYCLE_LABELS,
@@ -9223,6 +9469,8 @@ export {
   OrderStepEnum,
   OverAllocatedLotSchema,
   OverAllocatedResponseSchema,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
   PLAN_ROW_STATUSES,
   PORTFOLIO_MAX_QTY,
   PORTFOLIO_SMALL_INVESTOR_LIMIT,
@@ -9231,6 +9479,10 @@ export {
   PaginationSchema,
   PaymentRowSchema,
   PerMetalChoiceSchema,
+  PermissionKeySchema,
+  PermissionListSchema,
+  PermissionMatrixSchema,
+  PermissionOverrideSchema,
   PhysicalRegisterSchema,
   PlanCountsSchema,
   PlanRowSchema,
@@ -9254,6 +9506,7 @@ export {
   ProfitAnalysisMissingFieldEnum,
   ProfitAnalysisRequestSchema,
   ProfitAnalysisResponseSchema,
+  QUOTE_PLACEHOLDERS,
   QuoteRowSchema,
   RECORD_PAGE_MAX,
   REDACTED_CODE_COLUMNS,
@@ -9332,6 +9585,7 @@ export {
   SetKbStatusRequestSchema,
   SetKbVisibilityRequestSchema,
   SetLiveStockBarStatusRequestSchema,
+  SetOverridesRequestSchema,
   SetUserBranchRequestSchema,
   SettleNamesRequestSchema,
   SettleNamesResultSchema,
@@ -9347,6 +9601,8 @@ export {
   ShippedNotCollectedListSchema,
   ShippedNotCollectedRowSchema,
   ShippedNotCollectedTasksResultSchema,
+  SignedInSessionListSchema,
+  SignedInSessionSchema,
   SpotPriceArraySchema,
   SpotPriceMapSchema,
   SpotPriceSchema,
@@ -9380,6 +9636,7 @@ export {
   TradesheetTabSchema,
   TransferLiveStockRequestSchema,
   UI_SETTINGS_MAX_BYTES,
+  USER_PREFERENCES_MAX_BYTES,
   UiSettingsSchema,
   UnresolvedLotRowSchema,
   UnresolvedLotsResponseSchema,
@@ -9389,10 +9646,13 @@ export {
   UpdateDiscrepancyRequestSchema,
   UpdateKbDocumentRequestSchema,
   UpdateMarketModeRequestSchema,
+  UpdatePermissionMatrixRequestSchema,
   UpdateProductFullDtoSchema,
   UpdateStockRequestSchema,
   UpdateStocktakeLineRequestSchema,
   UpdateStocktakeRequestSchema,
+  UpdateUserRequestSchema,
+  UserPreferencesSchema,
   UserProfileSchema,
   UserRole,
   UserSchema,
@@ -9450,6 +9710,10 @@ export {
   detectDateOrder,
   detectFileType,
   detectTabType,
+  diffOverrides,
+  diffPermissionMatrix,
+  diffUserChanges,
+  effectivePermissions,
   effectiveVatRate,
   expectedCustomerStock,
   extractQtyAndProduct,
@@ -9475,6 +9739,7 @@ export {
   isBondedProduct,
   isCashOverThreshold,
   isClosingBar,
+  isMuted,
   isOpenOrder,
   isPhysicallyHere,
   isRealSerial,
@@ -9544,6 +9809,7 @@ export {
   parseTrackingPaste,
   parseTradesheetPaste,
   parseTsv,
+  parseUserAgent,
   parseWeight,
   parseWeightGrams,
   planAutolinks,
@@ -9565,6 +9831,8 @@ export {
   refineryInText,
   refineryMatch,
   refineryWords,
+  renderQuoteText,
+  resolveAnalyticsPeriod,
   resolveProduct,
   resolveRowProduct,
   rewriteKbLinks,

@@ -62,8 +62,10 @@ export type AiCitation = z.infer<typeof AiCitationSchema>;
 
 export const AiUsageSchema = z.object({
   inputTokens: z.number().int(),
-  /** The part of the input served from OpenAI's prompt cache (billed at a fraction). */
+  /** The part of the input served from the model vendor's prompt cache (billed at a fraction). */
   cachedInputTokens: z.number().int(),
+  /** The part of the input written to the prompt cache (some vendors bill it above the normal input rate). */
+  cacheWriteInputTokens: z.number().int().optional(),
   outputTokens: z.number().int(),
 });
 export type AiUsage = z.infer<typeof AiUsageSchema>;

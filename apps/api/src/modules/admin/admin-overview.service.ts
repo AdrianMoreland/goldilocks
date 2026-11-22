@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AdminOverview } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { AiSettings } from '../ai/ai.settings';
+import { startOfDublinDay } from '../ai/dublin-day';
+import { QuestionLogService } from '../ai/question-log.service';
 import { ErrorLogService } from '../error-log/error-log.service';
 import { DbBrowserService } from './db-browser.service';
 import { RequestMetricsService } from '../request-metrics/request-metrics.service';
@@ -19,7 +22,24 @@ export class AdminOverviewService {
         private readonly metrics: RequestMetricsService,
         private readonly db: DbBrowserService,
         private readonly errorLog: ErrorLogService,
+        private readonly aiSettings: AiSettings,
+        private readonly questionLog: QuestionLogService,
     ) {}
+
+    /** Today's assistant spend against its daily limit; null when the log can't be read. */
+    private async aiSpend(): Promise<AdminOverview['aiSpend']> {
+        try {
+            const micros = await this.questionLog.spentSince(
+                startOfDublinDay(new Date()),
+            );
+            return {
+                spentUsd: micros / 1_000_000,
+                dailyLimitUsd: this.aiSettings.dailyBudgetUsd,
+            };
+        } catch {
+            return null;
+        }
+    }
 
     async build(): Promise<AdminOverview> {
         const since = new Date(Date.now() - DAY_MS);
@@ -31,6 +51,7 @@ export class AdminOverviewService {
             roles,
             activeUsers,
             errors,
+            aiSpend,
         ] = await Promise.all([
             this.health.check(),
             this.metrics.getLastDay(),
@@ -39,6 +60,7 @@ export class AdminOverviewService {
             this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
             this.prisma.user.count({ where: { lastLoginAt: { gte: since } } }),
             this.errorLog.getRecent(500),
+            this.aiSpend(),
         ]);
 
         const errorCounts = new Map<string, number>();
@@ -53,6 +75,7 @@ export class AdminOverviewService {
             nodeVersion: process.version,
             environment: this.config.get<string>('NODE_ENV', 'development'),
             aiEnabled: this.config.get<string>('AI_ENABLED') === 'true',
+            aiSpend,
             health,
             metricsAvailable: traffic !== null,
             hours: traffic?.hours ?? [],

@@ -26,7 +26,13 @@ export interface LlmToolCall {
 
 /** What happened after the user's message in a tool round: the model's request, then the application's result. */
 export type LlmTurn =
-    | { role: 'assistant'; content: string; toolCalls: LlmToolCall[] }
+    | {
+          role: 'assistant';
+          content: string;
+          toolCalls: LlmToolCall[];
+          /** The adapter's own record of that reply (LlmResult.replay), passed back unchanged. */
+          replay?: unknown;
+      }
     | { role: 'tool'; toolCallId: string; content: string };
 
 export interface LlmRequest {
@@ -37,6 +43,12 @@ export interface LlmRequest {
     maxOutputTokens: number;
     /** Lookups the model may ask for. Part of the cacheable prefix, so keep it identical between calls. */
     tools?: LlmToolSpec[];
+    /**
+     * 'none' keeps the tools declared but stops the model calling them, so a
+     * last round can force an answer without changing the cacheable prefix.
+     * Defaults to 'auto'.
+     */
+    toolChoice?: 'auto' | 'none';
     /** The tool rounds so far, in order, continuing from the user message. */
     turns?: LlmTurn[];
     /** Aborting stops the upstream call, so a cancelled answer stops costing tokens. */
@@ -47,6 +59,8 @@ export interface LlmUsage {
     inputTokens: number;
     /** Part of inputTokens served from the vendor's prompt cache (billed at a fraction). */
     cachedInputTokens: number;
+    /** Part of inputTokens written to the vendor's prompt cache (some vendors bill this above the normal input rate). */
+    cacheWriteInputTokens?: number;
     outputTokens: number;
 }
 
@@ -60,6 +74,12 @@ export interface LlmResult {
     usage: LlmUsage;
     /** The answer hit the output limit and was cut off. */
     truncated: boolean;
+    /**
+     * Vendor-specific content the adapter needs back, unchanged, when this
+     * reply is continued after a tool round (for example the model's
+     * reasoning blocks). Opaque to everything above the adapter.
+     */
+    replay?: unknown;
 }
 
 /** What stream() yields: pieces of text as they arrive, then one final event with the whole answer and its usage. */
@@ -84,13 +104,20 @@ export type LlmFailureKind =
     | 'rejected';
 
 export class LlmError extends Error {
+    /** Tokens the failed call still used and was billed for (a refusal after output began, say); counted towards the daily budget. */
+    readonly usage?: LlmUsage;
+    /** The model that used them. */
+    readonly model?: string;
+
     constructor(
         readonly kind: LlmFailureKind,
         message: string,
-        options?: { cause?: unknown },
+        options?: { cause?: unknown; usage?: LlmUsage; model?: string },
     ) {
-        super(message, options);
+        super(message, { cause: options?.cause });
         this.name = 'LlmError';
+        this.usage = options?.usage;
+        this.model = options?.model;
     }
 }
 

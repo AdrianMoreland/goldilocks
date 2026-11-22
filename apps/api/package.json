@@ -36,6 +36,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@goldilocks/shared-types": "workspace:*",
     "@nestjs/common": "^11.1.14",
     "@nestjs/config": "^4.0.3",

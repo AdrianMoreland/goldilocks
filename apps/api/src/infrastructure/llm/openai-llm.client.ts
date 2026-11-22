@@ -235,6 +235,9 @@ export class OpenAiLlmClient implements LlmPort {
                               parameters: tool.parameters,
                           },
                       })),
+                      ...(request.toolChoice === 'none'
+                          ? { tool_choice: 'none' as const }
+                          : {}),
                   }
                 : {}),
             ...(Number.isFinite(temperature) ? { temperature } : {}),

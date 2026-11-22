@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ModelPrice } from './cost.calculator';
 
-const DEFAULT_MAX_OUTPUT_TOKENS = 600;
+/** Room for the model's reasoning as well as the answer: thinking counts against the output cap. */
+const DEFAULT_MAX_OUTPUT_TOKENS = 2000;
+/** A drafted email is longer than a procedure answer. */
+const DEFAULT_DRAFT_MAX_OUTPUT_TOKENS = 4000;
 const DEFAULT_DAILY_QUOTA = 50;
 const DEFAULT_PER_MINUTE_LIMIT = 5;
 const DEFAULT_DAILY_BUDGET_USD = 2;
@@ -23,6 +26,14 @@ export class AiSettings {
         return this.positiveInt(
             'AI_MAX_OUTPUT_TOKENS',
             DEFAULT_MAX_OUTPUT_TOKENS,
+        );
+    }
+
+    /** Output cap for email and WhatsApp drafts; never below maxOutputTokens. */
+    get draftMaxOutputTokens(): number {
+        return this.positiveInt(
+            'AI_DRAFT_MAX_OUTPUT_TOKENS',
+            DEFAULT_DRAFT_MAX_OUTPUT_TOKENS,
         );
     }
 
