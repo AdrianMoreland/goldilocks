@@ -150,6 +150,12 @@ On the frontend, the same rule holds one level up: `apps/web/src/contexts/auth-c
 
 **The server-side guard is the actual security boundary.** The dashboard's admin-mode toggle (shield icon, only rendered for `isAdmin` users) is a UI convenience for *discoverability* - hiding the "⋮" edit menu for non-admins - not the enforcement. A non-admin hitting the endpoint directly gets a real `403`, verified in this codebase via `curl`, not assumed.
 
+### Page permissions and "view as"
+
+Each page an admin can hand to a role has a `page.*` key in `PERMISSION_KEYS` (`packages/shared-types/src/permissions.ts`). Roles & permissions switches the key per role (stored in `role_permissions`); a person's own overrides still apply on top, and the admin flag holds every key. A controller marks itself with `@RequiresPermission('page.x')`; the class's key and a route's own key must both be held. A new page starts admin-only: add the key, leave it out of `DEFAULT_ROLE_PERMISSIONS` and the seed migration, and an admin switches it on when it is ready. The admin console and the roadmap are never in the matrix; they stay `@Roles('admin')`.
+
+An admin can see the app as another role without signing in again: the web app sends `X-View-As` (see `view-as.ts` in shared-types) and `JwtAuthGuard` honours it only for a real admin, treating that request as a non-admin of that role and region. Every guard then applies for real, so admin-only writes are refused while viewing as someone else.
+
 ### Secrets
 
 - Never expose `password` on a `User` - it's stored as an empty string anyway (Supabase owns the real credential); select it out of any response that isn't strictly internal.
