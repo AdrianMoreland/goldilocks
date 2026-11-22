@@ -12,7 +12,8 @@ const metals_controller_1 = require("./metals.controller");
 const metals_provider_1 = require("./metals.provider");
 const metals_cron_1 = require("./metals.cron");
 const auth_module_1 = require("../auth/auth.module");
-const redis_module_1 = require("../../redis/redis.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
+const redis_module_1 = require("../../infrastructure/redis/redis.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
 const metal_price_api_module_1 = require("../../infrastructure/metal-price-api/metal-price-api.module");
 const spot_price_cache_store_1 = require("./spot-price-cache.store");
@@ -20,6 +21,7 @@ const cascade_metrics_service_1 = require("./cascade-metrics.service");
 const fetch_attempt_service_1 = require("./fetch-attempt.service");
 const historic_spot_service_1 = require("./historic-spot.service");
 const spot_price_retention_service_1 = require("./spot-price-retention.service");
+const price_refresh_schedule_1 = require("./price-refresh-schedule");
 let MetalsModule = class MetalsModule {
 };
 exports.MetalsModule = MetalsModule;
@@ -30,6 +32,7 @@ exports.MetalsModule = MetalsModule = __decorate([
             redis_module_1.RedisModule,
             prisma_module_1.PrismaModule,
             metal_price_api_module_1.MetalPriceApiModule,
+            audit_log_module_1.AuditLogModule,
         ],
         controllers: [metals_controller_1.MetalsController],
         providers: [
@@ -40,6 +43,7 @@ exports.MetalsModule = MetalsModule = __decorate([
             cascade_metrics_service_1.CascadeMetricsService,
             fetch_attempt_service_1.FetchAttemptService,
             spot_price_retention_service_1.SpotPriceRetentionService,
+            price_refresh_schedule_1.PriceRefreshSchedule,
         ],
         exports: [
             metals_provider_1.MetalsProvider,

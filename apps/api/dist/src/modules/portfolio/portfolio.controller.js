@@ -13,6 +13,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PortfolioController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const portfolio_service_1 = require("./portfolio.service");
@@ -33,7 +35,7 @@ exports.PortfolioController = PortfolioController;
 __decorate([
     (0, common_1.Post)('profit-analysis'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Portfolio P/L — solve purchase spot/premium/price and profit if sold back today',
+        summary: 'Portfolio P/L - solve purchase spot/premium/price and profit if sold back today',
         description: 'Exactly one of purchaseSpot/purchasePremium/purchasePrice is treated as missing (see missingField) ' +
             'and solved from the other two, then compared against a live buyback to compute profit and the spot ' +
             'move needed to hit a target profit.',
@@ -47,7 +49,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('build'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Portfolio Builder — build and score Maximum Value / Balanced / Maximum Flexibility portfolios',
+        summary: 'Portfolio Builder - build and score Maximum Value / Balanced / Maximum Flexibility portfolios',
         description: 'Prices every in-stock product of the requested metal, classifies it as a bar or coin by name, and ' +
             'builds three candidate portfolios for the given budget, optionally weighting one product as a priority.',
     }),
@@ -59,6 +61,8 @@ __decorate([
 ], PortfolioController.prototype, "buildPortfolio", null);
 exports.PortfolioController = PortfolioController = __decorate([
     (0, swagger_1.ApiTags)('portfolio'),
+    (0, capability_decorator_1.RequiresCapability)('pricingWorkbook'),
+    (0, permission_decorator_1.RequiresPermission)('page.dashboard'),
     (0, common_1.Controller)('portfolio'),
     __metadata("design:paramtypes", [portfolio_service_1.PortfolioService])
 ], PortfolioController);

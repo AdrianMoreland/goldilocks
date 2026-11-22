@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseWeightsGrams = parseWeightsGrams;
 exports.matchProducts = matchProducts;
+const shared_types_1 = require("@goldilocks/shared-types");
 const GRAMS_PER_OUNCE = 31.1035;
 const MAX_MATCHES = 8;
 const WEIGHT_TOLERANCE = 0.005;
@@ -47,7 +48,11 @@ function parseWeightsGrams(text) {
     return grams;
 }
 function matchProducts(products, query, metal) {
-    const text = query.toLowerCase();
+    const rawText = query.toLowerCase();
+    const NON_BONDED = /\b(?:non|un|not)[\s-]?bonded\b/g;
+    const wantsNonBonded = NON_BONDED.test(rawText);
+    const text = rawText.replace(NON_BONDED, ' ');
+    const wantsBonded = !wantsNonBonded && /\bbonded\b/.test(text);
     const wantedMetal = metal ??
         Object.entries(METAL_WORDS).find(([word]) => new RegExp(`\\b${word}\\b`).test(text))?.[1];
     const weights = parseWeightsGrams(text);
@@ -74,6 +79,11 @@ function matchProducts(products, query, metal) {
                 WEIGHT_TOLERANCE)) {
             continue;
         }
+        const isBonded = (0, shared_types_1.isBondedProduct)(product.name);
+        if (wantsNonBonded && isBonded)
+            continue;
+        if (wantsBonded && !isBonded)
+            continue;
         const label = `${product.name} ${product.sku}`.toLowerCase();
         const isBar = /\bbar\b/.test(product.name.toLowerCase());
         let score = 0;

@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
 const metal_price_api_port_1 = require("../../infrastructure/metal-price-api/metal-price-api.port");
 const pricing_util_1 = require("../../common/utils/pricing.util");
+const prisma_mappers_1 = require("../../common/utils/prisma-mappers");
 const vendor_rates_1 = require("./vendor-rates");
 let HistoricSpotService = HistoricSpotService_1 = class HistoricSpotService {
     prisma;
@@ -30,12 +31,12 @@ let HistoricSpotService = HistoricSpotService_1 = class HistoricSpotService {
     async getHistoricSpots() {
         const rows = (0, pricing_util_1.thinOldHistory)(await this.readFromDb());
         if (rows.length === 0) {
-            this.logger.warn('No historic spot data found — has the cron run yet?');
+            this.logger.warn('No historic spot data found - has the cron run yet?');
         }
         return rows.map((row) => ({
             metalType: row.metalType,
-            priceEur: (0, pricing_util_1.toNumber)(row.priceEur),
-            priceGbp: (0, pricing_util_1.toNumber)(row.priceGbp),
+            priceEur: (0, prisma_mappers_1.toNumber)(row.priceEur),
+            priceGbp: (0, prisma_mappers_1.toNumber)(row.priceGbp),
             timestamp: row.recordedAt.toISOString(),
         }));
     }

@@ -185,6 +185,9 @@ let OpenAiLlmClient = OpenAiLlmClient_1 = class OpenAiLlmClient {
                             parameters: tool.parameters,
                         },
                     })),
+                    ...(request.toolChoice === 'none'
+                        ? { tool_choice: 'none' }
+                        : {}),
                 }
                 : {}),
             ...(Number.isFinite(temperature) ? { temperature } : {}),
@@ -228,7 +231,7 @@ let OpenAiLlmClient = OpenAiLlmClient_1 = class OpenAiLlmClient {
         const detail = (error instanceof Error ? error.message : String(error)) +
             (rootCause ? ` [${rootCause}]` : '') +
             (rootCause && TLS_INTERCEPTION_CODES.has(rootCause)
-                ? ' — something on this machine or network is re-signing HTTPS traffic (antivirus HTTPS scanning or a proxy). Trust its root certificate with NODE_EXTRA_CA_CERTS, or exclude api.openai.com from scanning. Never disable certificate checks: that exposes the API key.'
+                ? ' - something on this machine or network is re-signing HTTPS traffic (antivirus HTTPS scanning or a proxy). Trust its root certificate with NODE_EXTRA_CA_CERTS, or exclude api.openai.com from scanning. Never disable certificate checks: that exposes the API key.'
                 : '');
         this.logger.warn(`OpenAI call failed (status ${typeof status === 'number' ? status : 'none'}): ${detail}`);
         if (status === 401 || status === 403) {

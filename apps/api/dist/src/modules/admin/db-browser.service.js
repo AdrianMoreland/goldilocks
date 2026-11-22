@@ -12,8 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DbBrowserService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const redis_service_1 = require("../../redis/redis.service");
-const audit_log_service_1 = require("./audit-log.service");
+const redis_service_1 = require("../../infrastructure/redis/redis.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 const WRITABLE_TABLES = new Set([
     'products',
     'branches',
@@ -113,8 +113,7 @@ let DbBrowserService = class DbBrowserService {
             ? `INSERT INTO ${quote(table)} AS t (${names.map(quote).join(', ')})
                VALUES (${placeholders.join(', ')}) RETURNING to_jsonb(t) AS row`
             : `INSERT INTO ${quote(table)} AS t DEFAULT VALUES RETURNING to_jsonb(t) AS row`;
-        const [{ row }] = await this.prisma.$queryRawUnsafe(sql, ...params);
-        await this.afterWrite(table, actor, 'inserted a row into', row);
+        const [{ row }] = await this.audited(table, actor, 'inserted a row into', (tx) => tx.$queryRawUnsafe(sql, ...params));
         return row;
     }
     async update(table, key, values, actor) {
@@ -133,21 +132,15 @@ let DbBrowserService = class DbBrowserService {
             assignments.push(`${quote(UPDATED_AT)} = now()`);
         }
         const where = this.keyClause(columns, key, params);
-        const rows = await this.prisma.$queryRawUnsafe(`UPDATE ${quote(table)} AS t SET ${assignments.join(', ')}
-             WHERE ${where} RETURNING to_jsonb(t) AS row`, ...params);
-        if (rows.length === 0)
-            throw new common_1.NotFoundException('Row not found.');
-        await this.afterWrite(table, actor, 'edited a row in', rows[0].row);
+        const rows = await this.audited(table, actor, 'edited a row in', (tx) => tx.$queryRawUnsafe(`UPDATE ${quote(table)} AS t SET ${assignments.join(', ')}
+                 WHERE ${where} RETURNING to_jsonb(t) AS row`, ...params));
         return rows[0].row;
     }
     async remove(table, key, actor) {
         const columns = await this.writableColumns(table);
         const params = [];
         const where = this.keyClause(columns, key, params);
-        const rows = await this.prisma.$queryRawUnsafe(`DELETE FROM ${quote(table)} AS t WHERE ${where} RETURNING to_jsonb(t) AS row`, ...params);
-        if (rows.length === 0)
-            throw new common_1.NotFoundException('Row not found.');
-        await this.afterWrite(table, actor, 'deleted a row from', rows[0].row);
+        await this.audited(table, actor, 'deleted a row from', (tx) => tx.$queryRawUnsafe(`DELETE FROM ${quote(table)} AS t WHERE ${where} RETURNING to_jsonb(t) AS row`, ...params));
     }
     async columnsOf(table) {
         const rows = await this.prisma.$queryRawUnsafe(`SELECT a.attname AS name,
@@ -220,12 +213,20 @@ let DbBrowserService = class DbBrowserService {
         })
             .join(' AND ');
     }
-    async afterWrite(table, actor, verb, row) {
+    async audited(table, actor, verb, write) {
+        const rows = await this.prisma.$transaction(async (tx) => {
+            const written = await write(tx);
+            if (written.length === 0)
+                throw new common_1.NotFoundException('Row not found.');
+            const { row } = written[0];
+            const id = [row.id, row.sku, row.slug].find((v) => typeof v === 'string' || typeof v === 'number');
+            await this.audit.record(actor, 'db', `${verb} ${table}${id !== undefined ? ` (${id})` : ''}`, tx);
+            return written;
+        });
         const cacheKeys = CACHE_KEYS_BY_TABLE[table];
         if (cacheKeys)
             await this.redis.del(...cacheKeys);
-        const id = [row.id, row.sku, row.slug].find((v) => typeof v === 'string' || typeof v === 'number');
-        await this.audit.record(actor, 'db', `${verb} ${table}${id !== undefined ? ` (${id})` : ''}`);
+        return rows;
     }
 };
 exports.DbBrowserService = DbBrowserService;

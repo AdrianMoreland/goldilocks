@@ -28,8 +28,8 @@ let BranchesController = class BranchesController {
     async getAll() {
         return this.service.getAll();
     }
-    async create(body) {
-        return this.service.create(body);
+    async create(body, req) {
+        return this.service.create(body, req.user.email);
     }
 };
 exports.BranchesController = BranchesController;
@@ -52,8 +52,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Create a new branch (admin)' }),
     (0, swagger_1.ApiResponse)({ status: 201, type: dtos_1.BranchResponseDto }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [dtos_1.CreateBranchRequestDto]),
+    __metadata("design:paramtypes", [dtos_1.CreateBranchRequestDto, Object]),
     __metadata("design:returntype", Promise)
 ], BranchesController.prototype, "create", null);
 exports.BranchesController = BranchesController = __decorate([

@@ -217,6 +217,14 @@ export type ProductWhereInput = {
     createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null;
+    salesProducts?: Prisma.SalesProductListRelationFilter;
+    bcItems?: Prisma.BcItemListRelationFilter;
+    trades?: Prisma.TradeListRelationFilter;
+    lots?: Prisma.PurchaseLotListRelationFilter;
+    aliases?: Prisma.ProductAliasListRelationFilter;
+    suggestedAliases?: Prisma.ProductAliasListRelationFilter;
+    zohoProducts?: Prisma.ZohoProductListRelationFilter;
+    items?: Prisma.ItemListRelationFilter;
 };
 export type ProductOrderByWithRelationInput = {
     id?: Prisma.SortOrder;
@@ -234,6 +242,14 @@ export type ProductOrderByWithRelationInput = {
     createdAt?: Prisma.SortOrder;
     updatedAt?: Prisma.SortOrder;
     deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder;
+    salesProducts?: Prisma.SalesProductOrderByRelationAggregateInput;
+    bcItems?: Prisma.BcItemOrderByRelationAggregateInput;
+    trades?: Prisma.TradeOrderByRelationAggregateInput;
+    lots?: Prisma.PurchaseLotOrderByRelationAggregateInput;
+    aliases?: Prisma.ProductAliasOrderByRelationAggregateInput;
+    suggestedAliases?: Prisma.ProductAliasOrderByRelationAggregateInput;
+    zohoProducts?: Prisma.ZohoProductOrderByRelationAggregateInput;
+    items?: Prisma.ItemOrderByRelationAggregateInput;
 };
 export type ProductWhereUniqueInput = Prisma.AtLeast<{
     id?: number;
@@ -254,6 +270,14 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
     createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string;
     deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null;
+    salesProducts?: Prisma.SalesProductListRelationFilter;
+    bcItems?: Prisma.BcItemListRelationFilter;
+    trades?: Prisma.TradeListRelationFilter;
+    lots?: Prisma.PurchaseLotListRelationFilter;
+    aliases?: Prisma.ProductAliasListRelationFilter;
+    suggestedAliases?: Prisma.ProductAliasListRelationFilter;
+    zohoProducts?: Prisma.ZohoProductListRelationFilter;
+    items?: Prisma.ItemListRelationFilter;
 }, "id" | "sku">;
 export type ProductOrderByWithAggregationInput = {
     id?: Prisma.SortOrder;
@@ -312,6 +336,14 @@ export type ProductCreateInput = {
     createdAt?: Date | string;
     updatedAt?: Date | string;
     deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
 };
 export type ProductUncheckedCreateInput = {
     id?: number;
@@ -329,6 +361,14 @@ export type ProductUncheckedCreateInput = {
     createdAt?: Date | string;
     updatedAt?: Date | string;
     deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
 };
 export type ProductUpdateInput = {
     sku?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -345,6 +385,14 @@ export type ProductUpdateInput = {
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
 };
 export type ProductUncheckedUpdateInput = {
     id?: Prisma.IntFieldUpdateOperationsInput | number;
@@ -362,6 +410,14 @@ export type ProductUncheckedUpdateInput = {
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
 };
 export type ProductCreateManyInput = {
     id?: number;
@@ -480,6 +536,10 @@ export type ProductSumOrderByAggregateInput = {
     vatRate?: Prisma.SortOrder;
     stock?: Prisma.SortOrder;
 };
+export type ProductNullableScalarRelationFilter = {
+    is?: Prisma.ProductWhereInput | null;
+    isNot?: Prisma.ProductWhereInput | null;
+};
 export type EnumMetalTypeFieldUpdateOperationsInput = {
     set?: $Enums.MetalType;
 };
@@ -503,6 +563,1021 @@ export type NullableEnumProductCategoryFieldUpdateOperationsInput = {
 export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null;
 };
+export type ProductCreateNestedOneWithoutBcItemsInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutBcItemsInput, Prisma.ProductUncheckedCreateWithoutBcItemsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutBcItemsInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutBcItemsNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutBcItemsInput, Prisma.ProductUncheckedCreateWithoutBcItemsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutBcItemsInput;
+    upsert?: Prisma.ProductUpsertWithoutBcItemsInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutBcItemsInput, Prisma.ProductUpdateWithoutBcItemsInput>, Prisma.ProductUncheckedUpdateWithoutBcItemsInput>;
+};
+export type ProductCreateNestedOneWithoutTradesInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutTradesInput, Prisma.ProductUncheckedCreateWithoutTradesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutTradesInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutTradesNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutTradesInput, Prisma.ProductUncheckedCreateWithoutTradesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutTradesInput;
+    upsert?: Prisma.ProductUpsertWithoutTradesInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutTradesInput, Prisma.ProductUpdateWithoutTradesInput>, Prisma.ProductUncheckedUpdateWithoutTradesInput>;
+};
+export type ProductCreateNestedOneWithoutLotsInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutLotsInput, Prisma.ProductUncheckedCreateWithoutLotsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutLotsInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutLotsNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutLotsInput, Prisma.ProductUncheckedCreateWithoutLotsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutLotsInput;
+    upsert?: Prisma.ProductUpsertWithoutLotsInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutLotsInput, Prisma.ProductUpdateWithoutLotsInput>, Prisma.ProductUncheckedUpdateWithoutLotsInput>;
+};
+export type ProductCreateNestedOneWithoutAliasesInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutAliasesInput, Prisma.ProductUncheckedCreateWithoutAliasesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAliasesInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductCreateNestedOneWithoutSuggestedAliasesInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedCreateWithoutSuggestedAliasesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSuggestedAliasesInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutAliasesNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutAliasesInput, Prisma.ProductUncheckedCreateWithoutAliasesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAliasesInput;
+    upsert?: Prisma.ProductUpsertWithoutAliasesInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutAliasesInput, Prisma.ProductUpdateWithoutAliasesInput>, Prisma.ProductUncheckedUpdateWithoutAliasesInput>;
+};
+export type ProductUpdateOneWithoutSuggestedAliasesNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedCreateWithoutSuggestedAliasesInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSuggestedAliasesInput;
+    upsert?: Prisma.ProductUpsertWithoutSuggestedAliasesInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutSuggestedAliasesInput, Prisma.ProductUpdateWithoutSuggestedAliasesInput>, Prisma.ProductUncheckedUpdateWithoutSuggestedAliasesInput>;
+};
+export type ProductCreateNestedOneWithoutZohoProductsInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutZohoProductsInput, Prisma.ProductUncheckedCreateWithoutZohoProductsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutZohoProductsInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutZohoProductsNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutZohoProductsInput, Prisma.ProductUncheckedCreateWithoutZohoProductsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutZohoProductsInput;
+    upsert?: Prisma.ProductUpsertWithoutZohoProductsInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutZohoProductsInput, Prisma.ProductUpdateWithoutZohoProductsInput>, Prisma.ProductUncheckedUpdateWithoutZohoProductsInput>;
+};
+export type ProductCreateNestedOneWithoutSalesProductsInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutSalesProductsInput, Prisma.ProductUncheckedCreateWithoutSalesProductsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSalesProductsInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutSalesProductsNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutSalesProductsInput, Prisma.ProductUncheckedCreateWithoutSalesProductsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSalesProductsInput;
+    upsert?: Prisma.ProductUpsertWithoutSalesProductsInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutSalesProductsInput, Prisma.ProductUpdateWithoutSalesProductsInput>, Prisma.ProductUncheckedUpdateWithoutSalesProductsInput>;
+};
+export type ProductCreateNestedOneWithoutItemsInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutItemsInput, Prisma.ProductUncheckedCreateWithoutItemsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutItemsInput;
+    connect?: Prisma.ProductWhereUniqueInput;
+};
+export type ProductUpdateOneWithoutItemsNestedInput = {
+    create?: Prisma.XOR<Prisma.ProductCreateWithoutItemsInput, Prisma.ProductUncheckedCreateWithoutItemsInput>;
+    connectOrCreate?: Prisma.ProductCreateOrConnectWithoutItemsInput;
+    upsert?: Prisma.ProductUpsertWithoutItemsInput;
+    disconnect?: Prisma.ProductWhereInput | boolean;
+    delete?: Prisma.ProductWhereInput | boolean;
+    connect?: Prisma.ProductWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutItemsInput, Prisma.ProductUpdateWithoutItemsInput>, Prisma.ProductUncheckedUpdateWithoutItemsInput>;
+};
+export type ProductCreateWithoutBcItemsInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutBcItemsInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutBcItemsInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutBcItemsInput, Prisma.ProductUncheckedCreateWithoutBcItemsInput>;
+};
+export type ProductUpsertWithoutBcItemsInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutBcItemsInput, Prisma.ProductUncheckedUpdateWithoutBcItemsInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutBcItemsInput, Prisma.ProductUncheckedCreateWithoutBcItemsInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutBcItemsInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutBcItemsInput, Prisma.ProductUncheckedUpdateWithoutBcItemsInput>;
+};
+export type ProductUpdateWithoutBcItemsInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutBcItemsInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutTradesInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutTradesInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutTradesInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutTradesInput, Prisma.ProductUncheckedCreateWithoutTradesInput>;
+};
+export type ProductUpsertWithoutTradesInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutTradesInput, Prisma.ProductUncheckedUpdateWithoutTradesInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutTradesInput, Prisma.ProductUncheckedCreateWithoutTradesInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutTradesInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutTradesInput, Prisma.ProductUncheckedUpdateWithoutTradesInput>;
+};
+export type ProductUpdateWithoutTradesInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutTradesInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutLotsInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutLotsInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutLotsInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutLotsInput, Prisma.ProductUncheckedCreateWithoutLotsInput>;
+};
+export type ProductUpsertWithoutLotsInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutLotsInput, Prisma.ProductUncheckedUpdateWithoutLotsInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutLotsInput, Prisma.ProductUncheckedCreateWithoutLotsInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutLotsInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutLotsInput, Prisma.ProductUncheckedUpdateWithoutLotsInput>;
+};
+export type ProductUpdateWithoutLotsInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutLotsInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutAliasesInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutAliasesInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutAliasesInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutAliasesInput, Prisma.ProductUncheckedCreateWithoutAliasesInput>;
+};
+export type ProductCreateWithoutSuggestedAliasesInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutSuggestedAliasesInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutSuggestedAliasesInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedCreateWithoutSuggestedAliasesInput>;
+};
+export type ProductUpsertWithoutAliasesInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutAliasesInput, Prisma.ProductUncheckedUpdateWithoutAliasesInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutAliasesInput, Prisma.ProductUncheckedCreateWithoutAliasesInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutAliasesInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutAliasesInput, Prisma.ProductUncheckedUpdateWithoutAliasesInput>;
+};
+export type ProductUpdateWithoutAliasesInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutAliasesInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductUpsertWithoutSuggestedAliasesInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedUpdateWithoutSuggestedAliasesInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedCreateWithoutSuggestedAliasesInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutSuggestedAliasesInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutSuggestedAliasesInput, Prisma.ProductUncheckedUpdateWithoutSuggestedAliasesInput>;
+};
+export type ProductUpdateWithoutSuggestedAliasesInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutSuggestedAliasesInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutZohoProductsInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutZohoProductsInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutZohoProductsInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutZohoProductsInput, Prisma.ProductUncheckedCreateWithoutZohoProductsInput>;
+};
+export type ProductUpsertWithoutZohoProductsInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutZohoProductsInput, Prisma.ProductUncheckedUpdateWithoutZohoProductsInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutZohoProductsInput, Prisma.ProductUncheckedCreateWithoutZohoProductsInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutZohoProductsInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutZohoProductsInput, Prisma.ProductUncheckedUpdateWithoutZohoProductsInput>;
+};
+export type ProductUpdateWithoutZohoProductsInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutZohoProductsInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutSalesProductsInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutSalesProductsInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+    items?: Prisma.ItemUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutSalesProductsInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutSalesProductsInput, Prisma.ProductUncheckedCreateWithoutSalesProductsInput>;
+};
+export type ProductUpsertWithoutSalesProductsInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutSalesProductsInput, Prisma.ProductUncheckedUpdateWithoutSalesProductsInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutSalesProductsInput, Prisma.ProductUncheckedCreateWithoutSalesProductsInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutSalesProductsInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutSalesProductsInput, Prisma.ProductUncheckedUpdateWithoutSalesProductsInput>;
+};
+export type ProductUpdateWithoutSalesProductsInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutSalesProductsInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+    items?: Prisma.ItemUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCreateWithoutItemsInput = {
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductCreateNestedManyWithoutProductInput;
+};
+export type ProductUncheckedCreateWithoutItemsInput = {
+    id?: number;
+    sku: string;
+    name: string;
+    metalType: $Enums.MetalType;
+    weight: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate: runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: number;
+    isActive?: boolean;
+    category?: $Enums.ProductCategory | null;
+    description?: string | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+    deletedAt?: Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedCreateNestedManyWithoutPricingProductInput;
+    bcItems?: Prisma.BcItemUncheckedCreateNestedManyWithoutProductInput;
+    trades?: Prisma.TradeUncheckedCreateNestedManyWithoutProductInput;
+    lots?: Prisma.PurchaseLotUncheckedCreateNestedManyWithoutProductInput;
+    aliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutProductInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedCreateNestedManyWithoutSuggestedProductInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedCreateNestedManyWithoutProductInput;
+};
+export type ProductCreateOrConnectWithoutItemsInput = {
+    where: Prisma.ProductWhereUniqueInput;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutItemsInput, Prisma.ProductUncheckedCreateWithoutItemsInput>;
+};
+export type ProductUpsertWithoutItemsInput = {
+    update: Prisma.XOR<Prisma.ProductUpdateWithoutItemsInput, Prisma.ProductUncheckedUpdateWithoutItemsInput>;
+    create: Prisma.XOR<Prisma.ProductCreateWithoutItemsInput, Prisma.ProductUncheckedCreateWithoutItemsInput>;
+    where?: Prisma.ProductWhereInput;
+};
+export type ProductUpdateToOneWithWhereWithoutItemsInput = {
+    where?: Prisma.ProductWhereInput;
+    data: Prisma.XOR<Prisma.ProductUpdateWithoutItemsInput, Prisma.ProductUncheckedUpdateWithoutItemsInput>;
+};
+export type ProductUpdateWithoutItemsInput = {
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUpdateManyWithoutProductNestedInput;
+};
+export type ProductUncheckedUpdateWithoutItemsInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    sku?: Prisma.StringFieldUpdateOperationsInput | string;
+    name?: Prisma.StringFieldUpdateOperationsInput | string;
+    metalType?: Prisma.EnumMetalTypeFieldUpdateOperationsInput | $Enums.MetalType;
+    weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadBuy?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    spreadSell?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    vatRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string;
+    stock?: Prisma.IntFieldUpdateOperationsInput | number;
+    isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    category?: Prisma.NullableEnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory | null;
+    description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+    salesProducts?: Prisma.SalesProductUncheckedUpdateManyWithoutPricingProductNestedInput;
+    bcItems?: Prisma.BcItemUncheckedUpdateManyWithoutProductNestedInput;
+    trades?: Prisma.TradeUncheckedUpdateManyWithoutProductNestedInput;
+    lots?: Prisma.PurchaseLotUncheckedUpdateManyWithoutProductNestedInput;
+    aliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutProductNestedInput;
+    suggestedAliases?: Prisma.ProductAliasUncheckedUpdateManyWithoutSuggestedProductNestedInput;
+    zohoProducts?: Prisma.ZohoProductUncheckedUpdateManyWithoutProductNestedInput;
+};
+export type ProductCountOutputType = {
+    salesProducts: number;
+    bcItems: number;
+    trades: number;
+    lots: number;
+    aliases: number;
+    suggestedAliases: number;
+    zohoProducts: number;
+    items: number;
+};
+export type ProductCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    salesProducts?: boolean | ProductCountOutputTypeCountSalesProductsArgs;
+    bcItems?: boolean | ProductCountOutputTypeCountBcItemsArgs;
+    trades?: boolean | ProductCountOutputTypeCountTradesArgs;
+    lots?: boolean | ProductCountOutputTypeCountLotsArgs;
+    aliases?: boolean | ProductCountOutputTypeCountAliasesArgs;
+    suggestedAliases?: boolean | ProductCountOutputTypeCountSuggestedAliasesArgs;
+    zohoProducts?: boolean | ProductCountOutputTypeCountZohoProductsArgs;
+    items?: boolean | ProductCountOutputTypeCountItemsArgs;
+};
+export type ProductCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.ProductCountOutputTypeSelect<ExtArgs> | null;
+};
+export type ProductCountOutputTypeCountSalesProductsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.SalesProductWhereInput;
+};
+export type ProductCountOutputTypeCountBcItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.BcItemWhereInput;
+};
+export type ProductCountOutputTypeCountTradesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.TradeWhereInput;
+};
+export type ProductCountOutputTypeCountLotsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.PurchaseLotWhereInput;
+};
+export type ProductCountOutputTypeCountAliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.ProductAliasWhereInput;
+};
+export type ProductCountOutputTypeCountSuggestedAliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.ProductAliasWhereInput;
+};
+export type ProductCountOutputTypeCountZohoProductsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.ZohoProductWhereInput;
+};
+export type ProductCountOutputTypeCountItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.ItemWhereInput;
+};
 export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
     sku?: boolean;
@@ -519,6 +1594,15 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     createdAt?: boolean;
     updatedAt?: boolean;
     deletedAt?: boolean;
+    salesProducts?: boolean | Prisma.Product$salesProductsArgs<ExtArgs>;
+    bcItems?: boolean | Prisma.Product$bcItemsArgs<ExtArgs>;
+    trades?: boolean | Prisma.Product$tradesArgs<ExtArgs>;
+    lots?: boolean | Prisma.Product$lotsArgs<ExtArgs>;
+    aliases?: boolean | Prisma.Product$aliasesArgs<ExtArgs>;
+    suggestedAliases?: boolean | Prisma.Product$suggestedAliasesArgs<ExtArgs>;
+    zohoProducts?: boolean | Prisma.Product$zohoProductsArgs<ExtArgs>;
+    items?: boolean | Prisma.Product$itemsArgs<ExtArgs>;
+    _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>;
 }, ExtArgs["result"]["product"]>;
 export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
@@ -572,9 +1656,31 @@ export type ProductSelectScalar = {
     deletedAt?: boolean;
 };
 export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sku" | "name" | "metalType" | "weight" | "spreadBuy" | "spreadSell" | "vatRate" | "stock" | "isActive" | "category" | "description" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["product"]>;
+export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    salesProducts?: boolean | Prisma.Product$salesProductsArgs<ExtArgs>;
+    bcItems?: boolean | Prisma.Product$bcItemsArgs<ExtArgs>;
+    trades?: boolean | Prisma.Product$tradesArgs<ExtArgs>;
+    lots?: boolean | Prisma.Product$lotsArgs<ExtArgs>;
+    aliases?: boolean | Prisma.Product$aliasesArgs<ExtArgs>;
+    suggestedAliases?: boolean | Prisma.Product$suggestedAliasesArgs<ExtArgs>;
+    zohoProducts?: boolean | Prisma.Product$zohoProductsArgs<ExtArgs>;
+    items?: boolean | Prisma.Product$itemsArgs<ExtArgs>;
+    _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>;
+};
+export type ProductIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {};
+export type ProductIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {};
 export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "Product";
-    objects: {};
+    objects: {
+        salesProducts: Prisma.$SalesProductPayload<ExtArgs>[];
+        bcItems: Prisma.$BcItemPayload<ExtArgs>[];
+        trades: Prisma.$TradePayload<ExtArgs>[];
+        lots: Prisma.$PurchaseLotPayload<ExtArgs>[];
+        aliases: Prisma.$ProductAliasPayload<ExtArgs>[];
+        suggestedAliases: Prisma.$ProductAliasPayload<ExtArgs>[];
+        zohoProducts: Prisma.$ZohoProductPayload<ExtArgs>[];
+        items: Prisma.$ItemPayload<ExtArgs>[];
+    };
     scalars: runtime.Types.Extensions.GetPayloadResult<{
         id: number;
         sku: string;
@@ -643,6 +1749,14 @@ export interface ProductDelegate<ExtArgs extends runtime.Types.Extensions.Intern
 }
 export interface Prisma__ProductClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise";
+    salesProducts<T extends Prisma.Product$salesProductsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$salesProductsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SalesProductPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    bcItems<T extends Prisma.Product$bcItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$bcItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BcItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    trades<T extends Prisma.Product$tradesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$tradesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TradePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    lots<T extends Prisma.Product$lotsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$lotsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PurchaseLotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    aliases<T extends Prisma.Product$aliasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductAliasPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    suggestedAliases<T extends Prisma.Product$suggestedAliasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$suggestedAliasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductAliasPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    zohoProducts<T extends Prisma.Product$zohoProductsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$zohoProductsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ZohoProductPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
+    items<T extends Prisma.Product$itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
     then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): runtime.Types.Utils.JsPromise<TResult1 | TResult2>;
     catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): runtime.Types.Utils.JsPromise<T | TResult>;
     finally(onfinally?: (() => void) | undefined | null): runtime.Types.Utils.JsPromise<T>;
@@ -667,16 +1781,19 @@ export interface ProductFieldRefs {
 export type ProductFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where: Prisma.ProductWhereUniqueInput;
 };
 export type ProductFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where: Prisma.ProductWhereUniqueInput;
 };
 export type ProductFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where?: Prisma.ProductWhereInput;
     orderBy?: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[];
     cursor?: Prisma.ProductWhereUniqueInput;
@@ -687,6 +1804,7 @@ export type ProductFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Intern
 export type ProductFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where?: Prisma.ProductWhereInput;
     orderBy?: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[];
     cursor?: Prisma.ProductWhereUniqueInput;
@@ -697,6 +1815,7 @@ export type ProductFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions
 export type ProductFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where?: Prisma.ProductWhereInput;
     orderBy?: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[];
     cursor?: Prisma.ProductWhereUniqueInput;
@@ -707,6 +1826,7 @@ export type ProductFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 export type ProductCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     data: Prisma.XOR<Prisma.ProductCreateInput, Prisma.ProductUncheckedCreateInput>;
 };
 export type ProductCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -722,6 +1842,7 @@ export type ProductCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
 export type ProductUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     data: Prisma.XOR<Prisma.ProductUpdateInput, Prisma.ProductUncheckedUpdateInput>;
     where: Prisma.ProductWhereUniqueInput;
 };
@@ -740,6 +1861,7 @@ export type ProductUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
 export type ProductUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where: Prisma.ProductWhereUniqueInput;
     create: Prisma.XOR<Prisma.ProductCreateInput, Prisma.ProductUncheckedCreateInput>;
     update: Prisma.XOR<Prisma.ProductUpdateInput, Prisma.ProductUncheckedUpdateInput>;
@@ -747,14 +1869,104 @@ export type ProductUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 export type ProductDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
     where: Prisma.ProductWhereUniqueInput;
 };
 export type ProductDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     where?: Prisma.ProductWhereInput;
     limit?: number;
 };
+export type Product$salesProductsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.SalesProductSelect<ExtArgs> | null;
+    omit?: Prisma.SalesProductOmit<ExtArgs> | null;
+    include?: Prisma.SalesProductInclude<ExtArgs> | null;
+    where?: Prisma.SalesProductWhereInput;
+    orderBy?: Prisma.SalesProductOrderByWithRelationInput | Prisma.SalesProductOrderByWithRelationInput[];
+    cursor?: Prisma.SalesProductWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.SalesProductScalarFieldEnum | Prisma.SalesProductScalarFieldEnum[];
+};
+export type Product$bcItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.BcItemSelect<ExtArgs> | null;
+    omit?: Prisma.BcItemOmit<ExtArgs> | null;
+    include?: Prisma.BcItemInclude<ExtArgs> | null;
+    where?: Prisma.BcItemWhereInput;
+    orderBy?: Prisma.BcItemOrderByWithRelationInput | Prisma.BcItemOrderByWithRelationInput[];
+    cursor?: Prisma.BcItemWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.BcItemScalarFieldEnum | Prisma.BcItemScalarFieldEnum[];
+};
+export type Product$tradesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.TradeSelect<ExtArgs> | null;
+    omit?: Prisma.TradeOmit<ExtArgs> | null;
+    include?: Prisma.TradeInclude<ExtArgs> | null;
+    where?: Prisma.TradeWhereInput;
+    orderBy?: Prisma.TradeOrderByWithRelationInput | Prisma.TradeOrderByWithRelationInput[];
+    cursor?: Prisma.TradeWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.TradeScalarFieldEnum | Prisma.TradeScalarFieldEnum[];
+};
+export type Product$lotsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.PurchaseLotSelect<ExtArgs> | null;
+    omit?: Prisma.PurchaseLotOmit<ExtArgs> | null;
+    include?: Prisma.PurchaseLotInclude<ExtArgs> | null;
+    where?: Prisma.PurchaseLotWhereInput;
+    orderBy?: Prisma.PurchaseLotOrderByWithRelationInput | Prisma.PurchaseLotOrderByWithRelationInput[];
+    cursor?: Prisma.PurchaseLotWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.PurchaseLotScalarFieldEnum | Prisma.PurchaseLotScalarFieldEnum[];
+};
+export type Product$aliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.ProductAliasSelect<ExtArgs> | null;
+    omit?: Prisma.ProductAliasOmit<ExtArgs> | null;
+    include?: Prisma.ProductAliasInclude<ExtArgs> | null;
+    where?: Prisma.ProductAliasWhereInput;
+    orderBy?: Prisma.ProductAliasOrderByWithRelationInput | Prisma.ProductAliasOrderByWithRelationInput[];
+    cursor?: Prisma.ProductAliasWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.ProductAliasScalarFieldEnum | Prisma.ProductAliasScalarFieldEnum[];
+};
+export type Product$suggestedAliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.ProductAliasSelect<ExtArgs> | null;
+    omit?: Prisma.ProductAliasOmit<ExtArgs> | null;
+    include?: Prisma.ProductAliasInclude<ExtArgs> | null;
+    where?: Prisma.ProductAliasWhereInput;
+    orderBy?: Prisma.ProductAliasOrderByWithRelationInput | Prisma.ProductAliasOrderByWithRelationInput[];
+    cursor?: Prisma.ProductAliasWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.ProductAliasScalarFieldEnum | Prisma.ProductAliasScalarFieldEnum[];
+};
+export type Product$zohoProductsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.ZohoProductSelect<ExtArgs> | null;
+    omit?: Prisma.ZohoProductOmit<ExtArgs> | null;
+    include?: Prisma.ZohoProductInclude<ExtArgs> | null;
+    where?: Prisma.ZohoProductWhereInput;
+    orderBy?: Prisma.ZohoProductOrderByWithRelationInput | Prisma.ZohoProductOrderByWithRelationInput[];
+    cursor?: Prisma.ZohoProductWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.ZohoProductScalarFieldEnum | Prisma.ZohoProductScalarFieldEnum[];
+};
+export type Product$itemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.ItemSelect<ExtArgs> | null;
+    omit?: Prisma.ItemOmit<ExtArgs> | null;
+    include?: Prisma.ItemInclude<ExtArgs> | null;
+    where?: Prisma.ItemWhereInput;
+    orderBy?: Prisma.ItemOrderByWithRelationInput | Prisma.ItemOrderByWithRelationInput[];
+    cursor?: Prisma.ItemWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.ItemScalarFieldEnum | Prisma.ItemScalarFieldEnum[];
+};
 export type ProductDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.ProductSelect<ExtArgs> | null;
     omit?: Prisma.ProductOmit<ExtArgs> | null;
+    include?: Prisma.ProductInclude<ExtArgs> | null;
 };
 //# sourceMappingURL=Product.d.ts.map

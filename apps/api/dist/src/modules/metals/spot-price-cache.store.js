@@ -12,9 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SpotPriceCacheStore = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const redis_service_1 = require("../../redis/redis.service");
+const redis_service_1 = require("../../infrastructure/redis/redis.service");
 const cache_aside_store_base_1 = require("../../common/cache/cache-aside-store.base");
-const pricing_util_1 = require("../../common/utils/pricing.util");
+const prisma_mappers_1 = require("../../common/utils/prisma-mappers");
 const SPOT_CACHE_TTL_SECONDS = 3600;
 let SpotPriceCacheStore = class SpotPriceCacheStore extends cache_aside_store_base_1.CacheAsideStore {
     prisma;
@@ -30,7 +30,7 @@ let SpotPriceCacheStore = class SpotPriceCacheStore extends cache_aside_store_ba
             where: { metalType: metal },
             orderBy: { timestamp: 'desc' },
         });
-        return row ? (0, pricing_util_1.toRawMetalSpotPrice)(row) : null;
+        return row ? (0, prisma_mappers_1.toRawMetalSpotPrice)(row) : null;
     }
     isUsable(value) {
         return value.priceEur > 0;

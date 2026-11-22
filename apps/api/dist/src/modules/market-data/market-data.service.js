@@ -14,28 +14,40 @@ exports.MarketDataService = void 0;
 const common_1 = require("@nestjs/common");
 const metals_provider_1 = require("../metals/metals.provider");
 const historic_spot_service_1 = require("../metals/historic-spot.service");
-const products_provider_1 = require("../products/products.provider");
+const products_service_1 = require("../products/products.service");
 const pricing_util_1 = require("../../common/utils/pricing.util");
 const ALL_METALS = ['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM'];
+function oldestIso(times) {
+    return times.reduce((oldest, time) => (oldest === null || time < oldest ? time : oldest), null);
+}
 let MarketDataService = MarketDataService_1 = class MarketDataService {
     metalsProvider;
     historicSpots;
-    productsProvider;
+    productsService;
     logger = new common_1.Logger(MarketDataService_1.name);
-    constructor(metalsProvider, historicSpots, productsProvider) {
+    constructor(metalsProvider, historicSpots, productsService) {
         this.metalsProvider = metalsProvider;
         this.historicSpots = historicSpots;
-        this.productsProvider = productsProvider;
+        this.productsService = productsService;
     }
     async getMarketData() {
         this.logger.log('Loading market data');
         const { prices, degradedMetals } = await this.metalsProvider.getAllLatestForLaunch();
         return this.composeMarketData(prices, degradedMetals);
     }
+    async getSpotStatus() {
+        const { prices, degradedMetals } = await this.metalsProvider.getAllLatestForLaunch();
+        return {
+            snapshotAt: oldestIso(prices.map((s) => s.timestamp)),
+            lastFetchAt: oldestIso(prices.map((s) => s.createdAt)),
+            autoRefreshPaused: !this.metalsProvider.isAutoRefreshRunning(),
+            degradedMetals,
+        };
+    }
     async recalculate(overrides) {
         const [spotPrices, rawProducts] = await Promise.all([
             this.metalsProvider.getAllLatest(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         const liveMap = this.toSpotMap(spotPrices);
         const finalMap = (0, pricing_util_1.mergeMetalPrices)(liveMap, overrides);
@@ -44,7 +56,7 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
     async getPricedCatalogue(overrides = {}) {
         const [{ prices, degradedMetals }, rawProducts] = await Promise.all([
             this.metalsProvider.getAllLatestForLaunch(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         const liveMap = this.toSpotMap(prices);
         const usedMap = (0, pricing_util_1.mergeMetalPrices)(liveMap, overrides);
@@ -71,7 +83,7 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
     async composeMarketData(spotPrices, degradedMetals) {
         const [historicSpot, rawProducts] = await Promise.all([
             this.historicSpots.getHistoricSpots(),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         const latestHistoric = new Map();
         for (const h of historicSpot) {
@@ -88,17 +100,14 @@ let MarketDataService = MarketDataService_1 = class MarketDataService {
             spotPrices: enrichedSpotPrices,
             historicSpot,
             products,
-            fetchedAt: this.getSnapshotTimestamp(enrichedSpotPrices),
+            snapshotAt: oldestIso(enrichedSpotPrices.map((s) => s.timestamp)),
+            lastFetchAt: oldestIso(enrichedSpotPrices.map((s) => s.createdAt)),
+            autoRefreshPaused: !this.metalsProvider.isAutoRefreshRunning(),
             priceWarning: degradedMetals.length > 0
-                ? `Live price unavailable for ${degradedMetals.join(', ')} — showing €0.00 until the price feed recovers.`
+                ? `Live price unavailable for ${degradedMetals.join(', ')} - showing €0.00 until the price feed recovers.`
                 : null,
             degradedMetals,
         };
-    }
-    getSnapshotTimestamp(spotPrices) {
-        if (spotPrices.length === 0)
-            return new Date().toISOString();
-        return spotPrices.reduce((oldest, spot) => spot.timestamp < oldest ? spot.timestamp : oldest, spotPrices[0].timestamp);
     }
     toSpotMap(spotPrices) {
         const map = { ...pricing_util_1.ZERO_SPOT_MAP };
@@ -127,6 +136,6 @@ exports.MarketDataService = MarketDataService = MarketDataService_1 = __decorate
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [metals_provider_1.MetalsProvider,
         historic_spot_service_1.HistoricSpotService,
-        products_provider_1.ProductsProvider])
+        products_service_1.ProductsService])
 ], MarketDataService);
 //# sourceMappingURL=market-data.service.js.map

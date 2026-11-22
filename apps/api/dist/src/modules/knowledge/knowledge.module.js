@@ -10,6 +10,7 @@ exports.KnowledgeModule = void 0;
 const common_1 = require("@nestjs/common");
 const auth_module_1 = require("../auth/auth.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
 const knowledge_controller_1 = require("./knowledge.controller");
 const knowledge_service_1 = require("./knowledge.service");
 let KnowledgeModule = class KnowledgeModule {
@@ -20,6 +21,7 @@ exports.KnowledgeModule = KnowledgeModule = __decorate([
         imports: [
             auth_module_1.AuthModule,
             prisma_module_1.PrismaModule,
+            audit_log_module_1.AuditLogModule,
         ],
         controllers: [knowledge_controller_1.KnowledgeController],
         providers: [knowledge_service_1.KnowledgeService],

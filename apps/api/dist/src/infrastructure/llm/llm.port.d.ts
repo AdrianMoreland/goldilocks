@@ -12,6 +12,7 @@ export type LlmTurn = {
     role: 'assistant';
     content: string;
     toolCalls: LlmToolCall[];
+    replay?: unknown;
 } | {
     role: 'tool';
     toolCallId: string;
@@ -22,12 +23,14 @@ export interface LlmRequest {
     user: string;
     maxOutputTokens: number;
     tools?: LlmToolSpec[];
+    toolChoice?: 'auto' | 'none';
     turns?: LlmTurn[];
     signal?: AbortSignal;
 }
 export interface LlmUsage {
     inputTokens: number;
     cachedInputTokens: number;
+    cacheWriteInputTokens?: number;
     outputTokens: number;
 }
 export interface LlmResult {
@@ -36,6 +39,7 @@ export interface LlmResult {
     model: string;
     usage: LlmUsage;
     truncated: boolean;
+    replay?: unknown;
 }
 export type LlmStreamEvent = {
     type: 'delta';
@@ -47,8 +51,12 @@ export type LlmStreamEvent = {
 export type LlmFailureKind = 'unavailable' | 'rate_limited' | 'out_of_credit' | 'misconfigured' | 'rejected';
 export declare class LlmError extends Error {
     readonly kind: LlmFailureKind;
+    readonly usage?: LlmUsage;
+    readonly model?: string;
     constructor(kind: LlmFailureKind, message: string, options?: {
         cause?: unknown;
+        usage?: LlmUsage;
+        model?: string;
     });
 }
 export interface LlmPort {

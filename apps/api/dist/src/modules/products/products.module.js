@@ -13,7 +13,8 @@ const products_service_1 = require("./products.service");
 const products_provider_1 = require("./products.provider");
 const auth_module_1 = require("../auth/auth.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
-const redis_module_1 = require("../../redis/redis.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
+const redis_module_1 = require("../../infrastructure/redis/redis.module");
 const product_cache_store_1 = require("./product-cache.store");
 let ProductsModule = class ProductsModule {
 };
@@ -22,15 +23,13 @@ exports.ProductsModule = ProductsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             auth_module_1.AuthModule,
+            audit_log_module_1.AuditLogModule,
             prisma_module_1.PrismaModule,
             redis_module_1.RedisModule,
         ],
         controllers: [products_controller_1.ProductsController],
         providers: [products_service_1.ProductsService, products_provider_1.ProductsProvider, product_cache_store_1.ProductCacheStore],
-        exports: [
-            products_service_1.ProductsService,
-            products_provider_1.ProductsProvider,
-        ],
+        exports: [products_service_1.ProductsService],
     })
 ], ProductsModule);
 //# sourceMappingURL=products.module.js.map

@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -18,7 +19,6 @@ import type {
 import { CustomerRecordsService } from './customer-records.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { RecordSearchRequestDto } from '../../common/dto/dtos';
 
 /**
@@ -29,7 +29,7 @@ import { RecordSearchRequestDto } from '../../common/dto/dtos';
 @ApiBearerAuth()
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.customers')
 export class CustomersController {
     constructor(private readonly records: CustomerRecordsService) {}
 
@@ -60,7 +60,7 @@ export class CustomersController {
 @ApiBearerAuth()
 @Controller('invoices')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.invoices')
 export class InvoicesController {
     constructor(private readonly records: CustomerRecordsService) {}
 

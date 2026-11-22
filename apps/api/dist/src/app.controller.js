@@ -37,7 +37,7 @@ __decorate([
     (0, common_1.Get)('health'),
     (0, swagger_1.ApiTags)('health'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Liveness/readiness check — verifies DB and Redis are actually reachable, not just that the process is up.',
+        summary: 'Liveness/readiness check - verifies DB and Redis are actually reachable, not just that the process is up.',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),

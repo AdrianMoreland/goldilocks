@@ -1,6 +1,6 @@
 import type { MarketModeState, UpdateMarketModeRequest } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 export declare class MarketModeService {
     private readonly prisma;
     private readonly audit;

@@ -6,6 +6,7 @@ import { QuestionLogService } from './question-log.service';
 import { QuotaService } from './quota.service';
 import { type SopContextProvider } from './sop-context.provider';
 import { ToolRegistry } from './tools/tool.registry';
+export declare const MAX_MODEL_CALLS = 4;
 export interface Actor {
     id: string;
     email: string;
@@ -34,6 +35,7 @@ export declare class AskService {
     private readonly questionLog;
     private readonly tools;
     private readonly logger;
+    private budgetWarnedOn;
     constructor(llm: LlmPort, context: SopContextProvider, settings: AiSettings, quota: QuotaService, cache: AnswerCacheService, questionLog: QuestionLogService, tools: ToolRegistry);
     status(): AiStatus;
     ask(input: AskInput, actor: Actor, signal?: AbortSignal): Promise<AskResponse>;

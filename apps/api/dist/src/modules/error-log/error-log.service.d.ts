@@ -1,5 +1,5 @@
 import { type ClientErrorReport, type ErrorLogEntry, type ErrorLogKind, type ErrorLogSeverity } from '@goldilocks/shared-types';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 export interface RecordErrorInput {
     severity?: ErrorLogSeverity;
     kind: ErrorLogKind;

@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import {
@@ -23,6 +24,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { getYesterday } from '../../common/utils/date.utils';
 
 @RequiresCapability('pricingWorkbook')
+@RequiresPermission('page.dashboard')
 @ApiTags('market-data')
 @Controller('market-data')
 export class MarketDataController {

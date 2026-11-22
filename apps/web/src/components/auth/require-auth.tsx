@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom"
-import { homePathFor, type Capabilities } from "@goldilocks/shared-types"
+import { homePathFor, type Capabilities, type PermissionKey } from "@goldilocks/shared-types"
+import { useMyPermissions } from "@/api/permissions.api"
 import { useAuth } from "@/contexts/auth-context"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -80,6 +81,43 @@ export function RequireCapability({
 
     if (!isAuthenticated) return <Navigate to="/auth/sign-in" state={{ from: location }} replace />
     if (!capabilities[capability]) return <Navigate to={homePathFor(capabilities)} replace />
+
+    return <>{children}</>
+}
+
+/**
+ * A page that Roles & permissions can switch on or off per role. Signed-in people who do not hold the page permission
+ * land on a page they may use. An optional capability (the branch rule) must hold too. Discoverability only: the API
+ * refuses the same calls on its own.
+ */
+export function RequirePage({
+    page,
+    capability,
+    children,
+}: {
+    page: PermissionKey
+    capability?: { [K in keyof Capabilities]: Capabilities[K] extends boolean ? K : never }[keyof Capabilities]
+    children: React.ReactNode
+}) {
+    const { isAuthenticated, isLoading, capabilities, isAdmin } = useAuth()
+    const { can, isPending } = useMyPermissions()
+    const location = useLocation()
+
+    if (isLoading || (isAuthenticated && !isAdmin && isPending)) {
+        return (
+            <div className="flex h-svh items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) return <Navigate to="/auth/sign-in" state={{ from: location }} replace />
+    if (capability && !capabilities[capability]) return <Navigate to={homePathFor(capabilities)} replace />
+    if (!can(page)) {
+        // Somewhere they may be: the workbook, else the SOP library, else a plain "no access" page.
+        const fallback = can("page.dashboard") && capabilities.pricingWorkbook ? "/dashboard" : can("page.knowledge") ? "/knowledge" : "/errors/forbidden"
+        return <Navigate to={fallback === location.pathname ? "/errors/forbidden" : fallback} replace />
+    }
 
     return <>{children}</>
 }

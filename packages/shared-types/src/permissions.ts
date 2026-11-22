@@ -16,6 +16,19 @@ export const PERMISSION_KEYS = [
   'analytics.chatbot',
   'analytics.ops',
   'admin.audit',
+  // Whole pages. A role without the key neither sees the page in the menu nor gets its API calls answered.
+  'page.dashboard',
+  'page.inventory',
+  'page.analytics',
+  'page.knowledge',
+  'page.stocktake',
+  'page.customer-orders',
+  'page.orders',
+  'page.import',
+  'page.customers',
+  'page.invoices',
+  'page.tradesheets',
+  'page.rules',
 ] as const;
 
 export const PermissionKeySchema = z.enum(PERMISSION_KEYS);
@@ -32,17 +45,40 @@ export const PERMISSION_LABELS: Record<PermissionKey, { group: string; label: st
   'analytics.chatbot': { group: 'Analytics', label: 'Chatbot' },
   'analytics.ops': { group: 'Analytics', label: 'Ops' },
   'admin.audit': { group: 'Admin', label: 'Audit log (read)' },
+  'page.dashboard': { group: 'Pages', label: 'Pricing workbook' },
+  'page.inventory': { group: 'Pages', label: 'Inventory' },
+  'page.analytics': { group: 'Pages', label: 'Analytics' },
+  'page.knowledge': { group: 'Pages', label: 'SOP library' },
+  'page.stocktake': { group: 'Pages', label: 'Stocktake' },
+  'page.customer-orders': { group: 'Pages', label: 'Customer orders' },
+  'page.orders': { group: 'Pages', label: 'Orders' },
+  'page.import': { group: 'Pages', label: 'Import' },
+  'page.customers': { group: 'Pages', label: 'Customers' },
+  'page.invoices': { group: 'Pages', label: 'Invoices' },
+  'page.tradesheets': { group: 'Pages', label: 'Trade sheets' },
+  'page.rules': { group: 'Pages', label: 'Rules' },
 };
 
+/**
+ * Pages that can never be handed to anyone but an admin, so they are not in the matrix: the admin console can read
+ * and edit the database, and the roadmap is the private plan. Both stay behind the admin flag on the server.
+ */
+export const ADMIN_ONLY_PAGES = ['Admin console', 'Project (roadmap)'] as const;
+
 const ALL_ANALYTICS = PERMISSION_KEYS.filter((k) => k.startsWith('analytics.'));
+
+/** Pages every signed-in role has always had. */
+const EVERYONE_PAGES: PermissionKey[] = ['page.dashboard', 'page.knowledge'];
 
 /** The starting presets, seeded once by the migration. Admins change them later in Roles & permissions. */
 export const DEFAULT_ROLE_PERMISSIONS: Record<PermissionRole, readonly PermissionKey[]> = {
   ADMIN: PERMISSION_KEYS,
-  MANAGER: ['analytics.pricing', 'analytics.sales', 'analytics.orders', 'analytics.inventory', 'analytics.customers'],
-  SALES: ['analytics.pricing', 'analytics.orders', 'analytics.inventory'],
-  ACCOUNTING: ['analytics.sales', 'analytics.customers'],
-  AUDITOR: [...ALL_ANALYTICS, 'admin.audit'],
+  // Everything built but not yet released (inventory, analytics, orders, import, customers, invoices, trade sheets,
+  // rules) starts admin-only: an admin turns it on for a role in Roles & permissions.
+  MANAGER: ['analytics.pricing', 'analytics.sales', 'analytics.orders', 'analytics.inventory', 'analytics.customers', ...EVERYONE_PAGES, 'page.stocktake', 'page.customer-orders'],
+  SALES: ['analytics.pricing', 'analytics.orders', 'analytics.inventory', ...EVERYONE_PAGES],
+  ACCOUNTING: ['analytics.sales', 'analytics.customers', ...EVERYONE_PAGES],
+  AUDITOR: [...ALL_ANALYTICS, 'admin.audit', ...EVERYONE_PAGES],
 };
 
 export interface RolePermissionRow {

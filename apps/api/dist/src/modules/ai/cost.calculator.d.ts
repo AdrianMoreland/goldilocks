@@ -1,11 +1,17 @@
 export interface ModelPrice {
     input: number;
     cachedInput: number;
+    cacheWrite?: number;
     output: number;
+    longPrompt?: {
+        overInputTokens: number;
+        price: ModelPrice;
+    };
 }
 export interface TokenUsage {
     inputTokens: number;
     cachedInputTokens: number;
+    cacheWriteInputTokens?: number;
     outputTokens: number;
 }
 export declare function priceFor(model: string, override?: ModelPrice): ModelPrice;

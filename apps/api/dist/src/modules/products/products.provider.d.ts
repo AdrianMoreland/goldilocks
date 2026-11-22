@@ -1,13 +1,16 @@
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RawProduct } from '@goldilocks/shared-types';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { ProductCacheStore } from './product-cache.store';
 export declare class ProductsProvider {
     private readonly prisma;
     private readonly productCache;
+    private readonly audit;
     private readonly logger;
-    constructor(prisma: PrismaService, productCache: ProductCacheStore);
+    constructor(prisma: PrismaService, productCache: ProductCacheStore, audit: AuditLogService);
     getAll(): Promise<RawProduct[]>;
     getById(id: number): Promise<RawProduct | null>;
+    getByIds(ids: number[]): Promise<RawProduct[]>;
     findBySku(sku: string): Promise<{
         id: number;
         deletedAt: Date | null;
@@ -27,11 +30,12 @@ export declare class ProductsProvider {
         stock: number;
         category?: RawProduct['category'];
         description?: string;
-    }): Promise<RawProduct>;
-    update(id: number, data: Partial<RawProduct>): Promise<RawProduct>;
-    softDelete(id: number): Promise<RawProduct>;
-    restore(id: number): Promise<RawProduct>;
-    updateStock(id: number, stock: number): Promise<RawProduct>;
+    }, actor: string): Promise<RawProduct>;
+    update(id: number, data: Partial<RawProduct>, actor: string, expectedUpdatedAt?: string): Promise<RawProduct>;
+    softDelete(id: number, actor: string): Promise<RawProduct>;
+    restore(id: number, actor: string): Promise<RawProduct>;
+    updateStock(id: number, stock: number, actor: string): Promise<RawProduct>;
+    private change;
     private refreshCache;
 }
 //# sourceMappingURL=products.provider.d.ts.map

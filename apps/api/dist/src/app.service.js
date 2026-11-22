@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("./infrastructure/prisma/prisma.service");
-const redis_service_1 = require("./redis/redis.service");
+const redis_service_1 = require("./infrastructure/redis/redis.service");
 const fetch_attempt_service_1 = require("./modules/metals/fetch-attempt.service");
 let AppService = class AppService {
     prisma;

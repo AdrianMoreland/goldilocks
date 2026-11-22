@@ -8,10 +8,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FetchAttemptService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const notifications_service_1 = require("../settings/notifications.service");
 const cascade_metrics_service_1 = require("./cascade-metrics.service");
 const error_log_service_1 = require("../error-log/error-log.service");
 const METRICS_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -19,10 +23,12 @@ let FetchAttemptService = class FetchAttemptService {
     prisma;
     cascadeMetrics;
     errorLog;
-    constructor(prisma, cascadeMetrics, errorLog) {
+    notifications;
+    constructor(prisma, cascadeMetrics, errorLog, notifications) {
         this.prisma = prisma;
         this.cascadeMetrics = cascadeMetrics;
         this.errorLog = errorLog;
+        this.notifications = notifications;
     }
     async record(entry) {
         if (!entry.success) {
@@ -30,10 +36,13 @@ let FetchAttemptService = class FetchAttemptService {
                 severity: 'warning',
                 kind: 'external-api',
                 message: `Spot price fetch failed (${entry.triggeredBy})`,
-                detail: `${entry.errorMessage ?? 'No error message'} — after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
+                detail: `${entry.errorMessage ?? 'No error message'} - after ${entry.durationMs} ms; resolved: ${entry.metalsResolved.join(', ') || 'none'}`,
             });
         }
         await this.prisma.fetchAttempt.create({ data: entry });
+        if (!entry.success) {
+            await this.notifications?.feedFailed(new Date(), entry.errorMessage ?? null);
+        }
     }
     async getRecent(limit) {
         const rows = await this.prisma.fetchAttempt.findMany({
@@ -82,8 +91,10 @@ let FetchAttemptService = class FetchAttemptService {
 exports.FetchAttemptService = FetchAttemptService;
 exports.FetchAttemptService = FetchAttemptService = __decorate([
     (0, common_1.Injectable)(),
+    __param(3, (0, common_1.Optional)()),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         cascade_metrics_service_1.CascadeMetricsService,
-        error_log_service_1.ErrorLogService])
+        error_log_service_1.ErrorLogService,
+        notifications_service_1.NotificationsService])
 ], FetchAttemptService);
 //# sourceMappingURL=fetch-attempt.service.js.map

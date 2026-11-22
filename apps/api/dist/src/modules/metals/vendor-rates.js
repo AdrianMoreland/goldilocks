@@ -9,11 +9,16 @@ const METAL_SYMBOLS = Object.entries(pricing_util_1.SYMBOL_MAP);
 function isUsableRate(rate) {
     return rate !== undefined && rate.eur > 0;
 }
+const VENDOR_CLOCK_TOLERANCE_MS = 60 * 1000;
 function vendorAsOf(vendorSeconds, now = Date.now()) {
+    if (vendorSeconds === null || vendorSeconds === undefined)
+        return null;
     const vendorMs = Number(vendorSeconds) * 1000;
-    return Number.isFinite(vendorMs) && vendorMs > 0 && vendorMs <= now
-        ? new Date(vendorMs)
-        : new Date(now);
+    if (!Number.isFinite(vendorMs) || vendorMs <= 0)
+        return null;
+    if (vendorMs > now + VENDOR_CLOCK_TOLERANCE_MS)
+        return null;
+    return new Date(Math.min(vendorMs, now));
 }
 function mapLiveRates(rates, onMissing) {
     const mapped = {};

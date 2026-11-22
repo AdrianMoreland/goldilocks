@@ -14,7 +14,7 @@ exports.ErrorLogService = void 0;
 const node_crypto_1 = require("node:crypto");
 const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
-const redis_service_1 = require("../../redis/redis.service");
+const redis_service_1 = require("../../infrastructure/redis/redis.service");
 const REDIS_KEY = 'error-log:entries';
 const MAX_ENTRIES = 500;
 const MAX_STACK = 4000;
@@ -49,7 +49,7 @@ let ErrorLogService = ErrorLogService_1 = class ErrorLogService {
             userAgent: input.userAgent ?? null,
         };
         await this.store(entry);
-        this.logger.error(`[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` — ${entry.detail}` : ''}`);
+        this.logger.error(`[${reference}] ${entry.kind}: ${entry.message}${entry.detail ? ` - ${entry.detail}` : ''}`);
         return reference;
     }
     async recordClientReports(reports, user, userAgent) {

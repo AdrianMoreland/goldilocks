@@ -10,12 +10,16 @@ exports.MetalPriceApiModule = void 0;
 const common_1 = require("@nestjs/common");
 const metal_price_api_client_1 = require("./metal-price-api.client");
 const metal_price_api_port_1 = require("./metal-price-api.port");
+const resilient_metal_price_api_1 = require("./resilient-metal-price-api");
 let MetalPriceApiModule = class MetalPriceApiModule {
 };
 exports.MetalPriceApiModule = MetalPriceApiModule;
 exports.MetalPriceApiModule = MetalPriceApiModule = __decorate([
     (0, common_1.Module)({
-        providers: [{ provide: metal_price_api_port_1.METAL_PRICE_API, useClass: metal_price_api_client_1.MetalPriceApiClient }],
+        providers: [
+            metal_price_api_client_1.MetalPriceApiClient,
+            { provide: metal_price_api_port_1.METAL_PRICE_API, useClass: resilient_metal_price_api_1.ResilientMetalPriceApi },
+        ],
         exports: [metal_price_api_port_1.METAL_PRICE_API],
     })
 ], MetalPriceApiModule);

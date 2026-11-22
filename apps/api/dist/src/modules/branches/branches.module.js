@@ -12,6 +12,7 @@ const branches_controller_1 = require("./branches.controller");
 const branches_service_1 = require("./branches.service");
 const auth_module_1 = require("../auth/auth.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
 let BranchesModule = class BranchesModule {
 };
 exports.BranchesModule = BranchesModule;
@@ -20,6 +21,7 @@ exports.BranchesModule = BranchesModule = __decorate([
         imports: [
             auth_module_1.AuthModule,
             prisma_module_1.PrismaModule,
+            audit_log_module_1.AuditLogModule,
         ],
         controllers: [branches_controller_1.BranchesController],
         providers: [branches_service_1.BranchesService],

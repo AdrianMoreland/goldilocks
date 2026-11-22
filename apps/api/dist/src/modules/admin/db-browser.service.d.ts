@@ -1,7 +1,7 @@
 import type { DbRowsResponse, DbTableSummary } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { AuditLogService } from './audit-log.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 type Key = Record<string, string | number>;
 type Json = Record<string, unknown>;
 export declare class DbBrowserService {
@@ -27,7 +27,7 @@ export declare class DbBrowserService {
     private settableNames;
     private typeOf;
     private keyClause;
-    private afterWrite;
+    private audited;
 }
 export {};
 //# sourceMappingURL=db-browser.service.d.ts.map

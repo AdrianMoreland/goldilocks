@@ -22,7 +22,8 @@ export declare class QuestionLogService {
     private readonly prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
-    record(entry: QuestionLogEntry): Promise<void>;
+    record(entry: QuestionLogEntry): Promise<number | null>;
+    rate(questionId: number, userId: string, helpful: boolean): Promise<boolean>;
     spentSince(start: Date): Promise<number>;
     purgeOlderThan(cutoff: Date): Promise<number>;
 }

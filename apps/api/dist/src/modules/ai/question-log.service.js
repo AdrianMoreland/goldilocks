@@ -21,11 +21,30 @@ let QuestionLogService = QuestionLogService_1 = class QuestionLogService {
     }
     async record(entry) {
         try {
-            await this.prisma.aiQuestionLog.create({ data: entry });
+            const row = await this.prisma.aiQuestionLog.create({
+                data: entry,
+                select: { id: true },
+            });
+            return row.id;
         }
         catch (error) {
             this.logger.warn(`Could not write the question log: ${error instanceof Error ? error.message : String(error)}`);
+            return null;
         }
+    }
+    async rate(questionId, userId, helpful) {
+        const question = await this.prisma.aiQuestionLog.findFirst({
+            where: { id: questionId, userId },
+            select: { id: true },
+        });
+        if (!question)
+            return false;
+        await this.prisma.aiFeedback.upsert({
+            where: { questionId_userId: { questionId, userId } },
+            create: { questionId, userId, helpful },
+            update: { helpful },
+        });
+        return true;
     }
     async spentSince(start) {
         const total = await this.prisma.aiQuestionLog.aggregate({

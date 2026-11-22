@@ -13,8 +13,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarketDataController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const throttler_1 = require("@nestjs/throttler");
 const market_data_service_1 = require("./market-data.service");
 const dtos_1 = require("../../common/dto/dtos");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
@@ -28,6 +31,9 @@ let MarketDataController = class MarketDataController {
     }
     async getMarketData() {
         return this.marketDataService.getMarketData();
+    }
+    async getSpotStatus() {
+        return this.marketDataService.getSpotStatus();
     }
     async recalculate(overrides) {
         return this.marketDataService.recalculate(overrides);
@@ -43,12 +49,8 @@ let MarketDataController = class MarketDataController {
             date: targetDate,
         };
     }
-    backfillHistory(years) {
-        const n = years === undefined ? 5 : Number(years);
-        if (!Number.isInteger(n) || n < 1 || n > 10) {
-            throw new common_1.BadRequestException('years must be a whole number from 1 to 10.');
-        }
-        return this.marketDataService.backfillHistory(n);
+    backfillHistory({ years }) {
+        return this.marketDataService.backfillHistory(years);
     }
     async seedHistory() {
         await this.marketDataService.seedHistoricPrices();
@@ -70,6 +72,23 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], MarketDataController.prototype, "getMarketData", null);
+__decorate([
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get the spot-price status (polled by the dashboard)',
+        description: 'When the prices shown were struck (vendor time) and last fetched, and whether ' +
+            'auto-refresh is paused. No products or history. Never calls the vendor while ' +
+            'the price cron is paused.',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Spot-price status',
+        type: dtos_1.SpotStatusResponseDto,
+    }),
+    (0, common_1.Get)('spot-status'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], MarketDataController.prototype, "getSpotStatus", null);
 __decorate([
     (0, swagger_1.ApiOperation)({
         summary: 'Recalculate product prices with manual spot overrides',
@@ -99,6 +118,7 @@ __decorate([
         description: 'Market data refreshed successfully',
         type: dtos_1.MarketDataResponseDto,
     }),
+    (0, throttler_1.Throttle)({ default: { limit: 6, ttl: 60_000 } }),
     (0, common_1.Post)('refresh'),
     (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:type", Function),
@@ -133,9 +153,9 @@ __decorate([
         description: 'Fetches up to 10 years of daily closes from the vendor, a year per window (2 vendor requests each). Windows already in the database are skipped. Returns what happened to each window.',
     }),
     (0, swagger_1.ApiQuery)({ name: 'years', required: false, type: Number }),
-    __param(0, (0, common_1.Query)('years')),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [dtos_1.BackfillHistoryQueryDto]),
     __metadata("design:returntype", void 0)
 ], MarketDataController.prototype, "backfillHistory", null);
 __decorate([
@@ -156,6 +176,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], MarketDataController.prototype, "seedHistory", null);
 exports.MarketDataController = MarketDataController = __decorate([
+    (0, capability_decorator_1.RequiresCapability)('pricingWorkbook'),
+    (0, permission_decorator_1.RequiresPermission)('page.dashboard'),
     (0, swagger_1.ApiTags)('market-data'),
     (0, common_1.Controller)('market-data'),
     __metadata("design:paramtypes", [market_data_service_1.MarketDataService])

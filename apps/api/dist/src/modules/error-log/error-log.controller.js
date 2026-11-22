@@ -15,21 +15,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorLogController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
-const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
-const roles_guard_1 = require("../../common/guards/roles.guard");
+const throttler_1 = require("@nestjs/throttler");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const dtos_1 = require("../../common/dto/dtos");
 const error_log_service_1 = require("./error-log.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 let ErrorLogController = class ErrorLogController {
     errorLog;
-    constructor(errorLog) {
+    audit;
+    constructor(errorLog, audit) {
         this.errorLog = errorLog;
+        this.audit = audit;
     }
-    async getRecent(limit) {
-        const n = Math.min(Math.max(Number(limit) || 100, 1), 500);
-        return this.errorLog.getRecent(n);
+    async getRecent({ limit }) {
+        return this.errorLog.getRecent(limit);
     }
-    async clear() {
+    async clear(request) {
+        await this.audit.record(request.user.email, 'error-log-clear', 'Cleared the error log');
         await this.errorLog.clear();
         return { message: 'Error log cleared' };
     }
@@ -41,31 +43,26 @@ let ErrorLogController = class ErrorLogController {
 exports.ErrorLogController = ErrorLogController;
 __decorate([
     (0, common_1.Get)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({
         summary: 'Recent server and reported client errors, newest first (admin)',
     }),
-    __param(0, (0, common_1.Query)('limit')),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [dtos_1.ErrorLogQueryDto]),
     __metadata("design:returntype", Promise)
 ], ErrorLogController.prototype, "getRecent", null);
 __decorate([
     (0, common_1.Delete)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Clear the error log (admin)' }),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ErrorLogController.prototype, "clear", null);
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 20, ttl: 60_000 } }),
     (0, common_1.Post)('client'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)(),
+    (0, roles_decorator_1.AnySignedInUser)(),
     (0, swagger_1.ApiOperation)({
         summary: 'Report browser-side errors (any signed-in user)',
     }),
@@ -78,6 +75,9 @@ __decorate([
 exports.ErrorLogController = ErrorLogController = __decorate([
     (0, swagger_1.ApiTags)('errors'),
     (0, common_1.Controller)('errors'),
-    __metadata("design:paramtypes", [error_log_service_1.ErrorLogService])
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    __metadata("design:paramtypes", [error_log_service_1.ErrorLogService,
+        audit_log_service_1.AuditLogService])
 ], ErrorLogController);
 //# sourceMappingURL=error-log.controller.js.map

@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import {
     Controller,
@@ -34,6 +35,7 @@ import { RawProduct } from '@goldilocks/shared-types';
 
 @ApiTags('products')
 @RequiresCapability('pricingWorkbook')
+@RequiresPermission('page.dashboard')
 @Controller('products')
 export class ProductsController {
     constructor(private readonly service: ProductsService) {}

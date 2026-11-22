@@ -12,7 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AiSettings = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const DEFAULT_MAX_OUTPUT_TOKENS = 600;
+const DEFAULT_MAX_OUTPUT_TOKENS = 2000;
+const DEFAULT_DRAFT_MAX_OUTPUT_TOKENS = 4000;
 const DEFAULT_DAILY_QUOTA = 50;
 const DEFAULT_PER_MINUTE_LIMIT = 5;
 const DEFAULT_DAILY_BUDGET_USD = 2;
@@ -28,6 +29,9 @@ let AiSettings = class AiSettings {
     }
     get maxOutputTokens() {
         return this.positiveInt('AI_MAX_OUTPUT_TOKENS', DEFAULT_MAX_OUTPUT_TOKENS);
+    }
+    get draftMaxOutputTokens() {
+        return this.positiveInt('AI_DRAFT_MAX_OUTPUT_TOKENS', DEFAULT_DRAFT_MAX_OUTPUT_TOKENS);
     }
     get dailyQuotaPerUser() {
         return this.positiveInt('AI_DAILY_QUOTA_PER_USER', DEFAULT_DAILY_QUOTA);

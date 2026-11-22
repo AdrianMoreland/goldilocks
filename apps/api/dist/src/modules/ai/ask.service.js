@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 var AskService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AskService = void 0;
+exports.AskService = exports.MAX_MODEL_CALLS = void 0;
 const common_1 = require("@nestjs/common");
 const llm_port_1 = require("../../infrastructure/llm/llm.port");
 const ai_settings_1 = require("./ai.settings");
@@ -34,13 +34,19 @@ const tool_registry_1 = require("./tools/tool.registry");
 const NO_PROCEDURES = 'No procedures are approved yet, so there is nothing to answer from. Ask a manager.';
 const NO_DRAFT = 'The assistant could not draft a reply to that. Try again, or write the reply yourself.';
 const CITATION_REMINDER = 'Reminder: cite the section you rely on as [[slug#section]], using only sections shown in the procedures. If no procedure covers this, reply with NO_ANSWER: and one short sentence.';
-const MAX_TOOL_ROUNDS = 3;
-const DRAFT_MIN_OUTPUT_TOKENS = 900;
-const NO_USAGE = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+exports.MAX_MODEL_CALLS = 4;
+const BUDGET_WARNING_SHARE = 0.8;
+const NO_USAGE = {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    cacheWriteInputTokens: 0,
+    outputTokens: 0,
+};
 function addUsage(a, b) {
     return {
         inputTokens: a.inputTokens + b.inputTokens,
         cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
+        cacheWriteInputTokens: (a.cacheWriteInputTokens ?? 0) + (b.cacheWriteInputTokens ?? 0),
         outputTokens: a.outputTokens + b.outputTokens,
     };
 }
@@ -53,6 +59,7 @@ let AskService = AskService_1 = class AskService {
     questionLog;
     tools;
     logger = new common_1.Logger(AskService_1.name);
+    budgetWarnedOn = null;
     constructor(llm, context, settings, quota, cache, questionLog, tools) {
         this.llm = llm;
         this.context = context;
@@ -82,6 +89,12 @@ let AskService = AskService_1 = class AskService {
         const started = Date.now();
         let loggedQuestion = '';
         let corpusHash = '';
+        let spentUsage = NO_USAGE;
+        let spentMicros = 0;
+        const charge = (model, usage) => {
+            spentUsage = addUsage(spentUsage, usage);
+            spentMicros += (0, cost_calculator_1.costMicros)(model, usage, this.settings.priceOverride);
+        };
         try {
             const prompt = await this.context.load(question);
             corpusHash = prompt.corpusHash;
@@ -98,10 +111,8 @@ let AskService = AskService_1 = class AskService {
                 const cached = result.cached ?? false;
                 const retried = result.retried ?? false;
                 const toolsUsed = result.toolsUsed ?? [];
-                const cost = cached
-                    ? 0
-                    : (0, cost_calculator_1.costMicros)(result.model, result.usage, this.settings.priceOverride);
-                await this.questionLog.record({
+                const cost = cached ? 0 : spentMicros;
+                const questionId = await this.questionLog.record({
                     userId: actor.id,
                     question: loggedQuestion,
                     mode,
@@ -118,8 +129,9 @@ let AskService = AskService_1 = class AskService {
                     costMicros: cost,
                     latencyMs,
                 });
-                this.logger.log(`[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`);
+                this.logger.log(`[ai] ${actor.email}: ${mode} ${result.status}${cached ? ' (cached)' : ''}${retried ? ' (after retry)' : ''}${toolsUsed.length ? ` tools=${toolsUsed.join(',')}` : ''}, ${result.citations.length} citation(s), tokens in/cached/written/out ${result.usage.inputTokens}/${result.usage.cachedInputTokens}/${result.usage.cacheWriteInputTokens ?? 0}/${result.usage.outputTokens}, ${latencyMs} ms, corpus ${corpusHash}`);
                 return {
+                    questionId,
                     answer: result.answer,
                     mode,
                     status: result.status,
@@ -168,7 +180,7 @@ let AskService = AskService_1 = class AskService {
             await this.assertUnderBudget();
             const system = `${prompt.systemPrompt}\n\n${(0, prompt_builder_1.modeInstructions)(mode)}`;
             const maxOutputTokens = isDraft
-                ? Math.max(this.settings.maxOutputTokens, DRAFT_MIN_OUTPUT_TOKENS)
+                ? Math.max(this.settings.maxOutputTokens, this.settings.draftMaxOutputTokens)
                 : this.settings.maxOutputTokens;
             const toolContext = {
                 spotOverrides: input.spotOverrides ?? {},
@@ -179,16 +191,18 @@ let AskService = AskService_1 = class AskService {
             const toolResults = [];
             const toolsUsed = [];
             const gate = isDraft ? null : new refusal_gate_1.RefusalGate();
-            let usage = NO_USAGE;
             let result;
-            for (let round = 0;; round++) {
-                const lastRound = round >= MAX_TOOL_ROUNDS;
+            let modelCalls = 0;
+            for (;;) {
+                const lastRound = modelCalls >= exports.MAX_MODEL_CALLS - 1;
                 let step;
+                modelCalls += 1;
                 for await (const event of this.llm.stream({
                     system,
                     user: question,
                     maxOutputTokens,
-                    tools: lastRound ? undefined : toolSpecs,
+                    tools: toolSpecs,
+                    toolChoice: lastRound ? 'none' : 'auto',
                     turns,
                     signal,
                 })) {
@@ -206,16 +220,17 @@ let AskService = AskService_1 = class AskService {
                 if (!step) {
                     throw new llm_port_1.LlmError('unavailable', 'The model stream ended without a result.');
                 }
-                usage = addUsage(usage, step.usage);
+                charge(step.model, step.usage);
                 const calls = step.toolCalls ?? [];
                 if (calls.length === 0 || lastRound) {
-                    result = { ...step, usage };
+                    result = { ...step, usage: spentUsage };
                     break;
                 }
                 turns.push({
                     role: 'assistant',
                     content: step.text,
                     toolCalls: calls,
+                    replay: step.replay,
                 });
                 for (const call of calls) {
                     yield { type: 'tool', name: call.name };
@@ -270,19 +285,21 @@ let AskService = AskService_1 = class AskService {
                 interpreted = { ...interpreted, status: 'answered' };
             }
             let retried = false;
-            if (interpreted.status === 'uncited') {
+            if (interpreted.status === 'uncited' &&
+                modelCalls < exports.MAX_MODEL_CALLS) {
                 retried = true;
+                modelCalls += 1;
                 const second = await this.llm.generate({
                     system,
                     user: `${question}\n\n${CITATION_REMINDER}`,
                     maxOutputTokens,
+                    tools: toolSpecs,
+                    toolChoice: 'none',
                     signal,
                 });
+                charge(second.model, second.usage);
                 const again = (0, answer_interpreter_1.interpretAnswer)(second.text, prompt);
-                result = {
-                    ...second,
-                    usage: addUsage(result.usage, second.usage),
-                };
+                result = { ...second, usage: spentUsage };
                 if (again.status !== 'uncited')
                     interpreted = again;
             }
@@ -314,7 +331,10 @@ let AskService = AskService_1 = class AskService {
             yield { type: 'done', response };
         }
         catch (error) {
-            await this.logFailure(actor, mode, loggedQuestion, corpusHash, started, error, signal);
+            if (error instanceof llm_port_1.LlmError && error.usage) {
+                charge(error.model ?? this.llm.model, error.usage);
+            }
+            await this.logFailure(actor, mode, loggedQuestion, corpusHash, started, error, { usage: spentUsage, micros: spentMicros }, signal);
             throw this.toHttpError(error);
         }
         finally {
@@ -322,13 +342,28 @@ let AskService = AskService_1 = class AskService {
         }
     }
     async assertUnderBudget() {
-        const spent = await this.questionLog.spentSince((0, dublin_day_1.startOfDublinDay)(new Date()));
-        if (spent >= (0, cost_calculator_1.usdToMicros)(this.settings.dailyBudgetUsd)) {
+        let spent;
+        try {
+            spent = await this.questionLog.spentSince((0, dublin_day_1.startOfDublinDay)(new Date()));
+        }
+        catch (error) {
+            this.logger.error(`Today's assistant spend could not be read, so the assistant refused: ${error instanceof Error ? error.message : String(error)}`);
+            throw new common_1.ServiceUnavailableException("The assistant is unavailable right now: its spending limit can't be checked. Try again shortly.");
+        }
+        const limit = (0, cost_calculator_1.usdToMicros)(this.settings.dailyBudgetUsd);
+        const today = (0, dublin_day_1.dublinDate)(new Date());
+        if (spent >= limit * BUDGET_WARNING_SHARE &&
+            spent < limit &&
+            this.budgetWarnedOn !== today) {
+            this.budgetWarnedOn = today;
+            this.logger.warn(`The assistant has spent $${(spent / 1_000_000).toFixed(2)} today, over ${BUDGET_WARNING_SHARE * 100}% of its $${this.settings.dailyBudgetUsd} daily limit.`);
+        }
+        if (spent >= limit) {
             this.logger.error(`The assistant's daily budget of $${this.settings.dailyBudgetUsd} has been reached; it is paused until tomorrow.`);
             throw new common_1.ServiceUnavailableException('The assistant is paused for today: its daily spending limit has been reached. It resumes tomorrow.');
         }
     }
-    async logFailure(actor, mode, question, corpusHash, started, error, signal) {
+    async logFailure(actor, mode, question, corpusHash, started, error, spent, signal) {
         if (!(error instanceof llm_port_1.LlmError) && !signal?.aborted)
             return;
         await this.questionLog.record({
@@ -342,10 +377,10 @@ let AskService = AskService_1 = class AskService {
             citations: [],
             model: this.llm.model,
             corpusHash,
-            inputTokens: 0,
-            cachedInputTokens: 0,
-            outputTokens: 0,
-            costMicros: 0,
+            inputTokens: spent.usage.inputTokens,
+            cachedInputTokens: spent.usage.cachedInputTokens,
+            outputTokens: spent.usage.outputTokens,
+            costMicros: spent.micros,
             latencyMs: Date.now() - started,
             error: signal?.aborted
                 ? 'cancelled'
@@ -362,8 +397,8 @@ let AskService = AskService_1 = class AskService {
                 this.logger.error(`The assistant is misconfigured: ${error.message}`);
                 return new common_1.ServiceUnavailableException('The assistant is not set up correctly. An admin needs to check its configuration.');
             case 'out_of_credit':
-                this.logger.error(`The assistant's OpenAI account is out of credit: ${error.message}`);
-                return new common_1.ServiceUnavailableException('The assistant is unavailable: its OpenAI account has no credit left. An admin needs to top it up.');
+                this.logger.error(`The assistant's model account is out of credit: ${error.message}`);
+                return new common_1.ServiceUnavailableException('The assistant is unavailable: its model provider account has no credit left. An admin needs to top it up.');
             case 'rejected':
                 return new common_1.UnprocessableEntityException('The assistant could not handle that question. Try rephrasing it.');
             case 'rate_limited':

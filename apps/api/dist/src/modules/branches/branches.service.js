@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BranchesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 let BranchesService = class BranchesService {
     prisma;
-    constructor(prisma) {
+    audit;
+    constructor(prisma, audit) {
         this.prisma = prisma;
+        this.audit = audit;
     }
     async getAll() {
         const rows = await this.prisma.branch.findMany({
@@ -25,22 +28,29 @@ let BranchesService = class BranchesService {
             id: row.id,
             name: row.name,
             address: row.address,
+            region: row.region,
             currency: row.currency,
             createdAt: row.createdAt.toISOString(),
         }));
     }
-    async create(dto) {
-        const row = await this.prisma.branch.create({
-            data: {
-                name: dto.name,
-                address: dto.address,
-                currency: dto.currency,
-            },
+    async create(dto, actorEmail) {
+        const row = await this.prisma.$transaction(async (tx) => {
+            const created = await tx.branch.create({
+                data: {
+                    name: dto.name,
+                    address: dto.address,
+                    region: dto.region,
+                    currency: dto.currency,
+                },
+            });
+            await this.audit.record(actorEmail, 'branch-create', `${created.name} (${created.region}, ${created.currency})`, tx);
+            return created;
         });
         return {
             id: row.id,
             name: row.name,
             address: row.address,
+            region: row.region,
             currency: row.currency,
             createdAt: row.createdAt.toISOString(),
         };
@@ -49,6 +59,7 @@ let BranchesService = class BranchesService {
 exports.BranchesService = BranchesService;
 exports.BranchesService = BranchesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        audit_log_service_1.AuditLogService])
 ], BranchesService);
 //# sourceMappingURL=branches.service.js.map

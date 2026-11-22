@@ -1,5 +1,5 @@
 import { type RequestWithUser } from '../../common/guards/jwt-auth.guard';
-import { KbDocumentDto, KbDocumentListResponseDto, SetKbStatusRequestDto, UpdateKbDocumentRequestDto } from '../../common/dto/dtos';
+import { KbDocumentDto, KbDocumentListResponseDto, SetKbStatusRequestDto, SetKbVisibilityRequestDto, UpdateKbDocumentRequestDto } from '../../common/dto/dtos';
 import { KnowledgeService } from './knowledge.service';
 export declare class KnowledgeController {
     private readonly knowledge;
@@ -7,5 +7,6 @@ export declare class KnowledgeController {
     listDocuments(request: RequestWithUser): Promise<KbDocumentListResponseDto>;
     updateDocument(slug: string, body: UpdateKbDocumentRequestDto, request: RequestWithUser): Promise<KbDocumentDto>;
     setStatus(slug: string, body: SetKbStatusRequestDto, request: RequestWithUser): Promise<KbDocumentDto>;
+    setVisibility(slug: string, body: SetKbVisibilityRequestDto, request: RequestWithUser): Promise<KbDocumentDto>;
 }
 //# sourceMappingURL=knowledge.controller.d.ts.map

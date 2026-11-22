@@ -13,6 +13,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarketModeController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
@@ -59,6 +61,8 @@ __decorate([
 ], MarketModeController.prototype, "set", null);
 exports.MarketModeController = MarketModeController = __decorate([
     (0, swagger_1.ApiTags)('market-mode'),
+    (0, capability_decorator_1.RequiresCapability)('pricingWorkbook'),
+    (0, permission_decorator_1.RequiresPermission)('page.dashboard'),
     (0, common_1.Controller)('market-mode'),
     __metadata("design:paramtypes", [market_mode_service_1.MarketModeService])
 ], MarketModeController);

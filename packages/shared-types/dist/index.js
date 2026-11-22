@@ -1035,7 +1035,11 @@ var SessionUserSchema = z9.object({
   // Defaults to null so a web build deployed before the API still parses the old response shape.
   branch: SessionBranchSchema.nullable().default(null),
   /** Null until the person first changes their look; the app then uses its defaults (dark). */
-  uiSettings: UiSettingsSchema.nullable().default(null)
+  uiSettings: UiSettingsSchema.nullable().default(null),
+  /** True for a real admin, even while they view the app as someone else (so the switcher stays available). */
+  canViewAs: z9.boolean().default(false),
+  /** The "view as" choice in force for this request, or null when seeing the app as themselves. */
+  viewAs: z9.string().nullable().default(null)
 });
 var LoginRequestSchema = z9.object({
   email: z9.string().email(),
@@ -8985,7 +8989,20 @@ var PERMISSION_KEYS = [
   "analytics.customers",
   "analytics.chatbot",
   "analytics.ops",
-  "admin.audit"
+  "admin.audit",
+  // Whole pages. A role without the key neither sees the page in the menu nor gets its API calls answered.
+  "page.dashboard",
+  "page.inventory",
+  "page.analytics",
+  "page.knowledge",
+  "page.stocktake",
+  "page.customer-orders",
+  "page.orders",
+  "page.import",
+  "page.customers",
+  "page.invoices",
+  "page.tradesheets",
+  "page.rules"
 ];
 var PermissionKeySchema = z34.enum(PERMISSION_KEYS);
 var PERMISSION_LABELS = {
@@ -8996,15 +9013,31 @@ var PERMISSION_LABELS = {
   "analytics.customers": { group: "Analytics", label: "Customers & invoices" },
   "analytics.chatbot": { group: "Analytics", label: "Chatbot" },
   "analytics.ops": { group: "Analytics", label: "Ops" },
-  "admin.audit": { group: "Admin", label: "Audit log (read)" }
+  "admin.audit": { group: "Admin", label: "Audit log (read)" },
+  "page.dashboard": { group: "Pages", label: "Pricing workbook" },
+  "page.inventory": { group: "Pages", label: "Inventory" },
+  "page.analytics": { group: "Pages", label: "Analytics" },
+  "page.knowledge": { group: "Pages", label: "SOP library" },
+  "page.stocktake": { group: "Pages", label: "Stocktake" },
+  "page.customer-orders": { group: "Pages", label: "Customer orders" },
+  "page.orders": { group: "Pages", label: "Orders" },
+  "page.import": { group: "Pages", label: "Import" },
+  "page.customers": { group: "Pages", label: "Customers" },
+  "page.invoices": { group: "Pages", label: "Invoices" },
+  "page.tradesheets": { group: "Pages", label: "Trade sheets" },
+  "page.rules": { group: "Pages", label: "Rules" }
 };
+var ADMIN_ONLY_PAGES = ["Admin console", "Project (roadmap)"];
 var ALL_ANALYTICS = PERMISSION_KEYS.filter((k) => k.startsWith("analytics."));
+var EVERYONE_PAGES = ["page.dashboard", "page.knowledge"];
 var DEFAULT_ROLE_PERMISSIONS = {
   ADMIN: PERMISSION_KEYS,
-  MANAGER: ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers"],
-  SALES: ["analytics.pricing", "analytics.orders", "analytics.inventory"],
-  ACCOUNTING: ["analytics.sales", "analytics.customers"],
-  AUDITOR: [...ALL_ANALYTICS, "admin.audit"]
+  // Everything built but not yet released (inventory, analytics, orders, import, customers, invoices, trade sheets,
+  // rules) starts admin-only: an admin turns it on for a role in Roles & permissions.
+  MANAGER: ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers", ...EVERYONE_PAGES, "page.stocktake", "page.customer-orders"],
+  SALES: ["analytics.pricing", "analytics.orders", "analytics.inventory", ...EVERYONE_PAGES],
+  ACCOUNTING: ["analytics.sales", "analytics.customers", ...EVERYONE_PAGES],
+  AUDITOR: [...ALL_ANALYTICS, "admin.audit", ...EVERYONE_PAGES]
 };
 var KNOWN = new Set(PERMISSION_KEYS);
 function effectivePermissions(subject, presets, overrides, now) {
@@ -9199,7 +9232,23 @@ function parseUserAgent(ua) {
   return `${browser} on ${system}`;
 }
 var MarkNotificationsReadSchema = z37.object({ ids: z37.array(z37.number().int().positive()).max(200).optional() });
+
+// src/view-as.ts
+var VIEW_AS_HEADER = "x-view-as";
+var VIEW_AS_OPTIONS = [
+  { value: "MANAGER", label: "Manager", role: "MANAGER", region: "IE" },
+  { value: "SALES", label: "Sales", role: "SALES", region: "IE" },
+  { value: "ACCOUNTING", label: "Accounting", role: "ACCOUNTING", region: "IE" },
+  { value: "AUDITOR", label: "Auditor", role: "AUDITOR", region: "IE" },
+  { value: "SALES:UK", label: "UK branch staff", role: "SALES", region: "UK" }
+];
+function parseViewAs(raw) {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+  return VIEW_AS_OPTIONS.find((o) => o.value === value) ?? null;
+}
 export {
+  ADMIN_ONLY_PAGES,
   AI_MESSAGE_MAX_LENGTH,
   AI_QUESTION_MAX_LENGTH,
   ALIAS_USAGE_SOURCES,
@@ -9664,6 +9713,8 @@ export {
   UserRole,
   UserSchema,
   UserStatus,
+  VIEW_AS_HEADER,
+  VIEW_AS_OPTIONS,
   WORKBOOK_CHUNK_MAX_ROWS,
   WORKBOOK_LOAD_ORDER,
   WorkbookChunkRequestSchema,
@@ -9818,6 +9869,7 @@ export {
   parseTradesheetPaste,
   parseTsv,
   parseUserAgent,
+  parseViewAs,
   parseWeight,
   parseWeightGrams,
   planAutolinks,

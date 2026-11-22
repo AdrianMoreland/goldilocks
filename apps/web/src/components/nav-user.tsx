@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { EllipsisVertical, LogOut, Moon, Paintbrush, Rows3, Settings, Sun } from "lucide-react"
+import { Eye, EllipsisVertical, LogOut, Moon, Paintbrush, Rows3, Settings, Sun } from "lucide-react"
+import { VIEW_AS_OPTIONS } from "@goldilocks/shared-types"
 import { useNavigate } from "react-router-dom"
 
 import { Logo } from "@/components/logo"
@@ -16,7 +17,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -48,7 +54,8 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout, isAdmin, isManager } = useAuth()
+  const { logout, isAdmin, isManager, canViewAs, viewAs, setViewAs } = useAuth()
+  const viewingAs = VIEW_AS_OPTIONS.find((o) => o.value === viewAs)
   const navigate = useNavigate()
   const { toggleTheme } = useCircularTransition()
   const isDarkMode = useIsDarkMode()
@@ -82,7 +89,7 @@ export function NavUser({
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {features.redesign ? (isAdmin ? "Admin" : isManager ? "Manager" : "Staff") : user.email}
+                  {viewingAs ? `Viewing as ${viewingAs.label}` : features.redesign ? (isAdmin ? "Admin" : isManager ? "Manager" : "Staff") : user.email}
                 </span>
               </div>
               <EllipsisVertical className="ml-auto size-4" />
@@ -130,6 +137,24 @@ export function NavUser({
                 <Paintbrush />
                 Theme editor
               </DropdownMenuItem>
+            )}
+            {canViewAs && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <Eye />
+                  View as
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="min-w-48">
+                  <DropdownMenuRadioGroup value={viewAs ?? "ADMIN"} onValueChange={(value) => setViewAs(value === "ADMIN" ? null : value)}>
+                    <DropdownMenuRadioItem value="ADMIN" className="cursor-pointer">Admin (you)</DropdownMenuRadioItem>
+                    {VIEW_AS_OPTIONS.map((option) => (
+                      <DropdownMenuRadioItem key={option.value} value={option.value} className="cursor-pointer">
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             )}
             {features.redesign && (
               <DropdownMenuItem onSelect={() => navigate("/settings")} className="cursor-pointer">

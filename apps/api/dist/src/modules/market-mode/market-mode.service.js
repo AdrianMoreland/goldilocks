@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarketModeService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const audit_log_service_1 = require("../admin/audit-log.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 const ROW_ID = 1;
 const STANDARD = {
     weekend: false,
@@ -47,7 +47,6 @@ let MarketModeService = class MarketModeService {
         };
     }
     async set(next, actor) {
-        const before = await this.get();
         const name = `${actor.firstName} ${actor.lastName}`.trim() || actor.email;
         const data = {
             weekend: next.weekend,
@@ -55,12 +54,18 @@ let MarketModeService = class MarketModeService {
             shortage: next.shortage,
             updatedBy: name,
         };
-        const row = await this.prisma.marketModeState.upsert({
-            where: { id: ROW_ID },
-            create: { id: ROW_ID, ...data },
-            update: data,
+        const row = await this.prisma.$transaction(async (tx) => {
+            const previous = await tx.marketModeState.findUnique({
+                where: { id: ROW_ID },
+            });
+            const saved = await tx.marketModeState.upsert({
+                where: { id: ROW_ID },
+                create: { id: ROW_ID, ...data },
+                update: data,
+            });
+            await this.audit.record(actor.email, 'market-mode', `${label(previous ?? STANDARD)} → ${label(next)}`, tx);
+            return saved;
         });
-        await this.audit.record(actor.email, 'market-mode', `${label(before)} → ${label(next)}`);
         return {
             weekend: row.weekend,
             volatile: row.volatile,

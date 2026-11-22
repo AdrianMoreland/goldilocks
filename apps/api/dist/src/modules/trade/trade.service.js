@@ -13,19 +13,19 @@ exports.TradeService = void 0;
 const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
 const metals_provider_1 = require("../metals/metals.provider");
-const products_provider_1 = require("../products/products.provider");
+const products_service_1 = require("../products/products.service");
 const roundPct = (value) => Math.round(value * 1e4) / 1e4;
 let TradeService = class TradeService {
     metalsProvider;
-    productsProvider;
-    constructor(metalsProvider, productsProvider) {
+    productsService;
+    constructor(metalsProvider, productsService) {
         this.metalsProvider = metalsProvider;
-        this.productsProvider = productsProvider;
+        this.productsService = productsService;
     }
     async getBootstrap(metalType) {
         const [spot, allProducts] = await Promise.all([
             this.metalsProvider.getLatest(metalType),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${metalType}.`);
@@ -58,12 +58,15 @@ let TradeService = class TradeService {
         }
         const spot = customSpot && customSpot > 0 ? customSpot : masterSpot.priceEur;
         const spotPerGram = spot / shared_types_1.GRAMS_PER_TROY_OUNCE;
-        const products = await Promise.all(items.map((item) => this.productsProvider.getById(item.productId)));
+        const found = await this.productsService.findByIds([
+            ...new Set(items.map((item) => item.productId)),
+        ]);
+        const productById = new Map(found.map((p) => [p.id, p]));
         let totalWeight = 0;
         let totalPrice = 0;
         const lines = [];
-        items.forEach((item, index) => {
-            const product = products[index];
+        items.forEach((item) => {
+            const product = productById.get(item.productId);
             if (!product) {
                 throw new common_1.NotFoundException(`Product ${item.productId} not found.`);
             }
@@ -71,8 +74,11 @@ let TradeService = class TradeService {
                 throw new common_1.BadRequestException(`${product.name} is not a ${metalType} product.`);
             }
             const percent = this.validatePercent(transactionType, item.percent);
-            const quantity = Math.max(1, Math.floor(item.quantity) || 1);
-            const basePrice = spotPerGram * product.weight;
+            const quantity = item.quantity;
+            const vatMultiplier = transactionType === 'buying'
+                ? 1 + (0, shared_types_1.effectiveVatRate)(product)
+                : 1;
+            const basePrice = spotPerGram * product.weight * vatMultiplier;
             const unitPrice = (0, shared_types_1.computeTransactionPrice)(basePrice, transactionType, percent);
             const lineTotal = unitPrice * quantity;
             const lineWeight = product.weight * quantity;
@@ -118,7 +124,7 @@ let TradeService = class TradeService {
             meltFactor: category.meltFactor,
             purity: category.purity,
             weight: request.weight,
-            meltValue,
+            meltValue: (0, shared_types_1.roundBuyPrice)(meltValue),
         };
     }
     validatePercent(transactionType, value) {
@@ -138,6 +144,6 @@ exports.TradeService = TradeService;
 exports.TradeService = TradeService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [metals_provider_1.MetalsProvider,
-        products_provider_1.ProductsProvider])
+        products_service_1.ProductsService])
 ], TradeService);
 //# sourceMappingURL=trade.service.js.map

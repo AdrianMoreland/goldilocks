@@ -16,8 +16,8 @@ const schedule_1 = require("@nestjs/schedule");
 const metals_provider_1 = require("./metals.provider");
 const historic_spot_service_1 = require("./historic-spot.service");
 const date_utils_1 = require("../../common/utils/date.utils");
+const price_refresh_schedule_1 = require("./price-refresh-schedule");
 const STALE_THRESHOLD_DAYS = 1;
-const PRICE_REFRESH_JOB = 'updateMetals';
 let MetalsCron = MetalsCron_1 = class MetalsCron {
     metalsProvider;
     historicSpots;
@@ -29,10 +29,10 @@ let MetalsCron = MetalsCron_1 = class MetalsCron {
         this.schedulerRegistry = schedulerRegistry;
     }
     isPriceCronRunning() {
-        return this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB).isActive;
+        return this.schedulerRegistry.getCronJob(price_refresh_schedule_1.PRICE_REFRESH_JOB).isActive;
     }
     async setPriceCronEnabled(enabled) {
-        const job = this.schedulerRegistry.getCronJob(PRICE_REFRESH_JOB);
+        const job = this.schedulerRegistry.getCronJob(price_refresh_schedule_1.PRICE_REFRESH_JOB);
         if (enabled) {
             job.start();
             this.logger.log('▶️ Price-refresh cron resumed by admin');
@@ -45,7 +45,7 @@ let MetalsCron = MetalsCron_1 = class MetalsCron {
     }
     onModuleInit() {
         void this.backfillHistoricIfStale().catch((error) => {
-            this.logger.error('Historic backfill failed — will be retried on the next restart or by the daily job', error instanceof Error ? error.stack : String(error));
+            this.logger.error('Historic backfill failed - will be retried on the next restart or by the daily job', error instanceof Error ? error.stack : String(error));
         });
     }
     async backfillHistoricIfStale() {
@@ -57,14 +57,19 @@ let MetalsCron = MetalsCron_1 = class MetalsCron {
             return;
         }
         this.logger.warn(latest
-            ? `Historic spot data is stale (latest: ${latest.toISOString()}) — backfilling…`
-            : 'No historic spot data found — seeding…');
+            ? `Historic spot data is stale (latest: ${latest.toISOString()}) - backfilling…`
+            : 'No historic spot data found - seeding…');
         await this.historicSpots.seedHistoricPrices();
     }
     async updateMetals() {
-        const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
-        if (degradedMetals.length > 0) {
-            this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
+        try {
+            const { degradedMetals } = await this.metalsProvider.refreshAll('CRON');
+            if (degradedMetals.length > 0) {
+                this.logger.warn(`No usable price anywhere (API/DB) for: ${degradedMetals.join(', ')}`);
+            }
+        }
+        catch (err) {
+            this.logger.error(`Scheduled price refresh failed: ${err instanceof Error ? err.message : String(err)}`);
         }
     }
     async dailyHistoricClose() {
@@ -75,7 +80,10 @@ let MetalsCron = MetalsCron_1 = class MetalsCron {
 };
 exports.MetalsCron = MetalsCron;
 __decorate([
-    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_10_MINUTES, { name: PRICE_REFRESH_JOB }),
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_5_MINUTES, {
+        name: price_refresh_schedule_1.PRICE_REFRESH_JOB,
+        disabled: true,
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)

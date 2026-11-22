@@ -1,4 +1,5 @@
 import { ProductsService } from './products.service';
+import { type RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { CreateProductDto, UpdateProductDto, UpdateStockRequestDto } from '../../common/dto/dtos';
 import { RawProduct } from '@goldilocks/shared-types';
 export declare class ProductsController {
@@ -6,7 +7,7 @@ export declare class ProductsController {
     constructor(service: ProductsService);
     getAll(): Promise<RawProduct[]>;
     getById(id: number): Promise<RawProduct>;
-    createProduct(body: CreateProductDto): Promise<{
+    createProduct(body: CreateProductDto, req: RequestWithUser): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -22,7 +23,7 @@ export declare class ProductsController {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    updateProduct(id: number, body: UpdateProductDto): Promise<{
+    updateProduct(id: number, body: UpdateProductDto, req: RequestWithUser): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -38,7 +39,7 @@ export declare class ProductsController {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    updateStock(id: number, body: UpdateStockRequestDto): Promise<{
+    updateStock(id: number, body: UpdateStockRequestDto, req: RequestWithUser): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -54,6 +55,7 @@ export declare class ProductsController {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
+    getInactive(): Promise<RawProduct[]>;
     getDeleted(): Promise<({
         id: number;
         sku: string;
@@ -72,7 +74,7 @@ export declare class ProductsController {
     } & {
         deletedAt: string;
     })[]>;
-    restore(id: number): Promise<{
+    restore(id: number, req: RequestWithUser): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -88,7 +90,7 @@ export declare class ProductsController {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    delete(id: number): Promise<{
+    delete(id: number, req: RequestWithUser): Promise<{
         message: string;
     }>;
 }

@@ -13,11 +13,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KnowledgeController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const nestjs_zod_1 = require("nestjs-zod");
 const shared_types_1 = require("@goldilocks/shared-types");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const capability_guard_1 = require("../../common/guards/capability.guard");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const dtos_1 = require("../../common/dto/dtos");
@@ -29,7 +31,7 @@ let KnowledgeController = class KnowledgeController {
     }
     async listDocuments(request) {
         return {
-            documents: await this.knowledge.listDocuments(request.user.admin),
+            documents: await this.knowledge.listDocuments(request.user.admin, (0, capability_guard_1.capabilitiesOf)(request.user)),
         };
     }
     async updateDocument(slug, body, request) {
@@ -38,10 +40,14 @@ let KnowledgeController = class KnowledgeController {
     async setStatus(slug, body, request) {
         return this.knowledge.setStatus(slug, body.status, request.user.email);
     }
+    async setVisibility(slug, body, request) {
+        return this.knowledge.setVisibility(slug, body.visibility, request.user.email);
+    }
 };
 exports.KnowledgeController = KnowledgeController;
 __decorate([
     (0, common_1.Get)('documents'),
+    (0, permission_decorator_1.RequiresPermission)('page.knowledge'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({
         summary: 'All SOPs the caller may read, with their Markdown',
@@ -88,6 +94,23 @@ __decorate([
     __metadata("design:paramtypes", [String, dtos_1.SetKbStatusRequestDto, Object]),
     __metadata("design:returntype", Promise)
 ], KnowledgeController.prototype, "setStatus", null);
+__decorate([
+    (0, common_1.Post)('documents/:slug/visibility'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Choose which branches can read a SOP (admin)',
+        description: "'all' shows it to UK branches too; 'ie_only' (the default) keeps it to Irish branches. Does not change the SOP's approval status.",
+    }),
+    (0, swagger_1.ApiResponse)({ status: 201, type: dtos_1.KbDocumentDto }),
+    __param(0, (0, common_1.Param)('slug', new nestjs_zod_1.ZodValidationPipe(shared_types_1.KbSlugSchema))),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, dtos_1.SetKbVisibilityRequestDto, Object]),
+    __metadata("design:returntype", Promise)
+], KnowledgeController.prototype, "setVisibility", null);
 exports.KnowledgeController = KnowledgeController = __decorate([
     (0, swagger_1.ApiTags)('knowledge'),
     (0, common_1.Controller)('knowledge'),

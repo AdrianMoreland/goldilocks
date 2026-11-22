@@ -20,6 +20,7 @@ const metal_price_api_port_1 = require("../../infrastructure/metal-price-api/met
 const spot_price_cache_store_1 = require("./spot-price-cache.store");
 const cascade_metrics_service_1 = require("./cascade-metrics.service");
 const fetch_attempt_service_1 = require("./fetch-attempt.service");
+const price_refresh_schedule_1 = require("./price-refresh-schedule");
 const pricing_util_1 = require("../../common/utils/pricing.util");
 const vendor_rates_1 = require("./vendor-rates");
 const DB_STALE_MS = 30 * 60 * 1000;
@@ -38,13 +39,18 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
     spotCache;
     cascadeMetrics;
     fetchAttempts;
+    schedule;
     logger = new common_1.Logger(MetalsProvider_1.name);
-    constructor(prisma, metalPriceApi, spotCache, cascadeMetrics, fetchAttempts) {
+    constructor(prisma, metalPriceApi, spotCache, cascadeMetrics, fetchAttempts, schedule) {
         this.prisma = prisma;
         this.metalPriceApi = metalPriceApi;
         this.spotCache = spotCache;
         this.cascadeMetrics = cascadeMetrics;
         this.fetchAttempts = fetchAttempts;
+        this.schedule = schedule;
+    }
+    isAutoRefreshRunning() {
+        return this.schedule.isRunning();
     }
     async getLatest(metal) {
         return this.spotCache.get(metal);
@@ -59,6 +65,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
     async getAllLatestForLaunch() {
         const prices = [];
         const needsLiveFetch = [];
+        const autoRefreshRunning = this.schedule.isRunning();
         for (const metal of pricing_util_1.ALL_METALS) {
             const cached = await this.spotCache.getCachedOnly(metal);
             if (isUsablePrice(cached)) {
@@ -68,7 +75,8 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
             }
             this.cascadeMetrics.recordCacheMiss();
             const dbRow = await this.spotCache.getFromDbOnly(metal);
-            if (isUsablePrice(dbRow) && isFresh(dbRow.timestamp, DB_STALE_MS)) {
+            if (isUsablePrice(dbRow) &&
+                (!autoRefreshRunning || isFresh(dbRow.timestamp, DB_STALE_MS))) {
                 await this.spotCache.set(metal, dbRow);
                 prices.push(withFetchSource(dbRow, 'db'));
                 continue;
@@ -78,7 +86,10 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         if (needsLiveFetch.length === 0) {
             return { prices, degradedMetals: [] };
         }
-        this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} — trying the live API as a last resort`);
+        if (!autoRefreshRunning) {
+            return { prices, degradedMetals: needsLiveFetch };
+        }
+        this.logger.warn(`Cache/DB insufficient for ${needsLiveFetch.join(', ')} - trying the live API as a last resort`);
         const { rates: liveRates, asOf } = await this.fetchFromExternalApi('LAUNCH_FALLBACK');
         const resolved = needsLiveFetch.filter((metal) => (0, vendor_rates_1.isUsableRate)(liveRates[metal]));
         prices.push(...(await this.persistLive(liveRates, resolved, asOf)));
@@ -100,7 +111,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         const failedMetals = pricing_util_1.ALL_METALS.filter((m) => !liveMetals.includes(m));
         const degradedMetals = [];
         for (const metal of failedMetals) {
-            this.logger.warn(`${metal}: live API didn't return a usable rate — falling back to the last stored price`);
+            this.logger.warn(`${metal}: live API didn't return a usable rate - falling back to the last stored price`);
             const dbRow = await this.spotCache.getFromDbOnly(metal);
             if (isUsablePrice(dbRow)) {
                 await this.spotCache.set(metal, dbRow);
@@ -165,8 +176,20 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
                 return { rates: {}, asOf: new Date() };
             }
             const asOf = (0, vendor_rates_1.vendorAsOf)(response.timestamp);
+            if (!asOf) {
+                const errorMessage = `MetalPriceAPI returned no usable timestamp (${String(response.timestamp)}) - keeping the last stored prices`;
+                this.logger.error(errorMessage);
+                await this.fetchAttempts.record({
+                    durationMs: Date.now() - startedAt,
+                    success: false,
+                    errorMessage,
+                    metalsResolved: [],
+                    triggeredBy,
+                });
+                return { rates: {}, asOf: new Date() };
+            }
             this.logger.debug(`Base=${response.base}, Timestamp=${response.timestamp}`);
-            const rates = (0, vendor_rates_1.mapLiveRates)(response.rates, (metal, symbol) => this.logger.warn(`No rate returned for ${metal} (${symbol}) — keeping last known price`));
+            const rates = (0, vendor_rates_1.mapLiveRates)(response.rates, (metal, symbol) => this.logger.warn(`No rate returned for ${metal} (${symbol}) - keeping last known price`));
             this.logger.log('✅ External API fetch succeeded: ' + JSON.stringify(rates));
             await this.fetchAttempts.record({
                 durationMs: Date.now() - startedAt,
@@ -199,6 +222,7 @@ let MetalsProvider = MetalsProvider_1 = class MetalsProvider {
         this.logger.debug(`Storing ${records.length} metal record(s) in DB…`);
         await this.prisma.metalSpotPrice.createMany({
             data: records,
+            skipDuplicates: true,
         });
         this.logger.log(`💾 Saved ${records.length} metal record(s) to DB`);
     }
@@ -209,6 +233,7 @@ exports.MetalsProvider = MetalsProvider = MetalsProvider_1 = __decorate([
     __param(1, (0, common_1.Inject)(metal_price_api_port_1.METAL_PRICE_API)),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService, Object, spot_price_cache_store_1.SpotPriceCacheStore,
         cascade_metrics_service_1.CascadeMetricsService,
-        fetch_attempt_service_1.FetchAttemptService])
+        fetch_attempt_service_1.FetchAttemptService,
+        price_refresh_schedule_1.PriceRefreshSchedule])
 ], MetalsProvider);
 //# sourceMappingURL=metals.provider.js.map

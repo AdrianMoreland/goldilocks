@@ -19,16 +19,18 @@ export class PermissionGuard implements CanActivate {
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const required = this.reflector.getAllAndOverride<
-            PermissionKey | undefined
-        >(PERMISSION_KEY, [context.getHandler(), context.getClass()]);
-        if (!required) return true;
+        // Class and handler both count: a controller's page permission AND a route's own one must be held.
+        const required = this.reflector.getAllAndMerge<PermissionKey[]>(
+            PERMISSION_KEY,
+            [context.getHandler(), context.getClass()],
+        );
+        if (!required || required.length === 0) return true;
 
         const { user } = context.switchToHttp().getRequest<RequestWithUser>();
         // A permission on a @Public() route is a mistake; fail closed.
         if (!user) throw new ForbiddenException('Insufficient permissions');
         const held = await this.permissions.forUser(user);
-        if (!held.includes(required)) {
+        if (!required.every((key) => held.includes(key))) {
             throw new ForbiddenException('Insufficient permissions');
         }
         return true;

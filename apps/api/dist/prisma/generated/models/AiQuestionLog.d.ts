@@ -232,6 +232,7 @@ export type AiQuestionLogWhereInput = {
     costMicros?: Prisma.IntFilter<"AiQuestionLog"> | number;
     latencyMs?: Prisma.IntFilter<"AiQuestionLog"> | number;
     error?: Prisma.StringNullableFilter<"AiQuestionLog"> | string | null;
+    feedback?: Prisma.AiFeedbackListRelationFilter;
 };
 export type AiQuestionLogOrderByWithRelationInput = {
     id?: Prisma.SortOrder;
@@ -252,6 +253,7 @@ export type AiQuestionLogOrderByWithRelationInput = {
     costMicros?: Prisma.SortOrder;
     latencyMs?: Prisma.SortOrder;
     error?: Prisma.SortOrderInput | Prisma.SortOrder;
+    feedback?: Prisma.AiFeedbackOrderByRelationAggregateInput;
 };
 export type AiQuestionLogWhereUniqueInput = Prisma.AtLeast<{
     id?: number;
@@ -275,6 +277,7 @@ export type AiQuestionLogWhereUniqueInput = Prisma.AtLeast<{
     costMicros?: Prisma.IntFilter<"AiQuestionLog"> | number;
     latencyMs?: Prisma.IntFilter<"AiQuestionLog"> | number;
     error?: Prisma.StringNullableFilter<"AiQuestionLog"> | string | null;
+    feedback?: Prisma.AiFeedbackListRelationFilter;
 }, "id">;
 export type AiQuestionLogOrderByWithAggregationInput = {
     id?: Prisma.SortOrder;
@@ -342,6 +345,7 @@ export type AiQuestionLogCreateInput = {
     costMicros: number;
     latencyMs: number;
     error?: string | null;
+    feedback?: Prisma.AiFeedbackCreateNestedManyWithoutQuestionInput;
 };
 export type AiQuestionLogUncheckedCreateInput = {
     id?: number;
@@ -362,6 +366,7 @@ export type AiQuestionLogUncheckedCreateInput = {
     costMicros: number;
     latencyMs: number;
     error?: string | null;
+    feedback?: Prisma.AiFeedbackUncheckedCreateNestedManyWithoutQuestionInput;
 };
 export type AiQuestionLogUpdateInput = {
     createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
@@ -381,6 +386,7 @@ export type AiQuestionLogUpdateInput = {
     costMicros?: Prisma.IntFieldUpdateOperationsInput | number;
     latencyMs?: Prisma.IntFieldUpdateOperationsInput | number;
     error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    feedback?: Prisma.AiFeedbackUpdateManyWithoutQuestionNestedInput;
 };
 export type AiQuestionLogUncheckedUpdateInput = {
     id?: Prisma.IntFieldUpdateOperationsInput | number;
@@ -401,6 +407,7 @@ export type AiQuestionLogUncheckedUpdateInput = {
     costMicros?: Prisma.IntFieldUpdateOperationsInput | number;
     latencyMs?: Prisma.IntFieldUpdateOperationsInput | number;
     error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+    feedback?: Prisma.AiFeedbackUncheckedUpdateManyWithoutQuestionNestedInput;
 };
 export type AiQuestionLogCreateManyInput = {
     id?: number;
@@ -540,6 +547,10 @@ export type AiQuestionLogSumOrderByAggregateInput = {
     costMicros?: Prisma.SortOrder;
     latencyMs?: Prisma.SortOrder;
 };
+export type AiQuestionLogScalarRelationFilter = {
+    is?: Prisma.AiQuestionLogWhereInput;
+    isNot?: Prisma.AiQuestionLogWhereInput;
+};
 export type AiQuestionLogCreatetoolNamesInput = {
     set: string[];
 };
@@ -553,6 +564,121 @@ export type AiQuestionLogUpdatetoolNamesInput = {
 export type AiQuestionLogUpdatecitationsInput = {
     set?: string[];
     push?: string | string[];
+};
+export type AiQuestionLogCreateNestedOneWithoutFeedbackInput = {
+    create?: Prisma.XOR<Prisma.AiQuestionLogCreateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedCreateWithoutFeedbackInput>;
+    connectOrCreate?: Prisma.AiQuestionLogCreateOrConnectWithoutFeedbackInput;
+    connect?: Prisma.AiQuestionLogWhereUniqueInput;
+};
+export type AiQuestionLogUpdateOneRequiredWithoutFeedbackNestedInput = {
+    create?: Prisma.XOR<Prisma.AiQuestionLogCreateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedCreateWithoutFeedbackInput>;
+    connectOrCreate?: Prisma.AiQuestionLogCreateOrConnectWithoutFeedbackInput;
+    upsert?: Prisma.AiQuestionLogUpsertWithoutFeedbackInput;
+    connect?: Prisma.AiQuestionLogWhereUniqueInput;
+    update?: Prisma.XOR<Prisma.XOR<Prisma.AiQuestionLogUpdateToOneWithWhereWithoutFeedbackInput, Prisma.AiQuestionLogUpdateWithoutFeedbackInput>, Prisma.AiQuestionLogUncheckedUpdateWithoutFeedbackInput>;
+};
+export type AiQuestionLogCreateWithoutFeedbackInput = {
+    createdAt?: Date | string;
+    userId: string;
+    question: string;
+    status: string;
+    mode?: string;
+    toolNames?: Prisma.AiQuestionLogCreatetoolNamesInput | string[];
+    cached?: boolean;
+    retried?: boolean;
+    citations?: Prisma.AiQuestionLogCreatecitationsInput | string[];
+    model: string;
+    corpusHash: string;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    costMicros: number;
+    latencyMs: number;
+    error?: string | null;
+};
+export type AiQuestionLogUncheckedCreateWithoutFeedbackInput = {
+    id?: number;
+    createdAt?: Date | string;
+    userId: string;
+    question: string;
+    status: string;
+    mode?: string;
+    toolNames?: Prisma.AiQuestionLogCreatetoolNamesInput | string[];
+    cached?: boolean;
+    retried?: boolean;
+    citations?: Prisma.AiQuestionLogCreatecitationsInput | string[];
+    model: string;
+    corpusHash: string;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    costMicros: number;
+    latencyMs: number;
+    error?: string | null;
+};
+export type AiQuestionLogCreateOrConnectWithoutFeedbackInput = {
+    where: Prisma.AiQuestionLogWhereUniqueInput;
+    create: Prisma.XOR<Prisma.AiQuestionLogCreateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedCreateWithoutFeedbackInput>;
+};
+export type AiQuestionLogUpsertWithoutFeedbackInput = {
+    update: Prisma.XOR<Prisma.AiQuestionLogUpdateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedUpdateWithoutFeedbackInput>;
+    create: Prisma.XOR<Prisma.AiQuestionLogCreateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedCreateWithoutFeedbackInput>;
+    where?: Prisma.AiQuestionLogWhereInput;
+};
+export type AiQuestionLogUpdateToOneWithWhereWithoutFeedbackInput = {
+    where?: Prisma.AiQuestionLogWhereInput;
+    data: Prisma.XOR<Prisma.AiQuestionLogUpdateWithoutFeedbackInput, Prisma.AiQuestionLogUncheckedUpdateWithoutFeedbackInput>;
+};
+export type AiQuestionLogUpdateWithoutFeedbackInput = {
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    userId?: Prisma.StringFieldUpdateOperationsInput | string;
+    question?: Prisma.StringFieldUpdateOperationsInput | string;
+    status?: Prisma.StringFieldUpdateOperationsInput | string;
+    mode?: Prisma.StringFieldUpdateOperationsInput | string;
+    toolNames?: Prisma.AiQuestionLogUpdatetoolNamesInput | string[];
+    cached?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    retried?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    citations?: Prisma.AiQuestionLogUpdatecitationsInput | string[];
+    model?: Prisma.StringFieldUpdateOperationsInput | string;
+    corpusHash?: Prisma.StringFieldUpdateOperationsInput | string;
+    inputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    outputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    costMicros?: Prisma.IntFieldUpdateOperationsInput | number;
+    latencyMs?: Prisma.IntFieldUpdateOperationsInput | number;
+    error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+};
+export type AiQuestionLogUncheckedUpdateWithoutFeedbackInput = {
+    id?: Prisma.IntFieldUpdateOperationsInput | number;
+    createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+    userId?: Prisma.StringFieldUpdateOperationsInput | string;
+    question?: Prisma.StringFieldUpdateOperationsInput | string;
+    status?: Prisma.StringFieldUpdateOperationsInput | string;
+    mode?: Prisma.StringFieldUpdateOperationsInput | string;
+    toolNames?: Prisma.AiQuestionLogUpdatetoolNamesInput | string[];
+    cached?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    retried?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+    citations?: Prisma.AiQuestionLogUpdatecitationsInput | string[];
+    model?: Prisma.StringFieldUpdateOperationsInput | string;
+    corpusHash?: Prisma.StringFieldUpdateOperationsInput | string;
+    inputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    outputTokens?: Prisma.IntFieldUpdateOperationsInput | number;
+    costMicros?: Prisma.IntFieldUpdateOperationsInput | number;
+    latencyMs?: Prisma.IntFieldUpdateOperationsInput | number;
+    error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+};
+export type AiQuestionLogCountOutputType = {
+    feedback: number;
+};
+export type AiQuestionLogCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    feedback?: boolean | AiQuestionLogCountOutputTypeCountFeedbackArgs;
+};
+export type AiQuestionLogCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.AiQuestionLogCountOutputTypeSelect<ExtArgs> | null;
+};
+export type AiQuestionLogCountOutputTypeCountFeedbackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: Prisma.AiFeedbackWhereInput;
 };
 export type AiQuestionLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
@@ -573,6 +699,8 @@ export type AiQuestionLogSelect<ExtArgs extends runtime.Types.Extensions.Interna
     costMicros?: boolean;
     latencyMs?: boolean;
     error?: boolean;
+    feedback?: boolean | Prisma.AiQuestionLog$feedbackArgs<ExtArgs>;
+    _count?: boolean | Prisma.AiQuestionLogCountOutputTypeDefaultArgs<ExtArgs>;
 }, ExtArgs["result"]["aiQuestionLog"]>;
 export type AiQuestionLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
@@ -635,9 +763,17 @@ export type AiQuestionLogSelectScalar = {
     error?: boolean;
 };
 export type AiQuestionLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdAt" | "userId" | "question" | "status" | "mode" | "toolNames" | "cached" | "retried" | "citations" | "model" | "corpusHash" | "inputTokens" | "cachedInputTokens" | "outputTokens" | "costMicros" | "latencyMs" | "error", ExtArgs["result"]["aiQuestionLog"]>;
+export type AiQuestionLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    feedback?: boolean | Prisma.AiQuestionLog$feedbackArgs<ExtArgs>;
+    _count?: boolean | Prisma.AiQuestionLogCountOutputTypeDefaultArgs<ExtArgs>;
+};
+export type AiQuestionLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {};
+export type AiQuestionLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {};
 export type $AiQuestionLogPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "AiQuestionLog";
-    objects: {};
+    objects: {
+        feedback: Prisma.$AiFeedbackPayload<ExtArgs>[];
+    };
     scalars: runtime.Types.Extensions.GetPayloadResult<{
         id: number;
         createdAt: Date;
@@ -709,6 +845,7 @@ export interface AiQuestionLogDelegate<ExtArgs extends runtime.Types.Extensions.
 }
 export interface Prisma__AiQuestionLogClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise";
+    feedback<T extends Prisma.AiQuestionLog$feedbackArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiQuestionLog$feedbackArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>;
     then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): runtime.Types.Utils.JsPromise<TResult1 | TResult2>;
     catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): runtime.Types.Utils.JsPromise<T | TResult>;
     finally(onfinally?: (() => void) | undefined | null): runtime.Types.Utils.JsPromise<T>;
@@ -736,16 +873,19 @@ export interface AiQuestionLogFieldRefs {
 export type AiQuestionLogFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where: Prisma.AiQuestionLogWhereUniqueInput;
 };
 export type AiQuestionLogFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where: Prisma.AiQuestionLogWhereUniqueInput;
 };
 export type AiQuestionLogFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where?: Prisma.AiQuestionLogWhereInput;
     orderBy?: Prisma.AiQuestionLogOrderByWithRelationInput | Prisma.AiQuestionLogOrderByWithRelationInput[];
     cursor?: Prisma.AiQuestionLogWhereUniqueInput;
@@ -756,6 +896,7 @@ export type AiQuestionLogFindFirstArgs<ExtArgs extends runtime.Types.Extensions.
 export type AiQuestionLogFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where?: Prisma.AiQuestionLogWhereInput;
     orderBy?: Prisma.AiQuestionLogOrderByWithRelationInput | Prisma.AiQuestionLogOrderByWithRelationInput[];
     cursor?: Prisma.AiQuestionLogWhereUniqueInput;
@@ -766,6 +907,7 @@ export type AiQuestionLogFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exte
 export type AiQuestionLogFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where?: Prisma.AiQuestionLogWhereInput;
     orderBy?: Prisma.AiQuestionLogOrderByWithRelationInput | Prisma.AiQuestionLogOrderByWithRelationInput[];
     cursor?: Prisma.AiQuestionLogWhereUniqueInput;
@@ -776,6 +918,7 @@ export type AiQuestionLogFindManyArgs<ExtArgs extends runtime.Types.Extensions.I
 export type AiQuestionLogCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     data: Prisma.XOR<Prisma.AiQuestionLogCreateInput, Prisma.AiQuestionLogUncheckedCreateInput>;
 };
 export type AiQuestionLogCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -791,6 +934,7 @@ export type AiQuestionLogCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
 export type AiQuestionLogUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     data: Prisma.XOR<Prisma.AiQuestionLogUpdateInput, Prisma.AiQuestionLogUncheckedUpdateInput>;
     where: Prisma.AiQuestionLogWhereUniqueInput;
 };
@@ -809,6 +953,7 @@ export type AiQuestionLogUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.E
 export type AiQuestionLogUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where: Prisma.AiQuestionLogWhereUniqueInput;
     create: Prisma.XOR<Prisma.AiQuestionLogCreateInput, Prisma.AiQuestionLogUncheckedCreateInput>;
     update: Prisma.XOR<Prisma.AiQuestionLogUpdateInput, Prisma.AiQuestionLogUncheckedUpdateInput>;
@@ -816,14 +961,27 @@ export type AiQuestionLogUpsertArgs<ExtArgs extends runtime.Types.Extensions.Int
 export type AiQuestionLogDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
     where: Prisma.AiQuestionLogWhereUniqueInput;
 };
 export type AiQuestionLogDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     where?: Prisma.AiQuestionLogWhereInput;
     limit?: number;
 };
+export type AiQuestionLog$feedbackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    select?: Prisma.AiFeedbackSelect<ExtArgs> | null;
+    omit?: Prisma.AiFeedbackOmit<ExtArgs> | null;
+    include?: Prisma.AiFeedbackInclude<ExtArgs> | null;
+    where?: Prisma.AiFeedbackWhereInput;
+    orderBy?: Prisma.AiFeedbackOrderByWithRelationInput | Prisma.AiFeedbackOrderByWithRelationInput[];
+    cursor?: Prisma.AiFeedbackWhereUniqueInput;
+    take?: number;
+    skip?: number;
+    distinct?: Prisma.AiFeedbackScalarFieldEnum | Prisma.AiFeedbackScalarFieldEnum[];
+};
 export type AiQuestionLogDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     select?: Prisma.AiQuestionLogSelect<ExtArgs> | null;
     omit?: Prisma.AiQuestionLogOmit<ExtArgs> | null;
+    include?: Prisma.AiQuestionLogInclude<ExtArgs> | null;
 };
 //# sourceMappingURL=AiQuestionLog.d.ts.map

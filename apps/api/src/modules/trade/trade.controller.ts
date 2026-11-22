@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import {
 
 @ApiTags('trade')
 @RequiresCapability('pricingWorkbook')
+@RequiresPermission('page.dashboard')
 @Controller('trade')
 export class TradeController {
     constructor(private readonly tradeService: TradeService) {}

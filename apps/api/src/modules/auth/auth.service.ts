@@ -290,6 +290,8 @@ export class AuthService {
             admin: user.admin,
             branch: user.branch,
             uiSettings: readUiSettings(user.uiSettings),
+            canViewAs: user.admin,
+            viewAs: null,
         };
     }
 

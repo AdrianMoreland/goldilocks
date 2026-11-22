@@ -10,6 +10,7 @@ exports.MarketModeModule = void 0;
 const common_1 = require("@nestjs/common");
 const auth_module_1 = require("../auth/auth.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
 const market_mode_controller_1 = require("./market-mode.controller");
 const market_mode_service_1 = require("./market-mode.service");
 let MarketModeModule = class MarketModeModule {
@@ -20,6 +21,7 @@ exports.MarketModeModule = MarketModeModule = __decorate([
         imports: [
             auth_module_1.AuthModule,
             prisma_module_1.PrismaModule,
+            audit_log_module_1.AuditLogModule,
         ],
         controllers: [market_mode_controller_1.MarketModeController],
         providers: [market_mode_service_1.MarketModeService],

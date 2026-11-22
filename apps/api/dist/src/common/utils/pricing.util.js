@@ -1,93 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HISTORIC_OLD_STEP_DAYS = exports.HISTORIC_DAILY_DAYS = exports.HISTORIC_LOOKBACK_DAYS = exports.SYMBOL_MAP = exports.ALL_METALS = exports.ZERO_SPOT_MAP = void 0;
-exports.toNumber = toNumber;
-exports.toRawMetalSpotPrice = toRawMetalSpotPrice;
-exports.toRawProduct = toRawProduct;
-exports.calculateProductPrice = calculateProductPrice;
-exports.mergeMetalPrices = mergeMetalPrices;
+exports.HISTORIC_OLD_STEP_DAYS = exports.HISTORIC_DAILY_DAYS = exports.HISTORIC_LOOKBACK_DAYS = exports.SYMBOL_MAP = exports.ALL_METALS = exports.ZERO_SPOT_MAP = exports.mergeMetalPrices = exports.calculateProductPrice = void 0;
 exports.thinOldHistory = thinOldHistory;
 exports.enrichSpotPrices = enrichSpotPrices;
-const shared_types_1 = require("@goldilocks/shared-types");
-const prismaNamespace_1 = require("../../../prisma/generated/internal/prismaNamespace");
-function toNumber(value) {
-    if (value === undefined || value === null)
-        return 0;
-    if (value instanceof prismaNamespace_1.Decimal)
-        return value.toNumber();
-    return value;
-}
-function round2(value) {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-function toRawMetalSpotPrice(record) {
-    return {
-        id: record.id.toString(),
-        metalType: record.metalType,
-        priceEur: toNumber(record.priceEur),
-        priceGbp: toNumber(record.priceGbp),
-        source: record.source,
-        createdAt: record.createdAt.toISOString(),
-        timestamp: record.timestamp.toISOString(),
-    };
-}
-function toRawProduct(product) {
-    return {
-        id: product.id,
-        sku: product.sku,
-        name: product.name,
-        metalType: product.metalType,
-        weight: toNumber(product.weight),
-        spreadBuy: toNumber(product.spreadBuy),
-        spreadSell: toNumber(product.spreadSell),
-        vatRate: toNumber(product.vatRate),
-        stock: product.stock,
-        isActive: product.isActive,
-        category: product.category ?? null,
-        description: product.description,
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString(),
-    };
-}
-function calculateProductPrice(product, spotMap) {
-    const marketPrice = spotMap[product.metalType] ?? 0;
-    const spotPerGram = marketPrice / shared_types_1.GRAMS_PER_TROY_OUNCE;
-    const basePrice = spotPerGram * product.weight;
-    const priceSellVatExcl = basePrice * (1 + product.spreadSell);
-    const priceSell = priceSellVatExcl * (1 + product.vatRate);
-    const priceBuy = basePrice * (1 + product.spreadBuy);
-    return {
-        id: product.id,
-        sku: product.sku,
-        name: product.name,
-        metalType: product.metalType,
-        weight: round2(product.weight),
-        description: product.description ?? '',
-        spreadSell: product.spreadSell,
-        spreadBuy: product.spreadBuy,
-        vatRate: product.vatRate,
-        spotPrice: round2(marketPrice),
-        marketValue: round2(basePrice),
-        priceSell: (0, shared_types_1.roundSellPrice)(priceSell),
-        priceSellVatExcl: (0, shared_types_1.roundSellPrice)(priceSellVatExcl),
-        priceBuy: (0, shared_types_1.roundBuyPrice)(priceBuy),
-        stock: product.stock,
-        isActive: product.isActive,
-        category: product.category ?? null,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-    };
-}
-function mergeMetalPrices(base, overrides) {
-    const merged = { ...base };
-    for (const metal of Object.keys(overrides)) {
-        const value = overrides[metal];
-        if (value !== undefined) {
-            merged[metal] = value;
-        }
-    }
-    return merged;
-}
+var shared_types_1 = require("@goldilocks/shared-types");
+Object.defineProperty(exports, "calculateProductPrice", { enumerable: true, get: function () { return shared_types_1.calculateProductPrice; } });
+Object.defineProperty(exports, "mergeMetalPrices", { enumerable: true, get: function () { return shared_types_1.mergeMetalPrices; } });
 exports.ZERO_SPOT_MAP = {
     GOLD: 0,
     SILVER: 0,

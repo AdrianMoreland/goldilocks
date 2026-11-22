@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuotaService = void 0;
 const common_1 = require("@nestjs/common");
-const redis_service_1 = require("../../redis/redis.service");
+const redis_service_1 = require("../../infrastructure/redis/redis.service");
 const ai_settings_1 = require("./ai.settings");
 const dublin_day_1 = require("./dublin-day");
 const OPEN_SLOT_TTL_SECONDS = 90;

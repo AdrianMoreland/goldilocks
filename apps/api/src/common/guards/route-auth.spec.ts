@@ -17,6 +17,11 @@ import { NotificationsService } from '../../modules/settings/notifications.servi
 import { PeopleService } from '../../modules/people/people.service';
 import { AnalyticsController } from '../../modules/analytics/analytics.controller';
 import { AnalyticsService } from '../../modules/analytics/analytics.service';
+import {
+    DEFAULT_ROLE_PERMISSIONS,
+    effectivePermissions,
+    type PermissionRole,
+} from '@goldilocks/shared-types';
 import { PermissionsController } from '../../modules/permissions/permissions.controller';
 import { PermissionsService } from '../../modules/permissions/permissions.service';
 import { QuestionLogService } from '../../modules/ai/question-log.service';
@@ -170,12 +175,23 @@ function listRoutes(): RouteInfo[] {
 
 describe('route authentication (SEC-1 / SEC-2)', () => {
     let app: INestApplication;
-    const user = { id: 'u1', email: 'staff@example.com', admin: false };
-    const admin = { id: 'u2', email: 'boss@example.com', admin: true };
+    const user = {
+        id: 'u1',
+        email: 'staff@example.com',
+        admin: false,
+        role: 'SALES',
+    };
+    const admin = {
+        id: 'u2',
+        email: 'boss@example.com',
+        admin: true,
+        role: 'ADMIN',
+    };
     const ukStaff = {
         id: 'u3',
         email: 'glasgow@example.com',
         admin: false,
+        role: 'SALES',
         branch: { id: 9, name: 'Glasgow', region: 'UK' },
     };
     const authService = {
@@ -228,7 +244,31 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 { provide: AskStreamResponder, useValue: {} },
                 { provide: QuestionLogService, useValue: {} },
                 { provide: AnalyticsService, useValue: {} },
-                { provide: PermissionsService, useValue: {} },
+                {
+                    // The shipped presets, so the page permissions behave as they do in production.
+                    provide: PermissionsService,
+                    useValue: {
+                        forUser: (u: {
+                            role: PermissionRole;
+                            admin: boolean;
+                        }) =>
+                            Promise.resolve(
+                                effectivePermissions(
+                                    u,
+                                    Object.entries(
+                                        DEFAULT_ROLE_PERMISSIONS,
+                                    ).flatMap(([role, keys]) =>
+                                        keys.map((key) => ({
+                                            role: role as PermissionRole,
+                                            key,
+                                        })),
+                                    ),
+                                    [],
+                                    new Date(),
+                                ),
+                            ),
+                    },
+                },
                 { provide: PeopleService, useValue: {} },
                 { provide: SettingsService, useValue: {} },
                 { provide: SessionsService, useValue: {} },
@@ -605,6 +645,46 @@ describe('route authentication (SEC-1 / SEC-2)', () => {
                 7,
                 'boss@example.com',
             );
+        });
+    });
+
+    describe('page permissions and "view as"', () => {
+        const analytics = { method: 'GET', url: '/analytics/spot' };
+        const adminConsole = { method: 'GET', url: '/admin/overview' };
+        const workbook = { method: 'GET', url: '/trade/GOLD/bootstrap' };
+
+        it('keeps a page nobody has been given away from non-admins, and open to an admin', async () => {
+            await send(analytics, 'staff').expect(403);
+            const res = await send(analytics, 'admin');
+            expect(res.status).not.toBe(403);
+        });
+
+        it('shows an admin the app as a manager: no admin console', async () => {
+            await send(adminConsole, 'admin')
+                .set('X-View-As', 'MANAGER')
+                .expect(403);
+        });
+
+        it('shows an admin the app as UK branch staff: no pricing workbook', async () => {
+            await send(workbook, 'admin')
+                .set('X-View-As', 'SALES:UK')
+                .expect(403);
+        });
+
+        it('ignores an unknown value, so the admin keeps their own access', async () => {
+            const res = await send(adminConsole, 'admin').set(
+                'X-View-As',
+                'ADMIN',
+            );
+            expect(res.status).not.toBe(403);
+        });
+
+        it('never lets a non-admin use the header to change who they are', async () => {
+            const res = await send(analytics, 'staff').set(
+                'X-View-As',
+                'MANAGER',
+            );
+            expect(res.status).toBe(403);
         });
     });
 });

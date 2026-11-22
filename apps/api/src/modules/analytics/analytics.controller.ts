@@ -18,6 +18,7 @@ import { AnalyticsService } from './analytics.service';
 @ApiTags('analytics')
 @ApiBearerAuth()
 @RequiresCapability('pricingWorkbook')
+@RequiresPermission('page.analytics')
 @Controller('analytics')
 export class AnalyticsController {
     constructor(private readonly analytics: AnalyticsService) {}

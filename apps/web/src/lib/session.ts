@@ -1,3 +1,4 @@
+import { VIEW_AS_HEADER } from '@goldilocks/shared-types'
 import { API_URL } from '@/api/base'
 
 /**
@@ -41,6 +42,30 @@ export const tokenStore = {
             localStorage.removeItem(REFRESH_KEY)
         } catch {
             // Nothing stored, nothing to clear.
+        }
+    },
+}
+
+const VIEW_AS_KEY = 'viewAs'
+
+/**
+ * An admin's "view as" choice (see view-as.ts in shared-types). Kept per tab (sessionStorage) so a forgotten choice
+ * ends with the tab; the server only honours it for a real admin.
+ */
+export const viewAsStore = {
+    get(): string | null {
+        try {
+            return sessionStorage.getItem(VIEW_AS_KEY)
+        } catch {
+            return null
+        }
+    },
+    set(value: string | null) {
+        try {
+            if (value) sessionStorage.setItem(VIEW_AS_KEY, value)
+            else sessionStorage.removeItem(VIEW_AS_KEY)
+        } catch {
+            // Storage blocked: the choice cannot be kept, so the app stays on the person's own view.
         }
     },
 }
@@ -103,6 +128,8 @@ export async function authorizedFetch(url: string, init: RequestInit = {}): Prom
     const send = (token: string | null) => {
         const headers = new Headers(init.headers)
         if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`)
+        const viewAs = viewAsStore.get()
+        if (viewAs) headers.set(VIEW_AS_HEADER, viewAs)
         return fetch(url, { ...init, headers })
     }
 

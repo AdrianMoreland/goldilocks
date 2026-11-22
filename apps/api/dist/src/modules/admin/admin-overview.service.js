@@ -13,9 +13,12 @@ exports.AdminOverviewService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const ai_settings_1 = require("../ai/ai.settings");
+const dublin_day_1 = require("../ai/dublin-day");
+const question_log_service_1 = require("../ai/question-log.service");
 const error_log_service_1 = require("../error-log/error-log.service");
 const db_browser_service_1 = require("./db-browser.service");
-const request_metrics_service_1 = require("./request-metrics.service");
+const request_metrics_service_1 = require("../request-metrics/request-metrics.service");
 const system_health_service_1 = require("./system-health.service");
 const DAY_MS = 24 * 60 * 60 * 1000;
 let AdminOverviewService = class AdminOverviewService {
@@ -25,17 +28,33 @@ let AdminOverviewService = class AdminOverviewService {
     metrics;
     db;
     errorLog;
-    constructor(config, prisma, health, metrics, db, errorLog) {
+    aiSettings;
+    questionLog;
+    constructor(config, prisma, health, metrics, db, errorLog, aiSettings, questionLog) {
         this.config = config;
         this.prisma = prisma;
         this.health = health;
         this.metrics = metrics;
         this.db = db;
         this.errorLog = errorLog;
+        this.aiSettings = aiSettings;
+        this.questionLog = questionLog;
+    }
+    async aiSpend() {
+        try {
+            const micros = await this.questionLog.spentSince((0, dublin_day_1.startOfDublinDay)(new Date()));
+            return {
+                spentUsd: micros / 1_000_000,
+                dailyLimitUsd: this.aiSettings.dailyBudgetUsd,
+            };
+        }
+        catch {
+            return null;
+        }
     }
     async build() {
         const since = new Date(Date.now() - DAY_MS);
-        const [health, traffic, tables, databaseBytes, roles, activeUsers, errors,] = await Promise.all([
+        const [health, traffic, tables, databaseBytes, roles, activeUsers, errors, aiSpend,] = await Promise.all([
             this.health.check(),
             this.metrics.getLastDay(),
             this.db.listTables(),
@@ -43,6 +62,7 @@ let AdminOverviewService = class AdminOverviewService {
             this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
             this.prisma.user.count({ where: { lastLoginAt: { gte: since } } }),
             this.errorLog.getRecent(500),
+            this.aiSpend(),
         ]);
         const errorCounts = new Map();
         for (const entry of errors.entries) {
@@ -56,6 +76,7 @@ let AdminOverviewService = class AdminOverviewService {
             nodeVersion: process.version,
             environment: this.config.get('NODE_ENV', 'development'),
             aiEnabled: this.config.get('AI_ENABLED') === 'true',
+            aiSpend,
             health,
             metricsAvailable: traffic !== null,
             hours: traffic?.hours ?? [],
@@ -84,6 +105,8 @@ exports.AdminOverviewService = AdminOverviewService = __decorate([
         system_health_service_1.SystemHealthService,
         request_metrics_service_1.RequestMetricsService,
         db_browser_service_1.DbBrowserService,
-        error_log_service_1.ErrorLogService])
+        error_log_service_1.ErrorLogService,
+        ai_settings_1.AiSettings,
+        question_log_service_1.QuestionLogService])
 ], AdminOverviewService);
 //# sourceMappingURL=admin-overview.service.js.map

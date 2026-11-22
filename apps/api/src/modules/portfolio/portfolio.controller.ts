@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import { RequiresCapability } from '../../common/decorators/capability.decorator';
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -11,6 +12,7 @@ import {
 
 @ApiTags('portfolio')
 @RequiresCapability('pricingWorkbook')
+@RequiresPermission('page.dashboard')
 @Controller('portfolio')
 export class PortfolioController {
     constructor(private readonly portfolioService: PortfolioService) {}

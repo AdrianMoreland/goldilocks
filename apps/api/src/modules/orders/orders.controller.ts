@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     BadRequestException,
     Body,
@@ -28,7 +29,6 @@ import { SheetTasksService } from './sheet-tasks.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import {
     RecordStepRequestDto,
     SaveHandoverRequestDto,
@@ -39,7 +39,7 @@ import {
 @ApiBearerAuth()
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.orders')
 export class OrdersController {
     constructor(private readonly service: OrdersService) {}
 
@@ -82,7 +82,7 @@ export class OrdersController {
 @ApiBearerAuth()
 @Controller('sheet-tasks')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.orders')
 export class SheetTasksController {
     constructor(private readonly service: SheetTasksService) {}
 
@@ -120,7 +120,7 @@ export class SheetTasksController {
 @ApiBearerAuth()
 @Controller('handover')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.orders')
 export class HandoverController {
     constructor(private readonly service: SheetTasksService) {}
 
