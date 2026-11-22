@@ -441,6 +441,7 @@ __export(index_exports, {
   StocktakeLineSchema: () => StocktakeLineSchema,
   StocktakeSchema: () => StocktakeSchema,
   StocktakeStatusEnum: () => StocktakeStatusEnum,
+  TRADE_CART_MAX_ITEMS: () => TRADE_CART_MAX_ITEMS,
   TRADE_METAL_SLIDER_BOUNDS: () => TRADE_METAL_SLIDER_BOUNDS,
   TRADE_STATES: () => TRADE_STATES,
   TabPlanSchema: () => TabPlanSchema,
@@ -985,11 +986,12 @@ var TradeCartItemRequestSchema = import_zod6.z.object({
   quantity: import_zod6.z.coerce.number().int().min(1).default(1),
   percent: import_zod6.z.coerce.number().min(0)
 });
+var TRADE_CART_MAX_ITEMS = 100;
 var TradeCartRequestSchema = import_zod6.z.object({
   metalType: MetalTypeEnum,
   transactionType: TradeTransactionTypeEnum,
   customSpot: import_zod6.z.coerce.number().positive().optional(),
-  items: import_zod6.z.array(TradeCartItemRequestSchema).min(1)
+  items: import_zod6.z.array(TradeCartItemRequestSchema).min(1).max(TRADE_CART_MAX_ITEMS)
 });
 var TradeCartLineSchema = import_zod6.z.object({
   productId: import_zod6.z.number(),
@@ -10313,6 +10315,7 @@ var MarkNotificationsReadSchema = import_zod37.z.object({ ids: import_zod37.z.ar
   StocktakeLineSchema,
   StocktakeSchema,
   StocktakeStatusEnum,
+  TRADE_CART_MAX_ITEMS,
   TRADE_METAL_SLIDER_BOUNDS,
   TRADE_STATES,
   TabPlanSchema,

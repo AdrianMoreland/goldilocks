@@ -44,11 +44,14 @@ export const TradeCartItemRequestSchema = z.object({
 });
 export type TradeCartItemRequest = z.infer<typeof TradeCartItemRequestSchema>;
 
+/** Most lines one cart may carry. A real cart is a handful; the cap keeps one request from multiplying work. */
+export const TRADE_CART_MAX_ITEMS = 100;
+
 export const TradeCartRequestSchema = z.object({
   metalType: MetalTypeEnum,
   transactionType: TradeTransactionTypeEnum,
   customSpot: z.coerce.number().positive().optional(),
-  items: z.array(TradeCartItemRequestSchema).min(1),
+  items: z.array(TradeCartItemRequestSchema).min(1).max(TRADE_CART_MAX_ITEMS),
 });
 export type TradeCartRequest = z.infer<typeof TradeCartRequestSchema>;
 

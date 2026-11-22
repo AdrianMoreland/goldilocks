@@ -40,6 +40,15 @@ export class ProductsProvider {
         return product ? toRawProduct(product) : null;
     }
 
+    /** The live (not soft-deleted) products among these ids, in one query. Unknown or deleted ids are simply absent. */
+    async getByIds(ids: number[]): Promise<RawProduct[]> {
+        if (ids.length === 0) return [];
+        const rows = await this.prisma.product.findMany({
+            where: { id: { in: ids }, deletedAt: null },
+        });
+        return rows.map(toRawProduct);
+    }
+
     /** Includes soft-deleted rows - the SKU column is unique across both. */
     async findBySku(
         sku: string,
