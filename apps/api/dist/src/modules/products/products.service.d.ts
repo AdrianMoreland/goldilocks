@@ -1,29 +1,14 @@
-import { MetalType } from '../../../prisma/generated/enums';
-import { Product, RawProduct } from '@goldilocks/shared-types';
+import { RawProduct } from '@goldilocks/shared-types';
 import { CreateProductDto, UpdateProductDto } from '../../common/dto/dtos';
 import { ProductsProvider } from './products.provider';
 export declare class ProductsService {
     private readonly productsProvider;
     constructor(productsProvider: ProductsProvider);
-    getProducts(spotMap?: Record<MetalType, number>): Promise<Product[]>;
-    getRawProducts(): Promise<{
-        id: number;
-        sku: string;
-        name: string;
-        metalType: "GOLD" | "SILVER" | "PLATINUM" | "PALLADIUM";
-        weight: number;
-        spreadBuy: number;
-        spreadSell: number;
-        vatRate: number;
-        stock: number;
-        isActive: boolean;
-        createdAt: string;
-        updatedAt: string;
-        category?: "BAR" | "COIN" | null | undefined;
-        description?: string | null | undefined;
-    }[]>;
+    getRawProducts(): Promise<RawProduct[]>;
+    getRawProductsIncludingInactive(): Promise<RawProduct[]>;
+    findById(id: number): Promise<RawProduct | null>;
     getById(id: number): Promise<RawProduct>;
-    create(dto: CreateProductDto): Promise<{
+    create(dto: CreateProductDto, actor: string): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -39,7 +24,7 @@ export declare class ProductsService {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    update(id: number, dto: Partial<UpdateProductDto>): Promise<{
+    update(id: number, dto: Partial<UpdateProductDto>, actor: string): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -55,7 +40,7 @@ export declare class ProductsService {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    delete(id: number): Promise<{
+    delete(id: number, actor: string): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -89,7 +74,7 @@ export declare class ProductsService {
     } & {
         deletedAt: string;
     })[]>;
-    restore(id: number): Promise<{
+    restore(id: number, actor: string): Promise<{
         id: number;
         sku: string;
         name: string;
@@ -105,7 +90,7 @@ export declare class ProductsService {
         category?: "BAR" | "COIN" | null | undefined;
         description?: string | null | undefined;
     }>;
-    updateStock(id: number, stockQuantity: number): Promise<{
+    updateStock(id: number, stockQuantity: number, actor: string): Promise<{
         id: number;
         sku: string;
         name: string;

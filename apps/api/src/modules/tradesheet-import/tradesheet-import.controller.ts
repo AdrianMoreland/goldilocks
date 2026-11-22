@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -15,7 +16,6 @@ import { TradesheetImportService } from './tradesheet-import.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { TradesheetImportRequestDto } from '../../common/dto/dtos';
 
 /** Monthly trade sheets (roadmap 1.19). Admin only for now. */
@@ -23,7 +23,7 @@ import { TradesheetImportRequestDto } from '../../common/dto/dtos';
 @ApiBearerAuth()
 @Controller('tradesheet-import')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.tradesheets')
 export class TradesheetImportController {
     constructor(private readonly service: TradesheetImportService) {}
 

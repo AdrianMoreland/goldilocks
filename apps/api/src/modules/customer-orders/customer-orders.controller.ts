@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -22,7 +23,6 @@ import { CustomerOrdersService } from './customer-orders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import {
     AddEvidenceRequestDto,
     CreateCustomerOrderRequestDto,
@@ -35,7 +35,7 @@ import {
 @ApiBearerAuth()
 @Controller('customer-orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'manager')
+@RequiresPermission('page.customer-orders')
 export class CustomerOrdersController {
     constructor(private readonly service: CustomerOrdersService) {}
 

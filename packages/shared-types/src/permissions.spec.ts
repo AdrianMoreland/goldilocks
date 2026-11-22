@@ -5,13 +5,11 @@ const NOW = new Date('2026-11-21T12:00:00Z');
 
 describe('DEFAULT_ROLE_PERMISSIONS', () => {
   it('matches the agreed starting matrix', () => {
-    expect([...DEFAULT_ROLE_PERMISSIONS.SALES].sort()).toEqual([
-      'analytics.inventory',
-      'analytics.orders',
-      'analytics.pricing',
-    ]);
-    expect([...DEFAULT_ROLE_PERMISSIONS.ACCOUNTING].sort()).toEqual(['analytics.customers', 'analytics.sales']);
-    expect([...DEFAULT_ROLE_PERMISSIONS.MANAGER].sort()).toEqual([
+    const analytics = (role: keyof typeof DEFAULT_ROLE_PERMISSIONS) =>
+      DEFAULT_ROLE_PERMISSIONS[role].filter((k) => k.startsWith('analytics.')).sort();
+    expect(analytics('SALES')).toEqual(['analytics.inventory', 'analytics.orders', 'analytics.pricing']);
+    expect(analytics('ACCOUNTING')).toEqual(['analytics.customers', 'analytics.sales']);
+    expect(analytics('MANAGER')).toEqual([
       'analytics.customers',
       'analytics.inventory',
       'analytics.orders',
@@ -21,6 +19,24 @@ describe('DEFAULT_ROLE_PERMISSIONS', () => {
     expect(DEFAULT_ROLE_PERMISSIONS.AUDITOR).toContain('analytics.ops');
     expect(DEFAULT_ROLE_PERMISSIONS.AUDITOR).toContain('admin.audit');
     expect([...DEFAULT_ROLE_PERMISSIONS.ADMIN].sort()).toEqual([...PERMISSION_KEYS].sort());
+  });
+});
+
+describe('page defaults', () => {
+  const pages = (role: keyof typeof DEFAULT_ROLE_PERMISSIONS) =>
+    DEFAULT_ROLE_PERMISSIONS[role].filter((k) => k.startsWith('page.')).sort();
+
+  it('keeps unreleased pages admin-only', () => {
+    for (const role of ['MANAGER', 'SALES', 'ACCOUNTING', 'AUDITOR'] as const) {
+      for (const k of ['page.orders', 'page.import', 'page.customers', 'page.invoices', 'page.tradesheets', 'page.rules', 'page.inventory', 'page.analytics'] as const) {
+        expect(DEFAULT_ROLE_PERMISSIONS[role]).not.toContain(k);
+      }
+    }
+  });
+
+  it('keeps what managers and everyone already had', () => {
+    expect(pages('MANAGER')).toEqual(['page.customer-orders', 'page.dashboard', 'page.knowledge', 'page.stocktake']);
+    expect(pages('SALES')).toEqual(['page.dashboard', 'page.knowledge']);
   });
 });
 

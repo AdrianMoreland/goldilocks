@@ -6,12 +6,38 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
+import { parseViewAs, VIEW_AS_HEADER } from '@goldilocks/shared-types';
 import { AuthService } from '../../modules/auth/auth.service';
 import type { AuthenticatedUser } from '../../modules/auth/auth.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 export interface RequestWithUser extends Request {
     user: AuthenticatedUser;
+    /** The signed-in person themselves, set only while an admin is viewing the app as someone else. */
+    realUser?: AuthenticatedUser;
+    /** The "view as" value in force, set together with realUser. */
+    viewAs?: string;
+}
+
+/**
+ * An admin's "view as" choice: that request is treated as a non-admin of the chosen role and region, so every guard
+ * and permission applies for real. Anyone who is not an admin gets their own user back, whatever header they send.
+ */
+export function applyViewAs(
+    user: AuthenticatedUser,
+    header: string | string[] | undefined,
+): { user: AuthenticatedUser; viewAs?: string } {
+    const option = user.admin ? parseViewAs(header) : null;
+    if (!option) return { user };
+    return {
+        user: {
+            ...user,
+            admin: false,
+            role: option.role,
+            branch: { id: 0, name: option.label, region: option.region },
+        },
+        viewAs: option.value,
+    };
 }
 
 /**
@@ -47,7 +73,13 @@ export class JwtAuthGuard implements CanActivate {
         }
 
         const token = authHeader.split(' ')[1];
-        request.user = await this.authService.validateToken(token);
+        const real = await this.authService.validateToken(token);
+        const seen = applyViewAs(real, request.headers[VIEW_AS_HEADER]);
+        request.user = seen.user;
+        if (seen.viewAs) {
+            request.realUser = real;
+            request.viewAs = seen.viewAs;
+        }
         return true;
     }
 }

@@ -1,4 +1,4 @@
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 export declare abstract class CacheAsideStore<TKey, TValue> {
     protected readonly redis: RedisService;
     protected readonly ttlSeconds: number;

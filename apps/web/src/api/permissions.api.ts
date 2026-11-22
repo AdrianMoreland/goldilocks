@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PermissionListSchema, type PermissionKey } from '@goldilocks/shared-types';
 import { useApiClient } from '@/api/api-client';
@@ -14,6 +15,11 @@ export function useMyPermissions() {
         enabled: isAuthenticated,
         staleTime: 60_000,
     });
-    const held = new Set<PermissionKey>(query.data ?? []);
-    return { ...query, can: (key: PermissionKey) => held.has(key) };
+    // An admin holds every permission, so their menu does not wait for (or flicker on) the request.
+    const isAdmin = user?.admin === true;
+    const can = useCallback(
+        (key: PermissionKey) => isAdmin || (query.data ?? []).includes(key),
+        [isAdmin, query.data],
+    );
+    return { ...query, can };
 }

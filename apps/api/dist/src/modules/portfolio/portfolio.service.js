@@ -12,18 +12,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PortfolioService = void 0;
 const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
-const products_provider_1 = require("../products/products.provider");
+const products_service_1 = require("../products/products.service");
 const metals_provider_1 = require("../metals/metals.provider");
 const pricing_util_1 = require("../../common/utils/pricing.util");
 let PortfolioService = class PortfolioService {
-    productsProvider;
+    productsService;
     metalsProvider;
-    constructor(productsProvider, metalsProvider) {
-        this.productsProvider = productsProvider;
+    constructor(productsService, metalsProvider) {
+        this.productsService = productsService;
         this.metalsProvider = metalsProvider;
     }
     async calculateProfitAnalysis(request) {
-        const product = await this.productsProvider.getById(request.productId);
+        const product = await this.productsService.findById(request.productId);
         if (!product) {
             throw new common_1.NotFoundException(`Product ${request.productId} not found.`);
         }
@@ -61,7 +61,7 @@ let PortfolioService = class PortfolioService {
     async buildPortfolio(request) {
         const [spot, rawProducts] = await Promise.all([
             this.metalsProvider.getLatest(request.metalType),
-            this.productsProvider.getAll(),
+            this.productsService.getRawProducts(),
         ]);
         if (!spot) {
             throw new common_1.NotFoundException(`No spot price available for ${request.metalType}.`);
@@ -113,7 +113,7 @@ let PortfolioService = class PortfolioService {
 exports.PortfolioService = PortfolioService;
 exports.PortfolioService = PortfolioService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [products_provider_1.ProductsProvider,
+    __metadata("design:paramtypes", [products_service_1.ProductsService,
         metals_provider_1.MetalsProvider])
 ], PortfolioService);
 //# sourceMappingURL=portfolio.service.js.map

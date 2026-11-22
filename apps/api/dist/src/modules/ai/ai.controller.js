@@ -11,14 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var AiController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AiController = void 0;
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const dtos_1 = require("../../common/dto/dtos");
 const ask_service_1 = require("./ask.service");
+const question_log_service_1 = require("./question-log.service");
+const ask_stream_responder_1 = require("./ask-stream.responder");
 const actorOf = (request) => ({
     id: request.user.id,
     email: request.user.email,
@@ -31,11 +33,19 @@ function cancelOnClose(response) {
     });
     return cancel.signal;
 }
-let AiController = AiController_1 = class AiController {
+let AiController = class AiController {
     ask;
-    logger = new common_1.Logger(AiController_1.name);
-    constructor(ask) {
+    streams;
+    questionLog;
+    constructor(ask, streams, questionLog) {
         this.ask = ask;
+        this.streams = streams;
+        this.questionLog = questionLog;
+    }
+    async rate(id, body, request) {
+        const saved = await this.questionLog.rate(id, request.user.id, body.helpful);
+        if (!saved)
+            throw new common_1.NotFoundException('Question not found');
     }
     getStatus() {
         return this.ask.status();
@@ -44,50 +54,24 @@ let AiController = AiController_1 = class AiController {
         return this.ask.ask(body, actorOf(request), cancelOnClose(response));
     }
     async askQuestionStream(body, request, response) {
-        const events = this.ask
-            .askStream(body, actorOf(request), cancelOnClose(response))[Symbol.asyncIterator]();
-        let step = await events.next();
-        response.status(200).set({
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-cache, no-transform',
-            Connection: 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        response.flushHeaders();
-        try {
-            while (!step.done) {
-                this.send(response, step.value);
-                step = await events.next();
-            }
-        }
-        catch (error) {
-            this.send(response, this.errorEvent(error));
-        }
-        finally {
-            await events.return?.(undefined);
-            response.end();
-        }
-    }
-    send(response, event) {
-        response.write(`data: ${JSON.stringify(event)}\n\n`);
-    }
-    errorEvent(error) {
-        if (error instanceof common_1.HttpException) {
-            return {
-                type: 'error',
-                status: error.getStatus(),
-                message: error.message,
-            };
-        }
-        this.logger.error(`Streaming answer failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`);
-        return {
-            type: 'error',
-            status: 500,
-            message: 'The assistant failed unexpectedly.',
-        };
+        return this.streams.pipe(this.ask.askStream(body, actorOf(request), cancelOnClose(response)), response);
     }
 };
 exports.AiController = AiController;
+__decorate([
+    (0, common_1.Post)('questions/:id/feedback'),
+    (0, common_1.HttpCode)(204),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Rate an answer as helpful or not',
+        description: 'Only the person who asked can rate it; rating again replaces the earlier rating.',
+    }),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, dtos_1.AiFeedbackRequestDto, Object]),
+    __metadata("design:returntype", Promise)
+], AiController.prototype, "rate", null);
 __decorate([
     (0, common_1.Get)('status'),
     (0, swagger_1.ApiOperation)({
@@ -102,7 +86,7 @@ __decorate([
     (0, common_1.Post)('ask'),
     (0, swagger_1.ApiOperation)({
         summary: 'Ask the assistant a question',
-        description: 'Answers only from approved SOPs and cites the sections it used. One question in, one answer out — no conversation history. Subject to a per-user rate and daily allowance (429) and a company-wide daily spend limit (503).',
+        description: 'Answers only from approved SOPs and cites the sections it used. One question in, one answer out - no conversation history. Subject to a per-user rate and daily allowance (429) and a company-wide daily spend limit (503).',
     }),
     (0, swagger_1.ApiResponse)({ status: 201, type: dtos_1.AskResponseDto }),
     __param(0, (0, common_1.Body)()),
@@ -117,7 +101,7 @@ __decorate([
     (0, common_1.HttpCode)(200),
     (0, swagger_1.ApiOperation)({
         summary: 'Ask the assistant, streaming the answer as it is written',
-        description: 'Server-sent events (AskStreamEvent): `delta` pieces, then `done` with the validated answer, which replaces what was streamed. Problems found before the first byte (limits, switched off, out of credit) are ordinary HTTP errors; later ones arrive as an `error` event. Read it with fetch — EventSource cannot POST or send the Authorization header.',
+        description: 'Server-sent events (AskStreamEvent): `delta` pieces, then `done` with the validated answer, which replaces what was streamed. Problems found before the first byte (limits, switched off, out of credit) are ordinary HTTP errors; later ones arrive as an `error` event. Read it with fetch - EventSource cannot POST or send the Authorization header.',
     }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
@@ -126,11 +110,14 @@ __decorate([
     __metadata("design:paramtypes", [dtos_1.AskRequestDto, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AiController.prototype, "askQuestionStream", null);
-exports.AiController = AiController = AiController_1 = __decorate([
+exports.AiController = AiController = __decorate([
     (0, swagger_1.ApiTags)('ai'),
+    (0, capability_decorator_1.RequiresCapability)('assistant'),
     (0, common_1.Controller)('ai'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    __metadata("design:paramtypes", [ask_service_1.AskService])
+    __metadata("design:paramtypes", [ask_service_1.AskService,
+        ask_stream_responder_1.AskStreamResponder,
+        question_log_service_1.QuestionLogService])
 ], AiController);
 //# sourceMappingURL=ai.controller.js.map

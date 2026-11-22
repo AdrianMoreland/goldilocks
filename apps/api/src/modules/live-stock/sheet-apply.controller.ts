@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -30,12 +31,14 @@ export class SheetApplyController {
     constructor(private readonly service: SheetApplyService) {}
 
     @Get('preview')
+    @RequiresPermission('page.import')
     @ApiOperation({ summary: 'Admin: what applying the sheet would change' })
     preview(@Req() req: RequestWithUser): Promise<SheetApplyPreview> {
         return this.service.preview(req.user);
     }
 
     @Post('apply')
+    @RequiresPermission('page.import')
     @HttpCode(200)
     @ApiOperation({ summary: 'Admin: apply the clear rows, park the rest' })
     apply(@Req() req: RequestWithUser): Promise<SheetApplyResult> {
@@ -43,12 +46,14 @@ export class SheetApplyController {
     }
 
     @Get('pending')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Rows waiting for a decision' })
     pending(@Req() req: RequestWithUser): Promise<SheetApplyItem[]> {
         return this.service.pending(req.user);
     }
 
     @Post('applications/:id/resolve')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Settle a waiting row' })
     resolve(

@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react"
-import type { Capabilities } from "@goldilocks/shared-types"
+import type { Capabilities, PermissionKey } from "@goldilocks/shared-types"
 import { features } from "@/config/features"
 
 export interface NavItem {
@@ -24,8 +24,8 @@ export interface NavItem {
   icon: LucideIcon
   /** Hidden for branches without this capability. */
   requires?: "pricingWorkbook"
-  /** Shown to admins only, in its place in the group (the route enforces the same). */
-  adminOnly?: boolean
+  /** Hidden from anyone whose role does not hold this page permission (Roles & permissions; the API enforces the same). */
+  page?: PermissionKey
   /** Hidden from admins, who already have this page in their own Stock & orders group. */
   hideForAdmin?: boolean
   /** Its route only exists with the preview features on, so the link only shows then too. */
@@ -41,7 +41,8 @@ export interface NavGroup {
 
 export interface NavAccess {
   isAdmin: boolean
-  isManager: boolean
+  /** Whether the person holds a permission (an admin holds every one). */
+  can: (key: PermissionKey) => boolean
   /** The redesign lists an admin's pages in two groups, Manager and Admin, as the prototype does. */
   grouped?: boolean
   capabilities: Pick<Capabilities, "pricingWorkbook">
@@ -56,12 +57,14 @@ const navGroups: NavGroup[] = [
         url: "/dashboard",
         icon: LayoutDashboard,
         requires: "pricingWorkbook",
+        page: "page.dashboard",
         keywords: ["dashboard", "prices", "spot", "products"],
       },
       {
         title: "Inventory",
         url: "/inventory",
         icon: Boxes,
+        page: "page.inventory",
         hideForAdmin: true,
         preview: true,
         keywords: ["stock", "inventory", "in stock", "branch", "bars", "coins"],
@@ -71,6 +74,7 @@ const navGroups: NavGroup[] = [
         url: "/analytics",
         icon: BarChart3,
         requires: "pricingWorkbook",
+        page: "page.analytics",
         preview: true,
         keywords: ["charts", "reports", "profit", "margin", "sales", "trends"],
       },
@@ -78,30 +82,31 @@ const navGroups: NavGroup[] = [
         title: "SOP",
         url: "/knowledge",
         icon: BookOpen,
+        page: "page.knowledge",
         keywords: ["procedures", "sop", "help", "how to"],
       },
       {
         title: "Rules",
         url: "/rules",
         icon: Workflow,
-        adminOnly: true,
+        page: "page.rules",
         keywords: ["offers", "premium limits", "alerts", "checks", "segments", "assistant"],
       },
     ],
   },
 ]
 
-const stocktakeItem: NavItem = { title: "Stocktake", url: "/stocktake", icon: ClipboardCheck, keywords: ["stock count", "month end"] }
-const customerOrdersItem: NavItem = { title: "Customer orders", url: "/customer-orders", icon: PackageCheck, keywords: ["orders"] }
-const tradesheetsItem: NavItem = { title: "Trade sheets", url: "/tradesheets", icon: FileSpreadsheet, keywords: ["tradesheet", "import", "monthly"] }
+const stocktakeItem: NavItem = { title: "Stocktake", url: "/stocktake", icon: ClipboardCheck, page: "page.stocktake", keywords: ["stock count", "month end"] }
+const customerOrdersItem: NavItem = { title: "Customer orders", url: "/customer-orders", icon: PackageCheck, page: "page.customer-orders", keywords: ["orders"] }
+const tradesheetsItem: NavItem = { title: "Trade sheets", url: "/tradesheets", icon: FileSpreadsheet, page: "page.tradesheets", keywords: ["tradesheet", "import", "monthly"] }
 
 /** The redesign's stock and order pages. Admin only for now; the old pages stay for managers. */
 const stockOrdersItems: NavItem[] = [
-  { title: "Inventory", url: "/inventory", icon: Boxes, keywords: ["stock", "bars", "coins", "stocktake", "month end"] },
-  { title: "Orders", url: "/orders", icon: ListChecks, keywords: ["customer orders", "allocate", "collect", "sheet updates"] },
-  { title: "Import", url: "/import", icon: Download, keywords: ["tradesheet", "import", "upload", "bc report", "review"] },
-  { title: "Customers", url: "/customers", icon: Users, keywords: ["customer", "client", "history"] },
-  { title: "Invoices", url: "/invoices", icon: Receipt, keywords: ["invoice", "zoho", "serial", "payment"] },
+  { title: "Inventory", url: "/inventory", icon: Boxes, page: "page.inventory", keywords: ["stock", "bars", "coins", "stocktake", "month end"] },
+  { title: "Orders", url: "/orders", icon: ListChecks, page: "page.orders", keywords: ["customer orders", "allocate", "collect", "sheet updates"] },
+  { title: "Import", url: "/import", icon: Download, page: "page.import", keywords: ["tradesheet", "import", "upload", "bc report", "review"] },
+  { title: "Customers", url: "/customers", icon: Users, page: "page.customers", keywords: ["customer", "client", "history"] },
+  { title: "Invoices", url: "/invoices", icon: Receipt, page: "page.invoices", keywords: ["invoice", "zoho", "serial", "payment"] },
 ]
 
 const adminItems: NavItem[] = [
@@ -110,27 +115,30 @@ const adminItems: NavItem[] = [
 ]
 
 /**
- * The pages a signed-in user is offered, by role and branch. The sidebar and the command palette both read this, so
- * they cannot drift apart. It is discoverability only: every route and API call enforces access on its own.
+ * The pages a signed-in user is offered, by role permissions and branch. The sidebar and the command palette both read
+ * this, so they cannot drift apart. It is discoverability only: every route and API call enforces access on its own.
  */
-export function navGroupsFor({ isAdmin, isManager, grouped, capabilities }: NavAccess): NavGroup[] {
-  const visible = navGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => (!item.requires || capabilities[item.requires]) && (!item.adminOnly || isAdmin) && !(item.hideForAdmin && isAdmin) && (!item.preview || features.redesign)),
-  }))
-  // Managers get the stocktake and customer orders without the rest of the admin group; admins see them inside it.
+export function navGroupsFor({ isAdmin, can, grouped, capabilities }: NavAccess): NavGroup[] {
+  const offered = (item: NavItem) =>
+    (!item.requires || capabilities[item.requires]) &&
+    (!item.page || can(item.page)) &&
+    !(item.hideForAdmin && isAdmin) &&
+    (!item.preview || features.redesign)
+  const visible = navGroups
+    .map((group) => ({ ...group, items: group.items.filter(offered) }))
+    .filter((group) => group.items.length > 0)
+  const extra = (label: string, items: NavItem[]): NavGroup[] => {
+    const shown = items.filter((item) => !item.page || can(item.page))
+    return shown.length > 0 ? [{ label, items: shown }] : []
+  }
+  const stocktakeAndOrders = [stocktakeItem, customerOrdersItem, tradesheetsItem]
   if (isAdmin && grouped) {
-    return [
-      ...visible,
-      { label: "Stock & orders", items: stockOrdersItems },
-      { label: "Admin", items: adminItems },
-    ]
+    return [...visible, ...extra("Stock & orders", stockOrdersItems), { label: "Admin", items: adminItems }]
   }
   if (isAdmin) {
-    return [...visible, { label: "Admin", items: [stocktakeItem, customerOrdersItem, tradesheetsItem, ...adminItems] }]
+    return [...visible, { label: "Admin", items: [...stocktakeAndOrders, ...adminItems] }]
   }
-  if (isManager) {
-    return [...visible, { label: "Manager", items: [stocktakeItem, customerOrdersItem] }]
-  }
-  return visible
+  // Anyone else: the redesign's stock pages they were given sit with Inventory, the rest under "Manager".
+  const given = grouped ? stockOrdersItems.filter((item) => item.url !== "/inventory") : []
+  return [...visible, ...extra("Stock & orders", given), ...extra("Manager", stocktakeAndOrders)]
 }

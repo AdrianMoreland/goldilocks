@@ -39,6 +39,10 @@ export const SessionUserSchema = z.object({
   branch: SessionBranchSchema.nullable().default(null),
   /** Null until the person first changes their look; the app then uses its defaults (dark). */
   uiSettings: UiSettingsSchema.nullable().default(null),
+  /** True for a real admin, even while they view the app as someone else (so the switcher stays available). */
+  canViewAs: z.boolean().default(false),
+  /** The "view as" choice in force for this request, or null when seeing the app as themselves. */
+  viewAs: z.string().nullable().default(null),
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 

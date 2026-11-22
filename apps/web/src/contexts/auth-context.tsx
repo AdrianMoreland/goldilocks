@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useAuthApi } from "@/api/auth.api"
 import { capabilitiesFor, type Capabilities, type SessionUser } from "@goldilocks/shared-types"
-import { SESSION_EXPIRED_EVENT, tokenStore } from "@/lib/session"
+import { SESSION_EXPIRED_EVENT, tokenStore, viewAsStore } from "@/lib/session"
 
 interface AuthContextValue {
     user: SessionUser | null
@@ -13,6 +13,12 @@ interface AuthContextValue {
     capabilities: Capabilities
     /** True only while restoring a session from a stored token on first load. */
     isLoading: boolean
+    /** A real admin, even while viewing the app as someone else: the only people offered the "view as" switcher. */
+    canViewAs: boolean
+    /** The "view as" choice in force (a VIEW_AS_OPTIONS value), or null when seeing the app as themselves. */
+    viewAs: string | null
+    /** Switch the view (null returns to the admin's own). Reloads the page so every screen starts clean. */
+    setViewAs: (value: string | null) => void
     login: (email: string, password: string) => Promise<void>
     logout: () => void
 }
@@ -66,8 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         [api],
     )
 
+    const setViewAs = React.useCallback((value: string | null) => {
+        viewAsStore.set(value)
+        window.location.assign(import.meta.env.VITE_BASENAME || "/")
+    }, [])
+
     const logout = React.useCallback(() => {
         tokenStore.clear()
+        viewAsStore.set(null)
         setUser(null)
     }, [])
 
@@ -79,10 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isManager: user?.admin === true || user?.role === 'MANAGER',
             capabilities: capabilitiesFor({ branchRegion: user?.branch?.region ?? null, admin: user?.admin === true }),
             isLoading,
+            canViewAs: user?.canViewAs === true,
+            viewAs: user?.viewAs ?? null,
+            setViewAs,
             login,
             logout,
         }),
-        [user, isLoading, login, logout],
+        [user, isLoading, login, logout, setViewAs],
     )
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -4,6 +4,7 @@ import { type MetalPriceApiPort } from '../../infrastructure/metal-price-api/met
 import { SpotPriceCacheStore } from './spot-price-cache.store';
 import { CascadeMetricsService } from './cascade-metrics.service';
 import { FetchAttemptService } from './fetch-attempt.service';
+import { PriceRefreshSchedule } from './price-refresh-schedule';
 export interface MetalsRefreshResult {
     prices: RawSpotPrice[];
     degradedMetals: MetalType[];
@@ -14,8 +15,10 @@ export declare class MetalsProvider {
     private readonly spotCache;
     private readonly cascadeMetrics;
     private readonly fetchAttempts;
+    private readonly schedule;
     private readonly logger;
-    constructor(prisma: PrismaService, metalPriceApi: MetalPriceApiPort, spotCache: SpotPriceCacheStore, cascadeMetrics: CascadeMetricsService, fetchAttempts: FetchAttemptService);
+    constructor(prisma: PrismaService, metalPriceApi: MetalPriceApiPort, spotCache: SpotPriceCacheStore, cascadeMetrics: CascadeMetricsService, fetchAttempts: FetchAttemptService, schedule: PriceRefreshSchedule);
+    isAutoRefreshRunning(): boolean;
     getLatest(metal: MetalType): Promise<RawSpotPrice | null>;
     clearCache(): Promise<void>;
     getAllLatest(): Promise<RawSpotPrice[]>;

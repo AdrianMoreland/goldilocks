@@ -1,4 +1,5 @@
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { NotificationsService } from '../settings/notifications.service';
 import type { FetchAttempt, FetchMetrics, FetchTrigger, MetalType } from '@goldilocks/shared-types';
 import { CascadeMetricsService } from './cascade-metrics.service';
 import { ErrorLogService } from '../error-log/error-log.service';
@@ -13,7 +14,8 @@ export declare class FetchAttemptService {
     private readonly prisma;
     private readonly cascadeMetrics;
     private readonly errorLog;
-    constructor(prisma: PrismaService, cascadeMetrics: CascadeMetricsService, errorLog: ErrorLogService);
+    private readonly notifications?;
+    constructor(prisma: PrismaService, cascadeMetrics: CascadeMetricsService, errorLog: ErrorLogService, notifications?: NotificationsService | undefined);
     record(entry: RecordAttemptInput): Promise<void>;
     getRecent(limit: number): Promise<FetchAttempt[]>;
     getMetrics(): Promise<FetchMetrics>;

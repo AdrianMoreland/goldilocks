@@ -14,15 +14,19 @@ exports.ProductsProvider = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
 const shared_types_1 = require("@goldilocks/shared-types");
-const pricing_util_1 = require("../../common/utils/pricing.util");
+const prisma_mappers_1 = require("../../common/utils/prisma-mappers");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
+const product_audit_1 = require("./product-audit");
 const product_cache_store_1 = require("./product-cache.store");
 let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
     prisma;
     productCache;
+    audit;
     logger = new common_1.Logger(ProductsProvider_1.name);
-    constructor(prisma, productCache) {
+    constructor(prisma, productCache, audit) {
         this.prisma = prisma;
         this.productCache = productCache;
+        this.audit = audit;
     }
     async getAll() {
         this.logger.log('Loading all products');
@@ -32,7 +36,7 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         const product = await this.prisma.product.findFirst({
             where: { id, deletedAt: null },
         });
-        return product ? (0, pricing_util_1.toRawProduct)(product) : null;
+        return product ? (0, prisma_mappers_1.toRawProduct)(product) : null;
     }
     async findBySku(sku) {
         return this.prisma.product.findFirst({
@@ -46,7 +50,7 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
             orderBy: { deletedAt: 'desc' },
         });
         return rows.map((row) => ({
-            ...(0, pricing_util_1.toRawProduct)(row),
+            ...(0, prisma_mappers_1.toRawProduct)(row),
             deletedAt: row.deletedAt.toISOString(),
         }));
     }
@@ -54,48 +58,52 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
         const product = await this.prisma.product.findFirst({
             where: { id, deletedAt: { not: null } },
         });
-        return product ? (0, pricing_util_1.toRawProduct)(product) : null;
+        return product ? (0, prisma_mappers_1.toRawProduct)(product) : null;
     }
-    async create(data) {
-        const created = await this.prisma.product.create({
-            data: { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+    async create(data, actor) {
+        const created = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.product.create({
+                data: { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+            });
+            await this.audit.record(actor, 'product', `created ${row.sku} (${row.name})`, tx);
+            return row;
         });
         await this.refreshCache();
-        return (0, pricing_util_1.toRawProduct)(created);
+        return (0, prisma_mappers_1.toRawProduct)(created);
     }
-    async update(id, data) {
-        const updated = await this.prisma.product.update({
-            where: { id },
-            data: data.name === undefined
-                ? data
-                : { ...data, name: (0, shared_types_1.normalizeProductName)(data.name) },
+    async update(id, data, actor, expectedUpdatedAt) {
+        return this.change(id, actor, 'edited', {
+            ...data,
+            ...(data.name === undefined
+                ? {}
+                : { name: (0, shared_types_1.normalizeProductName)(data.name) }),
+        }, expectedUpdatedAt);
+    }
+    async softDelete(id, actor) {
+        return this.change(id, actor, 'deleted', { deletedAt: new Date() });
+    }
+    async restore(id, actor) {
+        return this.change(id, actor, 'restored', { deletedAt: null });
+    }
+    async updateStock(id, stock, actor) {
+        return this.change(id, actor, 'edited', { stock });
+    }
+    async change(id, actor, verb, data, expectedUpdatedAt) {
+        const after = await this.prisma.$transaction(async (tx) => {
+            const previous = await tx.product.findUniqueOrThrow({
+                where: { id },
+            });
+            if (expectedUpdatedAt !== undefined &&
+                previous.updatedAt.toISOString() !== expectedUpdatedAt) {
+                throw new common_1.ConflictException('This product was changed by someone else since you opened it. Reload the page and try again.');
+            }
+            const next = await tx.product.update({ where: { id }, data });
+            const changes = (0, product_audit_1.describeProductChange)((0, prisma_mappers_1.toRawProduct)(previous), (0, prisma_mappers_1.toRawProduct)(next));
+            await this.audit.record(actor, 'product', `${verb} ${next.sku}${changes ? `: ${changes}` : ''}`, tx);
+            return (0, prisma_mappers_1.toRawProduct)(next);
         });
         await this.refreshCache();
-        return (0, pricing_util_1.toRawProduct)(updated);
-    }
-    async softDelete(id) {
-        const deleted = await this.prisma.product.update({
-            where: { id },
-            data: { deletedAt: new Date() },
-        });
-        await this.refreshCache();
-        return (0, pricing_util_1.toRawProduct)(deleted);
-    }
-    async restore(id) {
-        const restored = await this.prisma.product.update({
-            where: { id },
-            data: { deletedAt: null },
-        });
-        await this.refreshCache();
-        return (0, pricing_util_1.toRawProduct)(restored);
-    }
-    async updateStock(id, stock) {
-        const updated = await this.prisma.product.update({
-            where: { id },
-            data: { stock },
-        });
-        await this.refreshCache();
-        return (0, pricing_util_1.toRawProduct)(updated);
+        return after;
     }
     async refreshCache() {
         const fresh = await this.prisma.product
@@ -103,7 +111,7 @@ let ProductsProvider = ProductsProvider_1 = class ProductsProvider {
             where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },
         })
-            .then((rows) => rows.map(pricing_util_1.toRawProduct));
+            .then((rows) => rows.map(prisma_mappers_1.toRawProduct));
         await this.productCache.set('all', fresh);
     }
 };
@@ -111,6 +119,7 @@ exports.ProductsProvider = ProductsProvider;
 exports.ProductsProvider = ProductsProvider = ProductsProvider_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        product_cache_store_1.ProductCacheStore])
+        product_cache_store_1.ProductCacheStore,
+        audit_log_service_1.AuditLogService])
 ], ProductsProvider);
 //# sourceMappingURL=products.provider.js.map

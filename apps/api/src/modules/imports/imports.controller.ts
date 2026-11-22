@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -26,7 +27,6 @@ import { ShippedNotCollectedService } from './shipped-not-collected.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import {
     BcAwaitingRequestDto,
     BcHistoryRequestDto,
@@ -39,7 +39,7 @@ import {
 @ApiBearerAuth()
 @Controller('imports/workbook')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.import')
 export class ImportsController {
     constructor(private readonly workbook: WorkbookImportService) {}
 
@@ -80,7 +80,7 @@ export class ImportsController {
 @ApiBearerAuth()
 @Controller('imports/bc-awaiting')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.import')
 export class BcAwaitingController {
     constructor(private readonly bc: BcAwaitingImportService) {}
 
@@ -112,7 +112,7 @@ export class BcAwaitingController {
 @ApiBearerAuth()
 @Controller('imports/bc-history')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@RequiresPermission('page.import')
 export class BcHistoryController {
     constructor(
         private readonly bc: BcHistoryImportService,
@@ -169,7 +169,7 @@ export class BcHistoryController {
 @ApiBearerAuth()
 @Controller('items')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'manager')
+@RequiresPermission('page.stocktake')
 export class ItemTraceController {
     constructor(private readonly trace: ItemTraceService) {}
 

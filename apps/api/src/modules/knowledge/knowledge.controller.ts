@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -40,6 +41,7 @@ export class KnowledgeController {
     // Any signed-in user (the global JwtAuthGuard already requires a token):
     // the SOPs are for the whole desk, not just admins.
     @Get('documents')
+    @RequiresPermission('page.knowledge')
     @ApiBearerAuth()
     @ApiOperation({
         summary: 'All SOPs the caller may read, with their Markdown',

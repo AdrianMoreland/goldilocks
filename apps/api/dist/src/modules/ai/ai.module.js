@@ -12,10 +12,11 @@ const config_1 = require("@nestjs/config");
 const llm_module_1 = require("../../infrastructure/llm/llm.module");
 const market_data_module_1 = require("../market-data/market-data.module");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
-const redis_module_1 = require("../../redis/redis.module");
+const redis_module_1 = require("../../infrastructure/redis/redis.module");
 const auth_module_1 = require("../auth/auth.module");
 const knowledge_module_1 = require("../knowledge/knowledge.module");
 const ai_controller_1 = require("./ai.controller");
+const ask_stream_responder_1 = require("./ask-stream.responder");
 const ai_retention_service_1 = require("./ai-retention.service");
 const ai_settings_1 = require("./ai.settings");
 const answer_cache_service_1 = require("./answer-cache.service");
@@ -42,8 +43,10 @@ exports.AiModule = AiModule = __decorate([
             redis_module_1.RedisModule,
         ],
         controllers: [ai_controller_1.AiController],
+        exports: [ai_settings_1.AiSettings, question_log_service_1.QuestionLogService],
         providers: [
             ask_service_1.AskService,
+            ask_stream_responder_1.AskStreamResponder,
             ai_settings_1.AiSettings,
             quota_service_1.QuotaService,
             answer_cache_service_1.AnswerCacheService,

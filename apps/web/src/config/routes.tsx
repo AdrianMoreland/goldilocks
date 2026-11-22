@@ -2,7 +2,7 @@ import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import { homePathFor } from '@goldilocks/shared-types'
 import { useAuth } from '@/contexts/auth-context'
-import { RequireAdmin, RequireAuth, RequireCapability, RequireManager } from '@/components/auth/require-auth'
+import { RequireAdmin, RequireAuth, RequirePage } from '@/components/auth/require-auth'
 import { features } from '@/config/features'
 
 // Lazy load components for better performance
@@ -94,12 +94,12 @@ export const routes: RouteConfig[] = [
   // Dashboard Routes
   {
     path: "/dashboard",
-    element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
+    element: <RequirePage page="page.dashboard" capability="pricingWorkbook"><Dashboard /></RequirePage>
   },
   // Price board: full-screen live prices for an iPad or a branch screen; same access as the dashboard
   {
     path: "/board",
-    element: <RequireCapability capability="pricingWorkbook"><Board /></RequireCapability>
+    element: <RequirePage page="page.dashboard" capability="pricingWorkbook"><Board /></RequirePage>
   },
   // Admin console — admins only; the API enforces the same on every call it makes
   {
@@ -123,100 +123,101 @@ export const routes: RouteConfig[] = [
   ...(features.redesign
     ? [
         // Inventory for every signed-in user; editing and the month-end tab are for admins and managers (the API enforces the same)
-        { path: "/inventory", element: <RequireAuth><Inventory /></RequireAuth> },
+        { path: "/inventory", element: <RequirePage page="page.inventory"><Inventory /></RequirePage> },
         // Each tab inside checks its own permission; the API refuses the rest.
-        { path: "/analytics", element: <RequireCapability capability="pricingWorkbook"><Analytics /></RequireCapability> },
+        { path: "/analytics", element: <RequirePage page="page.analytics" capability="pricingWorkbook"><Analytics /></RequirePage> },
         // Settings replaces the unused template pages; their old addresses land on it.
         { path: "/settings", element: <RequireAuth><Settings /></RequireAuth> },
         // The old read-only stock page, kept so saved links still land on Inventory
         { path: "/stock", element: <Navigate to="/inventory" replace /> },
-        { path: "/orders", element: <RequireAdmin><Orders /></RequireAdmin> },
-        { path: "/import", element: <RequireAdmin><ImportHub /></RequireAdmin> },
-        { path: "/customers", element: <RequireAdmin><Customers /></RequireAdmin> },
-        { path: "/customers/:id", element: <RequireAdmin><CustomerDetail /></RequireAdmin> },
-        { path: "/invoices", element: <RequireAdmin><Invoices /></RequireAdmin> },
-        { path: "/invoices/:id", element: <RequireAdmin><InvoiceDetail /></RequireAdmin> },
+        { path: "/orders", element: <RequirePage page="page.orders"><Orders /></RequirePage> },
+        { path: "/import", element: <RequirePage page="page.import"><ImportHub /></RequirePage> },
+        { path: "/customers", element: <RequirePage page="page.customers"><Customers /></RequirePage> },
+        { path: "/customers/:id", element: <RequirePage page="page.customers"><CustomerDetail /></RequirePage> },
+        { path: "/invoices", element: <RequirePage page="page.invoices"><Invoices /></RequirePage> },
+        { path: "/invoices/:id", element: <RequirePage page="page.invoices"><InvoiceDetail /></RequirePage> },
       ]
     : []),
   // Month-end stocktake: admins and managers; the API enforces the same on every call
   {
     path: "/stocktake",
-    element: <RequireManager><Stocktake /></RequireManager>
+    element: <RequirePage page="page.stocktake"><Stocktake /></RequirePage>
   },
   {
     path: "/stocktake/:id",
-    element: <RequireManager><StocktakeDetail /></RequireManager>
+    element: <RequirePage page="page.stocktake"><StocktakeDetail /></RequirePage>
   },
   {
     path: "/customer-orders",
-    element: <RequireManager><CustomerOrders /></RequireManager>
+    element: <RequirePage page="page.customer-orders"><CustomerOrders /></RequirePage>
   },
   // Monthly trade-sheet import (roadmap 1.19): admins only; the API enforces the same
   {
     path: "/tradesheets",
-    element: <RequireAdmin><Tradesheets /></RequireAdmin>
+    element: <RequirePage page="page.tradesheets"><Tradesheets /></RequirePage>
   },
   // Rules hub (assistant offers, premium limits, alerts, checks): admins only; any rules API will enforce the same
   {
     path: "/rules",
-    element: <RequireAdmin><Rules /></RequireAdmin>
+    element: <RequirePage page="page.rules"><Rules /></RequirePage>
   },
   // Knowledge Center — SOP library and reader, for every signed-in user (not admin-only)
   {
     path: "/knowledge",
-    element: <RequireAuth><KnowledgeCenter /></RequireAuth>
+    element: <RequirePage page="page.knowledge"><KnowledgeCenter /></RequirePage>
   },
   {
     path: "/knowledge/all",
-    element: <RequireAuth><KnowledgeAll /></RequireAuth>
+    element: <RequirePage page="page.knowledge"><KnowledgeAll /></RequirePage>
   },
   {
     path: "/knowledge/business-central",
-    element: <RequireAuth><KnowledgeBusinessCentral /></RequireAuth>
+    element: <RequirePage page="page.knowledge"><KnowledgeBusinessCentral /></RequirePage>
   },
   {
     path: "/knowledge/articles/:slug",
-    element: <RequireAuth><KnowledgeArticle /></RequireAuth>
+    element: <RequirePage page="page.knowledge"><KnowledgeArticle /></RequirePage>
   },
   {
     path: "/demo",
-    element: <RequireCapability capability="pricingWorkbook"><Dashboard /></RequireCapability>
+    element: <RequirePage page="page.dashboard" capability="pricingWorkbook"><Dashboard /></RequirePage>
   },
   {
     path: "/dashboard-2",
-    element: <Dashboard2 />
+    element: <RequireAdmin><Dashboard2 /></RequireAdmin>
   },
 
+  // The rest of these are unused template pages; admin-only so nothing of them is reachable by anyone else.
   // Application Routes
   {
     path: "/mail",
-    element: <Mail />
+    element: <RequireAdmin><Mail /></RequireAdmin>
   },
   {
     path: "/tasks",
-    element: <Tasks />
+    element: <RequireAdmin><Tasks /></RequireAdmin>
   },
   {
     path: "/chat",
-    element: <Chat />
+    element: <RequireAdmin><Chat /></RequireAdmin>
   },
   {
     path: "/calendar",
-    element: <Calendar />
+    element: <RequireAdmin><Calendar /></RequireAdmin>
   },
 
   // Content Pages
   {
     path: "/users",
-    element: <Users />
+    element: <RequireAdmin><Users /></RequireAdmin>
   },
   {
     path: "/faqs",
-    element: <FAQs />
+    element: <RequireAdmin><FAQs /></RequireAdmin>
   },
   {
     path: "/pricing",
-    element: <Pricing />
+    element: <RequireAdmin><Pricing /></RequireAdmin>
   },
 
   // Authentication Routes

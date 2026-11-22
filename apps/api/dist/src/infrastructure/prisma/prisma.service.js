@@ -18,7 +18,7 @@ let PrismaService = class PrismaService extends client_1.PrismaClient {
     constructor(config) {
         super({
             adapter: new adapter_pg_1.PrismaPg({
-                connectionString: config.get('DATABASE_URL'),
+                connectionString: config.getOrThrow('DATABASE_URL'),
             }),
             log: config.get('NODE_ENV') === 'development'
                 ? ['query', 'error', 'warn']

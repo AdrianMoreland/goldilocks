@@ -13,7 +13,7 @@ exports.RoadmapService = void 0;
 const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const audit_log_service_1 = require("../admin/audit-log.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 const roadmap_file_1 = require("./roadmap-file");
 const ROW_ID = 1;
 const EMPTY = {
@@ -58,7 +58,7 @@ let RoadmapService = class RoadmapService {
     async edit(request, actor) {
         const current = await this.get();
         if (current.version === 0) {
-            throw new common_1.NotFoundException('The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import`.');
+            throw new common_1.NotFoundException('The roadmap has not been imported yet. Run `pnpm --filter api roadmap:import --apply`.');
         }
         if (request.version !== current.version) {
             throw new common_1.ConflictException('The roadmap changed since you loaded it. Reload and try again.');
@@ -67,7 +67,7 @@ let RoadmapService = class RoadmapService {
         if (file &&
             (0, roadmap_file_1.normalizeRoadmap)((0, roadmap_file_1.readRoadmapFile)(file)) !==
                 (0, roadmap_file_1.normalizeRoadmap)(current.markdown)) {
-            throw new common_1.ConflictException('docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins), then retry.');
+            throw new common_1.ConflictException('docs/ROADMAP.md differs from the database. Run `pnpm --filter api roadmap:import` (the file wins) or `roadmap:export` (the database wins) to see the differences, add `--apply` to overwrite, then retry.');
         }
         let markdown;
         try {
@@ -78,20 +78,22 @@ let RoadmapService = class RoadmapService {
                 throw new common_1.BadRequestException(error.message);
             throw error;
         }
-        const saved = await this.prisma.roadmapDocument.updateMany({
-            where: { id: ROW_ID, version: current.version },
-            data: {
-                markdown,
-                version: { increment: 1 },
-                updatedBy: actor.email,
-            },
+        await this.prisma.$transaction(async (tx) => {
+            const saved = await tx.roadmapDocument.updateMany({
+                where: { id: ROW_ID, version: current.version },
+                data: {
+                    markdown,
+                    version: { increment: 1 },
+                    updatedBy: actor.email,
+                },
+            });
+            if (saved.count === 0) {
+                throw new common_1.ConflictException('The roadmap changed while saving. Reload and try again.');
+            }
+            await this.audit.record(actor.email, 'roadmap', describeEdit(request.edit), tx);
+            if (file)
+                (0, roadmap_file_1.writeRoadmapFile)(file, markdown);
         });
-        if (saved.count === 0) {
-            throw new common_1.ConflictException('The roadmap changed while saving. Reload and try again.');
-        }
-        if (file)
-            (0, roadmap_file_1.writeRoadmapFile)(file, markdown);
-        await this.audit.record(actor.email, 'roadmap', describeEdit(request.edit));
         return this.get();
     }
 };

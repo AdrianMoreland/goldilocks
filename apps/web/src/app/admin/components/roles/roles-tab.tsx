@@ -1,15 +1,18 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { PERMISSION_KEYS, PERMISSION_LABELS, SessionUserRoleEnum, type PermissionKey, type PermissionMatrix, type PermissionRole, diffPermissionMatrix } from "@goldilocks/shared-types"
+import { ADMIN_ONLY_PAGES, PERMISSION_KEYS, PERMISSION_LABELS, SessionUserRoleEnum, type PermissionKey, type PermissionMatrix, type PermissionRole, diffPermissionMatrix } from "@goldilocks/shared-types"
 import { usePeopleApi } from "@/api/people.api"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { queryKeys } from "@/lib/query-keys"
 
 const ROLES = SessionUserRoleEnum.options
+/** Pages first: they are what an admin switches most often. */
+const GROUPS = [...new Set(PERMISSION_KEYS.map((k) => PERMISSION_LABELS[k].group))].sort((a, b) => (a === "Pages" ? -1 : b === "Pages" ? 1 : 0))
 const ROLE_LABEL: Record<PermissionRole, string> = { ADMIN: "Admin", MANAGER: "Manager", SALES: "Sales", ACCOUNTING: "Accounting", AUDITOR: "Auditor" }
 const fromSets = (d: Record<PermissionRole, Set<PermissionKey>>) => Object.fromEntries(ROLES.map((r) => [r, [...d[r]]])) as unknown as PermissionMatrix
 const toSets = (m: PermissionMatrix) => Object.fromEntries(ROLES.map((r) => [r, new Set(m[r])])) as Record<PermissionRole, Set<PermissionKey>>
@@ -55,36 +58,51 @@ export function RolesTab() {
             <p className="text-muted-foreground text-sm">
                 What each role starts with. A person can still be given or denied a single permission on their own sheet in People.
             </p>
-            <div className="overflow-x-auto rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Permission</TableHead>
-                            {ROLES.map((r) => <TableHead key={r} className="text-center">{ROLE_LABEL[r]}</TableHead>)}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {PERMISSION_KEYS.map((k) => (
-                            <TableRow key={k}>
-                                <TableCell>
-                                    <span className="text-muted-foreground">{PERMISSION_LABELS[k].group} · </span>
-                                    {PERMISSION_LABELS[k].label}
-                                </TableCell>
-                                {ROLES.map((r) => (
-                                    <TableCell key={r} className="text-center">
-                                        <Checkbox
-                                            checked={r === "ADMIN" || draft[r].has(k)}
-                                            disabled={r === "ADMIN"}
-                                            onCheckedChange={() => toggle(r, k)}
-                                            aria-label={`${ROLE_LABEL[r]}: ${PERMISSION_LABELS[k].label}`}
-                                        />
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+            {GROUPS.map((group) => {
+                const keys = PERMISSION_KEYS.filter((k) => PERMISSION_LABELS[k].group === group)
+                const isPages = group === "Pages"
+                return (
+                    <section key={group} className="space-y-2">
+                        <h3 className="text-sm font-semibold">{isPages ? "Pages each role can open" : group}</h3>
+                        {isPages && (
+                            <p className="text-muted-foreground text-sm">
+                                Switch a page on for a role and its people see it in the menu and the server answers its requests. Off means hidden and refused, even if they know the address. New pages start admin-only.
+                                {" "}{ADMIN_ONLY_PAGES.join(" and ")} are always admin-only and not listed.
+                            </p>
+                        )}
+                        <div className="overflow-x-auto rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>{isPages ? "Page" : "Permission"}</TableHead>
+                                        {ROLES.map((r) => <TableHead key={r} className="text-center">{ROLE_LABEL[r]}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {keys.map((k) => (
+                                        <TableRow key={k}>
+                                            <TableCell>{isPages ? PERMISSION_LABELS[k].label : <><span className="text-muted-foreground">{PERMISSION_LABELS[k].group} · </span>{PERMISSION_LABELS[k].label}</>}</TableCell>
+                                            {ROLES.map((r) => {
+                                                const props = {
+                                                    checked: r === "ADMIN" || draft[r].has(k),
+                                                    disabled: r === "ADMIN",
+                                                    onCheckedChange: () => toggle(r, k),
+                                                    "aria-label": `${ROLE_LABEL[r]}: ${PERMISSION_LABELS[k].label}`,
+                                                }
+                                                return (
+                                                    <TableCell key={r} className="text-center">
+                                                        {isPages ? <Switch {...props} /> : <Checkbox {...props} />}
+                                                    </TableCell>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </section>
+                )
+            })}
             {changed > 0 && (
                 <div className="bg-background sticky bottom-0 z-20 -mx-4 border-t px-4 py-3 lg:-mx-6 lg:px-6">
                     <div className="flex flex-wrap items-center gap-3">

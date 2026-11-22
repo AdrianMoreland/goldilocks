@@ -12,7 +12,9 @@ const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
 const config_1 = require("@nestjs/config");
 const prisma_module_1 = require("../../infrastructure/prisma/prisma.module");
-const supabase_module_1 = require("../../supabase/supabase.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
+const request_metrics_module_1 = require("../request-metrics/request-metrics.module");
+const supabase_module_1 = require("../../infrastructure/supabase/supabase.module");
 const auth_provider_port_1 = require("./auth-provider.port");
 const supabase_auth_provider_1 = require("./providers/supabase-auth.provider");
 let AuthModule = class AuthModule {
@@ -20,13 +22,19 @@ let AuthModule = class AuthModule {
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.ConfigModule, prisma_module_1.PrismaModule, supabase_module_1.SupabaseModule],
+        imports: [
+            config_1.ConfigModule,
+            prisma_module_1.PrismaModule,
+            audit_log_module_1.AuditLogModule,
+            request_metrics_module_1.RequestMetricsModule,
+            supabase_module_1.SupabaseModule,
+        ],
         controllers: [auth_controller_1.AuthController],
         providers: [
             auth_service_1.AuthService,
             { provide: auth_provider_port_1.AUTH_PROVIDER, useClass: supabase_auth_provider_1.SupabaseAuthProvider },
         ],
-        exports: [auth_service_1.AuthService],
+        exports: [auth_service_1.AuthService, auth_provider_port_1.AUTH_PROVIDER],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

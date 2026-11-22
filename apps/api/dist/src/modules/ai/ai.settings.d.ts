@@ -5,6 +5,7 @@ export declare class AiSettings {
     constructor(config: ConfigService);
     get enabled(): boolean;
     get maxOutputTokens(): number;
+    get draftMaxOutputTokens(): number;
     get dailyQuotaPerUser(): number;
     get perMinuteLimit(): number;
     get dailyBudgetUsd(): number;

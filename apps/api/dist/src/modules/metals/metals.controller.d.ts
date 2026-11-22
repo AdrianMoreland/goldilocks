@@ -1,24 +1,28 @@
+import { type MetalType } from '@goldilocks/shared-types';
 import { MetalsProvider } from './metals.provider';
 import { MetalsCron } from './metals.cron';
 import { FetchAttemptService } from './fetch-attempt.service';
-import { FetchAttemptResponseDto, FetchMetricsResponseDto, RawSpotPriceResponseDto } from '../../common/dto/dtos';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
+import { FetchAttemptResponseDto, FetchLogQueryDto, FetchMetricsResponseDto, RawSpotPriceResponseDto } from '../../common/dto/dtos';
 export declare class MetalsController {
     private readonly metalsProvider;
     private readonly metalsCron;
     private readonly fetchAttempts;
-    constructor(metalsProvider: MetalsProvider, metalsCron: MetalsCron, fetchAttempts: FetchAttemptService);
+    private readonly audit;
+    constructor(metalsProvider: MetalsProvider, metalsCron: MetalsCron, fetchAttempts: FetchAttemptService, audit: AuditLogService);
     refresh(): Promise<RawSpotPriceResponseDto[]>;
     getCronStatus(): {
         running: boolean;
     };
-    toggleCron(): Promise<{
+    toggleCron(request: RequestWithUser): Promise<{
         running: boolean;
     }>;
     clearCache(): Promise<{
         message: string;
     }>;
-    retryMetal(metalParam: string): Promise<RawSpotPriceResponseDto>;
-    getFetchLog(limit?: string): Promise<FetchAttemptResponseDto[]>;
+    retryMetal(metal: MetalType): Promise<RawSpotPriceResponseDto>;
+    getFetchLog({ limit }: FetchLogQueryDto): Promise<FetchAttemptResponseDto[]>;
     getFetchMetrics(): Promise<FetchMetricsResponseDto>;
 }
 //# sourceMappingURL=metals.controller.d.ts.map

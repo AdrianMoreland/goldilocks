@@ -13,6 +13,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const products_service_1 = require("./products.service");
@@ -31,23 +33,26 @@ let ProductsController = class ProductsController {
     async getById(id) {
         return this.service.getById(id);
     }
-    async createProduct(body) {
-        return this.service.create(body);
+    async createProduct(body, req) {
+        return this.service.create(body, req.user.email);
     }
-    async updateProduct(id, body) {
-        return this.service.update(id, body);
+    async updateProduct(id, body, req) {
+        return this.service.update(id, body, req.user.email);
     }
-    async updateStock(id, body) {
-        return this.service.updateStock(id, body.stock_quantity);
+    async updateStock(id, body, req) {
+        return this.service.updateStock(id, body.stock_quantity, req.user.email);
+    }
+    async getInactive() {
+        return (await this.service.getRawProductsIncludingInactive()).filter((p) => !p.isActive);
     }
     async getDeleted() {
         return this.service.getDeleted();
     }
-    async restore(id) {
-        return this.service.restore(id);
+    async restore(id, req) {
+        return this.service.restore(id, req.user.email);
     }
-    async delete(id) {
-        await this.service.delete(id);
+    async delete(id, req) {
+        await this.service.delete(id, req.user.email);
         return { message: `Product ${id} deleted` };
     }
 };
@@ -86,8 +91,9 @@ __decorate([
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create a product (admin)' }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [dtos_1.CreateProductDto]),
+    __metadata("design:paramtypes", [dtos_1.CreateProductDto, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "createProduct", null);
 __decorate([
@@ -98,8 +104,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Update a product (admin)' }),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, dtos_1.UpdateProductDto]),
+    __metadata("design:paramtypes", [Number, dtos_1.UpdateProductDto, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "updateProduct", null);
 __decorate([
@@ -110,10 +117,21 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Update product stock (admin)' }),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, dtos_1.UpdateStockRequestDto]),
+    __metadata("design:paramtypes", [Number, dtos_1.UpdateStockRequestDto, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "updateStock", null);
+__decorate([
+    (0, common_1.Get)('admin/products/inactive'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List inactive (hidden) products (admin)' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "getInactive", null);
 __decorate([
     (0, common_1.Get)('admin/products/deleted'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
@@ -131,25 +149,29 @@ __decorate([
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Restore a soft-deleted product (admin)' }),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
+    __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "restore", null);
 __decorate([
     (0, swagger_1.ApiOperation)({
-        summary: 'Soft-delete a product (admin) — hidden everywhere, restorable',
+        summary: 'Soft-delete a product (admin) - hidden everywhere, restorable',
     }),
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
+    __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "delete", null);
 exports.ProductsController = ProductsController = __decorate([
     (0, swagger_1.ApiTags)('products'),
+    (0, capability_decorator_1.RequiresCapability)('pricingWorkbook'),
+    (0, permission_decorator_1.RequiresPermission)('page.dashboard'),
     (0, common_1.Controller)('products'),
     __metadata("design:paramtypes", [products_service_1.ProductsService])
 ], ProductsController);

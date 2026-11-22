@@ -15,6 +15,7 @@ const node_crypto_1 = require("node:crypto");
 const common_1 = require("@nestjs/common");
 const shared_types_1 = require("@goldilocks/shared-types");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 function contentHash(raw) {
     return (0, node_crypto_1.createHash)('sha256')
         .update(raw.replace(/\r\n/g, '\n'))
@@ -31,6 +32,7 @@ function toDocument(row) {
         jurisdiction: row.jurisdiction,
         owner: row.owner,
         status: row.status,
+        visibility: row.visibility,
         version: row.version,
         contentUpdatedOn: toDay(row.contentUpdatedOn),
         markdown: row.markdown,
@@ -42,13 +44,20 @@ function todayUtc() {
 }
 let KnowledgeService = KnowledgeService_1 = class KnowledgeService {
     prisma;
+    audit;
     logger = new common_1.Logger(KnowledgeService_1.name);
-    constructor(prisma) {
+    constructor(prisma, audit) {
         this.prisma = prisma;
+        this.audit = audit;
     }
-    async listDocuments(isAdmin) {
+    async listDocuments(isAdmin, capabilities) {
         const rows = await this.prisma.kbDocument.findMany({
-            where: isAdmin ? undefined : { status: { not: 'retired' } },
+            where: {
+                ...(isAdmin ? {} : { status: { not: 'retired' } }),
+                ...(capabilities.knowledge === 'shared'
+                    ? { visibility: 'all' }
+                    : {}),
+            },
             orderBy: { slug: 'asc' },
         });
         return rows.map(toDocument);
@@ -94,20 +103,23 @@ let KnowledgeService = KnowledgeService_1 = class KnowledgeService {
         const status = existing.status === 'approved' && contentChanged
             ? 'draft'
             : existing.status;
-        const updated = await this.prisma.kbDocument.update({
-            where: { slug },
-            data: {
-                title: dto.title,
-                owner: dto.owner,
-                markdown,
-                status,
-                editedInApp: contentChanged || existing.editedInApp,
-                contentHash: contentChanged
-                    ? `app:${contentHash(markdown)}`
-                    : existing.contentHash,
-            },
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data: {
+                    title: dto.title,
+                    owner: dto.owner,
+                    markdown,
+                    status,
+                    editedInApp: contentChanged || existing.editedInApp,
+                    contentHash: contentChanged
+                        ? `app:${contentHash(markdown)}`
+                        : existing.contentHash,
+                },
+            });
+            await this.audit.record(actor, 'sop', `edited "${slug}"${status !== existing.status ? ` (${existing.status} → ${status})` : ''}`, tx);
+            return row;
         });
-        this.logger.log(`[audit] ${actor} edited SOP "${slug}"${status !== existing.status ? ` (approved → ${status})` : ''}`);
         return toDocument(updated);
     }
     async setStatus(slug, next, actor) {
@@ -126,17 +138,34 @@ let KnowledgeService = KnowledgeService_1 = class KnowledgeService {
                 throw new common_1.BadRequestException(`Can't approve "${existing.title}": it has no owner yet.`);
             }
         }
-        const updated = await this.prisma.kbDocument.update({
-            where: { slug },
-            data: next === 'approved'
-                ? {
-                    status: next,
-                    version: existing.version + 1,
-                    contentUpdatedOn: todayUtc(),
-                }
-                : { status: next },
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data: next === 'approved'
+                    ? {
+                        status: next,
+                        version: existing.version + 1,
+                        contentUpdatedOn: todayUtc(),
+                    }
+                    : { status: next },
+            });
+            await this.audit.record(actor, 'sop', `moved "${slug}" ${existing.status} → ${next}`, tx);
+            return row;
         });
-        this.logger.log(`[audit] ${actor} moved SOP "${slug}" ${existing.status} → ${next}`);
+        return toDocument(updated);
+    }
+    async setVisibility(slug, visibility, actor) {
+        const existing = await this.requireDocument(slug);
+        if (existing.visibility === visibility)
+            return toDocument(existing);
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const row = await tx.kbDocument.update({
+                where: { slug },
+                data: { visibility },
+            });
+            await this.audit.record(actor, 'sop', `set "${slug}" visibility ${existing.visibility} → ${visibility}`, tx);
+            return row;
+        });
         return toDocument(updated);
     }
     async requireDocument(slug) {
@@ -174,7 +203,7 @@ let KnowledgeService = KnowledgeService_1 = class KnowledgeService {
                     slug,
                     action: 'rejected',
                     errors: [
-                        `Duplicate slug "${slug}" — already used by ${first}.`,
+                        `Duplicate slug "${slug}" - already used by ${first}.`,
                     ],
                 });
             }
@@ -329,6 +358,7 @@ let KnowledgeService = KnowledgeService_1 = class KnowledgeService {
 exports.KnowledgeService = KnowledgeService;
 exports.KnowledgeService = KnowledgeService = KnowledgeService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        audit_log_service_1.AuditLogService])
 ], KnowledgeService);
 //# sourceMappingURL=knowledge.service.js.map

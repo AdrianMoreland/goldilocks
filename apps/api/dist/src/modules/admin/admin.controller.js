@@ -19,26 +19,20 @@ const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const dtos_1 = require("../../common/dto/dtos");
+const app_logs_service_1 = require("./app-logs.service");
 const admin_overview_service_1 = require("./admin-overview.service");
 const api_catalogue_service_1 = require("./api-catalogue.service");
-const audit_log_service_1 = require("./audit-log.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 const db_browser_service_1 = require("./db-browser.service");
-const log_buffer_1 = require("./log-buffer");
-const LEVEL_ORDER = [
-    'trace',
-    'debug',
-    'info',
-    'warn',
-    'error',
-    'fatal',
-];
 let AdminController = class AdminController {
     overview;
+    appLogs;
     logs;
     catalogue;
     db;
-    constructor(overview, logs, catalogue, db) {
+    constructor(overview, appLogs, logs, catalogue, db) {
         this.overview = overview;
+        this.appLogs = appLogs;
         this.logs = logs;
         this.catalogue = catalogue;
         this.db = db;
@@ -46,20 +40,11 @@ let AdminController = class AdminController {
     getOverview() {
         return this.overview.build();
     }
-    getLogs(limit, level, q) {
-        const min = LEVEL_ORDER.indexOf(level ?? 'info');
-        const term = q?.trim().toLowerCase();
-        const n = Math.min(Math.max(Number(limit) || 200, 1), 1000);
-        const entries = log_buffer_1.logBuffer
-            .recent(log_buffer_1.logBuffer.capacity)
-            .filter((e) => LEVEL_ORDER.indexOf(e.level) >= Math.max(min, 0))
-            .filter((e) => !term ||
-            [e.message, e.context, e.url, e.method].some((v) => v?.toLowerCase().includes(term)))
-            .slice(0, n);
-        return { entries, capacity: log_buffer_1.logBuffer.capacity };
+    getLogs({ limit, level, q }) {
+        return this.appLogs.search({ limit, level, q });
     }
-    getAudit(limit) {
-        return this.logs.getRecent(Math.min(Math.max(Number(limit) || 100, 1), 500));
+    getAudit({ limit }) {
+        return this.logs.getRecent(limit);
     }
     getEndpoints() {
         return { endpoints: this.catalogue.list() };
@@ -67,12 +52,12 @@ let AdminController = class AdminController {
     async getTables() {
         return { tables: await this.db.listTables() };
     }
-    getRows(table, page, pageSize, sort, dir, q) {
+    getRows(table, { page, pageSize, sort, dir, q }) {
         return this.db.getRows(table, {
-            page: Number(page) || 1,
-            pageSize: Number(pageSize) || 50,
+            page,
+            pageSize,
             sort,
-            dir: dir === 'asc' ? 'asc' : 'desc',
+            dir,
             search: q,
         });
     }
@@ -106,19 +91,17 @@ __decorate([
     (0, swagger_1.ApiOperation)({
         summary: 'Recent application log lines (pino), newest first',
     }),
-    __param(0, (0, common_1.Query)('limit')),
-    __param(1, (0, common_1.Query)('level')),
-    __param(2, (0, common_1.Query)('q')),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [dtos_1.AdminLogsQueryDto]),
     __metadata("design:returntype", Object)
 ], AdminController.prototype, "getLogs", null);
 __decorate([
     (0, common_1.Get)('audit'),
     (0, swagger_1.ApiOperation)({ summary: 'Recent changes made from the admin console' }),
-    __param(0, (0, common_1.Query)('limit')),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [dtos_1.AuditQueryDto]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getAudit", null);
 __decorate([
@@ -141,13 +124,9 @@ __decorate([
     (0, common_1.Get)('db/tables/:table/rows'),
     (0, swagger_1.ApiOperation)({ summary: 'One page of rows from a table' }),
     __param(0, (0, common_1.Param)('table')),
-    __param(1, (0, common_1.Query)('page')),
-    __param(2, (0, common_1.Query)('pageSize')),
-    __param(3, (0, common_1.Query)('sort')),
-    __param(4, (0, common_1.Query)('dir')),
-    __param(5, (0, common_1.Query)('q')),
+    __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [String, dtos_1.DbRowsQueryDto]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getRows", null);
 __decorate([
@@ -191,6 +170,7 @@ exports.AdminController = AdminController = __decorate([
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:paramtypes", [admin_overview_service_1.AdminOverviewService,
+        app_logs_service_1.AppLogsService,
         audit_log_service_1.AuditLogService,
         api_catalogue_service_1.ApiCatalogueService,
         db_browser_service_1.DbBrowserService])

@@ -12,8 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductCacheStore = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
-const redis_service_1 = require("../../redis/redis.service");
-const pricing_util_1 = require("../../common/utils/pricing.util");
+const redis_service_1 = require("../../infrastructure/redis/redis.service");
+const prisma_mappers_1 = require("../../common/utils/prisma-mappers");
 const cache_aside_store_base_1 = require("../../common/cache/cache-aside-store.base");
 const PRODUCTS_CACHE_KEY = 'products:all';
 const PRODUCTS_CACHE_TTL_SECONDS = 300;
@@ -31,7 +31,7 @@ let ProductCacheStore = class ProductCacheStore extends cache_aside_store_base_1
             where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },
         });
-        return products.map(pricing_util_1.toRawProduct);
+        return products.map(prisma_mappers_1.toRawProduct);
     }
 };
 exports.ProductCacheStore = ProductCacheStore;

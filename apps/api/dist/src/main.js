@@ -1,16 +1,21 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
+const llm_module_1 = require("./infrastructure/llm/llm.module");
 const config_1 = require("@nestjs/config");
+const helmet_1 = __importDefault(require("helmet"));
 const swagger_1 = require("@nestjs/swagger");
 const nestjs_zod_1 = require("nestjs-zod");
 const error_log_service_1 = require("./modules/error-log/error-log.service");
 const nestjs_pino_1 = require("nestjs-pino");
 const nestjs_zod_2 = require("nestjs-zod");
 const api_catalogue_service_1 = require("./modules/admin/api-catalogue.service");
-const request_metrics_service_1 = require("./modules/admin/request-metrics.service");
+const request_metrics_service_1 = require("./modules/request-metrics/request-metrics.service");
 const logger = new common_1.Logger('Bootstrap');
 const REQUIRED_ENV_VARS = [
     'DATABASE_URL',
@@ -24,16 +29,24 @@ const REQUIRED_ENV_VARS = [
 ];
 function validateEnv(config) {
     const missing = REQUIRED_ENV_VARS.filter((key) => !config.get(key));
-    if (config.get('AI_ENABLED') === 'true' &&
-        !config.get('OPENAI_API_KEY')) {
-        missing.push('OPENAI_API_KEY (required because AI_ENABLED=true)');
+    if (config.get('AI_ENABLED') === 'true') {
+        const aiKey = llm_module_1.LLM_PROVIDER_KEY[(0, llm_module_1.resolveLlmProvider)(config)];
+        if (!config.get(aiKey)) {
+            missing.push(`${aiKey} (required because AI_ENABLED=true)`);
+        }
+        const mismatch = (0, llm_module_1.llmModelMismatch)(config);
+        if (mismatch)
+            new common_1.Logger('Bootstrap').error(mismatch);
     }
     if (missing.length > 0) {
         throw new Error(`Missing required environment variable(s): ${missing.join(', ')}`);
     }
 }
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule, { bufferLogs: true });
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, {
+        bufferLogs: true,
+        rawBody: true,
+    });
     app.useLogger(app.get(nestjs_pino_1.Logger));
     const config = app.get(config_1.ConfigService);
     validateEnv(config);
@@ -51,12 +64,14 @@ async function bootstrap() {
         void errorLog
             .record({
             kind: 'crash',
-            message: 'Uncaught exception — API process exiting',
+            message: 'Uncaught exception - API process exiting',
             error,
         })
             .finally(() => process.exit(1));
     });
+    app.set('trust proxy', Number(config.get('TRUST_PROXY_HOPS', 1)));
     app.use(app.get(request_metrics_service_1.RequestMetricsService).middleware());
+    app.useBodyParser('json', { limit: '10mb' });
     app.useGlobalPipes(new nestjs_zod_1.ZodValidationPipe());
     const frontendUrl = config.get('FRONTEND_URL', 'http://localhost:5173');
     app.enableCors({
@@ -64,6 +79,7 @@ async function bootstrap() {
         credentials: true,
     });
     const swaggerEnabled = config.get('SWAGGER_ENABLED', config.get('NODE_ENV') === 'production' ? 'false' : 'true') === 'true';
+    app.use((0, helmet_1.default)({ contentSecurityPolicy: swaggerEnabled ? false : undefined }));
     const swaggerConfig = new swagger_1.DocumentBuilder()
         .setTitle('Merrion Gold API')
         .setDescription("Internal pricing and trading API for Merrion Gold's bullion desk")
@@ -80,7 +96,9 @@ async function bootstrap() {
     const document = swagger_1.SwaggerModule.createDocument(app, swaggerConfig);
     app.get(api_catalogue_service_1.ApiCatalogueService).setDocument((0, nestjs_zod_2.cleanupOpenApiDoc)(document));
     if (swaggerEnabled) {
-        swagger_1.SwaggerModule.setup('docs', app, document);
+        swagger_1.SwaggerModule.setup('docs', app, document, {
+            swaggerOptions: { persistAuthorization: true },
+        });
     }
     const port = config.get('PORT', 4000);
     await app.listen(port);

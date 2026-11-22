@@ -13,6 +13,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TradeController = void 0;
+const permission_decorator_1 = require("../../common/decorators/permission.decorator");
+const capability_decorator_1 = require("../../common/decorators/capability.decorator");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const shared_types_1 = require("@goldilocks/shared-types");
@@ -67,7 +69,7 @@ __decorate([
     (0, common_1.Post)('melt'),
     (0, swagger_1.ApiOperation)({
         summary: 'Calculate melt/scrap value',
-        description: 'Gold and silver only — Merrion Gold does not melt-buy platinum/palladium.',
+        description: 'Gold and silver only - Merrion Gold does not melt-buy platinum/palladium.',
     }),
     (0, swagger_1.ApiResponse)({ status: 200, type: dtos_1.MeltCalculatorResponseDto }),
     __param(0, (0, common_1.Body)()),
@@ -77,6 +79,8 @@ __decorate([
 ], TradeController.prototype, "calculateMelt", null);
 exports.TradeController = TradeController = __decorate([
     (0, swagger_1.ApiTags)('trade'),
+    (0, capability_decorator_1.RequiresCapability)('pricingWorkbook'),
+    (0, permission_decorator_1.RequiresPermission)('page.dashboard'),
     (0, common_1.Controller)('trade'),
     __metadata("design:paramtypes", [trade_service_1.TradeService])
 ], TradeController);

@@ -12,18 +12,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const products_provider_1 = require("./products.provider");
-const pricing_util_1 = require("../../common/utils/pricing.util");
 let ProductsService = class ProductsService {
     productsProvider;
     constructor(productsProvider) {
         this.productsProvider = productsProvider;
     }
-    async getProducts(spotMap = pricing_util_1.ZERO_SPOT_MAP) {
-        const rawProducts = await this.productsProvider.getAll();
-        return rawProducts.map((p) => (0, pricing_util_1.calculateProductPrice)(p, spotMap));
-    }
     async getRawProducts() {
+        return (await this.productsProvider.getAll()).filter((p) => p.isActive);
+    }
+    async getRawProductsIncludingInactive() {
         return this.productsProvider.getAll();
+    }
+    async findById(id) {
+        return this.productsProvider.getById(id);
     }
     async getById(id) {
         const raw = await this.productsProvider.getById(id);
@@ -32,11 +33,11 @@ let ProductsService = class ProductsService {
         }
         return raw;
     }
-    async create(dto) {
+    async create(dto, actor) {
         await this.assertSkuAvailable(dto.sku);
-        return this.productsProvider.create(dto);
+        return this.productsProvider.create(dto, actor);
     }
-    async update(id, dto) {
+    async update(id, dto, actor) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new common_1.NotFoundException('Product not found');
@@ -44,7 +45,7 @@ let ProductsService = class ProductsService {
         if (dto.sku && dto.sku.toLowerCase() !== existing.sku.toLowerCase()) {
             await this.assertSkuAvailable(dto.sku);
         }
-        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description, } = dto;
+        const { name, sku, metalType, weight, spreadSell, spreadBuy, vatRate, stock, isActive, category, description, expectedUpdatedAt, } = dto;
         return this.productsProvider.update(id, {
             name,
             sku,
@@ -57,31 +58,31 @@ let ProductsService = class ProductsService {
             isActive,
             category,
             description,
-        });
+        }, actor, expectedUpdatedAt);
     }
-    async delete(id) {
+    async delete(id, actor) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new common_1.NotFoundException('Product not found');
         }
-        return this.productsProvider.softDelete(id);
+        return this.productsProvider.softDelete(id, actor);
     }
     async getDeleted() {
         return this.productsProvider.getDeleted();
     }
-    async restore(id) {
+    async restore(id, actor) {
         const existing = await this.productsProvider.getDeletedById(id);
         if (!existing) {
             throw new common_1.NotFoundException('Deleted product not found');
         }
-        return this.productsProvider.restore(id);
+        return this.productsProvider.restore(id, actor);
     }
-    async updateStock(id, stockQuantity) {
+    async updateStock(id, stockQuantity, actor) {
         const existing = await this.productsProvider.getById(id);
         if (!existing) {
             throw new common_1.NotFoundException('Product not found');
         }
-        return this.productsProvider.updateStock(id, stockQuantity);
+        return this.productsProvider.updateStock(id, stockQuantity, actor);
     }
     async assertSkuAvailable(sku) {
         const existing = await this.productsProvider.findBySku(sku);

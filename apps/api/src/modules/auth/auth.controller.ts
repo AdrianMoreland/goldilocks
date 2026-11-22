@@ -75,7 +75,17 @@ export class AuthController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Current session user' })
     async me(@Req() req: RequestWithUser): Promise<SessionUserDto> {
-        return this.authService.me(req.user.id);
+        const me = await this.authService.me(req.user.id);
+        // While an admin views the app as someone else, report that view (so the web app hides what it would hide)
+        // but keep canViewAs true so the switcher stays.
+        if (!req.viewAs) return me;
+        return {
+            ...me,
+            admin: false,
+            role: req.user.role,
+            branch: req.user.branch,
+            viewAs: req.viewAs,
+        };
     }
 
     @Put('me/ui-settings')

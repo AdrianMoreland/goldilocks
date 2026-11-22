@@ -8,8 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorLogModule = void 0;
 const common_1 = require("@nestjs/common");
-const redis_module_1 = require("../../redis/redis.module");
+const redis_module_1 = require("../../infrastructure/redis/redis.module");
 const auth_module_1 = require("../auth/auth.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
 const error_log_service_1 = require("./error-log.service");
 const error_log_controller_1 = require("./error-log.controller");
 let ErrorLogModule = class ErrorLogModule {
@@ -18,7 +19,7 @@ exports.ErrorLogModule = ErrorLogModule;
 exports.ErrorLogModule = ErrorLogModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        imports: [redis_module_1.RedisModule, auth_module_1.AuthModule],
+        imports: [redis_module_1.RedisModule, auth_module_1.AuthModule, audit_log_module_1.AuditLogModule],
         providers: [error_log_service_1.ErrorLogService],
         controllers: [error_log_controller_1.ErrorLogController],
         exports: [error_log_service_1.ErrorLogService],

@@ -29,15 +29,33 @@ const metal_price_api_module_1 = require("./infrastructure/metal-price-api/metal
 const trade_module_1 = require("./modules/trade/trade.module");
 const portfolio_module_1 = require("./modules/portfolio/portfolio.module");
 const branches_module_1 = require("./modules/branches/branches.module");
+const stocktake_module_1 = require("./modules/stocktake/stocktake.module");
+const customer_orders_module_1 = require("./modules/customer-orders/customer-orders.module");
+const tradesheet_import_module_1 = require("./modules/tradesheet-import/tradesheet-import.module");
+const imports_module_1 = require("./modules/imports/imports.module");
+const review_module_1 = require("./modules/review/review.module");
+const customer_records_module_1 = require("./modules/customer-records/customer-records.module");
+const inventory_module_1 = require("./modules/inventory/inventory.module");
+const live_stock_module_1 = require("./modules/live-stock/live-stock.module");
+const orders_module_1 = require("./modules/orders/orders.module");
 const market_mode_module_1 = require("./modules/market-mode/market-mode.module");
 const roadmap_module_1 = require("./modules/roadmap/roadmap.module");
 const prisma_module_1 = require("./infrastructure/prisma/prisma.module");
-const redis_module_1 = require("./redis/redis.module");
+const redis_module_1 = require("./infrastructure/redis/redis.module");
 const all_exceptions_filter_1 = require("./common/filters/all-exceptions.filter");
 const error_log_module_1 = require("./modules/error-log/error-log.module");
 const knowledge_module_1 = require("./modules/knowledge/knowledge.module");
 const ai_module_1 = require("./modules/ai/ai.module");
+const capability_guard_1 = require("./common/guards/capability.guard");
+const permission_guard_1 = require("./common/guards/permission.guard");
+const permissions_module_1 = require("./modules/permissions/permissions.module");
+const analytics_module_1 = require("./modules/analytics/analytics.module");
+const people_module_1 = require("./modules/people/people.module");
+const settings_module_1 = require("./modules/settings/settings.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
+const roles_guard_1 = require("./common/guards/roles.guard");
+const user_throttler_guard_1 = require("./common/guards/user-throttler.guard");
+const throttler_1 = require("@nestjs/throttler");
 function prettyStream() {
     const pretty = require('pino-pretty');
     return pretty({ colorize: true, singleLine: true, ignore: 'pid,hostname' });
@@ -48,6 +66,7 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            throttler_1.ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 300 }] }),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 envFilePath: '.env',
@@ -95,7 +114,20 @@ exports.AppModule = AppModule = __decorate([
             trade_module_1.TradeModule,
             portfolio_module_1.PortfolioModule,
             branches_module_1.BranchesModule,
+            stocktake_module_1.StocktakeModule,
+            customer_orders_module_1.CustomerOrdersModule,
+            tradesheet_import_module_1.TradesheetImportModule,
+            imports_module_1.ImportsModule,
+            review_module_1.ReviewModule,
+            customer_records_module_1.CustomerRecordsModule,
+            inventory_module_1.InventoryModule,
+            live_stock_module_1.LiveStockModule,
+            orders_module_1.OrdersModule,
             market_mode_module_1.MarketModeModule,
+            permissions_module_1.PermissionsModule,
+            analytics_module_1.AnalyticsModule,
+            people_module_1.PeopleModule,
+            settings_module_1.SettingsModule,
             roadmap_module_1.RoadmapModule,
             prisma_module_1.PrismaModule,
             redis_module_1.RedisModule,
@@ -108,6 +140,10 @@ exports.AppModule = AppModule = __decorate([
         providers: [
             app_service_1.AppService,
             { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },
+            { provide: core_1.APP_GUARD, useClass: roles_guard_1.RolesGuard },
+            { provide: core_1.APP_GUARD, useClass: capability_guard_1.CapabilityGuard },
+            { provide: core_1.APP_GUARD, useClass: permission_guard_1.PermissionGuard },
+            { provide: core_1.APP_GUARD, useClass: user_throttler_guard_1.UserThrottlerGuard },
             { provide: core_1.APP_PIPE, useClass: nestjs_zod_1.ZodValidationPipe },
             { provide: core_1.APP_INTERCEPTOR, useClass: nestjs_zod_1.ZodSerializerInterceptor },
             { provide: core_1.APP_FILTER, useClass: all_exceptions_filter_1.AllExceptionsFilter },

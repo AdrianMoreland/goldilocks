@@ -1,3 +1,4 @@
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -25,7 +26,6 @@ import { StocktakeService } from './stocktake.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import {
     CreateDiscrepancyRequestDto,
     CreateStocktakeRequestDto,
@@ -41,7 +41,7 @@ import {
 @ApiBearerAuth()
 @Controller('stocktake')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'manager')
+@RequiresPermission('page.stocktake')
 export class StocktakeController {
     constructor(private readonly service: StocktakeService) {}
 

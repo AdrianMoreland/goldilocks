@@ -25,6 +25,7 @@ export type KbDocumentMinAggregateOutputType = {
     jurisdiction: $Enums.KbJurisdiction | null;
     owner: string | null;
     status: $Enums.KbStatus | null;
+    visibility: $Enums.KbVisibility | null;
     version: number | null;
     contentUpdatedOn: Date | null;
     markdown: string | null;
@@ -41,6 +42,7 @@ export type KbDocumentMaxAggregateOutputType = {
     jurisdiction: $Enums.KbJurisdiction | null;
     owner: string | null;
     status: $Enums.KbStatus | null;
+    visibility: $Enums.KbVisibility | null;
     version: number | null;
     contentUpdatedOn: Date | null;
     markdown: string | null;
@@ -57,6 +59,7 @@ export type KbDocumentCountAggregateOutputType = {
     jurisdiction: number;
     owner: number;
     status: number;
+    visibility: number;
     version: number;
     contentUpdatedOn: number;
     markdown: number;
@@ -82,6 +85,7 @@ export type KbDocumentMinAggregateInputType = {
     jurisdiction?: true;
     owner?: true;
     status?: true;
+    visibility?: true;
     version?: true;
     contentUpdatedOn?: true;
     markdown?: true;
@@ -98,6 +102,7 @@ export type KbDocumentMaxAggregateInputType = {
     jurisdiction?: true;
     owner?: true;
     status?: true;
+    visibility?: true;
     version?: true;
     contentUpdatedOn?: true;
     markdown?: true;
@@ -114,6 +119,7 @@ export type KbDocumentCountAggregateInputType = {
     jurisdiction?: true;
     owner?: true;
     status?: true;
+    visibility?: true;
     version?: true;
     contentUpdatedOn?: true;
     markdown?: true;
@@ -159,6 +165,7 @@ export type KbDocumentGroupByOutputType = {
     jurisdiction: $Enums.KbJurisdiction;
     owner: string;
     status: $Enums.KbStatus;
+    visibility: $Enums.KbVisibility;
     version: number;
     contentUpdatedOn: Date;
     markdown: string;
@@ -186,6 +193,7 @@ export type KbDocumentWhereInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionFilter<"KbDocument"> | $Enums.KbJurisdiction;
     owner?: Prisma.StringFilter<"KbDocument"> | string;
     status?: Prisma.EnumKbStatusFilter<"KbDocument"> | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFilter<"KbDocument"> | $Enums.KbVisibility;
     version?: Prisma.IntFilter<"KbDocument"> | number;
     contentUpdatedOn?: Prisma.DateTimeFilter<"KbDocument"> | Date | string;
     markdown?: Prisma.StringFilter<"KbDocument"> | string;
@@ -202,6 +210,7 @@ export type KbDocumentOrderByWithRelationInput = {
     jurisdiction?: Prisma.SortOrder;
     owner?: Prisma.SortOrder;
     status?: Prisma.SortOrder;
+    visibility?: Prisma.SortOrder;
     version?: Prisma.SortOrder;
     contentUpdatedOn?: Prisma.SortOrder;
     markdown?: Prisma.SortOrder;
@@ -221,6 +230,7 @@ export type KbDocumentWhereUniqueInput = Prisma.AtLeast<{
     jurisdiction?: Prisma.EnumKbJurisdictionFilter<"KbDocument"> | $Enums.KbJurisdiction;
     owner?: Prisma.StringFilter<"KbDocument"> | string;
     status?: Prisma.EnumKbStatusFilter<"KbDocument"> | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFilter<"KbDocument"> | $Enums.KbVisibility;
     version?: Prisma.IntFilter<"KbDocument"> | number;
     contentUpdatedOn?: Prisma.DateTimeFilter<"KbDocument"> | Date | string;
     markdown?: Prisma.StringFilter<"KbDocument"> | string;
@@ -237,6 +247,7 @@ export type KbDocumentOrderByWithAggregationInput = {
     jurisdiction?: Prisma.SortOrder;
     owner?: Prisma.SortOrder;
     status?: Prisma.SortOrder;
+    visibility?: Prisma.SortOrder;
     version?: Prisma.SortOrder;
     contentUpdatedOn?: Prisma.SortOrder;
     markdown?: Prisma.SortOrder;
@@ -261,6 +272,7 @@ export type KbDocumentScalarWhereWithAggregatesInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionWithAggregatesFilter<"KbDocument"> | $Enums.KbJurisdiction;
     owner?: Prisma.StringWithAggregatesFilter<"KbDocument"> | string;
     status?: Prisma.EnumKbStatusWithAggregatesFilter<"KbDocument"> | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityWithAggregatesFilter<"KbDocument"> | $Enums.KbVisibility;
     version?: Prisma.IntWithAggregatesFilter<"KbDocument"> | number;
     contentUpdatedOn?: Prisma.DateTimeWithAggregatesFilter<"KbDocument"> | Date | string;
     markdown?: Prisma.StringWithAggregatesFilter<"KbDocument"> | string;
@@ -276,6 +288,7 @@ export type KbDocumentCreateInput = {
     jurisdiction: $Enums.KbJurisdiction;
     owner: string;
     status?: $Enums.KbStatus;
+    visibility?: $Enums.KbVisibility;
     version?: number;
     contentUpdatedOn: Date | string;
     markdown: string;
@@ -292,6 +305,7 @@ export type KbDocumentUncheckedCreateInput = {
     jurisdiction: $Enums.KbJurisdiction;
     owner: string;
     status?: $Enums.KbStatus;
+    visibility?: $Enums.KbVisibility;
     version?: number;
     contentUpdatedOn: Date | string;
     markdown: string;
@@ -307,6 +321,7 @@ export type KbDocumentUpdateInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionFieldUpdateOperationsInput | $Enums.KbJurisdiction;
     owner?: Prisma.StringFieldUpdateOperationsInput | string;
     status?: Prisma.EnumKbStatusFieldUpdateOperationsInput | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFieldUpdateOperationsInput | $Enums.KbVisibility;
     version?: Prisma.IntFieldUpdateOperationsInput | number;
     contentUpdatedOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     markdown?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -323,6 +338,7 @@ export type KbDocumentUncheckedUpdateInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionFieldUpdateOperationsInput | $Enums.KbJurisdiction;
     owner?: Prisma.StringFieldUpdateOperationsInput | string;
     status?: Prisma.EnumKbStatusFieldUpdateOperationsInput | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFieldUpdateOperationsInput | $Enums.KbVisibility;
     version?: Prisma.IntFieldUpdateOperationsInput | number;
     contentUpdatedOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     markdown?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -339,6 +355,7 @@ export type KbDocumentCreateManyInput = {
     jurisdiction: $Enums.KbJurisdiction;
     owner: string;
     status?: $Enums.KbStatus;
+    visibility?: $Enums.KbVisibility;
     version?: number;
     contentUpdatedOn: Date | string;
     markdown: string;
@@ -354,6 +371,7 @@ export type KbDocumentUpdateManyMutationInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionFieldUpdateOperationsInput | $Enums.KbJurisdiction;
     owner?: Prisma.StringFieldUpdateOperationsInput | string;
     status?: Prisma.EnumKbStatusFieldUpdateOperationsInput | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFieldUpdateOperationsInput | $Enums.KbVisibility;
     version?: Prisma.IntFieldUpdateOperationsInput | number;
     contentUpdatedOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     markdown?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -370,6 +388,7 @@ export type KbDocumentUncheckedUpdateManyInput = {
     jurisdiction?: Prisma.EnumKbJurisdictionFieldUpdateOperationsInput | $Enums.KbJurisdiction;
     owner?: Prisma.StringFieldUpdateOperationsInput | string;
     status?: Prisma.EnumKbStatusFieldUpdateOperationsInput | $Enums.KbStatus;
+    visibility?: Prisma.EnumKbVisibilityFieldUpdateOperationsInput | $Enums.KbVisibility;
     version?: Prisma.IntFieldUpdateOperationsInput | number;
     contentUpdatedOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
     markdown?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -386,6 +405,7 @@ export type KbDocumentCountOrderByAggregateInput = {
     jurisdiction?: Prisma.SortOrder;
     owner?: Prisma.SortOrder;
     status?: Prisma.SortOrder;
+    visibility?: Prisma.SortOrder;
     version?: Prisma.SortOrder;
     contentUpdatedOn?: Prisma.SortOrder;
     markdown?: Prisma.SortOrder;
@@ -406,6 +426,7 @@ export type KbDocumentMaxOrderByAggregateInput = {
     jurisdiction?: Prisma.SortOrder;
     owner?: Prisma.SortOrder;
     status?: Prisma.SortOrder;
+    visibility?: Prisma.SortOrder;
     version?: Prisma.SortOrder;
     contentUpdatedOn?: Prisma.SortOrder;
     markdown?: Prisma.SortOrder;
@@ -422,6 +443,7 @@ export type KbDocumentMinOrderByAggregateInput = {
     jurisdiction?: Prisma.SortOrder;
     owner?: Prisma.SortOrder;
     status?: Prisma.SortOrder;
+    visibility?: Prisma.SortOrder;
     version?: Prisma.SortOrder;
     contentUpdatedOn?: Prisma.SortOrder;
     markdown?: Prisma.SortOrder;
@@ -443,6 +465,9 @@ export type EnumKbJurisdictionFieldUpdateOperationsInput = {
 export type EnumKbStatusFieldUpdateOperationsInput = {
     set?: $Enums.KbStatus;
 };
+export type EnumKbVisibilityFieldUpdateOperationsInput = {
+    set?: $Enums.KbVisibility;
+};
 export type KbDocumentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     id?: boolean;
     slug?: boolean;
@@ -451,6 +476,7 @@ export type KbDocumentSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
     jurisdiction?: boolean;
     owner?: boolean;
     status?: boolean;
+    visibility?: boolean;
     version?: boolean;
     contentUpdatedOn?: boolean;
     markdown?: boolean;
@@ -467,6 +493,7 @@ export type KbDocumentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
     jurisdiction?: boolean;
     owner?: boolean;
     status?: boolean;
+    visibility?: boolean;
     version?: boolean;
     contentUpdatedOn?: boolean;
     markdown?: boolean;
@@ -483,6 +510,7 @@ export type KbDocumentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
     jurisdiction?: boolean;
     owner?: boolean;
     status?: boolean;
+    visibility?: boolean;
     version?: boolean;
     contentUpdatedOn?: boolean;
     markdown?: boolean;
@@ -499,6 +527,7 @@ export type KbDocumentSelectScalar = {
     jurisdiction?: boolean;
     owner?: boolean;
     status?: boolean;
+    visibility?: boolean;
     version?: boolean;
     contentUpdatedOn?: boolean;
     markdown?: boolean;
@@ -507,7 +536,7 @@ export type KbDocumentSelectScalar = {
     createdAt?: boolean;
     updatedAt?: boolean;
 };
-export type KbDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "title" | "category" | "jurisdiction" | "owner" | "status" | "version" | "contentUpdatedOn" | "markdown" | "contentHash" | "editedInApp" | "createdAt" | "updatedAt", ExtArgs["result"]["kbDocument"]>;
+export type KbDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "title" | "category" | "jurisdiction" | "owner" | "status" | "visibility" | "version" | "contentUpdatedOn" | "markdown" | "contentHash" | "editedInApp" | "createdAt" | "updatedAt", ExtArgs["result"]["kbDocument"]>;
 export type $KbDocumentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "KbDocument";
     objects: {};
@@ -519,6 +548,7 @@ export type $KbDocumentPayload<ExtArgs extends runtime.Types.Extensions.Internal
         jurisdiction: $Enums.KbJurisdiction;
         owner: string;
         status: $Enums.KbStatus;
+        visibility: $Enums.KbVisibility;
         version: number;
         contentUpdatedOn: Date;
         markdown: string;
@@ -590,6 +620,7 @@ export interface KbDocumentFieldRefs {
     readonly jurisdiction: Prisma.FieldRef<"KbDocument", 'KbJurisdiction'>;
     readonly owner: Prisma.FieldRef<"KbDocument", 'String'>;
     readonly status: Prisma.FieldRef<"KbDocument", 'KbStatus'>;
+    readonly visibility: Prisma.FieldRef<"KbDocument", 'KbVisibility'>;
     readonly version: Prisma.FieldRef<"KbDocument", 'Int'>;
     readonly contentUpdatedOn: Prisma.FieldRef<"KbDocument", 'DateTime'>;
     readonly markdown: Prisma.FieldRef<"KbDocument", 'String'>;

@@ -21,7 +21,7 @@ class CacheAsideStore {
             return cached;
         }
         if (cached !== null) {
-            this.storeLogger.warn(`Cached value for "${redisKey}" is unusable — querying source instead`);
+            this.storeLogger.warn(`Cached value for "${redisKey}" is unusable - querying source instead`);
         }
         else {
             this.storeLogger.debug(`Cache miss for "${redisKey}", querying source…`);
@@ -35,7 +35,7 @@ class CacheAsideStore {
             await this.set(key, fresh);
         }
         else {
-            this.storeLogger.warn(`Source value for "${redisKey}" is unusable — not caching it`);
+            this.storeLogger.warn(`Source value for "${redisKey}" is unusable - not caching it`);
         }
         return fresh;
     }

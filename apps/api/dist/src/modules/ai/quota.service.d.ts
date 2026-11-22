@@ -1,4 +1,4 @@
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AiSettings } from './ai.settings';
 export interface QuotaSlot {
     release(): Promise<void>;

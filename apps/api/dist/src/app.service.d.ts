@@ -1,5 +1,5 @@
 import { PrismaService } from './infrastructure/prisma/prisma.service';
-import { RedisService } from './redis/redis.service';
+import { RedisService } from './infrastructure/redis/redis.service';
 import { FetchAttemptService } from './modules/metals/fetch-attempt.service';
 export declare class AppService {
     private readonly prisma;

@@ -1,6 +1,6 @@
 import { type RoadmapDocument, type RoadmapEditRequest } from '@goldilocks/shared-types';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { AuditLogService } from '../admin/audit-log.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 export declare class RoadmapService {
     private readonly prisma;
     private readonly audit;

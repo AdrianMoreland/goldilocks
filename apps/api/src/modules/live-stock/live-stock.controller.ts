@@ -1,3 +1,5 @@
+import { RequiresCapability } from '../../common/decorators/capability.decorator';
+import { RequiresPermission } from '../../common/decorators/permission.decorator';
 import {
     Body,
     Controller,
@@ -50,12 +52,15 @@ export class LiveStockController {
     constructor(private readonly service: LiveStockService) {}
 
     @Get('branches')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Stock locations and which the caller may edit' })
     branches(@Req() req: RequestWithUser): Promise<LiveStockBranchesResponse> {
         return this.service.branches(req.user);
     }
 
     @Get('product-levels')
+    @RequiresPermission('page.dashboard')
+    @RequiresCapability('pricingWorkbook')
     @ApiOperation({
         summary: 'Stock per priced product, for the dashboard flag',
     })
@@ -64,6 +69,7 @@ export class LiveStockController {
     }
 
     @Get('board')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Lines and serials for one branch and metal' })
     board(
         @Req() req: RequestWithUser,
@@ -76,6 +82,7 @@ export class LiveStockController {
     }
 
     @Get('lines/:id/history')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Newest changes on a line, with their source' })
     history(
         @Param('id', ParseIntPipe) id: number,
@@ -84,6 +91,7 @@ export class LiveStockController {
     }
 
     @Post('lines')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Add a stock line (and an opening count)' })
     createLine(
         @Req() req: RequestWithUser,
@@ -93,6 +101,7 @@ export class LiveStockController {
     }
 
     @Post('lines/:id/adjust')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Change a count by a step or to a typed value' })
     adjust(
@@ -104,6 +113,7 @@ export class LiveStockController {
     }
 
     @Post('lines/:id/transfer')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Move stock to another branch' })
     transfer(
@@ -115,6 +125,7 @@ export class LiveStockController {
     }
 
     @Patch('lines/:id/threshold')
+    @RequiresPermission('page.inventory')
     @HttpCode(204)
     @ApiOperation({ summary: 'Set or clear the low-stock threshold' })
     async threshold(
@@ -126,6 +137,7 @@ export class LiveStockController {
     }
 
     @Post('lines/:id/bars')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Add a serialled bar to a bar line' })
     addBar(
         @Req() req: RequestWithUser,
@@ -136,6 +148,7 @@ export class LiveStockController {
     }
 
     @Post('bars/:id/status')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Mark a bar sold, removed or back in stock' })
     barStatus(
@@ -147,6 +160,7 @@ export class LiveStockController {
     }
 
     @Post('movements/:id/undo')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: "Undo a line's latest manual change" })
     undo(
@@ -157,6 +171,7 @@ export class LiveStockController {
     }
 
     @Put('branches/:code/link')
+    @RequiresPermission('page.inventory')
     @ApiOperation({ summary: 'Admin: link a stock location to an app branch' })
     link(
         @Req() req: RequestWithUser,
@@ -167,6 +182,7 @@ export class LiveStockController {
     }
 
     @Post('baseline/preview')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Admin: what loading the stock sheet would do' })
     previewBaseline(
@@ -177,6 +193,7 @@ export class LiveStockController {
     }
 
     @Post('baseline')
+    @RequiresPermission('page.inventory')
     @HttpCode(200)
     @ApiOperation({ summary: 'Admin: load the stock sheet as the baseline' })
     commitBaseline(
