@@ -289,11 +289,12 @@ var TradeCartItemRequestSchema = z6.object({
   quantity: z6.coerce.number().int().min(1).default(1),
   percent: z6.coerce.number().min(0)
 });
+var TRADE_CART_MAX_ITEMS = 100;
 var TradeCartRequestSchema = z6.object({
   metalType: MetalTypeEnum,
   transactionType: TradeTransactionTypeEnum,
   customSpot: z6.coerce.number().positive().optional(),
-  items: z6.array(TradeCartItemRequestSchema).min(1)
+  items: z6.array(TradeCartItemRequestSchema).min(1).max(TRADE_CART_MAX_ITEMS)
 });
 var TradeCartLineSchema = z6.object({
   productId: z6.number(),
@@ -9364,6 +9365,7 @@ export {
   StocktakeLineSchema,
   StocktakeSchema,
   StocktakeStatusEnum,
+  TRADE_CART_MAX_ITEMS,
   TRADE_METAL_SLIDER_BOUNDS,
   TRADE_STATES,
   TabPlanSchema,
