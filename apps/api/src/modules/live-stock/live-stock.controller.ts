@@ -59,7 +59,7 @@ export class LiveStockController {
     }
 
     @Get('product-levels')
-    @RequiresPermission('page.dashboard')
+    @RequiresPermission('feature.stock-levels')
     @RequiresCapability('pricingWorkbook')
     @ApiOperation({
         summary: 'Stock per priced product, for the dashboard flag',

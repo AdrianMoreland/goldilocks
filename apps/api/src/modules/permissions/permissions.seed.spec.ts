@@ -14,12 +14,13 @@ const seeded = (sql: string) =>
     );
 
 describe('role preset seed', () => {
-    it('seeds exactly DEFAULT_ROLE_PERMISSIONS across the two migrations', () => {
+    it('seeds exactly DEFAULT_ROLE_PERMISSIONS across the migrations', () => {
         const actual = [
             ...seeded(
                 migration('20261121180000_permissions_snapshots_ai_feedback'),
             ),
             ...seeded(migration('20261122120000_page_permissions')),
+            ...seeded(migration('20261123120000_stock_levels_feature')),
         ].sort();
         const expected = Object.entries(DEFAULT_ROLE_PERMISSIONS)
             .flatMap(([role, keys]) => keys.map((k) => `${role}:${k}`))

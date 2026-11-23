@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import type { ProductStockLevel, StockLevelState } from "@goldilocks/shared-types"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMyPermissions } from "@/api/permissions.api"
 import { useLiveStockApi } from "@/api/live-stock.api"
 import { queryKeys } from "@/lib/query-keys"
 import { cn } from "@/lib/utils"
@@ -15,9 +16,10 @@ const STATE_STYLE: Record<StockLevelState, { dot: string; text: string; label: s
  * Stock per product from live stock, shared by every row (one request, cached a minute; stock edits refresh it because
  * they invalidate everything under the live-stock key). A failed load just hides the flags: prices never wait on stock.
  */
-function useProductStockLevels() {
+function useProductStockLevels(enabled: boolean) {
     const api = useLiveStockApi()
     return useQuery({
+        enabled,
         queryKey: queryKeys.liveStock.productLevels,
         queryFn: api.productLevels,
         staleTime: 60_000,
@@ -29,8 +31,11 @@ function useProductStockLevels() {
 
 /** A dot and the count across all branches; hover or focus shows each branch. Nothing for products stock does not track. */
 export function StockFlag({ productId, className }: { productId: number; className?: string }) {
-    const { data } = useProductStockLevels()
-    const level = data?.get(productId)
+    // Hidden (and never requested) unless the role has the stock-levels feature switched on.
+    const { can } = useMyPermissions()
+    const allowed = can("feature.stock-levels")
+    const { data } = useProductStockLevels(allowed)
+    const level = allowed ? data?.get(productId) : undefined
     if (!level) return null
     const style = STATE_STYLE[level.state]
     const summary = `${style.label}: ${level.total} across all branches`

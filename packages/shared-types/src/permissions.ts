@@ -29,6 +29,8 @@ export const PERMISSION_KEYS = [
   'page.invoices',
   'page.tradesheets',
   'page.rules',
+  // Parts of a page, not whole pages. Off hides the feature in the UI and the server refuses its data.
+  'feature.stock-levels',
 ] as const;
 
 export const PermissionKeySchema = z.enum(PERMISSION_KEYS);
@@ -57,6 +59,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, { group: string; label: st
   'page.invoices': { group: 'Pages', label: 'Invoices' },
   'page.tradesheets': { group: 'Pages', label: 'Trade sheets' },
   'page.rules': { group: 'Pages', label: 'Rules' },
+  'feature.stock-levels': { group: 'Features', label: 'Stock levels in the pricing workbook' },
 };
 
 /**
@@ -74,7 +77,7 @@ const EVERYONE_PAGES: PermissionKey[] = ['page.dashboard', 'page.knowledge'];
 export const DEFAULT_ROLE_PERMISSIONS: Record<PermissionRole, readonly PermissionKey[]> = {
   ADMIN: PERMISSION_KEYS,
   // Everything built but not yet released (inventory, analytics, orders, import, customers, invoices, trade sheets,
-  // rules) starts admin-only: an admin turns it on for a role in Roles & permissions.
+  // rules, stock levels) starts admin-only: an admin turns it on for a role in Roles & permissions.
   MANAGER: ['analytics.pricing', 'analytics.sales', 'analytics.orders', 'analytics.inventory', 'analytics.customers', ...EVERYONE_PAGES, 'page.stocktake', 'page.customer-orders'],
   SALES: ['analytics.pricing', 'analytics.orders', 'analytics.inventory', ...EVERYONE_PAGES],
   ACCOUNTING: ['analytics.sales', 'analytics.customers', ...EVERYONE_PAGES],
