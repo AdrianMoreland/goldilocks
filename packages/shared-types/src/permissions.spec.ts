@@ -28,7 +28,7 @@ describe('page defaults', () => {
 
   it('keeps unreleased pages admin-only', () => {
     for (const role of ['MANAGER', 'SALES', 'ACCOUNTING', 'AUDITOR'] as const) {
-      for (const k of ['page.orders', 'page.import', 'page.customers', 'page.invoices', 'page.tradesheets', 'page.rules', 'page.inventory', 'page.analytics'] as const) {
+      for (const k of ['page.orders', 'page.import', 'page.customers', 'page.invoices', 'page.tradesheets', 'page.rules', 'page.inventory', 'page.analytics', 'feature.stock-levels'] as const) {
         expect(DEFAULT_ROLE_PERMISSIONS[role]).not.toContain(k);
       }
     }
