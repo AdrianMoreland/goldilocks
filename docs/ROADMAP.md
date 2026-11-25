@@ -391,6 +391,8 @@ The sidebar is capped at **5 tabs**; consolidate rather than add. Already shippe
 - [ ] Daily end-of-day price snapshot per product ("what did we charge on date X") - M
 - [ ] Dealer margin monitor (admin only) and margin-leakage flags - M
 - [x] **Project Management page** (admin only, `/project`): three views: **Roadmap** (browse by section with icons and progress, tick/untick, add, edit and delete tasks), **Engineering** (the project guide plus architecture, SOLID, patterns, runtime and operations topics with diagrams) and **Design system** (colour swatches, type scale, shapes and live component mockups from `DESIGN.md`) - M *(the Markdown is stored in the `roadmap_document` table so it works on Railway; the Engineering and Design views read `docs/ENGINEERING.md` and `DESIGN.md` at build time; edits are written back to `docs/ROADMAP.md` when run from a local checkout. `pnpm --filter api roadmap:import` after editing the file by hand, `roadmap:export` after editing in the deployed app)*
+- [ ] **Component lab tab** (admin only, own side-menu item): shows the separate component lab (its own repository and roadmap) in a frame; Keep/Reject, tags and notes saved in a new `component_pick` table (Zod DTOs, admin guard, Jest specs); no component code enters this app - M ← depends: component lab roadmap §1 (lab live on Cloudflare Pages)
+  - [ ] Later: paste a component link here to import it into the lab (lab roadmap §4) - L
 - [ ] Bulk product importer - M
 - [ ] Role tiers enforced in UI (sales can log quotes but not edit premiums) - S
 
