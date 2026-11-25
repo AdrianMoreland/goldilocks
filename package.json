@@ -19,7 +19,8 @@
 		"lint": "turbo run lint",
 		"check-types": "turbo run check-types",
 		"test": "turbo run test",
-		"figma:build": "figma-bridge build --config design/figma/figma-bridge.config.mjs"
+		"figma:build": "figma-bridge build --config design/figma/figma-bridge.config.mjs && node design/figma/coverage.mjs && node design/figma/patch-ui.mjs",
+		"figma:check": "figma-bridge check --config design/figma/figma-bridge.config.mjs"
 	},
 	"devDependencies": {
 		"@saotesi/figma-bridge": "0.1.0",
