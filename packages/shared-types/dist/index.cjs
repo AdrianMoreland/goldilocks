@@ -9705,7 +9705,9 @@ var PERMISSION_KEYS = [
   "page.customers",
   "page.invoices",
   "page.tradesheets",
-  "page.rules"
+  "page.rules",
+  // Parts of a page, not whole pages. Off hides the feature in the UI and the server refuses its data.
+  "feature.stock-levels"
 ];
 var PermissionKeySchema = import_zod34.z.enum(PERMISSION_KEYS);
 var PERMISSION_LABELS = {
@@ -9728,7 +9730,8 @@ var PERMISSION_LABELS = {
   "page.customers": { group: "Pages", label: "Customers" },
   "page.invoices": { group: "Pages", label: "Invoices" },
   "page.tradesheets": { group: "Pages", label: "Trade sheets" },
-  "page.rules": { group: "Pages", label: "Rules" }
+  "page.rules": { group: "Pages", label: "Rules" },
+  "feature.stock-levels": { group: "Features", label: "Stock levels in the pricing workbook" }
 };
 var ADMIN_ONLY_PAGES = ["Admin console", "Project (roadmap)"];
 var ALL_ANALYTICS = PERMISSION_KEYS.filter((k) => k.startsWith("analytics."));
@@ -9736,7 +9739,7 @@ var EVERYONE_PAGES = ["page.dashboard", "page.knowledge"];
 var DEFAULT_ROLE_PERMISSIONS = {
   ADMIN: PERMISSION_KEYS,
   // Everything built but not yet released (inventory, analytics, orders, import, customers, invoices, trade sheets,
-  // rules) starts admin-only: an admin turns it on for a role in Roles & permissions.
+  // rules, stock levels) starts admin-only: an admin turns it on for a role in Roles & permissions.
   MANAGER: ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers", ...EVERYONE_PAGES, "page.stocktake", "page.customer-orders"],
   SALES: ["analytics.pricing", "analytics.orders", "analytics.inventory", ...EVERYONE_PAGES],
   ACCOUNTING: ["analytics.sales", "analytics.customers", ...EVERYONE_PAGES],

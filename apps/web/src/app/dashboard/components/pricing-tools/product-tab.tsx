@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react"
 import { ArrowRight, ChevronDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useMyPermissions } from "@/api/permissions.api"
 import { usePricingTools } from "../../context/pricing-tools-context"
 import { useMarketData } from "@/hooks/use-market-data.hook"
 import { findDefaultProduct } from "@/lib/default-product"
@@ -24,6 +25,7 @@ export function ProductTab() {
     const { selectedProduct, activeMetal, openInTrade, openWithProduct } = usePricingTools()
     const { products } = useMarketData()
 
+    const canSeeStock = useMyPermissions().can("feature.stock-levels")
     const metalProducts = products.filter((p) => p.metalType === activeMetal)
     const product = selectedProduct?.metalType === activeMetal ? selectedProduct : findDefaultProduct(activeMetal, metalProducts)
 
@@ -76,8 +78,12 @@ export function ProductTab() {
                     <span>{live.sku}</span>
                     <span aria-hidden>·</span>
                     <span>{live.weight.toFixed(2)} g</span>
-                    <span aria-hidden>·</span>
-                    <span>{live.stock} in stock</span>
+                    {canSeeStock && (
+                        <>
+                            <span aria-hidden>·</span>
+                            <span>{live.stock} in stock</span>
+                        </>
+                    )}
                 </div>
             </div>
 

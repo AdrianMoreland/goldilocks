@@ -12,7 +12,9 @@ import { queryKeys } from "@/lib/query-keys"
 
 const ROLES = SessionUserRoleEnum.options
 /** Pages first: they are what an admin switches most often. */
-const GROUPS = [...new Set(PERMISSION_KEYS.map((k) => PERMISSION_LABELS[k].group))].sort((a, b) => (a === "Pages" ? -1 : b === "Pages" ? 1 : 0))
+const SWITCH_GROUPS = ["Pages", "Features"]
+const rank = (g: string) => (SWITCH_GROUPS.includes(g) ? SWITCH_GROUPS.indexOf(g) : SWITCH_GROUPS.length)
+const GROUPS = [...new Set(PERMISSION_KEYS.map((k) => PERMISSION_LABELS[k].group))].sort((a, b) => rank(a) - rank(b))
 const ROLE_LABEL: Record<PermissionRole, string> = { ADMIN: "Admin", MANAGER: "Manager", SALES: "Sales", ACCOUNTING: "Accounting", AUDITOR: "Auditor" }
 const fromSets = (d: Record<PermissionRole, Set<PermissionKey>>) => Object.fromEntries(ROLES.map((r) => [r, [...d[r]]])) as unknown as PermissionMatrix
 const toSets = (m: PermissionMatrix) => Object.fromEntries(ROLES.map((r) => [r, new Set(m[r])])) as Record<PermissionRole, Set<PermissionKey>>
@@ -61,27 +63,33 @@ export function RolesTab() {
             {GROUPS.map((group) => {
                 const keys = PERMISSION_KEYS.filter((k) => PERMISSION_LABELS[k].group === group)
                 const isPages = group === "Pages"
+                const isSwitch = SWITCH_GROUPS.includes(group)
                 return (
                     <section key={group} className="space-y-2">
-                        <h3 className="text-sm font-semibold">{isPages ? "Pages each role can open" : group}</h3>
+                        <h3 className="text-sm font-semibold">{isPages ? "Pages each role can open" : group === "Features" ? "Features inside a page" : group}</h3>
                         {isPages && (
                             <p className="text-muted-foreground text-sm">
                                 Switch a page on for a role and its people see it in the menu and the server answers its requests. Off means hidden and refused, even if they know the address. New pages start admin-only.
                                 {" "}{ADMIN_ONLY_PAGES.join(" and ")} are always admin-only and not listed.
                             </p>
                         )}
+                        {group === "Features" && (
+                            <p className="text-muted-foreground text-sm">
+                                Parts of a page that are still being finished. Off hides the feature and the server refuses its data. New features start admin-only.
+                            </p>
+                        )}
                         <div className="overflow-x-auto rounded-md border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>{isPages ? "Page" : "Permission"}</TableHead>
+                                        <TableHead>{isPages ? "Page" : isSwitch ? "Feature" : "Permission"}</TableHead>
                                         {ROLES.map((r) => <TableHead key={r} className="text-center">{ROLE_LABEL[r]}</TableHead>)}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {keys.map((k) => (
                                         <TableRow key={k}>
-                                            <TableCell>{isPages ? PERMISSION_LABELS[k].label : <><span className="text-muted-foreground">{PERMISSION_LABELS[k].group} · </span>{PERMISSION_LABELS[k].label}</>}</TableCell>
+                                            <TableCell>{isSwitch ? PERMISSION_LABELS[k].label : <><span className="text-muted-foreground">{PERMISSION_LABELS[k].group} · </span>{PERMISSION_LABELS[k].label}</>}</TableCell>
                                             {ROLES.map((r) => {
                                                 const props = {
                                                     checked: r === "ADMIN" || draft[r].has(k),
@@ -91,7 +99,7 @@ export function RolesTab() {
                                                 }
                                                 return (
                                                     <TableCell key={r} className="text-center">
-                                                        {isPages ? <Switch {...props} /> : <Checkbox {...props} />}
+                                                        {isSwitch ? <Switch {...props} /> : <Checkbox {...props} />}
                                                     </TableCell>
                                                 )
                                             })}

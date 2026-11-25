@@ -8772,7 +8772,7 @@ declare const COLLECTED_TASK: {
  * permission. Add a page by adding its key here and to the presets it belongs to; the database stores keys as text,
  * so a removed key is simply ignored.
  */
-declare const PERMISSION_KEYS: readonly ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers", "analytics.chatbot", "analytics.ops", "admin.audit", "page.dashboard", "page.inventory", "page.analytics", "page.knowledge", "page.stocktake", "page.customer-orders", "page.orders", "page.import", "page.customers", "page.invoices", "page.tradesheets", "page.rules"];
+declare const PERMISSION_KEYS: readonly ["analytics.pricing", "analytics.sales", "analytics.orders", "analytics.inventory", "analytics.customers", "analytics.chatbot", "analytics.ops", "admin.audit", "page.dashboard", "page.inventory", "page.analytics", "page.knowledge", "page.stocktake", "page.customer-orders", "page.orders", "page.import", "page.customers", "page.invoices", "page.tradesheets", "page.rules", "feature.stock-levels"];
 declare const PermissionKeySchema: z.ZodEnum<{
     "analytics.pricing": "analytics.pricing";
     "analytics.sales": "analytics.sales";
@@ -8794,6 +8794,7 @@ declare const PermissionKeySchema: z.ZodEnum<{
     "page.invoices": "page.invoices";
     "page.tradesheets": "page.tradesheets";
     "page.rules": "page.rules";
+    "feature.stock-levels": "feature.stock-levels";
 }>;
 type PermissionKey = z.infer<typeof PermissionKeySchema>;
 type PermissionRole = z.infer<typeof SessionUserRoleEnum>;
@@ -8846,6 +8847,7 @@ declare const PermissionListSchema: z.ZodArray<z.ZodEnum<{
     "page.invoices": "page.invoices";
     "page.tradesheets": "page.tradesheets";
     "page.rules": "page.rules";
+    "feature.stock-levels": "feature.stock-levels";
 }>>;
 
 /**
@@ -9102,6 +9104,7 @@ declare const PermissionOverrideSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>;
     granted: z.ZodBoolean;
     expiresAt: z.ZodNullable<z.ZodString>;
@@ -9153,6 +9156,7 @@ declare const AdminUserSchema: z.ZodObject<{
             "page.invoices": "page.invoices";
             "page.tradesheets": "page.tradesheets";
             "page.rules": "page.rules";
+            "feature.stock-levels": "feature.stock-levels";
         }>;
         granted: z.ZodBoolean;
         expiresAt: z.ZodNullable<z.ZodString>;
@@ -9181,6 +9185,7 @@ declare const AdminUserSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
 }, z.core.$strip>;
 type AdminUser = z.infer<typeof AdminUserSchema>;
@@ -9230,6 +9235,7 @@ declare const AdminUserListSchema: z.ZodArray<z.ZodObject<{
             "page.invoices": "page.invoices";
             "page.tradesheets": "page.tradesheets";
             "page.rules": "page.rules";
+            "feature.stock-levels": "feature.stock-levels";
         }>;
         granted: z.ZodBoolean;
         expiresAt: z.ZodNullable<z.ZodString>;
@@ -9258,6 +9264,7 @@ declare const AdminUserListSchema: z.ZodArray<z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
 }, z.core.$strip>>;
 declare const UpdateUserRequestSchema: z.ZodObject<{
@@ -9297,6 +9304,7 @@ declare const SetOverridesRequestSchema: z.ZodObject<{
             "page.invoices": "page.invoices";
             "page.tradesheets": "page.tradesheets";
             "page.rules": "page.rules";
+            "feature.stock-levels": "feature.stock-levels";
         }>;
         granted: z.ZodBoolean;
         expiresAt: z.ZodNullable<z.ZodString>;
@@ -9326,6 +9334,7 @@ declare const PermissionMatrixSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
     MANAGER: z.ZodArray<z.ZodEnum<{
         "analytics.pricing": "analytics.pricing";
@@ -9348,6 +9357,7 @@ declare const PermissionMatrixSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
     SALES: z.ZodArray<z.ZodEnum<{
         "analytics.pricing": "analytics.pricing";
@@ -9370,6 +9380,7 @@ declare const PermissionMatrixSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
     ACCOUNTING: z.ZodArray<z.ZodEnum<{
         "analytics.pricing": "analytics.pricing";
@@ -9392,6 +9403,7 @@ declare const PermissionMatrixSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
     AUDITOR: z.ZodArray<z.ZodEnum<{
         "analytics.pricing": "analytics.pricing";
@@ -9414,6 +9426,7 @@ declare const PermissionMatrixSchema: z.ZodObject<{
         "page.invoices": "page.invoices";
         "page.tradesheets": "page.tradesheets";
         "page.rules": "page.rules";
+        "feature.stock-levels": "feature.stock-levels";
     }>>;
 }, z.core.$strip>;
 type PermissionMatrix = Record<PermissionRole, readonly PermissionKey[]>;
@@ -9448,6 +9461,7 @@ declare const UpdatePermissionMatrixRequestSchema: z.ZodObject<{
             "page.invoices": "page.invoices";
             "page.tradesheets": "page.tradesheets";
             "page.rules": "page.rules";
+            "feature.stock-levels": "feature.stock-levels";
         }>;
         granted: z.ZodBoolean;
     }, z.core.$strip>>;
