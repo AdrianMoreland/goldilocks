@@ -2,7 +2,8 @@ name: Dependency audit
 
 on:
   pull_request:
-    branches: [main]
+    # master stays only until this rename PR is merged; remove it afterwards.
+    branches: [main, master]
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
