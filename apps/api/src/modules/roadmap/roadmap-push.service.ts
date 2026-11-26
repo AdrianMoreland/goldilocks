@@ -32,7 +32,7 @@ const MIN_LENGTH_RATIO = 0.9;
 
 /**
  * Sends the app's roadmap edits to GitHub as a pull request that changes only `docs/ROADMAP.md`
- * (roadmap 1.20, slice 3; docs/ROADMAP-SYNC-PUSH-DESIGN.md). The file is `mergeRoadmap(base, master, app).forFile`,
+ * (roadmap 1.20, slice 3). The file is `mergeRoadmap(base, master, app).forFile`,
  * so master's own newer changes ride along and nothing is reverted. The app's text and the base are never
  * touched here: after the owner merges the PR, the webhook pull brings everything level. Nothing merges.
  */
