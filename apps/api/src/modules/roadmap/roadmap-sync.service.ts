@@ -7,13 +7,14 @@ import {
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { diffRoadmap, normalizeRoadmap } from './roadmap-file';
 import { RoadmapService } from './roadmap.service';
+import { APP_REPO_BRANCH } from './roadmap-branch';
 
 const FILE_PATH = 'docs/ROADMAP.md';
-const BRANCH = 'master';
+const BRANCH = APP_REPO_BRANCH;
 const PREVIEW_LINES = 40;
 
 /**
- * Read-only: how the app's roadmap compares with `docs/ROADMAP.md` on master (roadmap 1.20, slice 1).
+ * Read-only: how the app's roadmap compares with `docs/ROADMAP.md` on main (roadmap 1.20, slice 1).
  * It never throws for a GitHub problem: the page shows the state `unavailable` and the reason instead.
  */
 @Injectable()

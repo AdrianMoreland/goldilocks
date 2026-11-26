@@ -36,7 +36,7 @@ Each app reads its own `.env` - see `apps/api/.env.example` for the required var
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every pull request to `master`: install, build `shared-types`, API type-check, API ESLint (any problem fails), API Jest, `shared-types` tests, web build. It needs no secrets. `audit.yml` (dependency audit, report-only) and `dependabot.yml` run alongside it; `ai-eval.yml` is manual-only and spends a few cents. Run the same gates locally from the repo root:
+`.github/workflows/ci.yml` runs on every pull request to `main`: install, build `shared-types`, API type-check, API ESLint (any problem fails), API Jest, `shared-types` tests, web build. It needs no secrets. `audit.yml` (dependency audit, report-only) and `dependabot.yml` run alongside it; `ai-eval.yml` is manual-only and spends a few cents. Run the same gates locally from the repo root:
 
 ```bash
 pnpm --filter @goldilocks/shared-types build

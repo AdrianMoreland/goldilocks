@@ -45,8 +45,8 @@ describe('RoadmapWebhookController', () => {
         expect(autoPull).not.toHaveBeenCalled();
     });
 
-    it('starts a background pull for a push to master', () => {
-        expect(call({ ref: 'refs/heads/master' }, 'push')).toEqual({
+    it('starts a background pull for a push to main', () => {
+        expect(call({ ref: 'refs/heads/main' }, 'push')).toEqual({
             accepted: true,
         });
         expect(autoPull).toHaveBeenCalledWith('github-webhook');
@@ -69,9 +69,9 @@ describe('RoadmapWebhookController', () => {
     });
 
     it('refuses a bad signature, a missing signature and a missing secret, and never pulls', () => {
-        expect(() =>
-            call({ ref: 'refs/heads/master' }, 'push', 'wrong'),
-        ).toThrow(UnauthorizedException);
+        expect(() => call({ ref: 'refs/heads/main' }, 'push', 'wrong')).toThrow(
+            UnauthorizedException,
+        );
         const raw = Buffer.from('{}');
         const req = {
             rawBody: raw,

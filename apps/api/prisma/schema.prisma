@@ -334,7 +334,7 @@ model RoadmapDocument {
   @@map("roadmap_document")
 }
 
-/// The text the app and master last agreed on, with master's changes taken in (docs/ROADMAP-SYNC-PULL-DESIGN.md).
+/// The text the app and main last agreed on, with main's changes taken in (docs/ROADMAP-SYNC-PULL-DESIGN.md).
 /// One row, id = 1. Slice 3 compares the app against it to find the app's own edits.
 model RoadmapSyncState {
   id           Int      @id

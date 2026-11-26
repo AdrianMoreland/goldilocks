@@ -146,7 +146,7 @@ describe('RoadmapPullService', () => {
             ).rejects.toBeInstanceOf(ConflictException);
         });
 
-        it('takes no snapshot and bumps nothing when the app already matches master', async () => {
+        it('takes no snapshot and bumps nothing when the app already matches main', async () => {
             roadmap.get.mockResolvedValue(doc(MASTER));
             const r = await service.pull('boss', { confirmReplace: true });
             expect(tx.roadmapSnapshot.create).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ describe('RoadmapPullService', () => {
     describe('later runs (merge)', () => {
         const BASE = '## 1.1 A\n\n- [ ] one\n- [ ] two\n';
         const state = { baseCommit: 'old0000', baseMarkdown: BASE };
-        const file = '## 1.1 A\n\n- [x] one\n- [ ] two\n- [ ] from master\n';
+        const file = '## 1.1 A\n\n- [x] one\n- [ ] two\n- [ ] from main\n';
 
         beforeEach(() => {
             prisma.roadmapSyncState.findUnique.mockResolvedValue(state);
@@ -197,7 +197,7 @@ describe('RoadmapPullService', () => {
             });
         });
 
-        it('does nothing when master has not moved since the last pull', async () => {
+        it('does nothing when main has not moved since the last pull', async () => {
             github.readFile.mockResolvedValue({
                 content: file,
                 commit: 'old0000',
@@ -207,7 +207,7 @@ describe('RoadmapPullService', () => {
             expect(prisma.$transaction).not.toHaveBeenCalled();
         });
 
-        it("merges master into the app and keeps the app's own edit", async () => {
+        it("merges main into the app and keeps the app's own edit", async () => {
             roadmap.get.mockResolvedValue(
                 doc(BASE.replace('- [ ] two', '- [x] two'), 3),
             );
@@ -216,7 +216,7 @@ describe('RoadmapPullService', () => {
                 .markdown as string;
             expect(written).toContain('- [x] one');
             expect(written).toContain('- [x] two');
-            expect(written).toContain('from master');
+            expect(written).toContain('from main');
             expect(tx.roadmapSnapshot.create).toHaveBeenCalledWith({
                 data: expect.objectContaining({
                     markdown: BASE.replace('- [ ] two', '- [x] two'),
@@ -252,7 +252,7 @@ describe('RoadmapPullService', () => {
             expect(prisma.$transaction).not.toHaveBeenCalled();
         });
 
-        it('moves the base without touching the app when master changed nothing the app lacks', async () => {
+        it('moves the base without touching the app when main changed nothing the app lacks', async () => {
             roadmap.get.mockResolvedValue(doc(file, 3));
             const r = await service.pull('boss', {});
             expect(tx.roadmapDocument.updateMany).not.toHaveBeenCalled();
@@ -265,7 +265,7 @@ describe('RoadmapPullService', () => {
             });
         });
 
-        it('keeps a task master deleted in the app, and the base keeps it too', async () => {
+        it('keeps a task main deleted in the app, and the base keeps it too', async () => {
             const deleted = '## 1.1 A\n\n- [ ] one\n';
             github.readFile.mockResolvedValue({
                 content: deleted,

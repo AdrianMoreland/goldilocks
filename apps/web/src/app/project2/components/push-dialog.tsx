@@ -63,7 +63,7 @@ export function PushDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                     <div className="flex flex-col gap-3">
                         <p className="font-medium">{pushHeadline(result)}</p>
                         <p className="text-muted-foreground text-xs">
-                            Built on master commit <span className="font-mono">{result.commit.slice(0, 7)}</span>
+                            Built on main commit <span className="font-mono">{result.commit.slice(0, 7)}</span>
                         </p>
 
                         {result.edits.length > 0 && (

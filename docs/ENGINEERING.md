@@ -240,7 +240,7 @@ docs(readme): document the pricing-sheet sync script
 refactor(auth): extract AuthProviderPort so Supabase is swappable
 ```
 
-Branches: `feature/<name>`, `fix/<name>`, `docs/<name>`, off `master` (this repo's default branch - there is no separate `main`).
+Branches: `feature/<name>`, `fix/<name>`, `docs/<name>`, off `main` (this repo's default branch).
 
 Prefer atomic commits - one logical change per commit - over one large "fixed stuff" commit. Commit only when asked.
 

@@ -5,7 +5,7 @@ const sign = (secret: string, body: Buffer) =>
     `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
 
 describe('isValidGithubSignature', () => {
-    const body = Buffer.from('{"ref":"refs/heads/master"}');
+    const body = Buffer.from('{"ref":"refs/heads/main"}');
 
     it('accepts the signature GitHub would send', () => {
         expect(

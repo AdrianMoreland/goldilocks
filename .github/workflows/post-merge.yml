@@ -1,9 +1,9 @@
 name: Post-merge
 
-# Runs after every push to master. Independent jobs, so one failure never hides another.
+# Runs after every push to main. Independent jobs, so one failure never hides another.
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
@@ -60,9 +60,9 @@ jobs:
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
             git fetch -q origin "$branch"
             git checkout -q -B "$branch" "origin/$branch"
-            git merge -q --no-edit origin/master
+            git merge -q --no-edit origin/main
           else
-            git checkout -q -B "$branch" origin/master
+            git checkout -q -B "$branch" origin/main
           fi
           node tools/roadmap-tick/tick.js docs/ROADMAP.md "$RUNNER_TEMP/pr-body.txt" | tee "$RUNNER_TEMP/report.txt"
           { echo '### Roadmap tick'; echo '```'; cat "$RUNNER_TEMP/report.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -80,7 +80,7 @@ jobs:
           open="$(gh pr list --repo "$REPO" --head roadmap-sync/auto --state open --json number --jq '.[0].number // empty')"
           if [ -n "$open" ]; then gh pr comment "$open" --repo "$REPO" --body "Updated for #$PR_NUMBER."; exit 0; fi
           body="$(printf 'Roadmap: none\n\nTicks the tasks named in merged PRs (starting with #%s). Only docs/ROADMAP.md changes. Merge by hand.' "$PR_NUMBER")"
-          gh pr create --repo "$REPO" --base master --head roadmap-sync/auto \
+          gh pr create --repo "$REPO" --base main --head roadmap-sync/auto \
             --title "[roadmap-sync] tick finished tasks" --body "$body"
 
   # Migrations are applied by Railway's pre-deploy command, and dev and production share one database.
@@ -127,7 +127,7 @@ jobs:
           done
           risky="$(git diff "$BEFORE" "$SHA" -- "$dir" | grep -iE '^\+.*(DROP (TABLE|COLUMN)|TRUNCATE|DELETE FROM)' || true)"
           list="$(sed 's/^/- /' <<<"$new")"
-          body="$(printf 'New migration(s) merged to master:\n\n%s\n\nThe database is shared by dev and production. Railway applies these in the API pre-deploy step (`pnpm prisma:deploy`).\n\n- [ ] API deploy finished\n- [ ] `prisma migrate status` shows no pending migrations\n- [ ] App still works (stocktake, pricing)\n' "$list")"
+          body="$(printf 'New migration(s) merged to main:\n\n%s\n\nThe database is shared by dev and production. Railway applies these in the API pre-deploy step (`pnpm prisma:deploy`).\n\n- [ ] API deploy finished\n- [ ] `prisma migrate status` shows no pending migrations\n- [ ] App still works (stocktake, pricing)\n' "$list")"
           if [ -n "$risky" ]; then
             body="$(printf '%s\n\n**Destructive statements found:**\n\n```\n%s\n```\n' "$body" "$risky")"
           fi

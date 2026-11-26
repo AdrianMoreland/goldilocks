@@ -2,8 +2,8 @@ import { parseRoadmap, type RoadmapTask } from './roadmap';
 import { mergeRoadmap } from './roadmap-merge';
 
 /**
- * What the app and master last agreed on, after master's changes are taken in
- * (docs/ROADMAP-SYNC-PULL-DESIGN.md section 2). Master's deletions stay in it, flagged, so a later push
+ * What the app and main last agreed on, after main's changes are taken in
+ * (docs/ROADMAP-SYNC-PULL-DESIGN.md section 2). Main's deletions stay in it, flagged, so a later push
  * cannot bring them back; what differs between the app and this text is exactly the app's own edits.
  */
 export function absorbFile(base: string, file: string): string {
@@ -18,9 +18,9 @@ export interface TaskRef {
 }
 
 export interface AppOnlyTasks {
-  /** In the app, nowhere on master (same section, same text). */
+  /** In the app, nowhere on main (same section, same text). */
   appOnly: TaskRef[];
-  /** Ticked in the app, present but unticked on master. */
+  /** Ticked in the app, present but unticked on main. */
   ticksOnlyInApp: TaskRef[];
 }
 

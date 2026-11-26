@@ -19,21 +19,22 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { diffRoadmap, normalizeRoadmap } from './roadmap-file';
 import { RoadmapService } from './roadmap.service';
+import { APP_REPO_BRANCH } from './roadmap-branch';
 
 const FILE_PATH = 'docs/ROADMAP.md';
-const BASE_BRANCH = 'master';
+const BASE_BRANCH = APP_REPO_BRANCH;
 export const PUSH_BRANCH = 'roadmap-sync/app';
 const PR_TITLE = '[roadmap-sync] app edits';
 const COMMIT_MESSAGE = 'roadmap-sync: app edits';
 const STATE_ID = 1;
 const PREVIEW_LINES = 40;
-/** A push may not shrink master's file by more than 10%: the one automatic sanity check. */
+/** A push may not shrink main's file by more than 10%: the one automatic sanity check. */
 const MIN_LENGTH_RATIO = 0.9;
 
 /**
  * Sends the app's roadmap edits to GitHub as a pull request that changes only `docs/ROADMAP.md`
- * (roadmap 1.20, slice 3). The file is `mergeRoadmap(base, master, app).forFile`,
- * so master's own newer changes ride along and nothing is reverted. The app's text and the base are never
+ * (roadmap 1.20, slice 3). The file is `mergeRoadmap(base, main, app).forFile`,
+ * so main's own newer changes ride along and nothing is reverted. The app's text and the base are never
  * touched here: after the owner merges the PR, the webhook pull brings everything level. Nothing merges.
  */
 @Injectable()
@@ -111,7 +112,7 @@ export class RoadmapPushService {
             normalizeRoadmap(file.content).length * MIN_LENGTH_RATIO
         ) {
             throw new BadRequestException(
-                'This would delete more than 10% of the roadmap on master, so nothing was sent.',
+                'This would delete more than 10% of the roadmap on main, so nothing was sent.',
             );
         }
 

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 /**
- * Where the app's roadmap stands against `docs/ROADMAP.md` on master (GET /roadmap/sync). Read only:
+ * Where the app's roadmap stands against `docs/ROADMAP.md` on main (GET /roadmap/sync). Read only:
  * slice 1 of docs/ROADMAP-TOOL-PLAN.md shows the gap; nothing is written to the app or to GitHub.
  */
 export const RoadmapSyncStatusSchema = z.object({
-  /** `unconfigured` no GitHub token; `in-sync` same text; `differs` the app and master disagree; `unavailable` GitHub could not be reached. */
+  /** `unconfigured` no GitHub token; `in-sync` same text; `differs` the app and main disagree; `unavailable` GitHub could not be reached. */
   state: z.enum(['unconfigured', 'in-sync', 'differs', 'unavailable']),
   /** `owner/name` the status was read from. */
   repo: z.string(),
@@ -14,11 +14,11 @@ export const RoadmapSyncStatusSchema = z.object({
   masterCommit: z.string().nullable(),
   appVersion: z.number().int().nonnegative(),
   appUpdatedAt: z.iso.datetime().nullable(),
-  /** Lines in the app's copy that master does not have. */
+  /** Lines in the app's copy that main does not have. */
   appOnlyLines: z.number().int().nonnegative(),
-  /** Lines on master that the app's copy does not have. */
+  /** Lines on main that the app's copy does not have. */
   masterOnlyLines: z.number().int().nonnegative(),
-  /** A short `+`/`-` preview of the difference (app against master), capped. */
+  /** A short `+`/`-` preview of the difference (app against main), capped. */
   preview: z.array(z.string()),
   /** The open `[roadmap-sync]` pull request, if there is one. */
   openSyncPr: z.object({ number: z.number().int(), title: z.string(), url: z.string() }).nullable(),
@@ -55,14 +55,14 @@ const TaskRefSchema = z.object({
 
 /**
  * The outcome of a pull, or of its preview: what the dry run shows is what the real run returns.
- * `adopt` is the first run (replaces the app's copy with master's), `merge` every later one, `nothing`
- * when master has not moved since the last pull.
+ * `adopt` is the first run (replaces the app's copy with main's), `merge` every later one, `nothing`
+ * when main has not moved since the last pull.
  */
 export const RoadmapPullResultSchema = z.object({
   mode: z.enum(['adopt', 'merge', 'nothing']),
   /** False for a dry run. */
   applied: z.boolean(),
-  /** Master commit the pull read. */
+  /** Main commit the pull read. */
   commit: z.string(),
   /** Whether the app's text changes (or changed). */
   appChanged: z.boolean(),
@@ -71,10 +71,10 @@ export const RoadmapPullResultSchema = z.object({
   /** First run only: tasks that exist only in the app, so would be replaced. Capped at 50. */
   appOnlyTasks: z.array(TaskRefSchema),
   appOnlyTaskCount: z.number().int().nonnegative(),
-  /** First run only: tasks ticked in the app but not on master. Capped at 50. */
+  /** First run only: tasks ticked in the app but not on main. Capped at 50. */
   ticksOnlyInApp: z.array(TaskRefSchema),
   ticksOnlyInAppCount: z.number().int().nonnegative(),
-  /** Lines only in the app and only on master (first run). */
+  /** Lines only in the app and only on main (first run). */
   appOnlyLines: z.number().int().nonnegative(),
   masterOnlyLines: z.number().int().nonnegative(),
   /** The snapshot of the app's previous text, when one was taken. */
@@ -94,11 +94,11 @@ export const RoadmapPushResultSchema = z.object({
   mode: z.enum(['push', 'nothing']),
   /** False for a dry run. */
   applied: z.boolean(),
-  /** Master commit the push was built on. */
+  /** Main commit the push was built on. */
   commit: z.string(),
   /** The app's edits being sent (the merge log's `to-file` entries). */
   edits: z.array(MergeEntrySchema),
-  /** A short `+`/`-` preview of master against the new file, capped. */
+  /** A short `+`/`-` preview of main against the new file, capped. */
   diffPreview: z.array(z.string()),
   /** The pull request opened or updated; null for a dry run or when there was nothing to push. */
   prNumber: z.number().int().nullable(),
