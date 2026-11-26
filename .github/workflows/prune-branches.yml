@@ -1,0 +1,93 @@
+name: Prune empty branches
+
+# Deletes branches that hold nothing the default branch lacks, so finished work never lingers.
+# A branch is deleted only when ALL of these hold:
+#   - it is not the default branch, not on the keep list, and has no open pull request;
+#   - its last commit is older than 2 days (a branch someone just started is left alone);
+#   - every change on it is already in the default branch: `git cherry` finds no commit of its own,
+#     or a test merge into the default branch changes nothing (squash merges count as merged).
+# Branches that hold work are never deleted by the rule; they are listed in the run summary.
+# Manual runs default to a dry run. `extra` names branches to delete even though they hold work
+# (only for work that was saved elsewhere first); the keep list and open pull requests still win.
+
+on:
+  schedule:
+    - cron: '23 4 * * 1' # Mondays 04:23 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only list what would be deleted'
+        type: boolean
+        default: true
+      extra:
+        description: 'Branches to delete even though they hold work (space separated, already saved elsewhere)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: prune-branches
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prune
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          EXTRA: ${{ inputs.extra }}
+        run: |
+          set -euo pipefail
+          KEEP='^(roadmap-sync/auto|preview|gh-pages)$'
+          MIN_AGE_DAYS=2
+          git fetch -q --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          # Scheduled runs carry no repository details in the event, so ask the API every time.
+          DEFAULT="$(gh api "repos/$REPO" --jq .default_branch)"
+          if [ -z "$DEFAULT" ] || ! git rev-parse -q --verify "origin/$DEFAULT" >/dev/null; then
+            echo "Default branch not found ('$DEFAULT'); stopping without deleting anything." >&2; exit 1
+          fi
+          open_prs="$(gh pr list --repo "$REPO" --state open --limit 200 --json headRefName --jq '.[].headRefName')"
+          now=$(date +%s)
+          deleted=(); kept=(); work=()
+          summary() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          summary "### Prune empty branches ($([ "$DRY_RUN" = true ] && echo 'dry run' || echo 'live')) on $REPO, default \`$DEFAULT\`"
+          summary ""
+          for ref in $(git for-each-ref --format='%(refname:lstrip=3)' refs/remotes/origin); do
+            b="$ref"
+            [ "$b" = HEAD ] && continue
+            [ "$b" = "$DEFAULT" ] && continue
+            if [[ "$b" =~ $KEEP ]]; then kept+=("$b (keep list)"); continue; fi
+            if grep -qxF -- "$b" <<<"$open_prs"; then kept+=("$b (open pull request)"); continue; fi
+            forced=false
+            for x in $EXTRA; do [ "$x" = "$b" ] && forced=true; done
+            age=$(( (now - $(git log -1 --format=%ct "origin/$b")) / 86400 ))
+            if [ "$forced" = false ] && [ "$age" -lt "$MIN_AGE_DAYS" ]; then kept+=("$b (active ${age}d ago)"); continue; fi
+            # Any git failure here counts as "holds work": never as empty.
+            if ! cherry=$(git cherry "origin/$DEFAULT" "origin/$b"); then work+=("$b (could not compare, kept)"); continue; fi
+            own=$(grep -c '^+' <<<"$cherry" || true)
+            empty=false
+            if [ "$own" -eq 0 ]; then empty=true
+            else
+              tree=$(git merge-tree --write-tree "origin/$DEFAULT" "origin/$b" 2>/dev/null | head -1 || true)
+              [ -n "$tree" ] && [ "$tree" = "$(git rev-parse "origin/$DEFAULT^{tree}")" ] && empty=true
+            fi
+            if [ "$empty" = false ] && [ "$forced" = false ]; then work+=("$b ($own commits not in $DEFAULT, last ${age}d ago)"); continue; fi
+            why=$([ "$empty" = true ] && echo "nothing to lose" || echo "forced: saved elsewhere")
+            if [ "$DRY_RUN" = true ]; then deleted+=("$b (would delete: $why)")
+            elif tip=$(git rev-parse --short "origin/$b") && git push -q origin --delete "$b"; then deleted+=("$b (deleted: $why, tip $tip)")
+            else kept+=("$b (delete refused, likely protected)"); fi
+          done
+          summary "**$([ "$DRY_RUN" = true ] && echo "Would delete" || echo Deleted)** (${#deleted[@]}):"; for x in "${deleted[@]}"; do summary "- $x"; done
+          summary ""; summary "**Holds work, kept** (${#work[@]}):"; for x in "${work[@]}"; do summary "- $x"; done
+          summary ""; summary "**Kept by rule** (${#kept[@]}):"; for x in "${kept[@]}"; do summary "- $x"; done
+          summary ""; summary "Restore a deleted branch: \`git push origin <tip sha>:refs/heads/<name>\` (the sha is listed above)."
