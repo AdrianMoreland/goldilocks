@@ -115,7 +115,7 @@ describe('RoadmapPushService', () => {
             expect.objectContaining({
                 title: '[roadmap-sync] app edits',
                 head: 'roadmap-sync/app',
-                base: 'master',
+                base: 'main',
                 body: expect.stringMatching(/^Roadmap: none\n/),
             }),
         );
@@ -135,7 +135,7 @@ describe('RoadmapPushService', () => {
         );
     });
 
-    it('puts master’s newer lines into the file too, so nothing is reverted', async () => {
+    it('puts main’s newer lines into the file too, so nothing is reverted', async () => {
         const master = BASE + '- [ ] eleven\n';
         github.readFile.mockResolvedValue({ content: master, commit: 'm2' });
         await service.push('boss');
@@ -172,8 +172,8 @@ describe('RoadmapPushService', () => {
         );
     });
 
-    it('refuses a file under 90% of master’s length', async () => {
-        const big = BASE + '- [ ] filler line to make master long\n'.repeat(30);
+    it('refuses a file under 90% of main’s length', async () => {
+        const big = BASE + '- [ ] filler line to make main long\n'.repeat(30);
         github.readFile.mockResolvedValue({ content: big, commit: 'm3' });
         // base == big, the app dropped the filler: the push would delete most of the file
         prisma.roadmapSyncState.findUnique.mockResolvedValue({
@@ -231,7 +231,7 @@ describe('RoadmapPushService', () => {
         });
     });
 
-    it('turns an unreadable master into a bad gateway', async () => {
+    it('turns an unreadable main into a bad gateway', async () => {
         github.readFile.mockRejectedValue(new Error('GitHub answered 502'));
         await expect(service.push('boss')).rejects.toBeInstanceOf(
             BadGatewayException,

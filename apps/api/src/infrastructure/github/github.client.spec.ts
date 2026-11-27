@@ -135,7 +135,7 @@ describe('GithubClient writes', () => {
             title: 'T',
             body: 'B',
             head: 'roadmap-sync/app',
-            base: 'master',
+            base: 'main',
         });
 
         expect(pr).toEqual({
@@ -148,7 +148,7 @@ describe('GithubClient writes', () => {
             title: 'T',
             body: 'B',
             head: 'roadmap-sync/app',
-            base: 'master',
+            base: 'main',
         });
     });
 
@@ -167,7 +167,7 @@ describe('GithubClient writes', () => {
                 title: 'T',
                 body: 'B',
                 head: 'h',
-                base: 'master',
+                base: 'main',
             }),
         ).rejects.toThrow('GitHub answered 500');
         expect((global.fetch as jest.Mock).mock.calls).toHaveLength(1);

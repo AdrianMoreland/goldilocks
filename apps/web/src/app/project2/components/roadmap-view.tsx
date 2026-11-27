@@ -83,7 +83,7 @@ export function RoadmapView() {
     if (roadmap.data?.version === 0) {
         return (
             <p className="text-muted-foreground rounded-2xl border border-dashed px-4 py-8 text-center text-sm">
-                The roadmap has not been imported yet. Press Sync from GitHub above to bring in master&apos;s copy.
+                The roadmap has not been imported yet. Press Sync from GitHub above to bring in main&apos;s copy.
             </p>
         )
     }
@@ -101,7 +101,7 @@ export function RoadmapView() {
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Goldilocks roadmap</h1>
                 <p className="text-muted-foreground mt-1 max-w-prose text-sm">
-                    Every phase, section and task from docs/ROADMAP.md. Tick, add, edit and delete here; the file on master stays the record.
+                    Every phase, section and task from docs/ROADMAP.md. Tick, add, edit and delete here; the file on main stays the record.
                 </p>
                 {roadmap.data?.updatedAt && (
                     <p className="text-muted-foreground mt-2 text-xs">

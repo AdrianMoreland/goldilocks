@@ -36,7 +36,7 @@ function MergeLog({ log }: { log: RoadmapPullResult["log"] }) {
         <div className="text-sm">
             <p className="font-medium">What happens</p>
             <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
-                {fromMaster} from master · {appOnly} only in the app · {needLook} to look at
+                {fromMaster} from main · {appOnly} only in the app · {needLook} to look at
             </p>
             <ul className="mt-2 max-h-64 divide-y overflow-y-auto rounded-md border">
                 {log.map((entry, i) => (
@@ -52,7 +52,7 @@ function MergeLog({ log }: { log: RoadmapPullResult["log"] }) {
 }
 
 /**
- * Previews, then applies, a pull of master's roadmap into the app (roadmap 1.20 slice 2). The preview is the
+ * Previews, then applies, a pull of main's roadmap into the app (roadmap 1.20 slice 2). The preview is the
  * server's dry run, so what is shown is what Apply does. The first run replaces the app's copy, so it needs a
  * tick in the box; a snapshot of the old text is kept either way.
  */
@@ -101,7 +101,7 @@ export function PullDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                 {preview.isLoading && <Skeleton className="h-32 w-full rounded-xl" />}
                 {preview.isError && (
                     <p role="alert" className="text-destructive text-sm">
-                        {preview.error instanceof Error ? preview.error.message : "Could not read master."}
+                        {preview.error instanceof Error ? preview.error.message : "Could not read main."}
                     </p>
                 )}
 
@@ -115,18 +115,18 @@ export function PullDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                         {result.mode === "adopt" && result.appChanged && (
                             <>
                                 <p className="text-sm tabular-nums">
-                                    {result.appOnlyLines} lines only in the app will be replaced; {result.masterOnlyLines} lines only on master will come in.
+                                    {result.appOnlyLines} lines only in the app will be replaced; {result.masterOnlyLines} lines only on main will come in.
                                 </p>
                                 <List
                                     title={`${result.appOnlyTaskCount} task${result.appOnlyTaskCount === 1 ? "" : "s"} exist only in the app`}
                                     items={result.appOnlyTasks.map((t) => `${t.section}: ${t.title}${t.checked ? " (ticked)" : ""}`)}
                                 />
                                 <List
-                                    title={`${result.ticksOnlyInAppCount} tick${result.ticksOnlyInAppCount === 1 ? "" : "s"} made in the app are not on master`}
+                                    title={`${result.ticksOnlyInAppCount} tick${result.ticksOnlyInAppCount === 1 ? "" : "s"} made in the app are not on main`}
                                     items={result.ticksOnlyInApp.map((t) => `${t.section}: ${t.title}`)}
                                 />
                                 {result.appOnlyTaskCount === 0 && result.ticksOnlyInAppCount === 0 && (
-                                    <p className="text-muted-foreground text-sm">No task or tick will be lost: everything in the app is already on master.</p>
+                                    <p className="text-muted-foreground text-sm">No task or tick will be lost: everything in the app is already on main.</p>
                                 )}
                                 <div className="flex items-start gap-2">
                                     <Checkbox id="confirm-replace" checked={confirmed} onCheckedChange={(v) => setConfirmed(v === true)} className="mt-0.5 cursor-pointer" />
@@ -139,7 +139,7 @@ export function PullDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
                         {result.mode === "merge" && result.log.length > 0 && <MergeLog log={result.log} />}
                         {result.mode === "merge" && result.log.length === 0 && result.appChanged === false && (
-                            <p className="text-muted-foreground text-sm">Master has changes, but none that the app needs.</p>
+                            <p className="text-muted-foreground text-sm">Main has changes, but none that the app needs.</p>
                         )}
                     </div>
                 )}

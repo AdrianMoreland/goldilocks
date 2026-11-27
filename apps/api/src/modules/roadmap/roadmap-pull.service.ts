@@ -24,9 +24,10 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { diffRoadmap, normalizeRoadmap } from './roadmap-file';
 import { RoadmapService } from './roadmap.service';
+import { APP_REPO_BRANCH } from './roadmap-branch';
 
 const FILE_PATH = 'docs/ROADMAP.md';
-const BRANCH = 'master';
+const BRANCH = APP_REPO_BRANCH;
 const STATE_ID = 1;
 const ROW_ID = 1;
 const LIST_CAP = 50;
@@ -34,8 +35,8 @@ const LIST_CAP = 50;
 type Document = Awaited<ReturnType<RoadmapService['get']>>;
 
 /**
- * Brings `docs/ROADMAP.md` on master into the app's roadmap (roadmap 1.20, slice 2;
- * docs/ROADMAP-SYNC-PULL-DESIGN.md). Nothing the app has that master lacks is lost: later pulls are a
+ * Brings `docs/ROADMAP.md` on main into the app's roadmap (roadmap 1.20, slice 2;
+ * docs/ROADMAP-SYNC-PULL-DESIGN.md). Nothing the app has that main lacks is lost: later pulls are a
  * three-way merge against the text both last agreed on; the first one replaces the app's copy, only
  * after a confirmation and with the old text kept as a snapshot. Every write, its snapshot and its audit
  * entry share one transaction, and the version guard makes a race with an edit lose cleanly.
@@ -116,7 +117,7 @@ export class RoadmapPullService implements OnApplicationBootstrap {
         }
     }
 
-    /** First run: the app's copy becomes master's. Preview, confirmation, snapshot, then write. */
+    /** First run: the app's copy becomes main's. Preview, confirmation, snapshot, then write. */
     private async adopt(
         actor: string,
         options: RoadmapPullRequest,
@@ -149,7 +150,7 @@ export class RoadmapPullService implements OnApplicationBootstrap {
         if (options.dryRun) return preview;
         if (!options.confirmReplace) {
             throw new BadRequestException(
-                "The first pull replaces the app's copy of the roadmap with master's. Confirm it (confirmReplace) after reading the preview.",
+                "The first pull replaces the app's copy of the roadmap with main's. Confirm it (confirmReplace) after reading the preview.",
             );
         }
 
@@ -164,7 +165,7 @@ export class RoadmapPullService implements OnApplicationBootstrap {
                             data: {
                                 markdown: app.markdown,
                                 version: app.version,
-                                reason: `before the first pull of master ${short}`,
+                                reason: `before the first pull of main ${short}`,
                                 createdBy: actor,
                             },
                         });
@@ -195,8 +196,8 @@ export class RoadmapPullService implements OnApplicationBootstrap {
                     actor,
                     'roadmap',
                     same
-                        ? `pull (first run): the app already matched master ${short}`
-                        : `pull (first run): replaced the app's copy with master ${short}; snapshot ${snapshotId ?? 'none'}`,
+                        ? `pull (first run): the app already matched main ${short}`
+                        : `pull (first run): replaced the app's copy with main ${short}; snapshot ${snapshotId ?? 'none'}`,
                     tx,
                 );
                 return { snapshotId, version };
@@ -271,7 +272,7 @@ export class RoadmapPullService implements OnApplicationBootstrap {
                         data: {
                             markdown: app.markdown,
                             version: app.version,
-                            reason: `before merging master ${short}`,
+                            reason: `before merging main ${short}`,
                             createdBy: actor,
                         },
                     });
@@ -292,8 +293,8 @@ export class RoadmapPullService implements OnApplicationBootstrap {
                     actor,
                     'roadmap',
                     merged.appChanged
-                        ? `pull: merged master ${short} into the app (${merged.log.length} change(s)); snapshot ${snapshotId}`
-                        : `pull: master ${short} needed no change in the app`,
+                        ? `pull: merged main ${short} into the app (${merged.log.length} change(s)); snapshot ${snapshotId}`
+                        : `pull: main ${short} needed no change in the app`,
                     tx,
                 );
                 return { snapshotId, version };

@@ -202,7 +202,7 @@ export class GithubClient implements GithubPort {
             });
         }
 
-        // The branch now equals master, so the file's blob sha on it is the one the update must name.
+        // The branch now equals main, so the file's blob sha on it is the one the update must name.
         const current = await this.request(
             `${repo}/contents/${path}?ref=${ref}`,
             'application/vnd.github+json',

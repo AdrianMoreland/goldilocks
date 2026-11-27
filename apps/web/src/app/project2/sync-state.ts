@@ -20,14 +20,14 @@ export function tokenDaysLeft(status: RoadmapSyncStatus, now: Date): number | nu
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
-/** The one-line story for the banner: what state the app's roadmap is in against master, and what it means. */
+/** The one-line story for the banner: what state the app's roadmap is in against main, and what it means. */
 export function summarize(status: RoadmapSyncStatus): SyncSummary {
     switch (status.state) {
         case "unconfigured":
             return {
                 tone: "muted",
                 title: "Sync is not set up",
-                detail: "Add GITHUB_SYNC_TOKEN to the API's environment to compare this roadmap with the file on master.",
+                detail: "Add GITHUB_SYNC_TOKEN to the API's environment to compare this roadmap with the file on main.",
             }
         case "unavailable":
             return {
@@ -36,12 +36,12 @@ export function summarize(status: RoadmapSyncStatus): SyncSummary {
                 detail: status.error ?? "GitHub did not answer. The app's roadmap is unchanged.",
             }
         case "in-sync":
-            return { tone: "ok", title: "Matches master", detail: "The app's roadmap and docs/ROADMAP.md are the same." }
+            return { tone: "ok", title: "Matches main", detail: "The app's roadmap and docs/ROADMAP.md are the same." }
         case "differs":
             return {
                 tone: "warn",
-                title: "Differs from master",
-                detail: `${plural(status.appOnlyLines, "line")} only in the app, ${plural(status.masterOnlyLines, "line")} only on master.`,
+                title: "Differs from main",
+                detail: `${plural(status.appOnlyLines, "line")} only in the app, ${plural(status.masterOnlyLines, "line")} only on main.`,
             }
     }
 }
@@ -55,15 +55,15 @@ export function describeEntry(entry: LogEntry): string {
     const text = clip(entry.text)
     switch (entry.kind) {
         case "to-app":
-            return `Brought in from master: ${text}`
+            return `Brought in from main: ${text}`
         case "to-file":
             return `Only in the app (kept, not sent to GitHub yet): ${text}`
         case "conflict-app-wins":
             return `Both changed it, the app's version is kept: ${text}`
         case "kept-file-edit":
-            return `Deleted in the app but changed on master, master's version is kept: ${text}`
+            return `Deleted in the app but changed on main, main's version is kept: ${text}`
         case "missing-from-file":
-            return `Deleted on master, kept in the app: ${text}`
+            return `Deleted on main, kept in the app: ${text}`
         case "both-added":
             return `Both added lines here, both are kept: ${text}`
     }
@@ -71,9 +71,9 @@ export function describeEntry(entry: LogEntry): string {
 
 /** The one-line question the sync dialog asks, from what the preview found. */
 export function pullHeadline(result: RoadmapPullResult): string {
-    if (result.mode === "nothing") return "Already up to date with master"
-    if (result.mode === "adopt") return result.appChanged ? "Replace the app's roadmap with master's" : "The app already matches master"
-    return result.appChanged ? "Bring master's changes into the app" : "Nothing to change in the app"
+    if (result.mode === "nothing") return "Already up to date with main"
+    if (result.mode === "adopt") return result.appChanged ? "Replace the app's roadmap with main's" : "The app already matches main"
+    return result.appChanged ? "Bring main's changes into the app" : "Nothing to change in the app"
 }
 
 /** Whether Apply does anything: a merge or first run that changes nothing still records the sync point, so it is allowed. */
@@ -91,11 +91,11 @@ export function meterShares(appOnly: number, masterOnly: number): { app: number;
 }
 
 const ENTRY_LABEL: Record<LogEntry["kind"], string> = {
-    "to-app": "From master",
+    "to-app": "From main",
     "to-file": "App only",
     "conflict-app-wins": "Conflict, app kept",
-    "kept-file-edit": "Conflict, master kept",
-    "missing-from-file": "Deleted on master",
+    "kept-file-edit": "Conflict, main kept",
+    "missing-from-file": "Deleted on main",
     "both-added": "Both added",
 }
 

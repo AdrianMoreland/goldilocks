@@ -2,9 +2,10 @@ name: CI
 
 on:
   pull_request:
-    branches: [master]
+    # master stays only until this rename PR is merged; remove it afterwards.
+    branches: [main, master]
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read

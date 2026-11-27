@@ -212,11 +212,11 @@ Four sections, ordered by "is the app lying to me right now?". Builds on the 0.3
 
 ## 0.10 Testing, CI and docs 🟠
 
-- [x] 🔴 **CI on every PR to `master`** (GitHub Actions) - S *(done 2026-10-02)*
+- [x] 🔴 **CI on every PR to `main`** (GitHub Actions) - S *(done 2026-10-02)*
   - [x] Steps: pnpm install → build `@goldilocks/shared-types` first (consumers read `dist/`) → `tsc` → ESLint from `apps/api` with `--no-fix` → API Jest → `shared-types` specs → web build
   - [x] Fail on any non-zero ESLint count (the baseline is 0); cache the pnpm store; mocks only, no real Supabase/OpenAI keys
-  - [x] Branch protection on `master` requiring the CI check
-  - [x] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(`master` ruleset requires a PR and the `ci` check; Railway "Wait for CI" is on for `api` and `web`; `ai-eval.yml` is manual-only and needs `OPENAI_API_KEY` + `DATABASE_URL` repo secrets)*
+  - [x] Branch protection on `main` requiring the CI check
+  - [x] Delivery gate: Railway deploys only after CI passes; optional opt-in nightly `pnpm --filter api ai:eval` (costs a few cents) *(`main` ruleset requires a PR and the `ci` check; Railway "Wait for CI" is on for `api` and `web`; `ai-eval.yml` is manual-only and needs `OPENAI_API_KEY` + `DATABASE_URL` repo secrets)*
   - [x] `pnpm audit` / Dependabot in the same workflow (see 0.6) *(report-only: 127 findings today, so it is not a required check; Dependabot is configured)*
   - [x] Web lint cannot run: `apps/web/package.json` runs `eslint .` but no ESLint config exists under `apps/web`, and CI never lints the web app *(done 2026-10-25: `apps/web/eslint.config.js` added, 0 errors, 69 warnings left as backlog (React hook rules, `only-export-components`); template pages and shadcn files are ignored; `ESLint (web)` step added to CI. Review 2026-10-25, verified)*
   - [ ] `apps/api` `test:e2e` points at `./test/jest-e2e.json` but `apps/api/test/` does not exist *(review 2026-10-25, verified)*; write the smoke test (below) or delete the script
@@ -560,7 +560,7 @@ One place in `/project` to capture, sort, tick and edit roadmap tasks, with real
 
 - [x] Slice 0: add this section to the roadmap - S
 - [x] Slice 1: `GithubPort`, `GET /roadmap/sync` status, read-only sync banner on the new `/project2` page (built beside `/project`, which stays untouched until `/project2` replaces it), `mergeRoadmap` in `shared-types` with tests; needs `GITHUB_SYNC_TOKEN` - M
-- [x] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `master` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
+- [x] Slice 2: sync pull and the `roadmap_sync_state` migration; replace the stale app roadmap after the owner saves a backup; webhook after merges to `main` and pull on API start-up; needs `GITHUB_WEBHOOK_SECRET` - M
 - [x] Slice 3: sync push (opens or updates one `roadmap-sync/<date>` PR, never merges), plus the daily schedule - M
 - [x] Slice 4: inbox (`roadmap_inbox` migration): quick add, triage, GitHub `roadmap` issue intake - M
 - [ ] Slice 5: backlog (`backlog_item` migration): board, bugs and fixes, decisions, one-off import of the external Backlog page data - M

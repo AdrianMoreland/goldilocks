@@ -154,7 +154,7 @@ export const OPERATIONS_TOPICS: Topic[] = [
                 steps: [
                     { label: "Branch + PR", sub: "feature/ fix/ docs/" },
                     { label: "CI", sub: "build shared-types → tsc → lint → tests", tone: "gold" },
-                    { label: "Merge to master", sub: "branch protection" },
+                    { label: "Merge to main", sub: "branch protection" },
                     { label: "Railway deploy", sub: "api + web services" },
                     { label: "Health check", sub: "/health" },
                 ],
@@ -162,7 +162,7 @@ export const OPERATIONS_TOPICS: Topic[] = [
             {
                 kind: "cards",
                 items: [
-                    { title: "Conventional Commits", tag: "git", body: "`feat(trade): …`, `fix(products): …`. One logical change per commit, branches off `master`. Commit only when asked." },
+                    { title: "Conventional Commits", tag: "git", body: "`feat(trade): …`, `fix(products): …`. One logical change per commit, branches off `main`. Commit only when asked." },
                     { title: "Rebuild shared-types", tag: "gotcha", tone: "warn", body: "Consumers read `dist/`. After editing `packages/shared-types`, run its build, then restart a `--watch` API." },
                     { title: "Env on Railway", tag: "config", body: "API needs the database, Supabase and Redis URLs plus `FRONTEND_URL`; the web build needs `VITE_API_URL`. Redis must be a real host, never `127.0.0.1`." },
                     { title: "Expand, then contract", tag: "schema", body: "Ship additive migrations first so the old and new app versions both run during a deploy." },

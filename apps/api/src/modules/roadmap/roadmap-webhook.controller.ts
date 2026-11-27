@@ -15,11 +15,12 @@ import { Public } from '../../common/decorators/public.decorator';
 import { isValidGithubSignature } from './github-signature';
 import { RoadmapInboxService } from './roadmap-inbox.service';
 import { RoadmapPullService } from './roadmap-pull.service';
+import { APP_REPO_BRANCH } from './roadmap-branch';
 
 /**
  * GitHub calls this after every push (roadmap 1.20 slice 2). It is open to the internet by necessity,
  * so the signature is the only credential: no valid `X-Hub-Signature-256` for the shared secret, no
- * work. A push to master starts a background pull and answers at once, well inside GitHub's 10 seconds.
+ * work. A push to main starts a background pull and answers at once, well inside GitHub's 10 seconds.
  * Deliberately a separate controller from RoadmapController, which is admin only as a whole.
  */
 @ApiTags('roadmap')
@@ -54,13 +55,13 @@ export class RoadmapWebhookController {
         }
 
         const body = req.body as { ref?: unknown } | undefined;
-        if (event !== 'push' || body?.ref !== 'refs/heads/master') {
+        if (event !== 'push' || body?.ref !== `refs/heads/${APP_REPO_BRANCH}`) {
             return { ignored: true };
         }
         void this.pulls.autoPull('github-webhook').then((result) => {
             if (result?.applied) {
                 this.logger.log(
-                    `Pulled master ${result.commit.slice(0, 7)} after a push (${result.mode})`,
+                    `Pulled main ${result.commit.slice(0, 7)} after a push (${result.mode})`,
                 );
             }
         });

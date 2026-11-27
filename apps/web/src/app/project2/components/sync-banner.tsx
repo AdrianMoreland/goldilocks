@@ -19,8 +19,8 @@ const TITLE_TEXT: Partial<Record<SyncTone, string>> = {
 }
 
 /**
- * Where the app's roadmap stands against docs/ROADMAP.md on master (roadmap 1.20, slices 1 to 3).
- * Sync from GitHub previews and then pulls master into the app (slice 2); Send app edits to GitHub previews and then opens a pull request (slice 3). Built from the
+ * Where the app's roadmap stands against docs/ROADMAP.md on main (roadmap 1.20, slices 1 to 3).
+ * Sync from GitHub previews and then pulls main into the app (slice 2); Send app edits to GitHub previews and then opens a pull request (slice 3). Built from the
  * shared Card, hairline borders and status dots, with no tinted backgrounds (DESIGN.md).
  */
 export function SyncBanner() {
@@ -102,7 +102,7 @@ export function SyncBanner() {
                         <dd className="text-foreground font-mono tabular-nums">{status.appVersion}</dd>
                     </div>
                     <div>
-                        <dt>Master commit</dt>
+                        <dt>Main commit</dt>
                         <dd className="text-foreground font-mono tabular-nums">{status.masterCommit?.slice(0, 7) ?? "-"}</dd>
                     </div>
                     <div>
@@ -135,7 +135,7 @@ export function SyncBanner() {
 
                 {status.preview.length > 0 && (
                     <details className="text-xs">
-                        <summary className="cursor-pointer select-none">Show the difference (+ only in the app, − only on master)</summary>
+                        <summary className="cursor-pointer select-none">Show the difference (+ only in the app, − only on main)</summary>
                         <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md p-3 font-mono whitespace-pre-wrap">
                             {status.preview.join("\n")}
                         </pre>

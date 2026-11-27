@@ -1,10 +1,10 @@
 /**
- * Three-way merge of docs/ROADMAP.md for the sync between the app's copy and the file on `master`
+ * Three-way merge of docs/ROADMAP.md for the sync between the app's copy and the file on `main`
  * (docs/ROADMAP-TOOL-PLAN.md section 7). Pure and line based, like the rest of the roadmap helpers, so
  * everything a side did not touch comes back byte for byte.
  *
  *   base - the file at the last sync
- *   file - the file on master now
+ *   file - the file on main now
  *   app  - the app's copy now
  *
  * Two results come back because one rule makes them differ: a task that disappears from the file is
@@ -43,7 +43,7 @@ export interface RoadmapMergeResult {
   forApp: string;
   forFile: string;
   log: RoadmapMergeEntry[];
-  /** True when `forFile` differs from the file on master, i.e. there is something to push. */
+  /** True when `forFile` differs from the file on main, i.e. there is something to push. */
   fileChanged: boolean;
   /** True when `forApp` differs from the app's copy, i.e. there is something to pull. */
   appChanged: boolean;

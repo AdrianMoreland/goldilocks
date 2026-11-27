@@ -118,7 +118,7 @@ export class RoadmapController {
     @Get('sync')
     @ApiOperation({
         summary:
-            'How the app roadmap compares with docs/ROADMAP.md on master (admin, read only)',
+            'How the app roadmap compares with docs/ROADMAP.md on main (admin, read only)',
     })
     @ApiResponse({ status: 200, type: RoadmapSyncStatusDto })
     syncStatus() {
@@ -129,7 +129,7 @@ export class RoadmapController {
     @Throttle({ default: { limit: 6, ttl: 60_000 } })
     @ApiOperation({
         summary:
-            "Bring master's roadmap into the app (admin). dryRun previews; the first run needs confirmReplace",
+            "Bring main's roadmap into the app (admin). dryRun previews; the first run needs confirmReplace",
     })
     @ApiResponse({ status: 201, type: RoadmapPullResultDto })
     pull(@Body() body: RoadmapPullRequestDto, @Req() req: RequestWithUser) {

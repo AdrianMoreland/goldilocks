@@ -18,7 +18,7 @@ import {
 const status = (over: Partial<RoadmapSyncStatus> = {}): RoadmapSyncStatus => ({
     state: "in-sync",
     repo: "owner/repo",
-    branch: "master",
+    branch: "main",
     masterCommit: "abc1234",
     appVersion: 3,
     appUpdatedAt: "2026-10-19T10:00:00.000Z",
@@ -49,7 +49,7 @@ describe("summarize", () => {
 
     it("counts the differing lines, singular and plural", () => {
         expect(summarize(status({ state: "differs", appOnlyLines: 1, masterOnlyLines: 361 })).detail).toBe(
-            "1 line only in the app, 361 lines only on master.",
+            "1 line only in the app, 361 lines only on main.",
         )
     })
 })
@@ -86,8 +86,8 @@ const pulled = (over: Partial<RoadmapPullResult> = {}): RoadmapPullResult => ({
 
 describe("describeEntry", () => {
     it("says in plain words what happened to each kind of change", () => {
-        expect(describeEntry({ kind: "to-app", baseLine: 4, text: "- [x] one" })).toBe("Brought in from master: - [x] one")
-        expect(describeEntry({ kind: "missing-from-file", baseLine: 4, text: "- [ ] two" })).toBe("Deleted on master, kept in the app: - [ ] two")
+        expect(describeEntry({ kind: "to-app", baseLine: 4, text: "- [x] one" })).toBe("Brought in from main: - [x] one")
+        expect(describeEntry({ kind: "missing-from-file", baseLine: 4, text: "- [ ] two" })).toBe("Deleted on main, kept in the app: - [ ] two")
         expect(describeEntry({ kind: "conflict-app-wins", baseLine: 1, text: "x" })).toContain("app's version is kept")
     })
 
@@ -100,10 +100,10 @@ describe("describeEntry", () => {
 
 describe("pullHeadline and canApply", () => {
     it("asks the right question for each mode", () => {
-        expect(pullHeadline(pulled({ mode: "adopt" }))).toBe("Replace the app's roadmap with master's")
-        expect(pullHeadline(pulled({ mode: "adopt", appChanged: false }))).toBe("The app already matches master")
-        expect(pullHeadline(pulled())).toBe("Bring master's changes into the app")
-        expect(pullHeadline(pulled({ mode: "nothing", appChanged: false }))).toBe("Already up to date with master")
+        expect(pullHeadline(pulled({ mode: "adopt" }))).toBe("Replace the app's roadmap with main's")
+        expect(pullHeadline(pulled({ mode: "adopt", appChanged: false }))).toBe("The app already matches main")
+        expect(pullHeadline(pulled())).toBe("Bring main's changes into the app")
+        expect(pullHeadline(pulled({ mode: "nothing", appChanged: false }))).toBe("Already up to date with main")
     })
 
     it("needs the confirmation only for the first run, and never applies when nothing moved", () => {
@@ -129,7 +129,7 @@ describe("merge log rows", () => {
     const entry = (kind: Parameters<typeof entryLabel>[0]["kind"]) => ({ kind, baseLine: 1, text: "x" })
 
     it("labels every kind and flags only the two-version decisions", () => {
-        expect(entryLabel(entry("to-app"))).toBe("From master")
+        expect(entryLabel(entry("to-app"))).toBe("From main")
         expect(entryTone(entry("to-app"))).toBe("ok")
         expect(entryTone(entry("to-file"))).toBe("muted")
         expect(entryTone(entry("conflict-app-wins"))).toBe("warn")
