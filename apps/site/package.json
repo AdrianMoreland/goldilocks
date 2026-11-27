@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@goldilocks/typescript-config": "workspace:*",
-    "@react-router/dev": "^7.18.4",
+    "@react-router/dev": "^8.5.2",
     "@tailwindcss/vite": "^4.1.18",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
